@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
+// 🔥 إضافة الـ Import فقط
+import AiWidget from '@/Pages/AI/AiWidget';
 
 export default function MainLayout({ children }) {
     const { auth } = usePage().props;
@@ -179,7 +181,7 @@ export default function MainLayout({ children }) {
                                         <div className="flex flex-col items-end leading-none ml-2">
                                             <div className="flex items-center gap-1.5">
                                                 <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{auth.user.name.split(' ')[0]}</span>
-                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${auth.user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${auth.user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
                                                     {auth.user.role === 'admin' ? t.admin : 'STUDENT'}
                                                 </span>
                                             </div>
@@ -230,7 +232,7 @@ export default function MainLayout({ children }) {
             {/* 🔥 Mobile Menu 🔥 */}
             <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
-                <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
+                <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
                     <div className="h-24 border-b border-white/5 flex items-center justify-between px-6 bg-indigo-600 text-white">
                         <span className="text-2xl font-black">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</span>
                         <button onClick={() => setMobileOpen(false)} className="text-3xl">&times;</button>
@@ -261,6 +263,9 @@ export default function MainLayout({ children }) {
             <main className="flex-1 flex flex-col w-full relative z-10 pt-20 sm:pt-28">
                 {children}
             </main>
+
+            {/* 🔥 هنا يظهر الذكاء الاصطناعي في كل الصفحات 🔥 */}
+            {auth.user && <AiWidget user={auth.user} />}
 
             {/* =========================================
                 4. PREMIUM FOOTER
