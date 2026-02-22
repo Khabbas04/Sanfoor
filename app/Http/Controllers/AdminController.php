@@ -109,11 +109,12 @@ class AdminController extends Controller
             'name'            => 'required|string|max:255',
             'code'            => 'required|string|unique:courses,code',
             'credit_hours'    => 'required|integer',
-            'type'            => 'required|string',
+            // 🔥 تم تحديث أنواع المواد المسموحة هنا 🔥
+            'type'            => 'required|in:compulsory,elective,supporting,university_req',
             'major_id'        => 'nullable|exists:majors,id', 
-            'semester'        => 'required|integer|min:1|max:12',
+            'semester'        => 'required|integer|min:1|max:12', // يمثل مستوى العقدة
             'prerequisite_id' => 'nullable|exists:courses,id', 
-            'description'     => 'nullable|string', // 🔥 السماح بحفظ الوصف
+            'description'     => 'nullable|string', 
         ]);
 
         $course = Course::create([
@@ -123,7 +124,7 @@ class AdminController extends Controller
             'type'         => $validated['type'],
             'major_id'     => $validated['major_id'],
             'semester'     => $validated['semester'],
-            'description'  => $validated['description'], // 🔥 حفظ الوصف في قاعدة البيانات
+            'description'  => $validated['description'], 
         ]);
 
         if (!empty($validated['prerequisite_id'])) {
@@ -143,11 +144,12 @@ class AdminController extends Controller
             'name'            => 'required|string',
             'code'            => 'required|string|unique:courses,code,' . $course->id,
             'credit_hours'    => 'required|integer',
-            'type'            => 'required|string',
+            // 🔥 تم تحديث أنواع المواد المسموحة هنا أيضاً 🔥
+            'type'            => 'required|in:compulsory,elective,supporting,university_req',
             'major_id'        => 'nullable|exists:majors,id',
-            'semester'        => 'required|integer',
+            'semester'        => 'required|integer|min:1|max:12',
             'prerequisite_id' => 'nullable|exists:courses,id',
-            'description'     => 'nullable|string', // 🔥 السماح بتعديل الوصف
+            'description'     => 'nullable|string', 
         ]);
 
         $course->update([
@@ -157,7 +159,7 @@ class AdminController extends Controller
             'type'         => $validated['type'],
             'major_id'     => $validated['major_id'],
             'semester'     => $validated['semester'],
-            'description'  => $validated['description'], // 🔥 تحديث الوصف
+            'description'  => $validated['description'], 
         ]);
 
         if (!empty($validated['prerequisite_id'])) {
@@ -211,7 +213,7 @@ class AdminController extends Controller
                     $course->major ? $course->major->name : 'متطلب جامعة عام', 
                     $course->semester, 
                     $course->prerequisites->pluck('code')->implode(', '),
-                    $course->description // 🔥 إضافة الوصف لملف التصدير
+                    $course->description 
                 ]);
             }
             fclose($handle);
@@ -266,7 +268,16 @@ class AdminController extends Controller
                 $credits = ($idxCredits !== -1 && isset($row[$idxCredits])) ? (int) trim($row[$idxCredits]) : 3;
                 
                 $groupTitle = ($idxGroup !== -1 && isset($row[$idxGroup])) ? trim($row[$idxGroup]) : '';
-                $type = (str_contains($groupTitle, 'اختياري') || str_contains(strtolower($groupTitle), 'elective')) ? 'elective' : 'compulsory';
+                
+                // 🔥 تحديث الذكاء الاصطناعي لتحليل النوع الجديد من ملف الـ CSV 🔥
+                $type = 'compulsory';
+                if (str_contains($groupTitle, 'اختياري') || str_contains(strtolower($groupTitle), 'elective')) {
+                    $type = 'elective';
+                } elseif (str_contains($groupTitle, 'مساند') || str_contains(strtolower($groupTitle), 'support')) {
+                    $type = 'supporting';
+                } elseif (str_contains($groupTitle, 'جامعة') || str_contains(strtolower($groupTitle), 'university')) {
+                    $type = 'university_req';
+                }
 
                 $course = Course::updateOrCreate(
                     ['code' => $code], 

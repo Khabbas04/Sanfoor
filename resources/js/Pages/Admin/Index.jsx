@@ -18,9 +18,9 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
         name: '',
         code: '',
         credit_hours: 3,
-        type: 'compulsory',
+        type: 'compulsory', // الأنواع: compulsory, elective, supporting, university_req
         prerequisite_id: '',
-        semester: 1,
+        semester: 1, // هذا هو مستوى العقدة (Node Level)
         description: '', 
     });
 
@@ -176,6 +176,21 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
         });
     };
 
+    const renderCourseBadge = (type, hours) => {
+        switch(type) {
+            case 'compulsory': 
+                return <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border bg-indigo-50 text-indigo-600 border-indigo-100" title="إجباري">{hours}س</div>;
+            case 'elective': 
+                return <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border bg-emerald-50 text-emerald-600 border-emerald-100" title="اختياري">{hours}س</div>;
+            case 'supporting': 
+                return <div className="w-12 h-9 rounded-[2rem] flex items-center justify-center font-black text-[10px] border bg-amber-50 text-amber-600 border-amber-200 shadow-sm" title="مادة مساندة">{hours}س</div>;
+            case 'university_req': 
+                return <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border bg-cyan-50 text-cyan-600 border-cyan-200" title="متطلب جامعة (أونلاين)">{hours}س</div>;
+            default: 
+                return <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border bg-slate-50 text-slate-600 border-slate-200">{hours}س</div>;
+        }
+    };
+
     return (
         <AdminLayout>
             <Head title="إدارة النظام - Kulliya Campus" />
@@ -192,6 +207,10 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                     100% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
                 }
                 .edit-mode-active { animation: borderPulse 2s infinite; }
+
+                /* 🔥 إضافة كلاس لإخفاء السكرول بار داخل الفورم 🔥 */
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             <div className="p-4 md:p-8 bg-[#f4f7f9] min-h-screen" dir="rtl">
@@ -297,11 +316,10 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                             </div>
                         </div>
 
-                        {/* 🔥 حل مشكلة الـ Sticky (إجبار العمود على أخذ حجمه الطبيعي فقط عبر items-start و h-max) 🔥 */}
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
                             
-                            {/* نموذج الإضافة والتعديل اليدوي */}
-                            <div id="course-action-form" className={`lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-[0_8px_30px_rgb(0,0,0,0.03)] sticky top-24 h-max transition-all duration-300 z-10 ${editingCourse ? 'edit-mode-active bg-amber-50/10' : 'border-slate-200/80'}`}>
+                            {/* 🔥 تم التعديل هنا: max-h-[calc(100vh-100px)] و overflow-y-auto 🔥 */}
+                            <div id="course-action-form" className={`lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-[0_8px_30px_rgb(0,0,0,0.03)] sticky top-24 max-h-[calc(100vh-100px)] overflow-y-auto hide-scrollbar transition-all duration-300 z-10 ${editingCourse ? 'edit-mode-active bg-amber-50/10' : 'border-slate-200/80'}`}>
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-lg font-[900] text-slate-800 flex items-center gap-2">
                                         {editingCourse ? <><span className="text-amber-500">✏️</span> تعديل بيانات المادة</> : <><span className="text-indigo-600">✍️</span> إضافة مادة يدوياً</>}
@@ -311,7 +329,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                     )}
                                 </div>
 
-                                <form onSubmit={handleManualSubmit} className="space-y-5">
+                                <form onSubmit={handleManualSubmit} className="space-y-5 pb-2">
                                     
                                     <div className="space-y-3">
                                         <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">المسار الأكاديمي</label>
@@ -353,7 +371,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                         </label>
                                         <textarea 
                                             placeholder="اكتب نبذة عن طبيعة المادة هنا (اختياري)..." 
-                                            className="rounded-xl border-slate-200 w-full text-xs font-medium focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 min-h-[80px] resize-none" 
+                                            className="rounded-xl border-slate-200 w-full text-xs font-medium focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 min-h-[60px] resize-none" 
                                             value={data.description} 
                                             onChange={e => setData('description', e.target.value)}
                                         ></textarea>
@@ -362,31 +380,48 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                     <div className="h-px bg-slate-100 w-full"></div>
 
                                     <div className="space-y-4">
-                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">الخصائص والمتطلبات</label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="flex flex-col gap-1.5">
-                                                <span className="text-[10px] font-bold text-slate-500">الفصل الافتراضي</span>
-                                                <select className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500" value={data.semester} onChange={e => setData('semester', e.target.value)}>
-                                                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => <option key={num} value={num}>الفصل {num}</option>)}
-                                                </select>
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">موقع العقدة وتصنيفها</label>
+                                        
+                                        <div className="flex flex-col gap-1.5 mb-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[11px] font-bold text-slate-700">مستوى المادة (موقعها بالشجرة):</span>
+                                                <span className="bg-blue-50 text-blue-600 text-[9px] font-black px-1.5 py-0.5 rounded">يحدد الـ X-Axis</span>
                                             </div>
-                                            <div className="flex flex-col gap-1.5">
-                                                <span className="text-[10px] font-bold text-slate-500">طبيعة المادة</span>
-                                                <div className="flex bg-slate-100 p-1 rounded-xl">
-                                                    <label className="flex-1 cursor-pointer">
-                                                        <input type="radio" className="hidden peer" name="type" value="compulsory" checked={data.type === 'compulsory'} onChange={e => setData('type', e.target.value)} />
-                                                        <div className="text-center py-1.5 rounded-lg peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm font-bold transition-all text-xs text-slate-500">إجباري</div>
-                                                    </label>
-                                                    <label className="flex-1 cursor-pointer">
-                                                        <input type="radio" className="hidden peer" name="type" value="elective" checked={data.type === 'elective'} onChange={e => setData('type', e.target.value)} />
-                                                        <div className="text-center py-1.5 rounded-lg peer-checked:bg-white peer-checked:text-emerald-600 peer-checked:shadow-sm font-bold transition-all text-xs text-slate-500">اختياري</div>
-                                                    </label>
-                                                </div>
+                                            <select className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500 bg-slate-50" value={data.semester} onChange={e => setData('semester', e.target.value)}>
+                                                {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => <option key={num} value={num}>المستوى (الفصل) {num}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="text-[11px] font-bold text-slate-700">تصنيف العقدة (Node Type):</span>
+                                            <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-xl">
+                                                <label className="cursor-pointer">
+                                                    <input type="radio" className="hidden peer" name="type" value="compulsory" checked={data.type === 'compulsory'} onChange={e => setData('type', e.target.value)} />
+                                                    <div className="text-center py-2 rounded-lg peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm font-bold transition-all text-xs text-slate-500">إجباري</div>
+                                                </label>
+                                                <label className="cursor-pointer">
+                                                    <input type="radio" className="hidden peer" name="type" value="elective" checked={data.type === 'elective'} onChange={e => setData('type', e.target.value)} />
+                                                    <div className="text-center py-2 rounded-lg peer-checked:bg-white peer-checked:text-emerald-600 peer-checked:shadow-sm font-bold transition-all text-xs text-slate-500">اختياري</div>
+                                                </label>
+                                                <label className="cursor-pointer">
+                                                    <input type="radio" className="hidden peer" name="type" value="supporting" checked={data.type === 'supporting'} onChange={e => setData('type', e.target.value)} />
+                                                    <div className="text-center py-2 rounded-lg peer-checked:bg-amber-50 peer-checked:text-amber-600 peer-checked:shadow-sm peer-checked:border-amber-200 border border-transparent font-bold transition-all text-[11px] text-slate-500 flex flex-col items-center justify-center">
+                                                        <span>مساندة</span>
+                                                        <span className="text-[8px] font-normal opacity-70">(شكل بيضاوي)</span>
+                                                    </div>
+                                                </label>
+                                                <label className="cursor-pointer">
+                                                    <input type="radio" className="hidden peer" name="type" value="university_req" checked={data.type === 'university_req'} onChange={e => setData('type', e.target.value)} />
+                                                    <div className="text-center py-2 rounded-lg peer-checked:bg-cyan-50 peer-checked:text-cyan-600 peer-checked:shadow-sm peer-checked:border-cyan-200 border border-transparent font-bold transition-all text-[11px] text-slate-500 flex flex-col items-center justify-center">
+                                                        <span>متطلب جامعة</span>
+                                                        <span className="text-[8px] font-normal opacity-70">(أونلاين)</span>
+                                                    </div>
+                                                </label>
                                             </div>
                                         </div>
                                         
-                                        <div className="flex flex-col gap-1.5">
-                                            <span className="text-[10px] font-bold text-slate-500">تفتح بعد اجتياز (المتطلب السابق):</span>
+                                        <div className="flex flex-col gap-1.5 mt-2">
+                                            <span className="text-[11px] font-bold text-slate-700">تفتح بعد اجتياز (المتطلب السابق):</span>
                                             <select className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500 bg-slate-50" value={data.prerequisite_id} onChange={e => setData('prerequisite_id', e.target.value)}>
                                                 <option value="">-- بدون متطلب سابق --</option>
                                                 {availablePrerequisites.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
@@ -422,10 +457,8 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                     </div>
                                 </div>
 
-                                {/* 🔥 حل مشكلة اختفاء الـ Checkbox عند تحديد الكل 🔥 */}
                                 <div className="bg-white rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.03)] overflow-hidden">
                                     
-                                    {/* شريط الإجراءات المجمعة (يظهر بدون إخفاء الترويسة) */}
                                     {selectedIds.length > 0 && (
                                         <div className="bg-indigo-50 border-b border-indigo-100 flex items-center justify-between px-6 py-3 animate-fade-in-up">
                                             <span className="text-sm font-black text-indigo-800 flex items-center gap-2">
@@ -446,7 +479,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                                         <input type="checkbox" className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" onChange={(e) => e.target.checked ? setSelectedIds(filteredCourses.map(c => c.id)) : setSelectedIds([])} checked={selectedIds.length === filteredCourses.length && filteredCourses.length > 0} />
                                                     </th>
                                                     <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">المادة ورمزها</th>
-                                                    <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">التصنيف</th>
+                                                    <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">التصنيف والنوع</th>
                                                     <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">الاعتماد (يفتح)</th>
                                                     <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest text-left">إجراءات</th>
                                                 </tr>
@@ -459,9 +492,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                                         </td>
                                                         <td className="p-5">
                                                             <div className="flex items-center gap-3">
-                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border ${course.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                                                                    {course.credit_hours}س
-                                                                </div>
+                                                                {renderCourseBadge(course.type, course.credit_hours)}
                                                                 <div>
                                                                     <div className="font-[900] text-slate-800 text-[13px] mb-0.5 flex items-center gap-1.5">
                                                                         {course.name}
@@ -474,7 +505,10 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
                                                         <td className="p-5">
                                                             <div className="flex flex-col gap-1.5 items-start">
                                                                 {course.major ? <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg text-[10px] font-black border border-slate-200/60 shadow-sm">{course.major.name}</span> : <span className="bg-gradient-to-r from-violet-100 to-fuchsia-100 text-violet-700 px-2.5 py-1 rounded-lg text-[10px] font-black border border-violet-200/60 shadow-sm">🎓 متطلب جامعة</span>}
-                                                                <span className="text-[10px] font-bold text-slate-400">الفصل {course.semester || 1}</span>
+                                                                <span className="text-[10px] font-bold text-slate-400">
+                                                                    {course.type === 'supporting' ? '🔸 مادة مساندة | ' : course.type === 'university_req' ? '🌐 أونلاين | ' : ''}
+                                                                    الفصل {course.semester || 1}
+                                                                </span>
                                                             </div>
                                                         </td>
                                                         <td className="p-5">

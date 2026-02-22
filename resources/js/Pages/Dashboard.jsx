@@ -65,7 +65,8 @@ export default function Dashboard({
     passed_hours = 0,
     total_hours = 132,
     gpa = "0.00",
-    passed_courses = [] 
+    passed_courses = [],
+    cart_courses = [] // 🔥 استقبال المحاكي من الكنترولر 🔥
 }) {
 
     const progressPct = useMemo(() => Math.min(Math.round((passed_hours / total_hours) * 100), 100), [passed_hours, total_hours]);
@@ -110,6 +111,7 @@ export default function Dashboard({
     const [aiRef, aiVis] = useReveal(0.15);
     const [actionsRef, actionsVis] = useReveal(0.08);
     const [recordRef, recordVis] = useReveal(0.10); 
+    const [cartRef, cartVis] = useReveal(0.10); // 🔥 أنيميشن للمحاكي
 
     const heroRef = useRef(null);
     const [mx, setMx] = useState(0);
@@ -133,7 +135,6 @@ export default function Dashboard({
         }));
     }, [passed_courses]);
 
-    // 🔥 تصحيح الخطأ: تعريف cumulativeStats لحساب المعدل التراكمي للتبويب الرئيسي 🔥
     const cumulativeStats = useMemo(() => {
         let totalCredits = 0;
         let weightedSum = 0;
@@ -205,6 +206,11 @@ export default function Dashboard({
         return 'bg-rose-100 text-rose-700 border-rose-200'; 
     };
 
+    // 🔥 حساب إجمالي ساعات المحاكي 🔥
+    const cartTotalHours = useMemo(() => {
+        return cart_courses.reduce((sum, course) => sum + course.credit_hours, 0);
+    }, [cart_courses]);
+
     return (
         <MainLayout user={auth.user}>
             <Head title="لوحة التحكم - سنفور" />
@@ -242,7 +248,6 @@ export default function Dashboard({
                             <div className="absolute top-0 right-0 w-[70%] h-full bg-gradient-to-l from-indigo-600/25 via-indigo-600/8 to-transparent" />
                             <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * -22}px, ${my * -22}px)`, transition: `transform 800ms ${spring}` }} />
                             <div className="absolute -bottom-14 -left-14 w-44 h-44 rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.25) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * 18}px, ${my * 18}px)`, transition: `transform 800ms ${spring}` }} />
-                            <div className="absolute top-1/2 left-1/3 w-32 h-32 rounded-full hidden md:block" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%)', filter: 'blur(50px)', transform: `translate(${mx * -10}px, ${my * 10}px)`, transition: `transform 900ms ${spring}` }} />
                             <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'radial-gradient(circle, #fff 0.8px, transparent 0.8px)', backgroundSize: '18px 18px' }} />
                             <div className="absolute top-0 left-0 w-full h-[1px] overflow-hidden"><div className="w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent" style={{ animation: 'sn-shimmer 4.5s ease-in-out infinite' }} /></div>
                         </div>
@@ -277,44 +282,37 @@ export default function Dashboard({
                                         💡 {motivation}
                                     </p>
                                 </div>
-                                <div className="hidden lg:flex flex-col items-center justify-center opacity-[0.08] hover:opacity-60 transition-opacity duration-700 select-none cursor-default shrink-0 ml-4">
-                                    <span className="text-5xl mb-1.5">🏛️</span>
-                                    <span className="text-[9px] font-[900] uppercase tracking-[0.3em]">Zarqa University</span>
-                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* 2. METRICS GRID */}
                     <div ref={metricsRef} className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)', opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '0ms' }}>
+                        <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500 shadow-sm" style={{ opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '0ms' }}>
                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-[3rem] -z-0 transition-transform group-hover:scale-[3] duration-[800ms] ease-out" />
-                            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-100 rounded-full blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
                             <div className="relative z-10 flex justify-between items-start">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">الساعات المنجزة</p>
-                                    <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none" style={{ fontVariantNumeric: 'tabular-nums' }}><AnimatedCounter target={passed_hours} /><span className="text-sm font-bold text-slate-300 mr-1">/ {total_hours}</span></h3>
+                                    <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none"><AnimatedCounter target={passed_hours} /><span className="text-sm font-bold text-slate-300 mr-1">/ {total_hours}</span></h3>
                                     <div className="mt-3 w-full bg-slate-100 h-[5px] rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full" style={{ width: metricsVis ? `${progressPct}%` : '0%', transition: `width 2000ms ${spring} 350ms` }} /></div>
                                 </div>
-                                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl border border-emerald-100 group-hover:rotate-[20deg] group-hover:scale-110 transition-all duration-500 shrink-0">⏳</div>
+                                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl border border-emerald-100 shrink-0">⏳</div>
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)', opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '130ms' }}>
+                        <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500 shadow-sm" style={{ opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '130ms' }}>
                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-50 to-transparent rounded-bl-[3rem] -z-0 transition-transform group-hover:scale-[3] duration-[800ms] ease-out" />
-                            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-100 rounded-full blur-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
                             <div className="relative z-10 flex justify-between items-start">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">المعدل التراكمي (GPA)</p>
-                                    <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none" style={{ fontVariantNumeric: 'tabular-nums' }}><AnimatedCounter target={gpa} decimals={2} duration={1800} /><span className="text-sm font-bold text-slate-300 mr-1">/ 4.00</span></h3>
+                                    <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none"><AnimatedCounter target={gpa} decimals={2} duration={1800} /><span className="text-sm font-bold text-slate-300 mr-1">/ 4.00</span></h3>
                                     <div className="mt-3 w-full bg-slate-100 h-[5px] rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-indigo-400 to-indigo-500 rounded-full" style={{ width: metricsVis ? `${Math.min((parseFloat(gpa) / 4) * 100, 100)}%` : '0%', transition: `width 2000ms ${spring} 450ms` }} /></div>
                                 </div>
-                                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl border border-indigo-100 group-hover:rotate-[20deg] group-hover:scale-110 transition-all duration-500 shrink-0">🎯</div>
+                                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl border border-indigo-100 shrink-0">🎯</div>
                             </div>
                         </div>
 
-                        <div className="bg-white p-5 rounded-[1.6rem] border border-slate-100 flex items-center gap-5 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)', opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '260ms' }}>
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/0 to-cyan-50/0 group-hover:from-indigo-50/40 group-hover:to-cyan-50/40 transition-all duration-700" />
+                        <div className="bg-white p-5 rounded-[1.6rem] border border-slate-100 flex items-center gap-5 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500 shadow-sm" style={{ opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '260ms' }}>
                             <div className="relative shrink-0 z-10">
                                 <svg className="w-[86px] h-[86px] transform -rotate-90" viewBox="0 0 86 86">
                                     <circle cx="43" cy="43" r="38" stroke="#f1f5f9" strokeWidth="7" fill="transparent" />
@@ -328,13 +326,12 @@ export default function Dashboard({
                             <div className="relative z-10 flex-1 min-w-0">
                                 <h4 className="text-[1rem] font-[800] text-slate-800 mb-1">رحلة التخرج 🎓</h4>
                                 <p className="text-[12px] text-slate-500 leading-relaxed">{remaining > 0 ? <>بقيت <span className="text-indigo-600 font-bold">{remaining} ساعة</span> لترتدي روب التخرج!</> : <span className="text-emerald-600 font-bold">مبروك! أنت جاهز للتخرج 🎉</span>}</p>
-                                {remaining > 0 && <p className="text-[10px] text-slate-400 mt-1.5">≈ {Math.ceil(remaining / 15)} فصول متبقية <span className="text-slate-300">(15 ساعة/فصل)</span></p>}
                             </div>
                         </div>
                     </div>
 
                     {/* 3. AI INSIGHT BANNER */}
-                    <div ref={aiRef} className="relative overflow-hidden rounded-[1.4rem]" style={{ opacity: aiVis ? 1 : 0, transform: aiVis ? 'translateY(0)' : 'translateY(14px)', transition: `all 700ms ${spring} 80ms` }}>
+                    <div ref={aiRef} className="relative overflow-hidden rounded-[1.4rem] shadow-sm" style={{ opacity: aiVis ? 1 : 0, transform: aiVis ? 'translateY(0)' : 'translateY(14px)', transition: `all 700ms ${spring} 80ms` }}>
                         <div className="absolute inset-0 rounded-[1.4rem] p-[1.5px]" style={{ background: 'linear-gradient(135deg, #c7d2fe, #a5f3fc, #c7d2fe, #a5f3fc)', backgroundSize: '300% 300%', animation: 'sn-gradient-drift 6s ease infinite' }}>
                             <div className="w-full h-full rounded-[calc(1.4rem-1.5px)] bg-gradient-to-l from-indigo-50/95 to-cyan-50/70 backdrop-blur-sm" />
                         </div>
@@ -346,174 +343,165 @@ export default function Dashboard({
                                 </div>
                                 <div>
                                     <h4 className="text-[14px] font-[800] text-indigo-900 mb-0.5">نصيحة المرشد الذكي</h4>
-                                    <p className="text-[12px] text-indigo-700/55 leading-relaxed max-w-lg">زُر الخريطة الشجرية لتوليد خطة الفصل القادم باستخدام الذكاء الاصطناعي وتجنب التعارضات، أو تحدث معي مباشرة لأي استفسار.</p>
+                                    <p className="text-[12px] text-indigo-700/55 leading-relaxed max-w-lg">المرشد الذكي الآن قادر على قراءة محاكيك وإضافة جداول كاملة لك بضغطة زر. تحدث معه الآن!</p>
                                 </div>
                             </div>
-                            <Link href={route('ai.advisor')} className="bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-200 hover:border-indigo-600 px-6 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 shadow-sm hover:shadow-lg hover:shadow-indigo-200/50 active:scale-[0.96] whitespace-nowrap shrink-0 flex items-center gap-2">
+                            <Link href={route('ai.advisor')} className="bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-200 hover:border-indigo-600 px-6 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 shadow-sm active:scale-[0.96] whitespace-nowrap shrink-0 flex items-center gap-2">
                                 تحدث مع المرشد <svg className="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                             </Link>
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════════════════════
-                        4. السجل الأكاديمي المطور (SMART TABS RECORD)
-                    ═══════════════════════════════════════════════ */}
-                    {processedCourses.length > 0 && (
-                        <div 
-                            ref={recordRef}
-                            className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden"
-                            style={{
-                                opacity: recordVis ? 1 : 0,
-                                transform: recordVis ? 'translateY(0)' : 'translateY(20px)',
-                                transition: `all 800ms ${spring} 100ms`,
-                            }}
-                        >
-                            <div className="bg-slate-50/80 border-b border-slate-100 p-6 sm:px-8">
-                                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-                                    <div>
-                                        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                                            <span className="text-2xl">📋</span> السجل الأكاديمي
-                                        </h3>
-                                        <p className="text-xs font-bold text-slate-400 mt-1">اضغط على أي فصل لرؤية مواده وإحصائياته المباشرة</p>
-                                    </div>
-                                    <Link href={route('calculator.index')} className="text-[11px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors shrink-0 text-center border border-indigo-100">
-                                        إدارة السجل وحساب المعدل ⚙️
-                                    </Link>
-                                </div>
-
-                                {/* 🔥 Smart Tabs Row 🔥 */}
-                                <div className="flex items-stretch gap-3 overflow-x-auto hide-scrollbar pb-4 pt-1">
-                                    {/* تبويب التراكمي العام (الافتراضي) */}
-                                    <button
-                                        onClick={() => setRecordActiveTab('all')}
-                                        className={`group relative shrink-0 text-right transition-all duration-300 ${
-                                            recordActiveTab === 'all' ? 'transform scale-[1.02]' : 'hover:-translate-y-1'
-                                        }`}
-                                    >
-                                        <div className={`p-4 rounded-2xl border-2 transition-all duration-300 w-48 h-full flex flex-col justify-between ${
-                                            recordActiveTab === 'all' 
-                                            ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-900/20' 
-                                            : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-md'
-                                        }`}>
-                                            <div className="flex justify-between items-start mb-3">
-                                                <span className={`text-sm font-black ${recordActiveTab === 'all' ? 'text-white' : 'text-slate-700'}`}>
-                                                    🌐 التراكمي العام
-                                                </span>
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${recordActiveTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                                                    {processedCourses.length} مواد
-                                                </span>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
+                        
+                        {/* 4. السجل الأكاديمي (الجانب الأيمن) */}
+                        <div className="lg:col-span-8 space-y-7">
+                            {processedCourses.length > 0 ? (
+                                <div ref={recordRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden" style={{ opacity: recordVis ? 1 : 0, transform: recordVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 100ms` }}>
+                                    <div className="bg-slate-50/80 border-b border-slate-100 p-6 sm:px-8">
+                                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+                                            <div>
+                                                <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                                    <span className="text-2xl">📋</span> السجل الأكاديمي
+                                                </h3>
+                                                <p className="text-xs font-bold text-slate-400 mt-1">اضغط على أي فصل لرؤية مواده وإحصائياته المباشرة</p>
                                             </div>
-                                            <div className="flex justify-between items-end">
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className={`text-2xl font-[900] ${recordActiveTab === 'all' ? 'text-white' : 'text-slate-800'}`}>
-                                                        {cumulativeStats?.percentage || '0.0'}
-                                                    </span>
-                                                    <span className={`text-xs font-bold ${recordActiveTab === 'all' ? 'text-indigo-300' : 'text-slate-400'}`}>%</span>
-                                                </div>
-                                                <span className={`text-[10px] font-bold mb-1 ${recordActiveTab === 'all' ? 'text-slate-400' : 'text-slate-400'}`}>
-                                                    {cumulativeStats?.credits || 0} ساعة
-                                                </span>
-                                            </div>
+                                            <Link href={route('calculator.index')} className="text-[11px] font-black text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors shrink-0 text-center border border-indigo-100">
+                                                إدارة السجل ⚙️
+                                            </Link>
                                         </div>
-                                    </button>
 
-                                    {/* تبويبات الفصول (ديناميكية) */}
-                                    {recordSemesters.map(sem => {
-                                        const stats = semesterStats[sem];
-                                        const isActive = recordActiveTab === sem;
-                                        
-                                        return (
-                                            <button
-                                                key={sem}
-                                                onClick={() => setRecordActiveTab(sem)}
-                                                className={`group relative shrink-0 text-right transition-all duration-300 ${isActive ? 'transform scale-[1.02]' : 'hover:-translate-y-1'}`}
-                                            >
-                                                <div className={`p-4 rounded-2xl border-2 transition-all duration-300 w-44 h-full flex flex-col justify-between ${
-                                                    isActive 
-                                                    ? 'bg-indigo-50 border-indigo-500 shadow-lg shadow-indigo-200' 
-                                                    : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md'
-                                                }`}>
+                                        <div className="flex items-stretch gap-3 overflow-x-auto hide-scrollbar pb-4 pt-1">
+                                            <button onClick={() => setRecordActiveTab('all')} className={`group relative shrink-0 text-right transition-all duration-300 ${recordActiveTab === 'all' ? 'transform scale-[1.02]' : 'hover:-translate-y-1'}`}>
+                                                <div className={`p-4 rounded-2xl border-2 transition-all duration-300 w-48 h-full flex flex-col justify-between ${recordActiveTab === 'all' ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-900/20' : 'bg-white border-slate-100 hover:border-slate-300 hover:shadow-md'}`}>
                                                     <div className="flex justify-between items-start mb-3">
-                                                        <span className={`text-sm font-black ${isActive ? 'text-indigo-900' : 'text-slate-700'}`}>
-                                                            الفصل {sem}
-                                                        </span>
-                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-100 text-slate-500'}`}>
-                                                            {stats.count} مواد
-                                                        </span>
+                                                        <span className={`text-sm font-black ${recordActiveTab === 'all' ? 'text-white' : 'text-slate-700'}`}>🌐 التراكمي العام</span>
+                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${recordActiveTab === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{processedCourses.length} مواد</span>
                                                     </div>
                                                     <div className="flex justify-between items-end">
                                                         <div className="flex items-baseline gap-1">
-                                                            <span className={`text-2xl font-[900] ${isActive ? 'text-indigo-700' : 'text-slate-800'}`}>
-                                                                {stats.percentage > 0 ? stats.percentage : '--'}
-                                                            </span>
-                                                            <span className={`text-xs font-bold ${isActive ? 'text-indigo-500' : 'text-slate-400'}`}>%</span>
+                                                            <span className={`text-2xl font-[900] ${recordActiveTab === 'all' ? 'text-white' : 'text-slate-800'}`}>{cumulativeStats?.percentage || '0.0'}</span>
+                                                            <span className={`text-xs font-bold ${recordActiveTab === 'all' ? 'text-indigo-300' : 'text-slate-400'}`}>%</span>
                                                         </div>
-                                                        <span className={`text-[10px] font-bold mb-1 ${isActive ? 'text-indigo-600/70' : 'text-slate-400'}`}>
-                                                            {stats.credits} ساعة
-                                                        </span>
+                                                        <span className={`text-[10px] font-bold mb-1 ${recordActiveTab === 'all' ? 'text-slate-400' : 'text-slate-400'}`}>{cumulativeStats?.credits || 0} ساعة</span>
                                                     </div>
                                                 </div>
                                             </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
 
-                            {/* Courses List */}
-                            <div className="p-6 sm:p-8 bg-white min-h-[250px]">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {recordDisplayedCourses.map((course, idx) => (
-                                        <div 
-                                            key={`${recordActiveTab}-${course.id}`}
-                                            className="group flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all duration-300"
-                                            style={{ animation: `sn-up 0.4s ${spring} ${idx * 40}ms both` }}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500 group-hover:bg-white group-hover:text-indigo-600 transition-colors">
-                                                    {course.credit_hours}س
+                                            {recordSemesters.map(sem => {
+                                                const stats = semesterStats[sem];
+                                                const isActive = recordActiveTab === sem;
+                                                return (
+                                                    <button key={sem} onClick={() => setRecordActiveTab(sem)} className={`group relative shrink-0 text-right transition-all duration-300 ${isActive ? 'transform scale-[1.02]' : 'hover:-translate-y-1'}`}>
+                                                        <div className={`p-4 rounded-2xl border-2 transition-all duration-300 w-44 h-full flex flex-col justify-between ${isActive ? 'bg-indigo-50 border-indigo-500 shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md'}`}>
+                                                            <div className="flex justify-between items-start mb-3">
+                                                                <span className={`text-sm font-black ${isActive ? 'text-indigo-900' : 'text-slate-700'}`}>الفصل {sem}</span>
+                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-100 text-slate-500'}`}>{stats.count} مواد</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-end">
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className={`text-2xl font-[900] ${isActive ? 'text-indigo-700' : 'text-slate-800'}`}>{stats.percentage > 0 ? stats.percentage : '--'}</span>
+                                                                    <span className={`text-xs font-bold ${isActive ? 'text-indigo-500' : 'text-slate-400'}`}>%</span>
+                                                                </div>
+                                                                <span className={`text-[10px] font-bold mb-1 ${isActive ? 'text-indigo-600/70' : 'text-slate-400'}`}>{stats.credits} ساعة</span>
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 sm:p-8 bg-white min-h-[250px]">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {recordDisplayedCourses.map((course, idx) => (
+                                                <div key={`${recordActiveTab}-${course.id}`} className="group flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all duration-300" style={{ animation: `sn-up 0.4s ${spring} ${idx * 40}ms both` }}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500 group-hover:bg-white group-hover:text-indigo-600 transition-colors">{course.credit_hours}س</div>
+                                                        <div>
+                                                            <h4 className="text-sm font-black text-slate-800 group-hover:text-indigo-900 transition-colors line-clamp-1">{course.name}</h4>
+                                                            <p className="text-[10px] font-bold text-slate-400 font-mono mt-0.5">{course.code}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-3 py-1.5 rounded-lg text-[11px] font-black border shadow-sm ${getBadgeColor(course.pivot?.grade)}`}>
+                                                        {course.pivot?.grade ? `${course.pivot.grade}%` : 'منجزة'}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h4 className="text-sm font-black text-slate-800 group-hover:text-indigo-900 transition-colors line-clamp-1">{course.name}</h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 font-mono mt-0.5">{course.code}</p>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-[2rem] border border-slate-100 p-10 flex flex-col items-center justify-center text-center shadow-sm h-full min-h-[300px]">
+                                    <span className="text-5xl mb-4 opacity-50">📂</span>
+                                    <h3 className="text-lg font-black text-slate-700 mb-2">سجلك الأكاديمي فارغ</h3>
+                                    <p className="text-slate-400 text-sm mb-6 max-w-sm">قم بإضافة المواد التي أنجزتها من خلال الخطة الشجرية ليتم تفعيل حساب المعدل وإحصائيات التخرج.</p>
+                                    <Link href={route('tree.index')} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200/50">الذهاب للشجرة 🌳</Link>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 🔥 5. المحاكي المصغر (الجانب الأيسر) 🔥 */}
+                        <div className="lg:col-span-4 space-y-7">
+                            
+                            {/* بطاقة المحاكي */}
+                            <div ref={cartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]" style={{ opacity: cartVis ? 1 : 0, transform: cartVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 200ms` }}>
+                                <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border-b border-amber-100/50 p-5 shrink-0">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                                <span className="text-xl">🛒</span> خطة الفصل القادم
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-slate-500 mt-1">مواد المحاكي الخاصة بك</p>
+                                        </div>
+                                        <div className="bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm text-center">
+                                            <span className="block text-[10px] font-black text-amber-500 uppercase">إجمالي الساعات</span>
+                                            <span className={`text-lg font-[900] ${cartTotalHours > 18 ? 'text-rose-600' : 'text-amber-600'}`}>{cartTotalHours}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 hide-scrollbar">
+                                    {cart_courses.length > 0 ? cart_courses.map((course, idx) => (
+                                        <div key={course.id} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-amber-200 transition-colors">
+                                            <div className="min-w-0 pr-2">
+                                                <h4 className="text-[12px] font-[900] text-slate-800 truncate">{course.name}</h4>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-[9px] font-bold text-slate-400 font-mono bg-slate-100 px-1.5 rounded">{course.code}</span>
+                                                    <span className="text-[9px] font-black text-amber-600">{course.credit_hours} ساعات</span>
                                                 </div>
-                                            </div>
-                                            <div className={`px-3 py-1.5 rounded-lg text-[11px] font-black border shadow-sm ${getBadgeColor(course.pivot?.grade)}`}>
-                                                {course.pivot?.grade ? `${course.pivot.grade}%` : 'منجزة'}
                                             </div>
                                         </div>
-                                    ))}
-                                    {recordDisplayedCourses.length === 0 && (
-                                        <div className="col-span-1 lg:col-span-2 text-center py-10 text-slate-400 font-bold text-sm">
-                                            لا توجد مواد مسجلة في هذا الفصل.
+                                    )) : (
+                                        <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
+                                            <span className="text-3xl mb-2">📭</span>
+                                            <p className="text-xs font-bold text-slate-500">المحاكي فارغ</p>
                                         </div>
                                     )}
                                 </div>
+                                
+                                <div className="p-4 border-t border-slate-100 bg-white shrink-0">
+                                    <Link href={route('tree.index')} className="block w-full bg-slate-900 hover:bg-slate-800 text-white text-center py-3 rounded-xl text-xs font-black transition-colors shadow-md">
+                                        تعديل من الشجرة 🌳
+                                    </Link>
+                                </div>
                             </div>
-                        </div>
-                    )}
 
-                    {/* 5. ACTION MODULES */}
-                    <div ref={actionsRef} className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                        <Link href={route('tree.index')} className="group block">
-                            <div className="bg-white border-2 border-slate-100 group-hover:border-indigo-400 rounded-[1.8rem] p-7 group-hover:shadow-[0_24px_60px_rgba(0,0,0,0.06)] group-hover:-translate-y-2 transition-all duration-500 flex flex-col h-full relative overflow-hidden" style={{ opacity: actionsVis ? 1 : 0, transform: actionsVis ? 'translateY(0)' : 'translateY(20px)', transition: `opacity 600ms ${spring}, transform 600ms ${spring}, border-color 300ms, box-shadow 300ms`, transitionDelay: '0ms' }}>
-                                <div className="absolute -top-10 -left-10 w-36 h-36 bg-indigo-50 rounded-full blur-3xl opacity-0 group-hover:opacity-80 transition-opacity duration-600" />
-                                <div className="flex justify-between items-start mb-5 relative z-10">
-                                    <div className="w-[54px] h-[54px] rounded-[14px] bg-slate-50 flex items-center justify-center text-[1.6rem] transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:scale-[1.08] group-hover:bg-indigo-600 group-hover:text-white">🌳</div>
-                                    <div className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-all duration-300"><svg className="w-4 h-4 rtl:-scale-x-100 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg></div>
+                            {/* زر الذهاب للشجرة السريع */}
+                            <Link href={route('tree.index')} className="group block">
+                                <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-[1.5rem] p-5 shadow-lg shadow-indigo-200/50 flex items-center justify-between transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl backdrop-blur-md">🗺️</div>
+                                        <div>
+                                            <h4 className="text-white font-black text-sm">استكشاف الخريطة الشجرية</h4>
+                                            <p className="text-indigo-200 text-[10px] font-bold mt-0.5">اكتشف المسار الحرج والمتطلبات</p>
+                                        </div>
+                                    </div>
+                                    <svg className="w-5 h-5 text-white transform rtl:rotate-180 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
                                 </div>
-                                <div className="relative z-10"><h4 className="text-[1.2rem] font-[900] text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors duration-300">مخطط الشجرة التفاعلي</h4><p className="text-slate-500 text-[13px] leading-[1.7]">استكشف مواد تخصصك، افهم المتطلبات السابقة، واكتشف المسار الحرج الذي يضمن تخرجك في الوقت المحدد.</p></div>
-                            </div>
-                        </Link>
-                        <Link href={route('calculator.index')} className="group block">
-                            <div className="bg-white border-2 border-slate-100 group-hover:border-emerald-400 rounded-[1.8rem] p-7 group-hover:shadow-[0_24px_60px_rgba(0,0,0,0.06)] group-hover:-translate-y-2 transition-all duration-500 flex flex-col h-full relative overflow-hidden" style={{ opacity: actionsVis ? 1 : 0, transform: actionsVis ? 'translateY(0)' : 'translateY(20px)', transition: `opacity 600ms ${spring}, transform 600ms ${spring}, border-color 300ms, box-shadow 300ms`, transitionDelay: '150ms' }}>
-                                <div className="absolute -top-10 -left-10 w-36 h-36 bg-emerald-50 rounded-full blur-3xl opacity-0 group-hover:opacity-80 transition-opacity duration-600" />
-                                <div className="flex justify-between items-start mb-5 relative z-10">
-                                    <div className="w-[54px] h-[54px] rounded-[14px] bg-slate-50 flex items-center justify-center text-[1.6rem] transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:scale-[1.08] group-hover:bg-emerald-500 group-hover:text-white">📈</div>
-                                    <div className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-500 transition-all duration-300"><svg className="w-4 h-4 rtl:-scale-x-100 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg></div>
-                                </div>
-                                <div className="relative z-10"><h4 className="text-[1.2rem] font-[900] text-slate-800 mb-2 group-hover:text-emerald-600 transition-colors duration-300">حاسبة التفوق الأكاديمي</h4><p className="text-slate-500 text-[13px] leading-[1.7]">توقع معدلك التراكمي، أدخل علاماتك الحالية والمستقبلية، واعرف بالضبط ما تحتاجه للوصول إلى مرتبة الشرف بدقة.</p></div>
-                            </div>
-                        </Link>
+                            </Link>
+
+                        </div>
                     </div>
 
                 </div>

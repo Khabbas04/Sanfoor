@@ -8,6 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany; // 🔥 تم إضافة مكتبة HasMany هنا
 
 class User extends Authenticatable
 {
@@ -87,6 +88,14 @@ class User extends Authenticatable
             'user_id', 
             'course_id' 
         )->withPivot('grade', 'studied_semester')->withTimestamps();
+    }
+
+    // =========================================================
+    // 🔥 العلاقة الجديدة: سجل محادثات الذكاء الاصطناعي (Gemini) 🔥
+    // =========================================================
+    public function chats(): HasMany
+    {
+        return $this->hasMany(Chat::class)->latest(); // جلب المحادثات مرتبة من الأحدث للأقدم
     }
 
     /**

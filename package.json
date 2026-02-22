@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "dagre": "^0.8.5",
+        "react-markdown": "^10.1.0",
         "react-xarrows": "^2.0.2",
         "reactflow": "^11.11.4",
         "sweetalert2": "^11.26.18"

@@ -3,12 +3,12 @@ import ReactFlow, { MiniMap, Controls, Background, MarkerType, useNodesState, us
 import dagre from 'dagre';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { Head, Link, router } from '@inertiajs/react'; // تم إضافة router هنا
+import { Head, Link, router } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import 'reactflow/dist/style.css';
 
 /* ═══════════════════════════════════════════════════════════
-   CONSTANTS & LAYOUT ENGINE (المحرك المطور)
+   CONSTANTS & LAYOUT ENGINE
    ═══════════════════════════════════════════════════════════ */
 
 const nodeWidth = 200;
@@ -19,20 +19,17 @@ const swalTheme = {
     customClass: { popup: 'rounded-3xl font-t', title: 'font-t', htmlContainer: 'font-t' },
 };
 
-// 🔥 الخوارزمية الجديدة لترتيب المواد كصفوف حسب الفصول (مثل الجامعة) 🔥
 const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
     
-    // إعدادات المسافات بين المواد والأسهم
     dagreGraph.setGraph({ 
         rankdir: direction, 
-        ranksep: 90,    // المسافة العمودية بين الفصول
-        nodesep: 30,    // المسافة الأفقية بين المواد
+        ranksep: 90,
+        nodesep: 30,
         edgesep: 15
     });
 
-    // 1. ترتيب العقد لضمان ترتيب منطقي من اليمين لليسار داخل نفس الفصل
     const sortedNodes = [...nodes].sort((a, b) => {
         const semA = parseInt(a.data?.semester) || 1;
         const semB = parseInt(b.data?.semester) || 1;
@@ -43,17 +40,14 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         return codeA.localeCompare(codeB);
     });
 
-    // 2. إضافة العقد للمحرك
     sortedNodes.forEach((node) => {
         dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
     });
 
-    // 3. إضافة الأسهم الحقيقية
     edges.forEach((edge) => {
         dagreGraph.setEdge(edge.source, edge.target, { weight: 2 });
     });
 
-    // 4. بناء "العمود الفقري الوهمي" لضبط الفصول (Anchors) لمنع الشاشة البيضاء وتمدد الشجرة
     const semesters = sortedNodes.map(n => parseInt(n.data?.semester) || 1).filter(s => !isNaN(s));
     if (semesters.length > 0) {
         const minSem = Math.min(...semesters);
@@ -61,15 +55,13 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
 
         for (let s = minSem - 1; s <= maxSem; s++) {
             const anchorId = `anchor-sem-${s}`;
-            dagreGraph.setNode(anchorId, { width: 1, height: 1 }); // عقدة وهمية
+            dagreGraph.setNode(anchorId, { width: 1, height: 1 }); 
             
             if (s > minSem - 1) {
-                // ربط الفصول ببعضها عمودياً بوزن ثقيل لتظل مستقيمة
                 dagreGraph.setEdge(`anchor-sem-${s - 1}`, `anchor-sem-${s}`, { weight: 100 });
             }
         }
 
-        // ربط كل مادة بالعقدة الوهمية الخاصة بفصلها
         sortedNodes.forEach((node) => {
             const sem = parseInt(node.data?.semester) || 1;
             const prevAnchor = `anchor-sem-${sem - 1}`;
@@ -77,10 +69,8 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         });
     }
 
-    // تشغيل المحرك
     dagre.layout(dagreGraph);
 
-    // استخراج الإحداثيات للمواد الحقيقية فقط
     return nodes.map((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
         return {
@@ -94,7 +84,6 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
         };
     });
 };
-
 
 /* ═══════════════════════════════════════════════════════════
    TREE PAGE
@@ -123,7 +112,6 @@ export default function Tree({
     const [filterMode, setFilterMode] = useState('none');
     const [show4YearPlan, setShow4YearPlan] = useState(false);
 
-    // 🔥 دالة مزامنة المحاكي مع قاعدة البيانات لضمان ظهورها عند الأدمن 🔥
     const syncCartWithDB = useCallback((ids) => {
         router.post(route('cart.sync'), { course_ids: ids }, {
             preserveState: true,
@@ -193,6 +181,8 @@ export default function Tree({
             const isBottleneck = unlocksCount >= 3 && status !== 'passed';
             
             const isElective = course.type === 'elective';
+            const isSupporting = course.type === 'supporting';
+            const isUniversityReq = course.type === 'university_req';
             const hasDescription = course.description && course.description.trim() !== '';
 
             const themes = {
@@ -204,12 +194,19 @@ export default function Tree({
             const t = themes[status];
 
             let finalBorder = t.border;
-            if (isElective) {
-                if (status === 'locked') {
-                    finalBorder = 'border: 2.5px dashed #94a3b8';
-                } else {
-                    finalBorder = 'border: 2.5px dashed #ffffff';
-                }
+            if (isElective || isUniversityReq) {
+                if (status === 'locked') finalBorder = 'border: 2.5px dashed #94a3b8';
+                else finalBorder = 'border: 2.5px dashed #ffffff';
+            }
+
+            // 🔥 النظام الهندسي الجديد للأشكال حسب النوع 🔥
+            let shapeStyle = 'border-radius:16px;'; // الافتراضي (إجباري) - مستطيل ناعم
+            if (isSupporting) {
+                shapeStyle = 'border-radius:50px;'; // مساندة - بيضاوي
+            } else if (isElective) {
+                shapeStyle = 'border-radius:4px 24px 4px 24px;'; // اختياري - شكل ورقة شجر
+            } else if (isUniversityReq) {
+                shapeStyle = 'border-radius:4px;'; // متطلب جامعة - مستطيل حاد
             }
 
             let isFilteredOut = false;
@@ -228,9 +225,14 @@ export default function Tree({
             else if (!isDimmed) ringStyle = 'box-shadow:0 4px 16px rgba(0,0,0,0.08);';
 
             const dimStyle = isDimmed ? 'opacity:0.25;filter:grayscale(1);' : '';
+            
+            let typeLabelHtml = '';
+            if (isElective) typeLabelHtml = `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>`;
+            if (isSupporting) typeLabelHtml = `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">مساندة</span>`;
+            if (isUniversityReq) typeLabelHtml = `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">جامعة</span>`;
 
             const nodeHtml = `
-                <div style="width:100%;height:100%;border-radius:16px;display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.35s cubic-bezier(0.16,1,0.3,1);${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;">
+                <div style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.35s cubic-bezier(0.16,1,0.3,1);${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;">
                     <div style="position:absolute;top:-12px;right:-12px;width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:50%;filter:blur(12px);"></div>
                     
                     <div style="padding:8px 10px;display:flex;flex-direction:column;height:100%;justify-content:space-between;position:relative;z-index:1;">
@@ -240,7 +242,7 @@ export default function Tree({
                                 ${hasDescription ? '<span style="margin-right:3px; font-size:10px; animation: pulse 2s infinite;" title="يوجد لمحة عن المادة">📝</span>' : ''}
                             </span>
                             <div style="display:flex; gap:3px;">
-                                ${isElective ? `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>` : ''}
+                                ${typeLabelHtml}
                                 <span style="font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:6px;background:${t.badgeBg};color:${t.textColor};">${course.credit_hours} س</span>
                             </div>
                         </div>
@@ -266,6 +268,8 @@ export default function Tree({
                     semester: parseInt(course.semester) || 1, 
                     code: course.code || '' 
                 },
+                draggable: false, // 🔒 منع التحريك
+                connectable: false, // 🔒 منع التوصيل
             });
 
             if (course.prerequisites) {
@@ -331,7 +335,6 @@ export default function Tree({
             
             if (response.data.status === 'added') {
                 setPassedIds(p => [...p, courseId]);
-                // عند إنجاز مادة، نقوم بإزالتها من المحاكي ومزامنة قاعدة البيانات
                 const updatedCart = cartIds.filter(id => id !== courseId);
                 setCartIds(updatedCart);
                 syncCartWithDB(updatedCart); 
@@ -359,7 +362,7 @@ export default function Tree({
         if (cartIds.includes(course.id)) {
             updatedCart = cartIds.filter(id => id !== course.id);
             setCartIds(updatedCart);
-            syncCartWithDB(updatedCart); // مزامنة الحذف مع الأدمن
+            syncCartWithDB(updatedCart);
             return;
         }
 
@@ -369,7 +372,7 @@ export default function Tree({
         }
         updatedCart = [...cartIds, course.id];
         setCartIds(updatedCart);
-        syncCartWithDB(updatedCart); // مزامنة الإضافة مع الأدمن
+        syncCartWithDB(updatedCart);
     };
 
     const executeSmartSchedule = () => {
@@ -409,7 +412,7 @@ export default function Tree({
 
         if (newCart.length > 0) {
             setCartIds(newCart);
-            syncCartWithDB(newCart); // مزامنة التوليد الذكي مع الأدمن
+            syncCartWithDB(newCart); 
             setShowAiSettings(false);
             Swal.fire({ icon: 'success', title: 'تم التخطيط!', text: `تم اقتراح جدول بقيمة ${currentHours} ساعة بناءً على مسارك.`, ...swalTheme });
         } else {
@@ -421,7 +424,6 @@ export default function Tree({
     const totalCartCredits = useMemo(() => courses.filter(c => cartIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIds]);
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
 
-    // 🔥 المعالجة المحمية للبيانات لتجنب الشاشة البيضاء 🔥
     const processedCourses = useMemo(() => {
         const coursesArray = Array.isArray(localPassedCourses) ? localPassedCourses : [];
         return coursesArray.map(c => {
@@ -431,10 +433,7 @@ export default function Tree({
             } else if (c.semester) {
                 sem = c.semester;
             }
-            return {
-                ...c,
-                localSemester: parseInt(sem, 10) || 1
-            };
+            return { ...c, localSemester: parseInt(sem, 10) || 1 };
         });
     }, [localPassedCourses]);
 
@@ -457,7 +456,6 @@ export default function Tree({
 
     const [activeSemesterTab, setActiveSemesterTab] = useState('all');
 
-    // 🔥 فلترة آمنة حسب الفصول 🔥
     const recordDisplayedCourses = useMemo(() => {
         if (!processedCourses || processedCourses.length === 0) return [];
         if (activeSemesterTab === 'all') return processedCourses;
@@ -575,7 +573,6 @@ export default function Tree({
                 
                 .sn-card-enter { animation: sn-slide-r 0.35s cubic-bezier(0.16,1,0.3,1) both; }
                 
-                /* 🔥 تم إصلاح الأنيميشن بإضافة forwards ليثبت العنصر بعد الظهور 🔥 */
                 @keyframes slideDown { 
                     from { opacity: 0; transform: translateY(-10px); }
                     to { opacity: 1; transform: translateY(0); } 
@@ -587,6 +584,7 @@ export default function Tree({
 
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                .react-flow__edge-updater { display: none !important; }
             `}</style>
 
             <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 flex justify-between items-center relative">
@@ -658,8 +656,15 @@ export default function Tree({
                                             <div className="flex justify-between items-start mb-3.5">
                                                 <div className="flex gap-2">
                                                     <span className="bg-white text-slate-600 px-2.5 py-1 rounded-lg font-mono text-[11px] font-[800] border border-slate-200 shadow-sm">{selectedCourse.code}</span>
-                                                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border ${selectedCourse.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                        {selectedCourse.type === 'compulsory' ? 'إجباري' : 'اختياري'}
+                                                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border ${
+                                                        selectedCourse.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 
+                                                        selectedCourse.type === 'elective' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                        selectedCourse.type === 'supporting' ? 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' :
+                                                        'bg-cyan-50 text-cyan-700 border-cyan-200'
+                                                    }`}>
+                                                        {selectedCourse.type === 'compulsory' ? 'إجباري' : 
+                                                         selectedCourse.type === 'elective' ? 'اختياري' :
+                                                         selectedCourse.type === 'supporting' ? 'مساندة' : 'متطلب جامعة'}
                                                     </span>
                                                 </div>
                                                 <span className="text-slate-500 font-[800] text-[11px] bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{selectedCourse.credit_hours} ساعات</span>
@@ -957,32 +962,40 @@ export default function Tree({
                             ))}
                         </div>
 
-                        {/* 🔥 الدليل (Legend) المحدث 🔥 */}
+                        {/* 🔥 دليل الأشكال والألوان المطور (Legend) 🔥 */}
                         <div className="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200/60 hidden md:flex flex-col gap-2">
-                            <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1">دليل الألوان والرموز</p>
+                            <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">دليل الألوان والأشكال</p>
                             
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
                                 {[
                                     { color: 'bg-[#10b981]', label: 'منجز' },
-                                    { color: 'bg-[#6366f1]', label: 'متاح للتسجيل' },
+                                    { color: 'bg-[#6366f1]', label: 'متاح' },
                                     { color: 'bg-[#f59e0b]', label: 'في المحاكي' },
                                     { color: 'bg-slate-200', label: 'مغلق' },
                                 ].map(l => (
-                                    <div key={l.label} className="flex items-center gap-2">
-                                        <span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} />
+                                    <div key={l.label} className="flex items-center justify-end gap-2">
                                         <span className="text-[10px] font-bold text-slate-600" dir="rtl">{l.label}</span>
+                                        <span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} />
                                     </div>
                                 ))}
                             </div>
                             
-                            <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-0 border-t-[2.5px] border-dashed border-slate-400 ml-[-2px]"></div>
-                                    <span className="text-[10px] font-bold text-slate-500">مادة اختيارية</span>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-end gap-2">
+                                    <span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span>
+                                    <div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-[11px] w-3 text-center">📝</span>
-                                    <span className="text-[10px] font-bold text-slate-500">مادة تحتوي على لمحة</span>
+                                <div className="flex items-center justify-end gap-2">
+                                    <span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span>
+                                    <div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div>
+                                </div>
+                                <div className="flex items-center justify-end gap-2">
+                                    <span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span>
+                                    <div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div>
+                                </div>
+                                <div className="flex items-center justify-end gap-2">
+                                    <span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span>
+                                    <div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div>
                                 </div>
                             </div>
                         </div>
@@ -998,6 +1011,9 @@ export default function Tree({
                             fitViewOptions={{ padding: 0.15, minZoom: 0.1, maxZoom: 1.1 }}
                             minZoom={0.1}
                             maxZoom={1.5}
+                            nodesDraggable={false} /* 🔒 قفل سحب الـ Nodes */
+                            nodesConnectable={false} /* 🔒 قفل توصيل الـ Nodes يدوياً */
+                            elementsSelectable={true}
                             proOptions={{ hideAttribution: true }}
                             className="react-flow-rtl-fix"
                         >
