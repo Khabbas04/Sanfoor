@@ -1,59 +1,117 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+أبشر يا عاصم، إليك كود ملف الـ **`README.md`** كاملاً ومصمماً بشكل احترافي لتضعه في مشروعك على **GitHub** بضغطة واحدة. هذا الملف يشرح كل شيء من المتطلبات التقنية إلى طريقة التشغيل وهيكلة المشروع لزملائك في الفريق.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+---
 
-## About Laravel
+# 🎓 منصة سنفور الأكاديمية | Sanfoor Platform v2.1.4
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+> **النظام الذكي لإدارة الخطط الشجرية وتحليل مسارات الطلاب الأكاديمية.**
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+مشروع **Sanfoor** هو منصة متكاملة مخصصة لطلاب الجامعات (خاصة جامعة الزرقاء)، تهدف إلى تبسيط العملية الأكاديمية من خلال عرض مرئي تفاعلي للمواد (الشجرة) وتوفير أدوات اتخاذ قرار ذكية للإدارة بناءً على بيانات الطلاب الحقيقية.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🛠️ المتطلبات التقنية (Tech Stack)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+النظام مبني بأحدث التقنيات لضمان السرعة والأمان:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+* **Backend:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
+* **Frontend:** [React](https://reactjs.org/) مع [Inertia.js](https://inertiajs.com/)
+* **Database:** [PostgreSQL](https://www.postgresql.org/) (لإدارة الاستعلامات الحسابية المتقدمة)
+* **UI/UX:** [Tailwind CSS](https://tailwindcss.com/) مع أنظمة Glassmorphism
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🚀 طريقة تشغيل المشروع (Installation)
 
-### Premium Partners
+نفذ الأوامر التالية بالترتيب لتشغيل البيئة المحلية:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+1. **تحميل الكود:**
+```bash
+git clone https://github.com/Khabbas04/Sanfoor.git
+cd Sanfoor
 
-## Contributing
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
 
-## Code of Conduct
+2. **تنصيب المكتبات:**
+```bash
+composer install
+npm install
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```
 
-## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3. **إعداد البيئة:**
+* انسخ ملف `.env.example` ليكون `.env`.
+* قم بتعديل بيانات قاعدة البيانات لتطابق إعدادات **PostgreSQL** لديك.
 
-## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4. **تجهيز قاعدة البيانات:**
+```bash
+php artisan key:generate
+php artisan migrate --seed
+
+```
+
+
+5. **التشغيل:**
+* افتح Terminal للـ Backend: `php artisan serve`
+* افتح Terminal للـ Frontend: `npm run dev`
+
+
+
+---
+
+## 💾 إعدادات قاعدة البيانات (PostgreSQL)
+
+يرجى التأكد من ضبط ملف الـ `.env` كالتالي لتجنب أخطاء الاستعلامات:
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=sanfoor_db
+DB_USERNAME=postgres
+DB_PASSWORD=كلمة_المرور_الخاصة_بك
+
+```
+
+---
+
+## 📂 خريطة النظام (Project Structure)
+
+### 👨‍🎓 بوابة الطالب (Student Portal)
+
+* **الشجرة التفاعلية:** عرض المواد باستخدام `ReactFlow` مع تحديد الحالة (منجز، متاح، مغلق).
+* **محاكي التسجيل:** إضافة المواد للمحاكي لمزامنتها مع الإدارة بصمت دون رسائل مزعجة.
+* **المستشار الذكي:** نظام نصائح يعتمد على الذكاء الاصطناعي لتحسين المعدل.
+
+### ⚙️ بوابة الإدارة (Admin Core)
+
+* **الداشبورد:** مراقبة لحظية لأعداد الطلاب وحالة النظام.
+* **إدارة الطلاب:** تعديل بيانات الطلاب، مراقبة معدلاتهم، والتحكم في الحسابات.
+* **تحليل الطلب (Demand Heatmap):** تقرير ذكي يفرز المواد الأكثر طلباً حسب الكلية والتخصص.
+* **إدارة الخطط:** استيراد المواد عبر CSV وبناء المتطلبات السابقة تلقائياً.
+
+---
+
+## 🛡️ دليل المطورين (Important Notes)
+
+لتجنب الإيرورات الشائعة التي واجهتنا أثناء التطوير:
+
+1. **PostgreSQL Strict Mode:** عند حساب عدد الطلاب (Aggregates)، استخدم دائمًا `whereHas` بدلاً من `having` لتجنب خطأ "الحقل غير موجود".
+2. **Inertia Responses:** في دالة مزامنة المحاكي بـ `CartController` تأكد من استخدام `return back()` بدلاً من الرد بـ JSON خام لمنع ظهور الصفحة البيضاء.
+
+---
+
+**فريق العمل:** [Asem Alkhabbas](https://www.google.com/search?q=https://github.com/Khabbas04) & Team Kollia 🚀
+
+---
+
+### 💡 كيف تضيف هذا الملف؟
+
+1. اذهب لمستودعك في GitHub.
+2. افتح ملف **`README.md`** واضغط على أيقونة **التعديل (✏️)**.
+3. استبدل الكود الموجود بالكود أعلاه واضغط **Commit changes**.
+
+**هل تود مني مساعدتك في كتابة "وصف المشروع" باللغة الإنجليزية أيضاً لرفعه على LinkedIn؟**
