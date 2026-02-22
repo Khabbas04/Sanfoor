@@ -1,87 +1,201 @@
-import React from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import React, { useState, useEffect } from 'react';
+import { Link, usePage, Head } from '@inertiajs/react';
 
-export default function AdminLayout({ children, title }) {
+export default function AdminLayout({ children }) {
     const { auth } = usePage().props;
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // روابط القائمة الجانبية
+    // --- الروابط الديناميكية المحدثة مع رابط التقارير الجديد ---
     const menuItems = [
-        { name: '📊 الإحصائيات العامة', route: 'admin.dashboard', active: false }, // سنربطها لاحقاً
-        { name: '📚 إدارة المواد والشجرة', route: 'admin.courses', active: true },
-        { name: '👨‍🎓 إدارة الطلاب', route: '#', active: false },
-        { name: '⚙️ الإعدادات', route: '#', active: false },
+        { icon: '📊', name: 'الإحصائيات العامة', route: 'admin.dashboard', pattern: 'admin.dashboard' },
+        { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' }, // 🔥 الرابط الجديد
+        { icon: '🏛️', name: 'الهيكلة والمواد', route: 'admin.courses', pattern: 'admin.courses|admin.colleges|admin.majors' },
+        { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },
+        { icon: '⚙️', name: 'الإعدادات', route: '#', pattern: 'admin.settings.*' },
     ];
 
+    const isRouteActive = (pattern) => {
+        if (!pattern) return false;
+        try {
+            const patterns = pattern.split('|');
+            return patterns.some(p => route().current(p) || route().current(p + '.*'));
+        } catch (e) {
+            return false;
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-100 font-sans text-right" dir="rtl">
+        <div className="min-h-screen bg-[#f8fafc] text-right flex flex-col font-sans selection:bg-indigo-200 selection:text-indigo-900 relative" dir="rtl">
             
-            {/* --- 1. القائمة الجانبية (Sidebar) --- */}
-            <aside className="fixed top-0 right-0 h-full w-64 bg-gray-900 text-white shadow-2xl z-50 flex flex-col">
-                
-                {/* لوجو الأدمن */}
-                <div className="h-20 flex items-center justify-center border-b border-gray-800 bg-gray-900">
-                    <div className="flex items-center gap-3">
-                        <span className="text-3xl">🛡️</span>
-                        <h1 className="text-xl font-bold tracking-wider">Sanfoor Admin</h1>
+            {/* الخلفية الشبكية المطورة */}
+            <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-0" style={{ backgroundImage: 'radial-gradient(#4f46e5 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
+
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden transition-all duration-500"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={`fixed top-0 right-0 h-full w-72 bg-[#0b0f19] text-slate-300 shadow-[25px_0_50px_rgba(0,0,0,0.2)] z-50 flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-slate-800 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+
+                {/* Logo Section */}
+                <div className="h-24 flex items-center justify-between px-6 border-b border-white/5 bg-white/[0.01] shrink-0 relative overflow-hidden">
+                    <div className="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <Link href="/" className="flex items-center gap-3 group relative z-10">
+                        <div className="relative w-12 h-12 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+                            <div className="absolute inset-0 bg-indigo-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                            <img 
+                                src="/images/sanfoor.png" 
+                                alt="Sanfoor Logo" 
+                                className="w-full h-full object-contain drop-shadow-[0_0_12px_rgba(99,102,241,0.5)] rounded-full relative z-10" 
+                            />
+                        </div>
+                        <div className="flex flex-col pt-1">
+                            <h1 className="text-2xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors leading-none">سنفور</h1>
+                            <span className="text-[10px] font-black text-indigo-400 tracking-[0.2em] uppercase mt-1.5 bg-indigo-500/10 px-2 py-0.5 rounded-full inline-block w-max border border-indigo-500/20">Admin Core</span>
+                        </div>
+                    </Link>
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800/80 hover:bg-indigo-600 rounded-xl transition-all">✕</button>
+                </div>
+
+                {/* User Info Section */}
+                <div className="p-6 relative">
+                    <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-50"></div>
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-2xl font-black shadow-xl border border-white/20 relative group overflow-hidden">
+                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                            <span className="relative z-10">{auth.user.name.charAt(0)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.15em] mb-1">المدير التنفيذي</p>
+                            <p className="font-black text-[15px] text-white truncate drop-shadow-sm">{auth.user.name}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <div className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                                </div>
+                                <span className="text-[10px] text-emerald-400 font-black">أونلاين</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* معلومات الأدمن الحالي */}
-                <div className="p-6 border-b border-gray-800 bg-gray-800/50">
-                    <p className="text-xs text-gray-400 mb-1">مرحباً بك،</p>
-                    <p className="font-bold text-lg truncate">{auth.user.name}</p>
-                    <p className="text-xs text-green-400 mt-1">● متصل الآن</p>
-                </div>
+                {/* Navigation Menu */}
+                <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-2.5 scrollbar-hide">
+                    <p className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 mt-2">القائمة الرئيسية</p>
+                    {menuItems.map((item, index) => {
+                        const active = isRouteActive(item.pattern);
+                        let href = '#';
+                        try {
+                            href = item.route === '#' ? '#' : route(item.route);
+                        } catch (e) {
+                            console.error(`Route ${item.route} not found`);
+                        }
 
-                {/* الروابط */}
-                <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2">
-                    {menuItems.map((item, index) => (
-                        <Link
-                            key={index}
-                            href={item.route === '#' ? '#' : route(item.route)}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group
-                                ${item.active 
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50 translate-x-[-5px]' 
-                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                                }
-                            `}
-                        >
-                            <span className="font-medium">{item.name}</span>
-                        </Link>
-                    ))}
+                        return (
+                            <Link
+                                key={index}
+                                href={href}
+                                className={`relative flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group overflow-hidden border
+                                    ${active 
+                                        ? 'text-white border-white/10 shadow-[0_10px_30px_-10px_rgba(79,70,229,0.5)] transform scale-[1.02]' 
+                                        : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent'
+                                    }
+                                `}
+                            >
+                                {active && <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-700"></div>}
+                                
+                                <span className={`relative z-10 text-xl transition-all duration-500 ${active ? 'scale-110 rotate-3' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110'}`}>
+                                    {item.icon}
+                                </span>
+                                <span className={`relative z-10 font-black text-[13px] tracking-wide transition-colors ${active ? 'text-white' : 'group-hover:text-white'}`}>
+                                    {item.name}
+                                </span>
+                                {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full shadow-[0_0_15px_#fff]"></div>}
+                            </Link>
+                        );
+                    })}
                 </nav>
 
-                {/* زر الخروج */}
-                <div className="p-4 border-t border-gray-800">
-                    <Link 
-                        href={route('logout')} 
-                        method="post" 
-                        as="button" 
-                        className="w-full flex items-center justify-center gap-2 bg-red-600/10 text-red-500 py-3 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+                {/* Footer Section */}
+                <div className="p-5 border-t border-white/5 bg-slate-950/60 backdrop-blur-md">
+                    <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="w-full flex items-center justify-center gap-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 py-4 rounded-2xl hover:bg-rose-600 hover:text-white transition-all font-black text-[11px] group shadow-lg"
                     >
-                        <span>🚪 تسجيل خروج</span>
+                        <span className="text-lg group-hover:-translate-x-1 group-hover:rotate-12 transition-transform">👋</span>
+                        خروج آمن من النظام
                     </Link>
                 </div>
             </aside>
 
-            {/* --- 2. المحتوى الرئيسي (Main Content) --- */}
-            <main className="mr-64 min-h-screen transition-all duration-300">
-                {/* الهيدر العلوي للمحتوى */}
-                <header className="bg-white shadow-sm h-20 flex items-center px-8 justify-between sticky top-0 z-40">
-                    <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
-                    <div className="flex gap-4">
-                        <Link href="/" className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm font-bold">
-                            🌐 زيارة الموقع
+            {/* Main Content Area */}
+            <main className="lg:mr-72 flex-1 flex flex-col min-h-screen transition-all duration-500 relative z-10">
+
+                {/* Header Navbar */}
+                <header className="bg-white/80 backdrop-blur-3xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border-b border-slate-200/80 h-20 flex items-center px-6 md:px-10 justify-between sticky top-0 z-30">
+                    <div className="flex items-center gap-5">
+                        <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm active:scale-90">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
+                        </button>
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                <span className="font-black text-slate-800 text-[15px] tracking-tight">النظام المركزي للتحكم</span>
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5 ml-4 italic opacity-70">Infrastructure v2.1.4</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 md:gap-5">
+                        <Link
+                            href={route('dashboard')}
+                            className="hidden sm:flex items-center gap-2.5 px-5 py-2.5 bg-slate-100 text-slate-700 rounded-2xl hover:bg-slate-900 hover:text-white text-[11px] font-black transition-all shadow-inner active:scale-95"
+                        >
+                            <span>👤</span> بروفايل الطالب
+                        </Link>
+                        <Link
+                            href="/"
+                            className="flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl hover:shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 text-[11px] font-black transition-all group"
+                        >
+                            <span className="text-base group-hover:scale-125 transition-transform duration-500">🌐</span> 
+                            <span className="hidden md:inline">الواجهة الأمامية</span>
+                            <span className="md:hidden">الموقع</span>
                         </Link>
                     </div>
                 </header>
 
-                {/* المحتوى المتغير */}
-                <div className="p-8">
-                    {children}
+                {/* Children Content */}
+                <div className="p-5 md:p-10 flex-1">
+                    <div className="animate-fade-in-up max-w-[1600px] mx-auto">
+                        {children}
+                    </div>
                 </div>
-            </main>
+                
+                {/* Global Styles */}
+                <style>{`
+                    .scrollbar-hide::-webkit-scrollbar { display: none; }
+                    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                    
+                    @keyframes fadeInUp {
+                        from { opacity: 0; transform: translateY(15px) scale(0.99); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    .animate-fade-in-up {
+                        animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    }
 
+                    ::selection {
+                        background: #4f46e5;
+                        color: white;
+                    }
+                `}</style>
+            </main>
         </div>
     );
 }

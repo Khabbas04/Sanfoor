@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\University; // 🔥 استدعاء مودل الجامعة
+use App\Models\College;    // 🔥 استدعاء مودل الكلية
+use App\Models\Major;      // 🔥 استدعاء مودل التخصص
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +23,12 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register', [
+            // 🔥 إرسال الهيكلة الأكاديمية كاملة لصفحة التسجيل لتشغيل القوائم المترابطة
+            'universities' => University::all(),
+            'colleges' => College::all(),
+            'majors' => Major::all(),
+        ]);
     }
 
     /**
@@ -34,12 +42,15 @@ class RegisteredUserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'major_id' => 'required|exists:majors,id', // 🔥 إجبار الطالب على اختيار تخصص صحيح
         ]);
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'major_id' => $request->major_id, // 🔥 ربط الطالب بتخصصه في قاعدة البيانات
+            'role' => 'student', // 🔥 إعطاء المستخدم صلاحية "طالب" كقيمة افتراضية
         ]);
 
         event(new Registered($user));

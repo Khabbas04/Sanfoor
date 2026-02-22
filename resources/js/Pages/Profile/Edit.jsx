@@ -1,23 +1,29 @@
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import MainLayout from '@/Layouts/MainLayout';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import { Head } from '@inertiajs/react';
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ auth, mustVerifyEmail, status }) {
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Profile
-                </h2>
-            }
-        >
-            <Head title="Profile" />
+        <MainLayout user={auth.user}>
+            <Head title="حسابي الشخصي - جامعة سنفور" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+            <div className="py-10 bg-slate-50 min-h-screen" dir="rtl">
+                <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">
+                    
+                    {/* ترويسة الصفحة */}
+                    <div className="mb-2">
+                        <h2 className="text-3xl font-black text-slate-800 flex items-center gap-3">
+                            <span className="text-4xl drop-shadow-sm">⚙️</span> إعدادات الحساب
+                        </h2>
+                        <p className="text-slate-500 mt-2 font-medium text-sm md:text-base pr-2">
+                            تحكم في بياناتك الشخصية، كلمة المرور، وإعدادات الأمان الخاصة بك بكل سهولة.
+                        </p>
+                    </div>
+
+                    {/* كرت المعلومات الشخصية */}
+                    <div className="p-8 bg-white shadow-sm border border-slate-200/60 rounded-[2rem] hover:shadow-md transition-shadow duration-300">
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
@@ -25,15 +31,18 @@ export default function Edit({ mustVerifyEmail, status }) {
                         />
                     </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                    {/* كرت كلمة المرور */}
+                    <div className="p-8 bg-white shadow-sm border border-slate-200/60 rounded-[2rem] hover:shadow-md transition-shadow duration-300">
                         <UpdatePasswordForm className="max-w-xl" />
                     </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                    {/* كرت الحذف (منطقة خطرة) */}
+                    <div className="p-8 bg-red-50/50 shadow-sm border border-red-100 rounded-[2rem] hover:bg-red-50 transition-colors duration-300">
                         <DeleteUserForm className="max-w-xl" />
                     </div>
+                    
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </MainLayout>
     );
 }

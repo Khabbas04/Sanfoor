@@ -28,13 +28,22 @@ class AuthenticatedSessionController extends Controller
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
+{
+    // 1. التحقق من بيانات الدخول
+    $request->authenticate();
 
-        $request->session()->regenerate();
+    // 2. تجديد الجلسة
+    $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
-    }
+    // 🔥 3. هنا بالضبط بتحط كود تسجيل الـ IP وآخر ظهور 🔥
+    $request->user()->update([
+        'ip_address' => $request->ip(),
+        'last_login_at' => now(),
+    ]);
+
+    // 4. توجيه المستخدم للوحة التحكم
+    return redirect()->intended(route('dashboard', absolute: false));
+}
 
     /**
      * Destroy an authenticated session.

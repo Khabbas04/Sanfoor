@@ -20,36 +20,40 @@ export default function ConfirmPassword() {
 
     return (
         <GuestLayout>
-            <Head title="Confirm Password" />
+            <Head title="تأكيد كلمة المرور - سنفور" />
 
-            <div className="mb-4 text-sm text-gray-600">
-                This is a secure area of the application. Please confirm your
-                password before continuing.
-            </div>
-
-            <form onSubmit={submit}>
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        isFocused={true}
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
+            <div dir="rtl">
+                <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-100">
+                        🛡️
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-800 mb-2">تأكيد الهوية</h2>
+                    <p className="text-sm font-bold text-slate-500 leading-relaxed">
+                        هذه منطقة محمية. يرجى تأكيد كلمة المرور قبل المتابعة.
+                    </p>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Confirm
+                <form onSubmit={submit} className="space-y-5">
+                    <div>
+                        <InputLabel htmlFor="password" value="كلمة المرور" />
+                        <TextInput
+                            id="password"
+                            type="password"
+                            name="password"
+                            value={data.password}
+                            className="mt-1.5 block w-full"
+                            isFocused={true}
+                            placeholder="••••••••"
+                            onChange={(e) => setData('password', e.target.value)}
+                        />
+                        <InputError message={errors.password} className="mt-2" />
+                    </div>
+
+                    <PrimaryButton className="w-full justify-center py-3.5" disabled={processing}>
+                        {processing ? 'جاري التأكيد...' : 'تأكيد ومتابعة'}
                     </PrimaryButton>
-                </div>
-            </form>
+                </form>
+            </div>
         </GuestLayout>
     );
 }

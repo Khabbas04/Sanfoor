@@ -3,240 +3,513 @@ import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
 
-export default function AdminIndex({ courses, majors, logs, colleges }) {
-    
-    // --- 1. إدارة الحالة (State Management) ---
-    const [activeTab, setActiveTab] = useState('plan'); 
-    const [selectedIds, setSelectedIds] = useState([]); 
-    const [selectedCollege, setSelectedCollege] = useState(''); 
-    const [searchQuery, setSearchQuery] = useState(''); // محرك البحث
+export default function AdminIndex({ courses, universities, colleges, majors, logs }) {
 
-    // --- 2. فورم الإضافة اليدوية (بدون فصل + مع متطلب) ---
-    const { data, setData, post, processing, reset, errors } = useForm({
-        name: '', 
-        code: '', 
-        credit_hours: 3, 
-        type: 'compulsory', 
-        prerequisite_id: '', // إضافة متطلب سابق يدوياً
-        major_id: ''
+    const [activeTab, setActiveTab] = useState('plan');
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeMajorFilter, setActiveMajorFilter] = useState('');
+    const [editingCourse, setEditingCourse] = useState(null);
+
+    const { data, setData, post, put, processing, reset, errors, clearErrors } = useForm({
+        id: null,
+        college_id: '',
+        major_id: '',
+        name: '',
+        code: '',
+        credit_hours: 3,
+        type: 'compulsory',
+        prerequisite_id: '',
+        semester: 1,
+        description: '', 
     });
 
-    // --- 3. فورم استيراد CSV ---
-    const { data: fileData, setData: setFileData, post: postFile, processing: fileProcessing, errors: fileErrors } = useForm({
+    const { data: fileData, setData: setFileData, post: postFile, processing: fileProcessing, reset: resetFile } = useForm({
         csv_file: null,
+        college_id: '',
         major_id: '',
     });
 
-    // --- 4. العمليات (Actions) ---
-    const handleManualSubmit = (e) => { 
-        e.preventDefault(); 
-        post(route('admin.courses.store'), { 
-            onSuccess: () => {
-                reset();
-                Swal.fire({ icon: 'success', title: 'تمت الإضافة', timer: 1500, showConfirmButton: false });
-            } 
-        }); 
+    const { data: colData, setData: setColData, post: postCol, processing: colProc, reset: resetCol } = useForm({
+        name: '',
+        university_id: (universities && universities.length > 0) ? universities[0].id : '',
+    });
+
+    const { data: majData, setData: setMajData, post: postMaj, processing: majProc, reset: resetMaj, errors: majErr } = useForm({
+        name: '',
+        code: '',
+        college_id: '',
+    });
+
+    const safeColleges = colleges || [];
+    const safeMajors = majors || [];
+    const safeCourses = courses || [];
+
+    const filteredManualColleges = safeColleges.filter(c => c.university_id == ((universities && universities.length > 0) ? universities[0].id : ''));
+    const filteredManualMajors = safeMajors.filter(m => m.college_id == data.college_id);
+
+    const filteredImportColleges = safeColleges.filter(c => c.university_id == ((universities && universities.length > 0) ? universities[0].id : ''));
+    const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.college_id);
+
+    const filteredCourses = useMemo(() => {
+        let result = safeCourses;
+        if (activeMajorFilter) {
+            if (activeMajorFilter === 'general') result = result.filter(c => c.major_id === null);
+            else result = result.filter(c => c.major_id == activeMajorFilter);
+        }
+        if (searchQuery) {
+            result = result.filter(c =>
+                c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                c.code.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        return result;
+    }, [searchQuery, safeCourses, activeMajorFilter]);
+
+    const availablePrerequisites = useMemo(() => {
+        if (!editingCourse) return safeCourses;
+        return safeCourses.filter(c => c.id !== editingCourse.id);
+    }, [safeCourses, editingCourse]);
+
+    const handleManualSubmit = (e) => {
+        e.preventDefault();
+        clearErrors();
+
+        if (editingCourse) {
+            put(route('admin.courses.update', editingCourse.id), {
+                onSuccess: () => {
+                    cancelEdit();
+                    Swal.fire({ icon: 'success', title: 'تم التعديل', text: 'تم تحديث المادة بنجاح', timer: 1500, showConfirmButton: false });
+                }
+            });
+        } else {
+            post(route('admin.courses.store'), {
+                onSuccess: () => {
+                    reset('name', 'code', 'prerequisite_id', 'description');
+                    Swal.fire({ icon: 'success', title: 'تمت الإضافة', text: 'تم حفظ المادة بنجاح', timer: 1500, showConfirmButton: false });
+                }
+            });
+        }
     };
 
-    const handleImportSubmit = (e) => { 
-        e.preventDefault(); 
-        postFile(route('admin.courses.import'), {
-            onSuccess: () => Swal.fire('تم الاستيراد!', 'تم بناء روابط الشجرة بنجاح.', 'success')
-        }); 
+    const editCourse = (course) => {
+        setEditingCourse(course);
+        let collId = '';
+        if (course.major_id) {
+            const major = safeMajors.find(m => m.id === course.major_id);
+            if (major) collId = major.college_id;
+        }
+
+        setData({
+            id: course.id,
+            college_id: collId,
+            major_id: course.major_id || '',
+            name: course.name,
+            code: course.code,
+            credit_hours: course.credit_hours,
+            type: course.type,
+            semester: course.semester || 1,
+            prerequisite_id: course.prerequisites?.length > 0 ? course.prerequisites[0].id : '',
+            description: course.description || '',
+        });
+
+        setTimeout(() => {
+            const formElement = document.getElementById('course-action-form');
+            if (formElement) {
+                const y = formElement.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }, 50);
     };
 
-    const handleBulkDelete = () => {
+    const cancelEdit = () => {
+        setEditingCourse(null);
+        reset('id', 'name', 'code', 'prerequisite_id', 'semester', 'description');
+        clearErrors();
+    };
+
+    const handleDeleteSingle = (id, name) => {
         Swal.fire({
-            title: 'هل أنت متأكد؟',
-            text: `سيتم حذف ${selectedIds.length} مادة نهائياً!`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            confirmButtonText: 'نعم، احذف',
-            cancelButtonText: 'إلغاء'
+            title: 'حذف المادة؟', text: `هل أنت متأكد من حذف (${name})؟`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#94a3b8', confirmButtonText: 'نعم، احذف', cancelButtonText: 'إلغاء'
         }).then((result) => {
             if (result.isConfirmed) {
-                router.post(route('admin.courses.bulk_delete'), { ids: selectedIds }, {
-                    onSuccess: () => setSelectedIds([])
+                router.delete(route('admin.courses.destroy', id), {
+                    onSuccess: () => Swal.fire('تم الحذف!', 'تم تنظيف السجل بنجاح.', 'success')
                 });
             }
         });
     };
 
-    // --- 5. الفلترة والبحث الذكي ---
-    const filteredMajors = majors.filter(m => m.college_id == selectedCollege);
+    const handleImportSubmit = (e) => {
+        e.preventDefault();
+        postFile(route('admin.courses.import'), {
+            onSuccess: () => {
+                resetFile('csv_file');
+                Swal.fire('تم الاستيراد!', 'تم بناء روابط الشجرة بنجاح 🚀', 'success');
+            }
+        });
+    };
 
-    const filteredCourses = useMemo(() => {
-        return courses.filter(c => 
-            c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            c.code.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [searchQuery, courses]);
+    const handleColSubmit = (e) => {
+        e.preventDefault();
+        postCol(route('admin.colleges.store'), {
+            onSuccess: () => { resetCol('name'); Swal.fire({ icon: 'success', title: 'نجاح', text: 'تمت إضافة الكلية بنجاح 🏛️', timer: 1500, showConfirmButton: false }); }
+        });
+    };
+
+    const handleMajSubmit = (e) => {
+        e.preventDefault();
+        postMaj(route('admin.majors.store'), {
+            onSuccess: () => { resetMaj('name', 'code'); Swal.fire({ icon: 'success', title: 'نجاح', text: 'تمت إضافة التخصص بنجاح 🎓', timer: 1500, showConfirmButton: false }); }
+        });
+    };
+
+    const handleBulkDelete = () => {
+        Swal.fire({
+            title: 'هل أنت متأكد؟', text: `سيتم حذف ${selectedIds.length} مادة مع علاقاتها نهائياً!`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', cancelButtonColor: '#94a3b8', confirmButtonText: 'نعم، احذف', cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.post(route('admin.courses.bulk_delete'), { ids: selectedIds }, {
+                    onSuccess: () => { setSelectedIds([]); Swal.fire('تم الحذف!', 'تم تنظيف السجلات بنجاح.', 'success'); }
+                });
+            }
+        });
+    };
 
     return (
         <AdminLayout>
-            <Head title="إدارة المواد - مرشد سنفور" />
-            
-            {/* استدعاء خط Cairo */}
-            <style>{`@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap'); body { font-family: 'Cairo', sans-serif; }`}</style>
+            <Head title="إدارة النظام - Kulliya Campus" />
 
-            <div className="p-6 bg-gray-50 min-h-screen">
+            <style>{`
+                @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+                .delay-100 { animation-delay: 100ms; }
+                .delay-200 { animation-delay: 200ms; }
                 
-                {/* الرأس الهيدر */}
-                <div className="flex justify-between items-end mb-8">
+                @keyframes borderPulse {
+                    0% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.2); }
+                    50% { border-color: rgba(245, 158, 11, 0.8); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1); }
+                    100% { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+                }
+                .edit-mode-active { animation: borderPulse 2s infinite; }
+            `}</style>
+
+            <div className="p-4 md:p-8 bg-[#f4f7f9] min-h-screen" dir="rtl">
+
+                {/* --- 1. الترويسة وأزرار التنقل (Header & Tabs) --- */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-5 animate-fade-in-up">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800">إدارة المواد الأكاديمية</h1>
-                        <p className="text-slate-500 mt-1">التحكم في الخطة الدراسية، المتطلبات، وسجلات النظام.</p>
+                        <h1 className="text-3xl font-[900] text-slate-800 tracking-tight">إدارة النظام الأكاديمي</h1>
+                        <p className="text-slate-500 mt-1.5 font-bold text-sm">التحكم المركزي في الكليات، التخصصات، والمواد الدراسية.</p>
                     </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setActiveTab('plan')} className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === 'plan' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 border'}`}>📚 الخطة الدراسية</button>
-                        <button onClick={() => setActiveTab('logs')} className={`px-6 py-2 rounded-xl font-bold transition-all ${activeTab === 'logs' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 border'}`}>🕵️ سجل العمليات</button>
+                    
+                    <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto w-full md:w-auto">
+                        <button onClick={() => setActiveTab('plan')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold transition-all text-sm whitespace-nowrap ${activeTab === 'plan' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50'}`}>📚 الشجرة والمواد</button>
+                        <button onClick={() => setActiveTab('structure')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold transition-all text-sm whitespace-nowrap ${activeTab === 'structure' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50'}`}>🏛️ الكليات والتخصصات</button>
+                        <button onClick={() => setActiveTab('logs')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold transition-all text-sm whitespace-nowrap ${activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50'}`}>🕵️ السجل</button>
                     </div>
                 </div>
 
-                {activeTab === 'plan' && (
-                    <div className="space-y-6">
-                        
-                        {/* 1. قسم الرفع الذكي */}
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
-                            <div className="relative z-10">
-                                <h2 className="text-xl font-bold flex items-center gap-2 mb-4">🚀 استيراد خطة من ملف CSV</h2>
-                                <form onSubmit={handleImportSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                    <div>
-                                        <label className="block text-xs font-bold mb-1 opacity-80">الكلية</label>
-                                        <select className="w-full rounded-xl border-none text-slate-800 font-bold p-2.5" value={selectedCollege} onChange={e => setSelectedCollege(e.target.value)}>
-                                            <option value="">-- اختر الكلية --</option>
-                                            {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold mb-1 opacity-80">التخصص</label>
-                                        <select className="w-full rounded-xl border-none text-slate-800 font-bold p-2.5" value={fileData.major_id} onChange={e => setFileData('major_id', e.target.value)} disabled={!selectedCollege}>
-                                            <option value="">-- اختر التخصص --</option>
-                                            {filteredMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold mb-1 opacity-80">اختر الملف</label>
-                                        <input type="file" onChange={e => setFileData('csv_file', e.target.files[0])} className="w-full bg-white/20 rounded-xl p-1.5 border border-white/30 text-sm file:bg-white file:rounded-lg file:border-0 file:px-3 file:py-1 file:font-bold file:text-blue-700 cursor-pointer" />
-                                    </div>
-                                    <button type="submit" disabled={fileProcessing || !fileData.major_id} className="bg-white text-blue-700 h-11 rounded-xl font-black hover:bg-slate-100 transition-transform active:scale-95 disabled:opacity-50">رفع وبناء الشجرة</button>
-                                </form>
-                            </div>
-                            <div className="absolute top-0 right-0 opacity-10 text-[10rem] translate-x-1/4 -translate-y-1/4 select-none">📊</div>
+                {/* --- 2. محتوى تبويب: الكليات والتخصصات --- */}
+                {activeTab === 'structure' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up delay-100">
+                        <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-2 h-full bg-gradient-to-b from-blue-500 to-cyan-500"></div>
+                            <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><span>🏛️</span> إضافة كلية جديدة</h3>
+                            <form onSubmit={handleColSubmit} className="space-y-5">
+                                <div>
+                                    <label className="text-[13px] font-bold text-slate-600 mb-1.5 block">اسم الكلية الرسمي</label>
+                                    <input type="text" placeholder="مثال: كلية التمريض" className="w-full rounded-xl border-slate-200 focus:ring-blue-500 focus:border-blue-500 bg-slate-50/50 font-bold text-slate-800" value={colData.name} onChange={e => setColData('name', e.target.value)} required />
+                                </div>
+                                <button type="submit" disabled={colProc} className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 active:scale-95">
+                                    {colProc ? 'جاري الحفظ...' : 'حفظ بيانات الكلية'}
+                                </button>
+                            </form>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-2 h-full bg-gradient-to-b from-violet-500 to-purple-500"></div>
+                            <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><span>🎓</span> إضافة تخصص جديد</h3>
+                            <form onSubmit={handleMajSubmit} className="space-y-5">
+                                <div>
+                                    <label className="text-[13px] font-bold text-slate-600 mb-1.5 block">الكلية التابعة لها</label>
+                                    <select className="w-full rounded-xl border-slate-200 focus:ring-violet-500 focus:border-violet-500 bg-slate-50/50 font-bold text-slate-700" value={majData.college_id} onChange={e => setMajData('college_id', e.target.value)} required>
+                                        <option value="">-- اختر الكلية --</option>
+                                        {safeColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="text-[13px] font-bold text-slate-600 mb-1.5 block">اسم التخصص</label>
+                                        <input type="text" placeholder="مثال: الذكاء الاصطناعي" className="w-full rounded-xl border-slate-200 focus:ring-violet-500 focus:border-violet-500 bg-slate-50/50 font-bold text-slate-800" value={majData.name} onChange={e => setMajData('name', e.target.value)} required />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <label className="text-[13px] font-bold text-slate-600 mb-1.5 block">الرمز</label>
+                                        <input type="text" placeholder="AI" dir="ltr" className="w-full rounded-xl border-slate-200 focus:ring-violet-500 focus:border-violet-500 bg-slate-50/50 uppercase font-black text-center text-violet-700" value={majData.code} onChange={e => setMajData('code', e.target.value.toUpperCase())} required />
+                                    </div>
+                                </div>
+                                {majErr.code && <div className="text-rose-500 text-xs mt-1 font-bold">{majErr.code}</div>}
+                                <button type="submit" disabled={majProc} className="w-full bg-violet-600 text-white py-3.5 rounded-xl font-black hover:bg-violet-700 transition-all shadow-lg shadow-violet-500/30 active:scale-95 mt-2">
+                                    {majProc ? 'جاري الحفظ...' : 'إضافة التخصص'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- 3. محتوى تبويب: الشجرة والمواد --- */}
+                {activeTab === 'plan' && (
+                    <div className="space-y-8 animate-fade-in-up delay-100">
+
+                        <div className={`bg-[#0b0f19] p-8 md:p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-slate-800 transition-opacity duration-300 ${editingCourse ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+                            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at center, #ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                             
-                            {/* 2. الإضافة اليدوية (الجانب) */}
-                            <div className="lg:col-span-4 bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm sticky top-6 h-fit">
-                                <h3 className="text-lg font-black text-slate-800 mb-6 border-r-4 border-blue-600 pr-3">✍️ مادة جديدة</h3>
-                                <form onSubmit={handleManualSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <input type="text" placeholder="الرمز (CS101)" className="rounded-xl border-slate-200 w-full" value={data.code} onChange={e => setData('code', e.target.value)} />
-                                        <input type="number" placeholder="ساعات" className="rounded-xl border-slate-200 w-full" value={data.credit_hours} onChange={e => setData('credit_hours', e.target.value)} />
+                            <div className="relative z-10">
+                                <h2 className="text-2xl font-[900] flex items-center gap-3 mb-2">
+                                    <span className="text-indigo-400">🚀</span> البناء التلقائي للشجرة (CSV)
+                                </h2>
+                                <p className="text-slate-400 font-bold text-sm mb-8">ارفع خطة القسم كاملة بملف إكسل ليقوم النظام ببناء الشجرة وربط المتطلبات تلقائياً.</p>
+                                
+                                <form onSubmit={handleImportSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end bg-white/5 p-6 rounded-[1.5rem] border border-white/10 backdrop-blur-md">
+                                    <div>
+                                        <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">1. حدد الكلية</label>
+                                        <select className="w-full rounded-xl border-none bg-white/10 text-white font-bold p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 appearance-none" value={fileData.college_id} onChange={e => setFileData({ ...fileData, college_id: e.target.value, major_id: '' })}>
+                                            <option value="" className="text-slate-900">-- اختر الكلية --</option>
+                                            {filteredImportColleges.map(c => <option key={c.id} value={c.id} className="text-slate-900">{c.name}</option>)}
+                                        </select>
                                     </div>
-                                    <input type="text" placeholder="اسم المادة" className="rounded-xl border-slate-200 w-full" value={data.name} onChange={e => setData('name', e.target.value)} />
+                                    <div>
+                                        <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">2. حدد التخصص</label>
+                                        <select className="w-full rounded-xl border-none bg-white/10 text-white font-bold p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 appearance-none disabled:opacity-50" value={fileData.major_id} onChange={e => setFileData('major_id', e.target.value)} disabled={!fileData.college_id} required>
+                                            <option value="" className="text-slate-900">-- التخصص المستهدف --</option>
+                                            {filteredImportMajors.map(m => <option key={m.id} value={m.id} className="text-slate-900">{m.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">3. ملف الخطة (CSV)</label>
+                                        <input type="file" onChange={e => setFileData('csv_file', e.target.files[0])} className="w-full bg-white/10 rounded-xl p-2.5 border border-transparent text-sm file:bg-indigo-600 file:text-white file:rounded-lg file:border-0 file:px-4 file:py-1.5 file:font-black cursor-pointer hover:bg-white/20 transition-colors" required />
+                                    </div>
+                                    <button type="submit" disabled={fileProcessing || !fileData.major_id || !fileData.csv_file} className="bg-indigo-600 text-white h-[52px] rounded-xl font-black hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_20px_rgba(79,70,229,0.3)]">
+                                        بدء المعالجة
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {/* 🔥 حل مشكلة الـ Sticky (إجبار العمود على أخذ حجمه الطبيعي فقط عبر items-start و h-max) 🔥 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
+                            
+                            {/* نموذج الإضافة والتعديل اليدوي */}
+                            <div id="course-action-form" className={`lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-[0_8px_30px_rgb(0,0,0,0.03)] sticky top-24 h-max transition-all duration-300 z-10 ${editingCourse ? 'edit-mode-active bg-amber-50/10' : 'border-slate-200/80'}`}>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-[900] text-slate-800 flex items-center gap-2">
+                                        {editingCourse ? <><span className="text-amber-500">✏️</span> تعديل بيانات المادة</> : <><span className="text-indigo-600">✍️</span> إضافة مادة يدوياً</>}
+                                    </h3>
+                                    {editingCourse && (
+                                        <button onClick={cancelEdit} className="text-[10px] font-black text-rose-500 bg-rose-50 px-2.5 py-1.5 rounded-lg hover:bg-rose-100 transition-colors">إلغاء التعديل ✕</button>
+                                    )}
+                                </div>
+
+                                <form onSubmit={handleManualSubmit} className="space-y-5">
                                     
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-400 mr-1 mb-1 block">التخصص المتبع</label>
-                                        <select className="w-full rounded-xl border-slate-200" value={data.major_id} onChange={e => setData('major_id', e.target.value)}>
-                                            <option value="">-- متطلب جامعة / مشترك --</option>
-                                            {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    <div className="space-y-3">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">المسار الأكاديمي</label>
+                                        <select className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500" value={data.college_id} onChange={e => setData({ ...data, college_id: e.target.value, major_id: '' })}>
+                                            <option value="">-- اختر الكلية --</option>
+                                            {filteredManualColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <select className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50" value={data.major_id} onChange={e => setData('major_id', e.target.value)} disabled={!data.college_id}>
+                                            <option value="">-- متطلب جامعة عام (بدون تخصص) --</option>
+                                            {filteredManualMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                         </select>
                                     </div>
 
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-400 mr-1 mb-1 block">المتطلب السابق (اختياري)</label>
-                                        <select className="w-full rounded-xl border-slate-200" value={data.prerequisite_id} onChange={e => setData('prerequisite_id', e.target.value)}>
-                                            <option value="">بدون متطلب سابق</option>
-                                            {courses.map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
-                                        </select>
+                                    <div className="h-px bg-slate-100 w-full"></div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">تفاصيل المادة</label>
+                                        <div>
+                                            <input type="text" placeholder="اسم المادة (مثال: تفاضل وتكامل 1)" className="rounded-xl border-slate-200 w-full text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500" value={data.name} onChange={e => setData('name', e.target.value)} required />
+                                            {errors.name && <div className="text-rose-500 text-xs mt-1 font-bold">{errors.name}</div>}
+                                        </div>
+                                        <div className="grid grid-cols-5 gap-3">
+                                            <div className="col-span-3 relative">
+                                                <input type="text" placeholder="الرمز (MATH101)" className="rounded-xl border-slate-200 w-full text-sm font-black focus:ring-indigo-500 focus:border-indigo-500 uppercase font-mono pr-10" value={data.code} onChange={e => setData('code', e.target.value.toUpperCase())} required dir="ltr" />
+                                                <span className="absolute right-3 top-2.5 text-slate-400">🔢</span>
+                                                {errors.code && <div className="text-rose-500 text-xs mt-1 font-bold">{errors.code}</div>}
+                                            </div>
+                                            <div className="col-span-2 relative">
+                                                <input type="number" min="0" max="6" className="rounded-xl border-slate-200 w-full text-sm font-black focus:ring-indigo-500 focus:border-indigo-500 pl-8 text-center" value={data.credit_hours} onChange={e => setData('credit_hours', e.target.value)} required />
+                                                <span className="absolute left-3 top-2.5 text-[10px] font-black text-slate-400">ساعة</span>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div className="flex gap-2">
-                                        <label className="flex-1 cursor-pointer">
-                                            <input type="radio" className="hidden peer" name="type" value="compulsory" checked={data.type === 'compulsory'} onChange={e => setData('type', e.target.value)} />
-                                            <div className="text-center p-2 rounded-xl border peer-checked:bg-blue-50 peer-checked:border-blue-600 peer-checked:text-blue-700 font-bold transition-all">إجباري</div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                                            ملاحظات (وصف)
+                                            <span className="text-indigo-400 text-[9px] bg-indigo-50 px-1.5 rounded">يظهر للطلاب</span>
                                         </label>
-                                        <label className="flex-1 cursor-pointer">
-                                            <input type="radio" className="hidden peer" name="type" value="elective" checked={data.type === 'elective'} onChange={e => setData('type', e.target.value)} />
-                                            <div className="text-center p-2 rounded-xl border peer-checked:bg-green-50 peer-checked:border-green-600 peer-checked:text-green-700 font-bold transition-all">اختياري</div>
-                                        </label>
+                                        <textarea 
+                                            placeholder="اكتب نبذة عن طبيعة المادة هنا (اختياري)..." 
+                                            className="rounded-xl border-slate-200 w-full text-xs font-medium focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50 min-h-[80px] resize-none" 
+                                            value={data.description} 
+                                            onChange={e => setData('description', e.target.value)}
+                                        ></textarea>
                                     </div>
 
-                                    <button type="submit" disabled={processing} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-black transition shadow-lg active:scale-95">حفظ المادة</button>
+                                    <div className="h-px bg-slate-100 w-full"></div>
+
+                                    <div className="space-y-4">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">الخصائص والمتطلبات</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className="text-[10px] font-bold text-slate-500">الفصل الافتراضي</span>
+                                                <select className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500" value={data.semester} onChange={e => setData('semester', e.target.value)}>
+                                                    {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => <option key={num} value={num}>الفصل {num}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className="text-[10px] font-bold text-slate-500">طبيعة المادة</span>
+                                                <div className="flex bg-slate-100 p-1 rounded-xl">
+                                                    <label className="flex-1 cursor-pointer">
+                                                        <input type="radio" className="hidden peer" name="type" value="compulsory" checked={data.type === 'compulsory'} onChange={e => setData('type', e.target.value)} />
+                                                        <div className="text-center py-1.5 rounded-lg peer-checked:bg-white peer-checked:text-indigo-600 peer-checked:shadow-sm font-bold transition-all text-xs text-slate-500">إجباري</div>
+                                                    </label>
+                                                    <label className="flex-1 cursor-pointer">
+                                                        <input type="radio" className="hidden peer" name="type" value="elective" checked={data.type === 'elective'} onChange={e => setData('type', e.target.value)} />
+                                                        <div className="text-center py-1.5 rounded-lg peer-checked:bg-white peer-checked:text-emerald-600 peer-checked:shadow-sm font-bold transition-all text-xs text-slate-500">اختياري</div>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col gap-1.5">
+                                            <span className="text-[10px] font-bold text-slate-500">تفتح بعد اجتياز (المتطلب السابق):</span>
+                                            <select className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500 bg-slate-50" value={data.prerequisite_id} onChange={e => setData('prerequisite_id', e.target.value)}>
+                                                <option value="">-- بدون متطلب سابق --</option>
+                                                {availablePrerequisites.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" disabled={processing} className={`w-full text-white py-3.5 rounded-xl font-black transition-all shadow-lg active:scale-95 mt-6 disabled:opacity-50 text-sm ${editingCourse ? 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/30' : 'bg-slate-900 hover:bg-indigo-600 hover:shadow-indigo-500/30'}`}>
+                                        {processing ? 'جاري المعالجة...' : (editingCourse ? 'حفظ التعديلات' : 'إضافة المادة للشجرة')}
+                                    </button>
                                 </form>
                             </div>
 
-                            {/* 3. عرض المواد وبحث */}
-                            <div className="lg:col-span-8 space-y-4">
-                                <div className="bg-white p-4 rounded-2xl border flex items-center gap-4 shadow-sm">
-                                    <div className="relative flex-1">
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">🔍</span>
-                                        <input 
-                                            type="text" 
-                                            placeholder="ابحث برمز المادة أو اسمها..." 
-                                            className="w-full pr-10 rounded-xl border-slate-200 focus:ring-blue-500 focus:border-blue-500"
-                                            value={searchQuery}
-                                            onChange={e => setSearchQuery(e.target.value)}
-                                        />
+                            {/* جدول عرض المواد (Data Table) */}
+                            <div className="lg:col-span-8 space-y-5">
+                                <div className="bg-white p-5 rounded-[2rem] border border-slate-200/80 flex flex-col md:flex-row items-center gap-4 shadow-sm">
+                                    <div className="flex-1 w-full">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-2">تصفية حسب التخصص</label>
+                                        <select
+                                            className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 text-sm font-bold text-indigo-800 bg-indigo-50/50 border-transparent cursor-pointer"
+                                            value={activeMajorFilter}
+                                            onChange={e => setActiveMajorFilter(e.target.value)}
+                                        >
+                                            <option value="">🌍 عرض كل المواد (النظام كامل)</option>
+                                            <option value="general">🏛️ متطلبات الجامعة الإجبارية والاختيارية</option>
+                                            {safeMajors.map(m => <option key={m.id} value={m.id}>🎓 {m.name}</option>)}
+                                        </select>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <a href={route('admin.courses.export')} className="p-2.5 bg-green-50 text-green-700 rounded-xl border border-green-100 hover:bg-green-100 transition shadow-sm font-bold text-sm">📊 Excel</a>
-                                        {selectedIds.length > 0 && (
-                                            <button onClick={handleBulkDelete} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 hover:bg-red-600 hover:text-white transition font-bold text-sm">🗑️ حذف ({selectedIds.length})</button>
-                                        )}
+                                    <div className="flex-1 w-full relative">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-2">بحث سريع</label>
+                                        <span className="absolute right-4 top-[34px] text-slate-400">🔍</span>
+                                        <input type="text" placeholder="اكتب رمز أو اسم المادة..." className="w-full pr-12 rounded-xl border-slate-200 focus:ring-indigo-500 text-sm font-bold bg-slate-50/50" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <table className="w-full text-right">
-                                        <thead className="bg-slate-50 border-b border-slate-100">
-                                            <tr>
-                                                <th className="p-4 w-10">
-                                                    <input type="checkbox" className="rounded-md border-slate-300" onChange={(e) => e.target.checked ? setSelectedIds(courses.map(c => c.id)) : setSelectedIds([])} />
-                                                </th>
-                                                <th className="p-4 font-black text-slate-500 text-xs">المادة</th>
-                                                <th className="p-4 font-black text-slate-500 text-xs">التخصص</th>
-                                                <th className="p-4 font-black text-slate-500 text-xs">المتطلب السابق</th>
-                                                <th className="p-4 font-black text-slate-500 text-xs">النوع</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                            {filteredCourses.map(course => (
-                                                <tr key={course.id} className="hover:bg-blue-50/20 transition-colors group">
-                                                    <td className="p-4">
-                                                        <input type="checkbox" className="rounded-md border-slate-300" checked={selectedIds.includes(course.id)} onChange={() => setSelectedIds(prev => prev.includes(course.id) ? prev.filter(i => i !== course.id) : [...prev, course.id])} />
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <div className="font-black text-slate-800 group-hover:text-blue-600 transition-colors">{course.name}</div>
-                                                        <div className="text-[10px] font-mono text-slate-400">{course.code} | {course.credit_hours} ساعات</div>
-                                                    </td>
-                                                    <td className="p-4 text-xs font-bold text-slate-500">
-                                                        {course.major ? <span className="bg-slate-100 px-2 py-0.5 rounded-md">{course.major.code}</span> : <span className="text-slate-300">متطلب عام</span>}
-                                                    </td>
-                                                    <td className="p-4">
-                                                        {course.prerequisites && course.prerequisites.length > 0 ? (
-                                                            course.prerequisites.map(pre => (
-                                                                <span key={pre.id} className="inline-block bg-orange-50 text-orange-700 text-[10px] font-bold px-2 py-0.5 rounded-lg border border-orange-100 ml-1">
-                                                                    🔗 {pre.code}
-                                                                </span>
-                                                            ))
-                                                        ) : <span className="text-slate-300 text-xs">-</span>}
-                                                    </td>
-                                                    <td className="p-4">
-                                                        {course.type === 'compulsory' 
-                                                            ? <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700">إجباري تخصص</span>
-                                                            : <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">اختياري جامعة</span>
-                                                        }
-                                                    </td>
+                                {/* 🔥 حل مشكلة اختفاء الـ Checkbox عند تحديد الكل 🔥 */}
+                                <div className="bg-white rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.03)] overflow-hidden">
+                                    
+                                    {/* شريط الإجراءات المجمعة (يظهر بدون إخفاء الترويسة) */}
+                                    {selectedIds.length > 0 && (
+                                        <div className="bg-indigo-50 border-b border-indigo-100 flex items-center justify-between px-6 py-3 animate-fade-in-up">
+                                            <span className="text-sm font-black text-indigo-800 flex items-center gap-2">
+                                                تم تحديد <span className="text-lg bg-white px-2 py-0.5 rounded-md shadow-sm">{selectedIds.length}</span> مواد
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setSelectedIds([])} className="px-3 py-1.5 bg-white text-slate-500 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">إلغاء التحديد</button>
+                                                <button onClick={handleBulkDelete} className="px-4 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-black hover:bg-rose-600 shadow-md shadow-rose-500/20 active:scale-95 transition-all">🗑️ حذف نهائي</button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-right whitespace-nowrap">
+                                            <thead className="bg-slate-50/80 border-b border-slate-100">
+                                                <tr>
+                                                    <th className="p-5 w-10">
+                                                        <input type="checkbox" className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" onChange={(e) => e.target.checked ? setSelectedIds(filteredCourses.map(c => c.id)) : setSelectedIds([])} checked={selectedIds.length === filteredCourses.length && filteredCourses.length > 0} />
+                                                    </th>
+                                                    <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">المادة ورمزها</th>
+                                                    <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">التصنيف</th>
+                                                    <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest">الاعتماد (يفتح)</th>
+                                                    <th className="p-5 font-black text-slate-400 text-[11px] uppercase tracking-widest text-left">إجراءات</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {filteredCourses.map(course => (
+                                                    <tr key={course.id} className={`transition-all duration-200 group ${editingCourse?.id === course.id ? 'bg-amber-50/30' : 'hover:bg-slate-50/50'}`}>
+                                                        <td className="p-5">
+                                                            <input type="checkbox" className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer opacity-40 group-hover:opacity-100 transition-opacity" checked={selectedIds.includes(course.id)} onChange={() => setSelectedIds(prev => prev.includes(course.id) ? prev.filter(i => i !== course.id) : [...prev, course.id])} />
+                                                        </td>
+                                                        <td className="p-5">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px] border ${course.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                                                    {course.credit_hours}س
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-[900] text-slate-800 text-[13px] mb-0.5 flex items-center gap-1.5">
+                                                                        {course.name}
+                                                                        {course.description && <span className="text-[8px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" title="تحتوي على ملاحظات">📝</span>}
+                                                                    </div>
+                                                                    <div className="text-[10px] font-black text-slate-400 font-mono tracking-wider" dir="ltr">{course.code}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-5">
+                                                            <div className="flex flex-col gap-1.5 items-start">
+                                                                {course.major ? <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg text-[10px] font-black border border-slate-200/60 shadow-sm">{course.major.name}</span> : <span className="bg-gradient-to-r from-violet-100 to-fuchsia-100 text-violet-700 px-2.5 py-1 rounded-lg text-[10px] font-black border border-violet-200/60 shadow-sm">🎓 متطلب جامعة</span>}
+                                                                <span className="text-[10px] font-bold text-slate-400">الفصل {course.semester || 1}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-5">
+                                                            {course.prerequisites && course.prerequisites.length > 0 ? (
+                                                                <div className="flex flex-wrap gap-1.5 max-w-[200px]">
+                                                                    {course.prerequisites.map(pre => (
+                                                                        <span key={pre.id} className="bg-white text-slate-600 text-[10px] font-black px-2 py-1 rounded-md border border-slate-200 shadow-sm group-hover:border-indigo-200 transition-colors" title={`رمز: ${pre.code}`}>
+                                                                            🔒 {pre.name}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ) : <span className="text-slate-300 font-black text-lg">-</span>}
+                                                        </td>
+                                                        <td className="p-5 text-left">
+                                                            <div className="flex items-center justify-end gap-2 opacity-20 group-hover:opacity-100 transition-opacity">
+                                                                <button onClick={() => editCourse(course)} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 flex items-center justify-center transition-all shadow-sm" title="تعديل المادة">
+                                                                    ✏️
+                                                                </button>
+                                                                <button onClick={() => handleDeleteSingle(course.id, course.name)} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center transition-all shadow-sm" title="حذف نهائي">
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
                                     {filteredCourses.length === 0 && (
-                                        <div className="p-20 text-center text-slate-400 italic">لا توجد مواد تطابق بحثك...</div>
+                                        <div className="p-20 text-center flex flex-col items-center justify-center">
+                                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-4xl mb-4 shadow-inner border border-slate-100">📂</div>
+                                            <h4 className="text-slate-700 font-black text-lg mb-1">لا توجد مواد هنا</h4>
+                                            <p className="text-slate-400 font-medium text-sm">جرب تغيير الفلتر المختار أو ابدأ بإضافة مواد جديدة.</p>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -244,31 +517,44 @@ export default function AdminIndex({ courses, majors, logs, colleges }) {
                     </div>
                 )}
 
+                {/* --- 4. محتوى تبويب: سجل العمليات --- */}
                 {activeTab === 'logs' && (
-                    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b bg-slate-50 flex justify-between items-center">
-                            <h2 className="font-black text-slate-800">🕵️ سجل النشاطات الأخير</h2>
-                            <span className="text-xs text-slate-400 font-bold">آخر 50 حركة</span>
+                    <div className="bg-white rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.03)] overflow-hidden animate-fade-in-up delay-100">
+                        <div className="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-xl font-[900] text-slate-800 tracking-tight">🕵️ سجل نشاطات النظام</h2>
+                                <p className="text-[11px] font-bold text-slate-400 mt-1">تتبع من قام بإضافة، تعديل، أو حذف البيانات.</p>
+                            </div>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-right">
-                                <thead className="bg-slate-50 text-slate-400 text-xs font-black">
-                                    <tr>
-                                        <th className="p-4">الوقت</th>
-                                        <th className="p-4">بواسطة</th>
-                                        <th className="p-4">الحركة</th>
-                                        <th className="p-4">التفاصيل</th>
-                                    </tr>
+                            <table className="w-full text-right whitespace-nowrap">
+                                <thead className="bg-white text-slate-400 text-[11px] font-black uppercase tracking-widest border-b border-slate-100">
+                                    <tr><th className="p-5">التاريخ والوقت</th><th className="p-5">المسؤول (الأدمن)</th><th className="p-5">تفاصيل العملية</th></tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 text-sm">
-                                    {logs.map(log => (
-                                        <tr key={log.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="p-4 text-slate-400 font-mono text-xs">{new Date(log.created_at).toLocaleString('en-GB')}</td>
-                                            <td className="p-4 font-bold text-slate-700">{log.user?.name}</td>
-                                            <td className="p-4"><span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-bold text-[10px]">{log.action}</span></td>
-                                            <td className="p-4 text-slate-500">{log.details}</td>
+                                <tbody className="divide-y divide-slate-50 text-sm">
+                                    {logs && logs.length > 0 ? logs.map(log => (
+                                        <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="p-5 text-slate-400 font-mono text-[11px] font-bold" dir="ltr">{new Date(log.created_at).toLocaleString('en-GB')}</td>
+                                            <td className="p-5 font-[900] text-slate-700 flex items-center gap-2">
+                                                <div className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px]">{log.user?.name?.charAt(0) || '?'}</div>
+                                                {log.user?.name || 'مستخدم غير معروف'}
+                                            </td>
+                                            <td className="p-5 text-slate-500 font-bold whitespace-normal">
+                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ml-2 border ${
+                                                    log.action.includes('add') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                                    log.action.includes('delete') ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                                    'bg-blue-50 text-blue-600 border-blue-100'
+                                                }`}>
+                                                    {log.action}
+                                                </span>
+                                                {log.details}
+                                            </td>
                                         </tr>
-                                    ))}
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="3" className="p-10 text-center text-slate-400 font-bold">لم يتم تسجيل أي عمليات بعد.</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

@@ -1,3 +1,95 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =========================================
+   Typography — Cairo
+   ========================================= */
+body {
+    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* =========================================
+   أنيميشنات مخصصة لمشروع سنفور
+   ========================================= */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.5s ease-out both;
+}
+
+.animate-slideDown {
+    animation: slideDown 0.3s ease-out both;
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* إخفاء سكرولبار */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* خط مستدير للدائرة في Dashboard */
+.stroke-round {
+    stroke-linecap: round;
+}
+
+/* Glass Navigation */
+.glass-nav {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.nav-link-active {
+    color: #4f46e5;
+    font-weight: 700;
+    background: rgba(79, 70, 229, 0.05);
+}

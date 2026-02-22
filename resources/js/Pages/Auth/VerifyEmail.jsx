@@ -7,44 +7,47 @@ export default function VerifyEmail({ status }) {
 
     const submit = (e) => {
         e.preventDefault();
-
         post(route('verification.send'));
     };
 
     return (
         <GuestLayout>
-            <Head title="Email Verification" />
+            <Head title="تأكيد البريد الإلكتروني - سنفور" />
 
-            <div className="mb-4 text-sm text-gray-600">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just emailed to
-                you? If you didn't receive the email, we will gladly send you
-                another.
+            <div dir="rtl">
+                <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-blue-100">
+                        ✉️
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-800 mb-2">تأكيد البريد الإلكتروني</h2>
+                    <p className="text-sm font-bold text-slate-500 leading-relaxed">
+                        شكراً لتسجيلك! قبل البدء، يرجى تأكيد بريدك الإلكتروني بالضغط على الرابط الذي أرسلناه إليك. إذا لم تستلم الرسالة، يمكننا إرسال واحدة أخرى.
+                    </p>
+                </div>
+
+                {status === 'verification-link-sent' && (
+                    <div className="mb-6 text-sm font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-center">
+                        ✅ تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني.
+                    </div>
+                )}
+
+                <form onSubmit={submit}>
+                    <div className="flex flex-col gap-4">
+                        <PrimaryButton className="w-full justify-center py-3.5" disabled={processing}>
+                            {processing ? 'جاري الإرسال...' : 'إعادة إرسال رابط التأكيد'}
+                        </PrimaryButton>
+
+                        <Link
+                            href={route('logout')}
+                            method="post"
+                            as="button"
+                            className="w-full text-center py-3 text-sm font-bold text-slate-500 hover:text-rose-600 transition-colors rounded-xl hover:bg-rose-50"
+                        >
+                            تسجيل الخروج
+                        </Link>
+                    </div>
+                </form>
             </div>
-
-            {status === 'verification-link-sent' && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
-                </div>
-            )}
-
-            <form onSubmit={submit}>
-                <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
-                        Resend Verification Email
-                    </PrimaryButton>
-
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Log Out
-                    </Link>
-                </div>
-            </form>
         </GuestLayout>
     );
 }

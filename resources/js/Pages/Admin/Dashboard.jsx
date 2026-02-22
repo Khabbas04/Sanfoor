@@ -2,117 +2,176 @@ import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
-export default function AdminDashboard({ stats }) {
+export default function AdminDashboard({ auth, stats, demandReport = [] }) {
     return (
-        <AdminLayout title="📊 لوحة القيادة العامة">
-            <Head title="الرئيسية - الأدمن" />
+        <AdminLayout user={auth.user}>
+            <Head title="لوحة التحكم المركزية - سنفور" />
 
-            {/* --- 1. قسم الترحيب --- */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-xl mb-10 relative overflow-hidden">
-                <div className="relative z-10">
-                    <h2 className="text-3xl font-bold mb-2">مرحباً بك في غرفة التحكم 👋</h2>
-                    <p className="text-blue-100 text-lg opacity-90">
-                        إليك نظرة سريعة على ما يحدث في نظام سنفور اليوم.
-                    </p>
-                    <div className="mt-6">
-                        <Link 
-                            href={route('admin.courses')} 
-                            className="bg-white text-blue-700 px-6 py-2 rounded-lg font-bold hover:bg-blue-50 transition shadow-lg"
-                        >
-                            + إضافة مادة جديدة
-                        </Link>
+            <style>{`
+                @keyframes slideInRight {
+                    from { opacity: 0; transform: translateX(20px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+                .animate-slide-in { animation: slideInRight 0.5s ease-out forwards; }
+                .delay-100 { animation-delay: 100ms; }
+                .delay-200 { animation-delay: 200ms; }
+            `}</style>
+
+            <div className="space-y-8 pb-10" dir="rtl">
+                
+                {/* 1. الترحيب والبحث السريع */}
+                <div className="relative overflow-hidden bg-[#0b0f19] rounded-[3rem] p-10 text-white shadow-2xl border border-white/5">
+                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+                    <div className="absolute -right-20 -top-20 w-80 h-80 bg-indigo-500/20 blur-[100px] rounded-full"></div>
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                        <div className="max-w-2xl text-center md:text-right">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black tracking-widest uppercase mb-6">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]"></span>
+                                بنية تحتية نشطة • v2.1.4
+                            </div>
+                            <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
+                                أهلاً بك، <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">{auth.user.name}</span> 👋
+                            </h1>
+                            <p className="text-slate-400 font-bold text-sm md:text-base leading-relaxed">
+                                نراقب الآن أداء <span className="text-white">{stats.students_count}</span> طالب مسجل. النظام يقوم بتحليل <span className="text-white">{stats.courses_count}</span> مادة أكاديمية لتقديم أفضل استشارة ذكية.
+                            </p>
+                        </div>
+                        <div className="flex shrink-0 gap-3">
+                            <Link href={route('admin.students.index')} className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-sm hover:scale-105 transition-all shadow-xl shadow-white/10">إدارة الطلاب</Link>
+                            <Link href={route('admin.reports.demand')} className="bg-white/5 border border-white/10 backdrop-blur-md text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-white/10 transition-all">التقارير الحية</Link>
+                        </div>
                     </div>
                 </div>
-                {/* زخرفة خلفية */}
-                <div className="absolute top-0 left-0 -ml-10 -mt-10 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
-            </div>
 
-            {/* --- 2. بطاقات الإحصائيات (Grid) --- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                
-                {/* بطاقة الطلاب */}
-                <StatCard 
-                    title="الطلاب المسجلين" 
-                    value={stats.students_count} 
-                    icon="👨‍🎓" 
-                    color="bg-purple-50 text-purple-600 border-purple-200"
-                />
-
-                {/* بطاقة المواد الكلية */}
-                <StatCard 
-                    title="إجمالي المواد" 
-                    value={stats.courses_count} 
-                    icon="📚" 
-                    color="bg-blue-50 text-blue-600 border-blue-200"
-                />
-
-                {/* بطاقة مواد التخصص */}
-                <StatCard 
-                    title="مواد التخصص" 
-                    value={stats.compulsory_count} 
-                    icon="🟦" 
-                    color="bg-indigo-50 text-indigo-600 border-indigo-200"
-                />
-
-                {/* بطاقة مواد الجامعة */}
-                <StatCard 
-                    title="متطلبات الجامعة" 
-                    value={stats.elective_count} 
-                    icon="🟩" 
-                    color="bg-green-50 text-green-600 border-green-200"
-                />
-            </div>
-
-            {/* --- 3. قسم الوصول السريع --- */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-4">🚀 وصول سريع</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <QuickAction 
-                        title="إدارة المواد والشجرة" 
-                        desc="أضف مواد جديدة واربط المتطلبات" 
+                {/* 2. الإحصائيات الرئيسية - Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard 
+                        title="إجمالي الطلاب" 
+                        value={stats.students_count} 
+                        icon="👨‍🎓" 
+                        color="indigo" 
+                        trend="نشطين حالياً"
+                        link={route('admin.students.index')}
+                    />
+                    <StatCard 
+                        title="المواد الدراسية" 
+                        value={stats.courses_count} 
+                        icon="📚" 
+                        color="violet" 
+                        trend={`${stats.compulsory_count} مادة تخصص`}
                         link={route('admin.courses')}
-                        color="bg-blue-50 hover:bg-blue-100 text-blue-700"
                     />
-                    <QuickAction 
-                        title="تعديل بيانات الطلاب" 
-                        desc="قريباً..." 
-                        link="#"
-                        color="bg-gray-50 hover:bg-gray-100 text-gray-600"
+                    <StatCard 
+                        title="طلبات المحاكي" 
+                        value={demandReport.reduce((acc, curr) => acc + parseInt(curr.cart_users_count), 0)} 
+                        icon="🛒" 
+                        color="emerald" 
+                        trend="توقعات الفصل القادم"
+                        link={route('admin.reports.demand')}
                     />
-                    <QuickAction 
-                        title="إعدادات الموقع" 
-                        desc="قريباً..." 
-                        link="#"
-                        color="bg-gray-50 hover:bg-gray-100 text-gray-600"
+                    <StatCard 
+                        title="حالة النظام" 
+                        value="100%" 
+                        icon="🛡️" 
+                        color="rose" 
+                        trend="حماية Postgre فعال"
                     />
                 </div>
-            </div>
 
+                {/* 3. التقارير والوصول السريع */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    {/* خريطة طلب المواد المصغرة */}
+                    <div className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-200">
+                        <div className="flex justify-between items-center mb-8">
+                            <h3 className="text-xl font-black text-slate-800 flex items-center gap-3">
+                                <span className="text-indigo-600 text-2xl">🔥</span> المواد الأكثر طلباً (Top 5)
+                            </h3>
+                            <Link href={route('admin.reports.demand')} className="text-xs font-black text-indigo-600 hover:underline">عرض التقرير الكامل ←</Link>
+                        </div>
+                        <div className="space-y-6">
+                            {demandReport.slice(0, 5).map((item, idx) => (
+                                <div key={item.id} className="group">
+                                    <div className="flex justify-between mb-2">
+                                        <span className="text-xs font-black text-slate-600 group-hover:text-indigo-600 transition-colors">{item.name}</span>
+                                        <span className="text-[10px] font-bold text-slate-400">{item.cart_users_count} طالب</span>
+                                    </div>
+                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-1000" 
+                                            style={{ width: `${(item.cart_users_count / stats.students_count) * 100}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                            {demandReport.length === 0 && <p className="text-center py-10 text-slate-400 font-bold">لا يوجد بيانات محاكي مسجلة حالياً.</p>}
+                        </div>
+                    </div>
+
+                    {/* وصول سريع لمهام المدير */}
+                    <div className="bg-[#f8fafc] rounded-[2.5rem] p-8 border border-slate-200">
+                        <h3 className="text-lg font-black text-slate-800 mb-6">إجراءات سريعة</h3>
+                        <div className="space-y-4">
+                            <QuickLink title="إضافة كلية جديدة" icon="🏛️" route={route('admin.courses')} />
+                            <QuickLink title="تحديث خطة تخصص" icon="🌳" route={route('admin.courses')} />
+                            <QuickLink title="سجل حركات الإدارة" icon="📜" route={route('admin.dashboard')} />
+                            <QuickLink title="تفريغ كاش النظام" icon="🧹" route={route('admin.dashboard')} />
+                        </div>
+                        
+                        <div className="mt-8 p-6 bg-indigo-600 rounded-3xl text-white relative overflow-hidden group">
+                            <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-125 transition-transform">🧠</div>
+                            <p className="text-[10px] font-black opacity-60 uppercase mb-1">AI Advisor Status</p>
+                            <h4 className="text-sm font-black mb-3">ذكاء اصطناعي نشط</h4>
+                            <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-[10px] font-black transition-all">تهيئة الخوارزميات</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </AdminLayout>
     );
 }
 
-// مكون صغير للبطاقة (عشان ما نكرر الكود)
-function StatCard({ title, value, icon, color }) {
+/* ═══════════════════════════════════════════════════════════
+   المكونات المساعدة (UI Logic)
+   ═══════════════════════════════════════════════════════════ */
+
+function StatCard({ title, value, icon, color, trend, link = "#" }) {
+    const colors = {
+        indigo: "from-indigo-500 to-blue-600 text-indigo-600 bg-indigo-50 shadow-indigo-100",
+        violet: "from-violet-500 to-purple-600 text-violet-600 bg-violet-50 shadow-violet-100",
+        emerald: "from-emerald-500 to-teal-600 text-emerald-600 bg-emerald-50 shadow-emerald-100",
+        rose: "from-rose-500 to-pink-600 text-rose-600 bg-rose-50 shadow-rose-100"
+    };
+
     return (
-        <div className={`p-6 rounded-2xl border ${color} shadow-sm transition hover:-translate-y-1 hover:shadow-md`}>
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-gray-500 text-sm font-bold mb-1">{title}</p>
-                    <h3 className="text-4xl font-black">{value}</h3>
+        <Link href={link} className="block group">
+            <div className={`bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-xl ${colors[color].split(' ').slice(-1)}`}>
+                <div className="flex justify-between items-start mb-6">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-gradient-to-br ${colors[color].split(' ').slice(0,2).join(' ')} text-white shadow-lg transition-transform group-hover:rotate-6`}>
+                        {icon}
+                    </div>
+                    <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-2 group-hover:text-slate-400 transition-colors">Stats Tracker</div>
                 </div>
-                <span className="text-4xl opacity-80">{icon}</span>
+                <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">{value}</h3>
+                <p className="text-[11px] font-black text-slate-400 uppercase mb-4">{title}</p>
+                <div className="flex items-center gap-1.5 pt-4 border-t border-slate-50">
+                    <span className={`w-1.5 h-1.5 rounded-full bg-current ${colors[color].split(' ')[2]}`}></span>
+                    <span className="text-[10px] font-bold text-slate-500">{trend}</span>
+                </div>
             </div>
-        </div>
+        </Link>
     );
 }
 
-// مكون للوصول السريع
-function QuickAction({ title, desc, link, color }) {
+function QuickLink({ title, icon, route }) {
     return (
-        <Link href={link} className={`p-4 rounded-xl transition ${color} flex flex-col gap-2`}>
-            <span className="font-bold text-lg">{title}</span>
-            <span className="text-sm opacity-70">{desc}</span>
+        <Link href={route} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all group">
+            <div className="flex items-center gap-3">
+                <span className="text-lg group-hover:scale-110 transition-transform">{icon}</span>
+                <span className="text-xs font-black text-slate-700">{title}</span>
+            </div>
+            <span className="text-slate-300 group-hover:text-indigo-500 transition-colors text-lg">←</span>
         </Link>
     );
 }

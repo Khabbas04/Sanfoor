@@ -1,0 +1,401 @@
+import React, { useState } from 'react';
+import { Head, router, Link } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
+import Swal from 'sweetalert2';
+
+export default function AdminStudents({ auth, students, filters, majors = [] }) {
+    const [search, setSearch] = useState(filters.search || '');
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [activeTab, setActiveTab] = useState('passed'); // passed, cart, info
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    
+    // 🔥 حالات التعديل الجديدة 🔥
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', email: '', major_id: '' });
+
+    // دالة البحث
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        router.get(route('admin.students.index'), { search: e.target.value }, { preserveState: true, replace: true });
+    };
+
+    // فتح ملف الطالب
+    const openStudentProfile = (student) => {
+        setSelectedStudent(student);
+        // تعبئة بيانات الفورم عند فتح الملف
+        setEditForm({ 
+            name: student.name, 
+            email: student.email, 
+            major_id: student.major_id || '' 
+        });
+        setIsEditing(false);
+        setActiveTab('passed');
+        setIsSidebarOpen(true);
+    };
+
+    // 🔥 دالة حفظ التعديلات 🔥
+    const handleUpdate = () => {
+        router.put(route('admin.students.update', selectedStudent.id), editForm, {
+            onSuccess: () => {
+                setIsEditing(false);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التحديث!',
+                    text: 'تم تعديل بيانات الطالب بنجاح.',
+                    confirmButtonColor: '#4f46e5'
+                });
+            }
+        });
+    };
+
+    // 🔥 دالة الحذف 🔥
+    const handleDelete = (id) => {
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: "سيتم حذف حساب الطالب وكافة سجلاته نهائياً!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'نعم، احذف الحساب',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('admin.students.destroy', id), {
+                    onSuccess: () => setIsSidebarOpen(false)
+                });
+            }
+        });
+    };
+
+    // ألوان العلامات
+    const getBadgeColor = (grade) => {
+        const val = parseFloat(grade);
+        if (isNaN(val) || val === 0) return 'bg-slate-100 text-slate-500 border-slate-200';
+        if (val >= 84) return 'bg-emerald-100 text-emerald-700 border-emerald-200'; 
+        if (val >= 76) return 'bg-blue-100 text-blue-700 border-blue-200'; 
+        if (val >= 68) return 'bg-indigo-100 text-indigo-700 border-indigo-200'; 
+        if (val >= 60) return 'bg-amber-100 text-amber-700 border-amber-200'; 
+        return 'bg-rose-100 text-rose-700 border-rose-200'; 
+    };
+
+    return (
+        <AdminLayout user={auth.user}>
+            <Head title="إدارة الطلاب - Admin" />
+            
+            <div className="py-10 bg-slate-50 min-h-screen relative" dir="rtl">
+                
+                {/* ════════════════════════════════════
+                    1. HEADER & SEARCH
+                ════════════════════════════════════ */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h1 className="text-3xl font-[900] text-slate-900 tracking-tight flex items-center gap-3">
+                                <span>👨‍🎓</span> قاعدة بيانات الطلاب
+                            </h1>
+                            <p className="text-slate-500 font-bold mt-1 text-sm">إدارة السجلات الأكاديمية، تتبع المحاكي، ومعلومات النظام.</p>
+                        </div>
+                        
+                        <div className="relative w-full md:w-96">
+                            <input 
+                                type="text" 
+                                placeholder="ابحث بالاسم أو البريد الإلكتروني..." 
+                                value={search}
+                                onChange={handleSearch}
+                                className="w-full bg-white border border-slate-200 rounded-xl py-3 pr-10 pl-4 font-bold text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                            />
+                            <span className="absolute right-4 top-3.5 opacity-40">🔍</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ════════════════════════════════════
+                    2. STUDENTS TABLE
+                ════════════════════════════════════ */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-right border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50/80 border-b border-slate-100">
+                                        <th className="py-4 px-6 font-black text-slate-500 text-xs uppercase tracking-wider">الطالب</th>
+                                        <th className="py-4 px-6 font-black text-slate-500 text-xs uppercase tracking-wider">التخصص</th>
+                                        <th className="py-4 px-6 font-black text-slate-500 text-xs uppercase tracking-wider text-center">المعدل</th>
+                                        <th className="py-4 px-6 font-black text-slate-500 text-xs uppercase tracking-wider text-center">الساعات</th>
+                                        <th className="py-4 px-6 font-black text-slate-500 text-xs uppercase tracking-wider text-center">المحاكي</th>
+                                        <th className="py-4 px-6 font-black text-slate-500 text-xs uppercase tracking-wider text-center">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {students.data.map((student) => (
+                                        <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-sm shadow-sm uppercase">
+                                                        {student.name.charAt(0)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-black text-slate-800 text-sm">{student.name}</p>
+                                                        <p className="font-bold text-slate-400 text-[10px]">{student.email}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6 font-bold text-slate-600 text-xs">{student.major}</td>
+                                            <td className="py-4 px-6 text-center">
+                                                <span className={`px-2.5 py-1 rounded-md text-[11px] font-black border ${getBadgeColor(student.stats.gpa)}`}>
+                                                    {student.stats.gpa > 0 ? `${student.stats.gpa}%` : '---'}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6 text-center font-black text-slate-700 text-sm">
+                                                {student.stats.total_passed_credits}
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                <span className="px-2 py-1 bg-amber-50 text-amber-600 border border-amber-200 rounded-md text-[11px] font-black">
+                                                    {student.stats.cart_courses_count} مواد
+                                                </span>
+                                            </td>
+                                            <td className="py-4 px-6 text-center">
+                                                <button 
+                                                    onClick={() => openStudentProfile(student)}
+                                                    className="px-4 py-2 bg-slate-900 text-white rounded-lg text-[11px] font-black hover:bg-indigo-600 transition-colors shadow-sm"
+                                                >
+                                                    التفاصيل
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {students.data.length === 0 && (
+                                        <tr>
+                                            <td colSpan="6" className="py-12 text-center text-slate-400 font-bold">لا يوجد طلاب مطابقين للبحث.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Paginator */}
+                        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-center gap-2">
+                            {students.links.map((link, i) => (
+                                <Link 
+                                    key={i} 
+                                    href={link.url || '#'} 
+                                    className={`px-3 py-1 text-xs font-bold rounded-lg border ${link.active ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'} ${!link.url ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ════════════════════════════════════
+                    3. STUDENT PROFILE SLIDE-OVER (SIDEBAR)
+                ════════════════════════════════════ */}
+                {isSidebarOpen && (
+                    <div className="fixed inset-0 z-[200] overflow-hidden">
+                        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>
+                        
+                        <div className="absolute inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl flex flex-col animate-slideInLeft border-r border-slate-200">
+                            
+                            {/* هيدر اللوحة */}
+                            <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-6 relative overflow-hidden shrink-0">
+                                <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/30 blur-2xl rounded-full"></div>
+                                <div className="absolute top-4 left-4 flex gap-2">
+                                    {/* 🔥 زر التعديل الجديد 🔥 */}
+                                    <button 
+                                        onClick={() => setIsEditing(!isEditing)} 
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all ${isEditing ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-white/10 hover:bg-white/20'}`}
+                                        title={isEditing ? "إلغاء التعديل" : "تعديل البيانات"}
+                                    >
+                                        {isEditing ? '✓' : '✏️'}
+                                    </button>
+                                    <button onClick={() => setIsSidebarOpen(false)} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">✕</button>
+                                </div>
+
+                                <div className="flex items-center gap-4 relative z-10 mt-4">
+                                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-black text-2xl shadow-inner backdrop-blur-md uppercase">
+                                        {selectedStudent?.name.charAt(0)}
+                                    </div>
+                                    <div className="text-white flex-1">
+                                        {isEditing ? (
+                                            <input 
+                                                className="bg-white/10 border border-white/20 rounded-lg text-white font-black p-1.5 w-full text-lg outline-none focus:ring-1 focus:ring-indigo-400"
+                                                value={editForm.name}
+                                                onChange={e => setEditForm({...editForm, name: e.target.value})}
+                                            />
+                                        ) : (
+                                            <h2 className="text-xl font-black">{selectedStudent?.name}</h2>
+                                        )}
+                                        <p className="text-indigo-200 font-bold text-xs mt-1">{selectedStudent?.major}</p>
+                                    </div>
+                                </div>
+
+                                {/* إحصائيات سريعة */}
+                                <div className="grid grid-cols-3 gap-2 mt-6 relative z-10">
+                                    <div className="bg-white/10 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-md">
+                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">المعدل</p>
+                                        <p className="text-lg font-black text-white">{selectedStudent?.stats.gpa}%</p>
+                                    </div>
+                                    <div className="bg-white/10 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-md">
+                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">الساعات</p>
+                                        <p className="text-lg font-black text-emerald-400">{selectedStudent?.stats.total_passed_credits}</p>
+                                    </div>
+                                    <div className="bg-white/10 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-md">
+                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">بالمحاكي</p>
+                                        <p className="text-lg font-black text-amber-400">{selectedStudent?.stats.cart_courses_count}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* تبويبات اللوحة */}
+                            <div className="flex border-b border-slate-100 shrink-0 bg-slate-50/80 p-2 gap-1">
+                                <button onClick={() => setActiveTab('passed')} className={`flex-1 py-2 rounded-lg text-[11px] font-black transition-all ${activeTab === 'passed' ? 'bg-white text-emerald-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:bg-slate-100'}`}>✅ المنجزة</button>
+                                <button onClick={() => setActiveTab('cart')} className={`flex-1 py-2 rounded-lg text-[11px] font-black transition-all ${activeTab === 'cart' ? 'bg-white text-amber-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:bg-slate-100'}`}>🛒 المحاكي</button>
+                                <button onClick={() => setActiveTab('info')} className={`flex-1 py-2 rounded-lg text-[11px] font-black transition-all ${activeTab === 'info' ? 'bg-white text-indigo-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:bg-slate-100'}`}>💻 النظام</button>
+                            </div>
+
+                            {/* محتوى اللوحة */}
+                            <div className="flex-1 overflow-y-auto p-5 bg-slate-50">
+                                
+                                {/* 🔥 وضع التعديل (Edit Mode) 🔥 */}
+                                {isEditing ? (
+                                    <div className="space-y-5 animate-slideDown">
+                                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                                            <h4 className="text-xs font-black text-slate-800 border-b pb-2">تعديل بيانات الحساب</h4>
+                                            
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 block mb-1">البريد الإلكتروني</label>
+                                                <input 
+                                                    className="w-full border border-slate-200 rounded-xl font-bold p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                    value={editForm.email}
+                                                    onChange={e => setEditForm({...editForm, email: e.target.value})}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-[10px] font-black text-slate-400 block mb-1">التخصص</label>
+                                                <select 
+                                                    className="w-full border border-slate-200 rounded-xl font-bold p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                                    value={editForm.major_id}
+                                                    onChange={e => setEditForm({...editForm, major_id: e.target.value})}
+                                                >
+                                                    <option value="">اختر التخصص</option>
+                                                    {majors.map(m => (
+                                                        <option key={m.id} value={m.id}>{m.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <button 
+                                            onClick={handleUpdate}
+                                            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98]"
+                                        >
+                                            حفظ التغييرات
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* 1. المواد المنجزة */}
+                                        {activeTab === 'passed' && (
+                                            <div className="space-y-3">
+                                                {selectedStudent?.passed_courses?.length > 0 ? (
+                                                    selectedStudent.passed_courses.map(course => (
+                                                        <div key={course.id} className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm flex justify-between items-center">
+                                                            <div>
+                                                                <h4 className="font-black text-slate-800 text-xs mb-1">{course.name}</h4>
+                                                                <p className="text-[9px] font-bold text-slate-400">{course.code} • {course.credit_hours} ساعات</p>
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <span className={`px-2 py-1 rounded text-[10px] font-black border ${getBadgeColor(course.pivot?.grade)}`}>
+                                                                    {course.pivot?.grade ? `${course.pivot.grade}%` : 'ناجح'}
+                                                                </span>
+                                                                <p className="text-[8px] font-bold text-slate-400 mt-1">فصل {course.pivot?.studied_semester || 1}</p>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center py-10 text-slate-400 font-bold text-xs">لا يوجد مواد منجزة لهذا الطالب.</div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* 2. مواد المحاكي */}
+                                        {activeTab === 'cart' && (
+                                            <div className="space-y-3">
+                                                {selectedStudent?.cart_courses?.length > 0 ? (
+                                                    selectedStudent.cart_courses.map(course => (
+                                                        <div key={course.id} className="bg-amber-50/30 border border-amber-100 p-3 rounded-xl shadow-sm flex justify-between items-center">
+                                                            <div>
+                                                                <h4 className="font-black text-slate-800 text-xs mb-1">{course.name}</h4>
+                                                                <p className="text-[9px] font-bold text-slate-400">{course.code} • {course.credit_hours} ساعات</p>
+                                                            </div>
+                                                            <span className="text-amber-500 text-xs">🛒</span>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center py-10 text-slate-400 font-bold text-xs">المحاكي فارغ حالياً.</div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* 3. بيانات النظام و الـ IP */}
+                                        {activeTab === 'info' && (
+                                            <div className="space-y-4">
+                                                <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+                                                    <h4 className="text-xs font-black text-slate-800 border-b border-slate-100 pb-2 mb-3">تفاصيل الاتصال والأمان</h4>
+                                                    
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] font-bold text-slate-500">رقم IP الأخير:</span>
+                                                            <span className="text-xs font-black text-slate-700 font-mono bg-slate-100 px-2 py-0.5 rounded">{selectedStudent?.ip_address}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] font-bold text-slate-500">تاريخ التسجيل:</span>
+                                                            <span className="text-[11px] font-bold text-slate-700">{selectedStudent?.created_at}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] font-bold text-slate-500">آخر ظهور:</span>
+                                                            <span className="text-[11px] font-bold text-emerald-600">{selectedStudent?.last_login}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl">
+                                                    <h4 className="text-xs font-black text-rose-800 mb-2">إجراءات خطرة</h4>
+                                                    <button 
+                                                        onClick={() => handleDelete(selectedStudent.id)}
+                                                        className="w-full py-2.5 bg-white border border-rose-200 text-rose-600 text-[11px] font-black rounded-xl hover:bg-rose-600 hover:text-white transition-colors"
+                                                    >
+                                                        حذف حساب الطالب
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+            </div>
+            
+            <style jsx global>{`
+                @keyframes slideInLeft {
+                    from { transform: translateX(-100%); }
+                    to { transform: translateX(0); }
+                }
+                .animate-slideInLeft {
+                    animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                }
+                @keyframes slideDown {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-slideDown {
+                    animation: slideDown 0.3s ease-out forwards;
+                }
+            `}</style>
+        </AdminLayout>
+    );
+}
