@@ -9,7 +9,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Chat;
 use App\Models\Message;
-use App\Models\Course; // 🔥 مهم جداً جلب الموديل
+use App\Models\Course;
+use Illuminate\Support\Facades\DB;
 
 class AiAdvisorController extends Controller
 {
@@ -50,6 +51,10 @@ class AiAdvisorController extends Controller
         $apiKey = env('GEMINI_API_KEY');
         $user = Auth::user();
 
+        if (!$apiKey) {
+            return response()->json(['status' => 'error', 'message' => 'لم يتم العثور على مفتاح API في ملف .env'], 500);
+        }
+
         if (!$chatId) {
             $chat = $user->chats()->create([
                 'title' => mb_substr($userMessage, 0, 30) . '...' 
@@ -64,106 +69,130 @@ class AiAdvisorController extends Controller
 
         $chat->messages()->create(['role' => 'user', 'content' => $userMessage]);
 
-        // 🔥 1. جلب البيانات الشاملة (بما فيها المحاكي/السلة) 🔥
+        // 🔥 1. جلب البيانات الشاملة المحدثة 🔥
         $user->load('major', 'passedCourses', 'cartCourses');
         $majorName = $user->major ? $user->major->name : 'تكنولوجيا المعلومات';
         
         $gpaData = $user->calculateGPA();
-        $gpaText = "المعدل المئوي: {$gpaData['percentage']}% (أو {$gpaData['gpa4']} من 4.00)";
+        $gpaText = "المعدل المئوي الحالي: {$gpaData['percentage']}% (أو {$gpaData['gpa4']} من 4.00)";
 
-        // المواد المنجزة
-        $passedCourseIds = $user->passedCourses->pluck('id')->toArray();
-        $passedCoursesString = $user->passedCourses->pluck('name')->implode('، ');
-        if(empty($passedCoursesString)) $passedCoursesString = "لم ينجز أي مواد بعد.";
-        $totalPassedHours = $user->passedCourses->sum('credit_hours');
+        // المواد المنجزة وتحليل المهارات لـ Skill-Based CV
+        $passedCourses = $user->passedCourses;
+        $passedCourseIds = $passedCourses->pluck('id')->toArray();
+        $passedCoursesString = $passedCourses->isEmpty() ? 'لا يوجد مواد منجزة بعد' : $passedCourses->pluck('name')->implode('، ');
+        $totalPassedHours = $passedCourses->sum('credit_hours');
 
-        // 🔥 2. قراءة ما بداخل المحاكي حالياً ليعرفه الذكاء الاصطناعي 🔥
-        $cartCoursesArray = $user->cartCourses->map(function($c) {
-            return $c->name . ' (رمزها: ' . $c->code . ')';
-        })->toArray();
-        $cartCoursesString = empty($cartCoursesArray) 
-            ? 'المحاكي فارغ حالياً (لا يوجد مواد مخطط لها للفصل القادم).' 
-            : implode('، ', $cartCoursesArray);
+        // 🔥 2. قراءة المحاكي (الخطة القادمة) 🔥
+        $cartCourses = $user->cartCourses;
+        $cartHours = $cartCourses->sum('credit_hours');
+        $cartCoursesList = $cartCourses->map(fn($c) => "{$c->name} ({$c->code} - {$c->credit_hours}س)")->implode(' | ');
 
-        // المواد المتاحة (التي لم ينجزها)
+        // 🔥 3. تحليل المواد المتاحة والمسار الحرج (Fast-Track) 🔥
         $availableCourses = Course::whereNotIn('id', $passedCourseIds)->get();
         $availableCoursesList = $availableCourses->map(function($c) {
-            return $c->name . ' (رمزها: ' . $c->code . ' - ' . $c->credit_hours . 'ساعات)';
+            return "{$c->name} (رمز: {$c->code}, ساعات: {$c->credit_hours}, متطلب: " . ($c->prerequisite_id ?? 'لا يوجد') . ")";
         })->implode(' | ');
 
-        // 🔥 3. حقن تعليمات الذكاء الاصطناعي مع القدرة على مسح ووضع جدول جديد 🔥
-        $systemPrompt = "أنت مرشد أكاديمي ذكي اسمك 'سنفور'، تم تطويرك بواسطة فريق Kollia لمساعدة طلاب جامعة الزرقاء.
+        // 🔥 4. نظام التعليمات المطور للـ Agent 🔥
+        $systemPrompt = "أنت 'سنفور'، المساعد الأكاديمي الذكي لفريق Kollia بجامعة الزرقاء. أنت تمتلك صلاحيات تنفيذية.
         
-        بيانات الطالب الحالية:
-        - الاسم: {$user->name} | التخصص: {$majorName}
-        - {$gpaText}
-        - الساعات المنجزة: {$totalPassedHours} ساعة.
-        - المواد المنجزة: [ {$passedCoursesString} ]
-        - 🔥 المواد الموجودة في المحاكي الخاص به الآن (خطته للفصل القادم): [ {$cartCoursesString} ]
-        - المواد المتبقية المتاحة له: [ {$availableCoursesList} ]
+        بيانات الطالب: {$user->name} | تخصص: {$majorName} | {$gpaText} | ساعات منجزة: {$totalPassedHours}س.
+        ✅ المواد التي أنجزها الطالب بنجاح: [ {$passedCoursesString} ].
+        مواد المحاكي حالياً: [ {$cartCoursesList} ] (إجمالي: {$cartHours}ساعة).
+        مواد متاحة (اسم، رمز، متطلب): [ {$availableCoursesList} ].
 
-        قواعدك:
-        1. كن ودوداً، مختصراً، واستخدم إيموجي.
-        2. إذا سألك الطالب 'ما رأيك بموادي التي نزلتها؟'، انظر إلى (المواد الموجودة في المحاكي) وقيمها له.
-        3. ⚡️ ميزة التحكم واعتماد الجداول ⚡️: إذا طلب منك الطالب اقتراح جدول كامل وتنزيله له، اختر المواد المناسبة له، ثم ضع هذا الكود السري في نهاية ردك:
-        [SET_CART: CODE1, CODE2, CODE3]
-        (استبدل CODE بالرموز الإنجليزية الصحيحة للمواد). هذا الكود سيقوم بمسح محاكيه القديم ووضع الجدول الذي اقترحته أنت تلقائياً.";
+        وظائفك وخدماتك:
+        1. 🚀 (Fast-Track): إذا طلب الطالب التخرج بأسرع وقت، اقترح عليه مواد 'المسار الحرج' (التي تفتح مواداً أخرى) واستخدم [SET_CART: CODE1, CODE2].
+        2. 📈 (GPA Predictor): إذا سأل 'كم لازم أجيب؟' للوصول لمعدل معين، احسبها له بناءً على معدله الحالي وساعات المحاكي.
+        3. 📄 (CV Skills): إذا سأل عن مهاراته، حلل المواد المنجزة (المذكورة أعلاه) وحولها لمهارات سوق عمل (مثال: Database -> SQL).
+        4. ⚠️ (Conflict Detector): إذا طلب إضافة مادة لم ينهِ متطلبها السابق، حذره فوراً ولا تضفها.
+        5. 🎯 (Electives): اقترح مواد اختيارية بناءً على ميوله المهنية (برمجة، أمن، ذكاء).
+
+        الأوامر التنفيذية (ضعها في نهاية ردك عند الحاجة):
+        - للتحديث الشامل: [SET_CART: CODE1, CODE2]
+        - للإضافة فقط: [ADD_TO_CART: CODE1]";
 
         $previousMessages = $chat->messages()->orderBy('created_at', 'asc')->get();
         $contents = [];
-
         foreach ($previousMessages as $index => $msg) {
             $text = $msg->content;
             if ($index === 0 && $msg->role === 'user') {
-                $text = "تعليمات النظام: \n" . $systemPrompt . "\n\nرسالة الطالب: \n" . $text;
+                $text = "تعليمات النظام: \n" . $systemPrompt . "\n\nسؤال الطالب: \n" . $text;
             }
-            $contents[] = [
-                'role' => $msg->role === 'ai' ? 'model' : 'user',
-                'parts' => [['text' => $text]]
-            ];
+            $contents[] = ['role' => $msg->role === 'ai' ? 'model' : 'user', 'parts' => [['text' => $text]]];
         }
 
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
-                'contents' => $contents
-            ]);
+            // 🔥 الحل: إضافة withoutVerifying لتخطي الـ SSL المحلي 🔥
+            $response = Http::withoutVerifying()
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", [
+                    'contents' => $contents
+                ]);
 
             if ($response->successful()) {
                 $reply = $response->json('candidates.0.content.parts.0.text');
                 
-                // 🔥 4. خوارزمية تنفيذ الكود السري (رفع الجدول للمحاكي تلقائياً) 🔥
+                // 🔥 5. تنفيذ الأوامر (Execution Logic) 🔥
+                $actionPerformed = "";
+                
+                // أمر الاستبدال (SET)
                 if (preg_match('/\[SET_CART:\s*(.*?)\]/', $reply, $matches)) {
-                    $codes = explode(',', $matches[1]);
-                    $codes = array_map('trim', $codes);
-                    
-                    // جلب أرقام المواد (IDs) بناءً على الرموز
-                    $courseIdsToCart = Course::whereIn('code', $codes)->pluck('id')->toArray();
-                    
-                    if (!empty($courseIdsToCart)) {
-                        // استخدام sync لـ "مسح" الجدول القديم ووضع الجدول المقترح الجديد
-                        $user->cartCourses()->sync($courseIdsToCart);
+                    $codes = array_map('trim', explode(',', $matches[1]));
+                    $ids = Course::whereIn('code', $codes)->pluck('id')->toArray();
+                    if (!empty($ids)) {
+                        $user->cartCourses()->sync($ids);
+                        $actionPerformed = "\n\n*(✨ إشعار: تم تحديث جدولك بالكامل في المحاكي بنجاح!)*";
                     }
-
-                    // إخفاء الكود السري عن الطالب، وإظهار رسالة تأكيد أن المهمة تمت
                     $reply = preg_replace('/\[SET_CART:\s*(.*?)\]/', '', $reply);
-                    $reply = trim($reply) . "\n\n*(✨ إشعار من النظام: تم رفع الجدول المقترح إلى محاكيك بنجاح! يمكنك رؤيته في صفحة الخطة الشجرية)*";
                 }
 
+                // أمر الإضافة (ADD)
+                if (preg_match('/\[ADD_TO_CART:\s*(.*?)\]/', $reply, $matches)) {
+                    $codes = array_map('trim', explode(',', $matches[1]));
+                    $ids = Course::whereIn('code', $codes)->pluck('id')->toArray();
+                    if (!empty($ids)) {
+                        $user->cartCourses()->syncWithoutDetaching($ids);
+                        $actionPerformed = "\n\n*(✨ إشعار: تم إضافة المواد الجديدة لمحاكيك!)*";
+                    }
+                    $reply = preg_replace('/\[ADD_TO_CART:\s*(.*?)\]/', '', $reply);
+                }
+
+                $reply = trim($reply) . $actionPerformed;
                 $chat->messages()->create(['role' => 'ai', 'content' => $reply]);
 
-                return response()->json([
-                    'status' => 'success',
-                    'reply' => $reply,
-                    'chat_id' => $chatId 
-                ]);
+                return response()->json(['status' => 'success', 'reply' => $reply, 'chat_id' => $chatId]);
             }
 
-            return response()->json(['status' => 'error', 'message' => 'خطأ داخلي.'], 500);
+            // 🔥 طباعة رسالة الخطأ الحقيقية القادمة من جوجل في ملف اللوج (storage/logs/laravel.log) 🔥
+            Log::error("Gemini API Error: " . $response->body());
+            return response()->json(['status' => 'error', 'message' => 'خطأ من سيرفرات جوجل، يرجى المحاولة لاحقاً.'], 500);
 
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => 'فشل الاتصال.'], 500);
+            Log::error("Gemini Exception: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function getAdminReports()
+    {
+        $topDemandedCourses = DB::table('user_carts')
+            ->join('courses', 'user_carts.course_id', '=', 'courses.id')
+            ->select('courses.name', 'courses.code', DB::raw('count(user_carts.user_id) as student_count'))
+            ->groupBy('courses.id', 'courses.name', 'courses.code')
+            ->orderBy('student_count', 'desc')
+            ->limit(10)
+            ->get();
+
+        $graduationAudit = DB::table('course_user')
+            ->join('courses', 'course_user.course_id', '=', 'courses.id')
+            ->select('user_id', DB::raw('sum(courses.credit_hours) as total_hours'))
+            ->groupBy('user_id')
+            ->get();
+
+        return response()->json([
+            'demanded_courses' => $topDemandedCourses,
+            'graduation_status' => $graduationAudit
+        ]);
     }
 }

@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasMany; // 🔥 تم إضافة مكتبة HasMany هنا
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -29,15 +29,12 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * تعريف أنواع البيانات (Casts) لضمان عدم تعطل النظام عند معالجة التواريخ.
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'last_login_at' => 'datetime', // 🔥 هذا السطر يمنع الشاشة البيضاء في لوحة الأدمن
+            'last_login_at' => 'datetime',
         ];
     }
 
@@ -50,18 +47,17 @@ class User extends Authenticatable
     }
 
     /**
-     * علاقة المهارات
+     * علاقة المهارات (اليدوية)
      */
     public function skills(): BelongsToMany
     {
         return $this->belongsToMany(Skill::class , 'user_skills')
-            ->using(UserSkill::class)
             ->withPivot('proficiency_level')
             ->withTimestamps();
     }
 
     /**
-     * علاقة المحاكي (كائن واحد)
+     * علاقة المحاكي (كائن الربط)
      */
     public function cart(): HasOne
     {
@@ -69,7 +65,7 @@ class User extends Authenticatable
     }
 
     /**
-     * علاقة مواد المحاكي للأدمن (تستخدم لعرض المواد في تفاصيل الطالب)
+     * علاقة مواد المحاكي (للقراءة والتحكم من الـ AI)
      */
     public function cartCourses(): BelongsToMany
     {
@@ -90,12 +86,43 @@ class User extends Authenticatable
         )->withPivot('grade', 'studied_semester')->withTimestamps();
     }
 
-    // =========================================================
-    // 🔥 العلاقة الجديدة: سجل محادثات الذكاء الاصطناعي (Gemini) 🔥
-    // =========================================================
+    /**
+     * سجل محادثات الذكاء الاصطناعي
+     */
     public function chats(): HasMany
     {
-        return $this->hasMany(Chat::class)->latest(); // جلب المحادثات مرتبة من الأحدث للأقدم
+        return $this->hasMany(Chat::class)->latest();
+    }
+
+    // =========================================================
+    // 🔥 وظائف الذكاء الاصطناعي والتحليلات الجديدة 🔥
+    // =========================================================
+
+    /**
+     * استخلاص المهارات من المواد المنجزة (AI Skill Mapping)
+     * تستخدم لعرض مهارات الطالب في الداشبورد بناءً على نجاحه في المواد
+     */
+    public function getSkillsFromPassedCourses()
+    {
+        return $this->passedCourses()
+            // 🔥 تحديد اسم الجدول لمنع خطأ الـ SQL (Undefined column / Ambiguity)
+            ->whereNotNull('courses.skills')
+            // 🔥 التأكد من عدم جلب حقول تحتوي على نصوص فارغة
+            ->where('courses.skills', '!=', '') 
+            ->get()
+            ->flatMap(function ($course) {
+                // تحويل المهارات من نص (Comma separated) إلى مصفوفة
+                $skillsArray = explode(',', $course->skills);
+                return array_map(fn($skill) => [
+                    'name' => trim($skill),
+                    'course_source' => $course->name,
+                    'course_code' => $course->code
+                ], $skillsArray);
+            })
+            // 🔥 تصفية إضافية لمنع أي مهارة فارغة من الظهور في الداشبورد
+            ->filter(fn($skill) => !empty($skill['name'])) 
+            ->unique('name')
+            ->values();
     }
 
     /**
@@ -131,6 +158,19 @@ class User extends Authenticatable
         return [
             'percentage' => round($percentage, 2),
             'gpa4' => $gpa4
+        ];
+    }
+
+    /**
+     * التحقق مما إذا كان الطالب مؤهلاً للتخرج (AI Graduation Auditor)
+     */
+    public function isEligibleForGraduation($requiredHours = 132)
+    {
+        $completedHours = $this->passedCourses()->sum('credit_hours');
+        return [
+            'is_eligible' => $completedHours >= $requiredHours,
+            'remaining_hours' => max(0, $requiredHours - $completedHours),
+            'progress_percentage' => round(($completedHours / $requiredHours) * 100, 1)
         ];
     }
 }

@@ -28,14 +28,14 @@ Route::get('/', function () {
     ]);
 });
 
-// 2. لوحة تحكم الطالب (Dashboard) - تحديث لجلب بيانات المحاكي
+// 2. لوحة تحكم الطالب (Dashboard) - محدثة لعرض مهارات الـ AI
 Route::get('/dashboard', function () {
     $user = Auth::user();
     
-    // جلب علاقة التخصص والمحاكي لضمان عرضها في الواجهة
-    $user->load('major', 'cartCourses'); 
+    // تحميل البيانات اللازمة للمحاكي والمهارات
+    $user->load('major', 'cartCourses', 'passedCourses'); 
     
-    $passedHours = $user->passedCourses()->sum('credit_hours');
+    $passedHours = $user->passedCourses->sum('credit_hours');
     $gpaData = $user->calculateGPA();
     
     $passedCourses = $user->passedCourses()
@@ -48,25 +48,27 @@ Route::get('/dashboard', function () {
         'total_hours' => 132,
         'gpa' => $gpaData['gpa4'] ?? '0.00', 
         'passed_courses' => $passedCourses,
-        'cart_courses'   => $user->cartCourses, // 🔥 لعرض "خطة الفصل القادم" في الداشبورد
+        'cart_courses'   => $user->cartCourses, 
+        // تمرير المهارات المستخلصة من المواد المنجزة
+        'ai_skills'      => $user->getSkillsFromPassedCourses(), 
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 3. مجموعة الروابط المحمية (تتطلب تسجيل دخول الطالب)
+// 3. مجموعة الروابط المحمية (الطلاب)
 Route::middleware('auth')->group(function () {
 
     // الخطة الشجرية والمحاكي
     Route::get('/tree', [TreeController::class, 'index'])->name('tree.index');
     Route::post('/tree/toggle', [TreeController::class, 'toggle'])->name('tree.toggle');
     
-    // ✅ مزامنة المحاكي (تستخدم من قبل الشجرة والـ AI Agent)
+    // مزامنة المحاكي (تستخدم من قبل الشجرة والـ AI Agent)
     Route::post('/cart/sync', [CartController::class, 'sync'])->name('cart.sync');
 
-    // حاسبة التفوّق
+    // حاسبة التفوّق (GPA Simulator)
     Route::get('/calculator', [GradeController::class, 'index'])->name('calculator.index');
     Route::post('/grades/update', [GradeController::class, 'update'])->name('grades.update');
 
-    // 🤖 المستشار الذكي (AI Agent) - نظام المحادثات المحفوظة
+    // 🤖 المستشار الذكي "سنفور" (AI Agent)
     Route::get('/ai-advisor', [AIAdvisorController::class, 'index'])->name('ai.advisor');
     Route::post('/ai-advisor/chat', [AIAdvisorController::class, 'chat'])->name('ai.advisor.chat');
     Route::get('/ai-advisor/chat/{chat_id}', [AIAdvisorController::class, 'getMessages'])->name('ai.advisor.messages');
@@ -79,9 +81,14 @@ Route::middleware('auth')->group(function () {
     // 🔥 4. روابط الإدارة (محمية بميدلوير الأدمن) 🔥
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         
-        // لوحة تحكم الأدمن والتقارير
+        // لوحة تحكم الأدمن والتقارير الاحترافية
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        
+        // تحديث: رابط تقارير الطلب الذكية ليدعم الرسوم البيانية
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
+        
+        // رابط إضافي لجلب بيانات الـ AI للأدمن بشكل مباشر (API)
+        Route::get('/reports/ai-insights', [AIAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
 
         // إدارة الطلاب
         Route::get('/students', [AdminStudentController::class, 'index'])->name('students.index');
@@ -94,7 +101,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/courses/{course}', [AdminController::class, 'update'])->name('courses.update');
         Route::delete('/courses/{course}', [AdminController::class, 'destroy'])->name('courses.destroy');
 
-        // الأدوات المتقدمة (استيراد/تصدير)
+        // الأدوات المتقدمة
         Route::post('/courses/import', [AdminController::class, 'import'])->name('courses.import');
         Route::post('/courses/export', [AdminController::class, 'export'])->name('courses.export');
         Route::post('/courses/bulk-delete', [AdminController::class, 'bulkDelete'])->name('courses.bulk_delete');

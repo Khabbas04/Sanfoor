@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\Major;
 use App\Models\College;
-use App\Models\University; 
 use App\Models\User;
 use App\Models\AdminLog;
 use Illuminate\Http\Request;
@@ -31,7 +30,6 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        // 🔥 تم الإصلاح هنا: استخدام whereHas بدل having ليتوافق مع PostgreSQL 🔥
         $demandReport = Course::whereHas('cartUsers') 
             ->withCount('cartUsers')
             ->orderBy('cart_users_count', 'desc')
@@ -45,7 +43,7 @@ class AdminController extends Controller
                 'compulsory_count' => Course::where('type', 'compulsory')->count(),
                 'elective_count' => Course::where('type', 'elective')->count(),
             ],
-            'demandReport' => $demandReport, // إرسال التقرير للواجهة
+            'demandReport' => $demandReport,
             'logs' => AdminLog::with('user')->latest()->take(10)->get()
         ]);
     }
@@ -56,14 +54,10 @@ class AdminController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Index', [
-            // جلب المواد مع التخصص والمتطلبات السابقة للعرض في الجدول
             'courses' => Course::with(['major', 'prerequisites'])->latest()->get(),
-            
-            // إرسال الهيكلة كاملة للفرونت إند لعمل القوائم المنسدلة المترابطة
-            'universities' => University::all(),
+            // 🔥 تم إزالة universities بناءً على طلبك 🔥
             'colleges' => College::all(),
             'majors' => Major::all(),
-            
             'logs' => AdminLog::with('user')->latest()->take(50)->get()
         ]);
     }
@@ -76,7 +70,7 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'university_id' => 'required|exists:universities,id',
+            // 🔥 تم إزالة validation الـ university_id 🔥
         ]);
 
         $college = College::create($validated);
@@ -109,10 +103,9 @@ class AdminController extends Controller
             'name'            => 'required|string|max:255',
             'code'            => 'required|string|unique:courses,code',
             'credit_hours'    => 'required|integer',
-            // 🔥 تم تحديث أنواع المواد المسموحة هنا 🔥
             'type'            => 'required|in:compulsory,elective,supporting,university_req',
             'major_id'        => 'nullable|exists:majors,id', 
-            'semester'        => 'required|integer|min:1|max:12', // يمثل مستوى العقدة
+            'semester'        => 'required|integer|min:1|max:12',
             'prerequisite_id' => 'nullable|exists:courses,id', 
             'description'     => 'nullable|string', 
         ]);
@@ -135,16 +128,12 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'تم حفظ المادة بنجاح وتفعيل نظام المتطلبات! 🎉');
     }
 
-    /**
-     * تحديث المادة (Edit)
-     */
     public function update(Request $request, Course $course)
     {
         $validated = $request->validate([
             'name'            => 'required|string',
             'code'            => 'required|string|unique:courses,code,' . $course->id,
             'credit_hours'    => 'required|integer',
-            // 🔥 تم تحديث أنواع المواد المسموحة هنا أيضاً 🔥
             'type'            => 'required|in:compulsory,elective,supporting,university_req',
             'major_id'        => 'nullable|exists:majors,id',
             'semester'        => 'required|integer|min:1|max:12',
@@ -172,13 +161,9 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'تم تعديل المادة بنجاح!');
     }
 
-    /**
-     * حذف مادة مفردة
-     */
     public function destroy(Course $course)
     {
         $courseName = $course->name;
-        // حذف العلاقات أولاً لتجنب مشاكل الـ Foreign Key
         DB::table('course_prerequisites')->where('course_id', $course->id)->orWhere('prerequisite_id', $course->id)->delete();
         $course->delete();
 
@@ -220,9 +205,6 @@ class AdminController extends Controller
         }, $fileName);
     }
 
-    /**
-     * الاستيراد الذكي - متوافق مع هيكلة ملفات الجامعة + حساب المستويات
-     */
     public function import(Request $request)
     {
         $request->validate([
@@ -240,7 +222,6 @@ class AdminController extends Controller
             $headers = array_map('trim', $headers);
             $headers = array_map('strtolower', $headers);
 
-            // بحث ذكي عن الأعمدة
             $idxCode = -1; $idxName = -1; $idxCredits = -1; $idxGroup = -1; $idxPrereq = -1;
             foreach ($headers as $i => $h) {
                 if (str_contains($h, 'course_id') || str_contains($h, 'code')) $idxCode = $i;
@@ -257,9 +238,8 @@ class AdminController extends Controller
 
             $prerequisitesMap = []; 
             $count = 0;
-            $importedCourseIds = []; // لتخزين أرقام المواد لحساب مستوياتها لاحقاً
+            $importedCourseIds = []; 
 
-            // 🔥 المرحلة 1: الإدخال 🔥
             while (($row = fgetcsv($handle)) !== false) {
                 if (!isset($row[$idxCode]) || trim($row[$idxCode]) === '') continue;
 
@@ -269,7 +249,6 @@ class AdminController extends Controller
                 
                 $groupTitle = ($idxGroup !== -1 && isset($row[$idxGroup])) ? trim($row[$idxGroup]) : '';
                 
-                // 🔥 تحديث الذكاء الاصطناعي لتحليل النوع الجديد من ملف الـ CSV 🔥
                 $type = 'compulsory';
                 if (str_contains($groupTitle, 'اختياري') || str_contains(strtolower($groupTitle), 'elective')) {
                     $type = 'elective';
@@ -284,7 +263,7 @@ class AdminController extends Controller
                     [
                         'name' => $name,
                         'credit_hours' => $credits,
-                        'semester' => 1, // سنقوم بتعديله في المرحلة 3
+                        'semester' => 1, 
                         'type' => $type,
                         'major_id' => $selectedMajorId,
                     ]
@@ -302,7 +281,6 @@ class AdminController extends Controller
             }
             fclose($handle);
 
-            // 🔥 المرحلة 2: بناء العلاقات 🔥
             foreach ($prerequisitesMap as $courseId => $prereqString) {
                 $course = Course::find($courseId);
                 $pIds = [];
@@ -322,7 +300,6 @@ class AdminController extends Controller
                 }
             }
 
-            // 🔥 المرحلة 3: الذكاء الاصطناعي لحساب المستويات (Semesters) 🔥
             $allCourses = Course::whereIn('id', $importedCourseIds)->with('prerequisites')->get();
             $changed = true;
             
@@ -351,18 +328,15 @@ class AdminController extends Controller
 
     /**
      * 🔥 دالة تقرير المواد الأكثر طلباً 🔥
-     * نسخة مطورة تدعم الفلترة حسب الكلية والتخصص وتتوافق مع PostgreSQL
      */
     public function demandReport(Request $request)
     {
         $courseDemand = Course::whereHas('cartUsers')
-            // 🔥 فلترة حسب الكلية 🔥
             ->when($request->college_id, function ($query, $collegeId) {
                 $query->whereHas('major', function ($q) use ($collegeId) {
                     $q->where('college_id', $collegeId);
                 });
             })
-            // 🔥 فلترة حسب التخصص 🔥
             ->when($request->major_id, function ($query, $majorId) {
                 $query->where('major_id', $majorId);
             })
@@ -371,16 +345,19 @@ class AdminController extends Controller
             ->take(15) 
             ->get();
 
-        // جلب البيانات للقوائم المنسدلة في الواجهة
         $colleges = College::select('id', 'name')->get();
         $majors = Major::select('id', 'name', 'college_id')->get();
+
+        // 🔥 تعديل جوهري: حساب إجمالي الطلاب "النشطين" (الذين لديهم مواد في المحاكي) فقط
+        // هذا يمنع ظهور نسبة 0% إذا كان هناك طلاب مسجلين ولكن لم يستخدموا المحاكي بعد.
+        $totalStudents = User::whereHas('cartCourses')->count();
 
         return Inertia::render('Admin/Reports/Demand', [
             'courseDemand' => $courseDemand,
             'colleges' => $colleges,
             'majors' => $majors,
             'filters' => $request->only(['college_id', 'major_id']),
-            'totalStudents' => User::where('role', 'student')->count()
+            'totalStudents' => $totalStudents
         ]);
     }
 }

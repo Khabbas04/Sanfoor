@@ -45,11 +45,13 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
     const safeMajors = majors || [];
     const safeCourses = courses || [];
 
-    const filteredManualColleges = safeColleges.filter(c => c.university_id == ((universities && universities.length > 0) ? universities[0].id : ''));
-    const filteredManualMajors = safeMajors.filter(m => m.college_id == data.college_id);
+  // ✅ تم إلغاء فلتر الجامعة لعرض كافة الكليات فوراً
+const filteredManualColleges = safeColleges; 
+const filteredManualMajors = safeMajors.filter(m => m.college_id == data.college_id);
 
-    const filteredImportColleges = safeColleges.filter(c => c.university_id == ((universities && universities.length > 0) ? universities[0].id : ''));
-    const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.college_id);
+// ✅ تم إلغاء فلتر الجامعة هنا أيضاً
+const filteredImportColleges = safeColleges; 
+const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.college_id);
 
     const filteredCourses = useMemo(() => {
         let result = safeCourses;

@@ -3,30 +3,20 @@ import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
 /* ═══════════════════════════════════════════════════════════════
-   HOOKS
+   HOOKS & COMPONENTS
    ═══════════════════════════════════════════════════════════════ */
 function useReveal(threshold = 0.12) {
     const ref = useRef(null);
     const [visible, setVisible] = useState(false);
-
     useEffect(() => {
         const el = ref.current;
         if (!el) return;
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setVisible(true);
-                    observer.unobserve(el);
-                }
-            },
-            { threshold }
-        );
-
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) { setVisible(true); observer.unobserve(el); }
+        }, { threshold });
         observer.observe(el);
         return () => observer.disconnect();
     }, [threshold]);
-
     return [ref, visible];
 }
 
@@ -34,39 +24,28 @@ function AnimatedCounter({ target, duration = 1400, decimals = 0 }) {
     const [value, setValue] = useState(0);
     const [ref, isVisible] = useReveal(0.3);
     const num = typeof target === 'string' ? parseFloat(target) : target;
-
     useEffect(() => {
         if (!isVisible || isNaN(num) || num === 0) return;
-
         let current = 0;
         const step = num / (duration / 16);
-
         const timer = setInterval(() => {
             current += step;
-            if (current >= num) {
-                setValue(num);
-                clearInterval(timer);
-            } else {
-                setValue(decimals > 0 ? parseFloat(current.toFixed(decimals)) : Math.floor(current));
-            }
+            if (current >= num) { setValue(num); clearInterval(timer); }
+            else { setValue(decimals > 0 ? parseFloat(current.toFixed(decimals)) : Math.floor(current)); }
         }, 16);
-
         return () => clearInterval(timer);
     }, [isVisible, num, duration, decimals]);
-
     return <span ref={ref}>{decimals > 0 ? value.toFixed(decimals) : value}</span>;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   DASHBOARD PAGE
-   ═══════════════════════════════════════════════════════════════ */
 export default function Dashboard({
     auth,
     passed_hours = 0,
     total_hours = 132,
     gpa = "0.00",
     passed_courses = [],
-    cart_courses = [] // 🔥 استقبال المحاكي من الكنترولر 🔥
+    cart_courses = [],
+    ai_skills = [] // 🔥 استقبال المهارات
 }) {
 
     const progressPct = useMemo(() => Math.min(Math.round((passed_hours / total_hours) * 100), 100), [passed_hours, total_hours]);
@@ -109,9 +88,9 @@ export default function Dashboard({
 
     const [metricsRef, metricsVis] = useReveal(0.08);
     const [aiRef, aiVis] = useReveal(0.15);
-    const [actionsRef, actionsVis] = useReveal(0.08);
     const [recordRef, recordVis] = useReveal(0.10); 
-    const [cartRef, cartVis] = useReveal(0.10); // 🔥 أنيميشن للمحاكي
+    const [cartRef, cartVis] = useReveal(0.10);
+    const [skillsRef, skillsVis] = useReveal(0.12);
 
     const heroRef = useRef(null);
     const [mx, setMx] = useState(0);
@@ -123,11 +102,9 @@ export default function Dashboard({
         setMx((e.clientX - rect.left - rect.width / 2) / rect.width);
         setMy((e.clientY - rect.top - rect.height / 2) / rect.height);
     }, []);
-
     const onHeroLeave = useCallback(() => { setMx(0); setMy(0); }, []);
     const spring = 'cubic-bezier(0.16,1,0.3,1)';
 
-    /* ── السجل الأكاديمي والتبويبات الذكية (Smart Tabs Logic) ── */
     const processedCourses = useMemo(() => {
         return passed_courses.map(c => ({
             ...c,
@@ -146,41 +123,27 @@ export default function Dashboard({
             }
         });
         const percentage = totalCredits > 0 ? (weightedSum / totalCredits) : 0;
-        return {
-            percentage: percentage.toFixed(1),
-            credits: totalCredits,
-            count: processedCourses.length
-        };
+        return { percentage: percentage.toFixed(1), credits: totalCredits, count: processedCourses.length };
     }, [processedCourses]);
 
     const semesterStats = useMemo(() => {
         const stats = {};
         processedCourses.forEach(c => {
             const sem = c.localSemester;
-            if (!stats[sem]) {
-                stats[sem] = { totalCredits: 0, weightedSum: 0, courseCount: 0 };
-            }
+            if (!stats[sem]) { stats[sem] = { totalCredits: 0, weightedSum: 0, courseCount: 0 }; }
             stats[sem].courseCount++;
-            
             const grade = parseFloat(c.pivot?.grade);
             if (!isNaN(grade) && grade > 0) {
                 stats[sem].totalCredits += c.credit_hours;
                 stats[sem].weightedSum += (grade * c.credit_hours);
             }
         });
-
         const finalStats = {};
         Object.keys(stats).forEach(sem => {
             const data = stats[sem];
             const percentage = data.totalCredits > 0 ? (data.weightedSum / data.totalCredits) : 0;
             const gpa4 = data.totalCredits > 0 ? (percentage / 25).toFixed(2) : '0.00';
-            
-            finalStats[sem] = {
-                percentage: percentage.toFixed(1),
-                gpa4,
-                credits: data.totalCredits,
-                count: data.courseCount
-            };
+            finalStats[sem] = { percentage: percentage.toFixed(1), gpa4, credits: data.totalCredits, count: data.courseCount };
         });
         return finalStats;
     }, [processedCourses]);
@@ -206,10 +169,12 @@ export default function Dashboard({
         return 'bg-rose-100 text-rose-700 border-rose-200'; 
     };
 
-    // 🔥 حساب إجمالي ساعات المحاكي 🔥
     const cartTotalHours = useMemo(() => {
         return cart_courses.reduce((sum, course) => sum + course.credit_hours, 0);
     }, [cart_courses]);
+
+    // 🔥 حماية إضافية لضمان أن ai_skills عبارة عن مصفوفة دائماً لتجنب انهيار الصفحة
+    const safeSkills = Array.isArray(ai_skills) ? ai_skills : [];
 
     return (
         <MainLayout user={auth.user}>
@@ -244,7 +209,7 @@ export default function Dashboard({
                             transition: `all 1000ms ${spring}`,
                         }}
                     >
-                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                         <div className="absolute inset-0 pointer-events-none overflow-hidden">
                             <div className="absolute top-0 right-0 w-[70%] h-full bg-gradient-to-l from-indigo-600/25 via-indigo-600/8 to-transparent" />
                             <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * -22}px, ${my * -22}px)`, transition: `transform 800ms ${spring}` }} />
                             <div className="absolute -bottom-14 -left-14 w-44 h-44 rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.25) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * 18}px, ${my * 18}px)`, transition: `transform 800ms ${spring}` }} />
@@ -288,7 +253,7 @@ export default function Dashboard({
 
                     {/* 2. METRICS GRID */}
                     <div ref={metricsRef} className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500 shadow-sm" style={{ opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '0ms' }}>
+                         <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500 shadow-sm" style={{ opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '0ms' }}>
                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-[3rem] -z-0 transition-transform group-hover:scale-[3] duration-[800ms] ease-out" />
                             <div className="relative z-10 flex justify-between items-start">
                                 <div className="flex-1 min-w-0">
@@ -352,9 +317,36 @@ export default function Dashboard({
                         </div>
                     </div>
 
+                    {/* 🔥 4. SMART SKILLS SECTION — الميزة الجديدة 🔥 */}
+                    <div ref={skillsRef} className="space-y-4" style={{ opacity: skillsVis ? 1 : 0, transform: skillsVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring}` }}>
+                        <div className="flex items-center justify-between px-2">
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                                <span className="text-xl">🚀</span> سيرة المهارات الذكية
+                            </h3>
+                            <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest">تحليل AI مباشر</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            {/* استخدام safeSkills هنا لتجنب المشاكل */}
+                            {safeSkills.length > 0 ? safeSkills.map((skill, idx) => (
+                                <div key={idx} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all group relative overflow-hidden" style={{ animation: `sn-pop 0.5s ${spring} ${idx * 60}ms both` }}>
+                                    <div className="absolute top-0 right-0 w-8 h-8 bg-indigo-50 rounded-bl-xl -z-0 group-hover:scale-[4] transition-transform duration-500 opacity-30" />
+                                    <div className="relative z-10">
+                                        <p className="text-[13px] font-black text-slate-800 mb-1">{skill.name}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 line-clamp-1">مكتسبة من: {skill.course_source}</p>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="col-span-full py-6 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
+                                    <p className="text-xs font-bold text-slate-400">أنجز المزيد من المواد لتستخلص مهاراتك التقنية هنا!</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
                         
-                        {/* 4. السجل الأكاديمي (الجانب الأيمن) */}
+                        {/* 5. السجل الأكاديمي (الجانب الأيمن) */}
                         <div className="lg:col-span-8 space-y-7">
                             {processedCourses.length > 0 ? (
                                 <div ref={recordRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden" style={{ opacity: recordVis ? 1 : 0, transform: recordVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 100ms` }}>
@@ -441,10 +433,8 @@ export default function Dashboard({
                             )}
                         </div>
 
-                        {/* 🔥 5. المحاكي المصغر (الجانب الأيسر) 🔥 */}
+                        {/* 6. المحاكي المصغر (الجانب الأيسر) */}
                         <div className="lg:col-span-4 space-y-7">
-                            
-                            {/* بطاقة المحاكي */}
                             <div ref={cartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]" style={{ opacity: cartVis ? 1 : 0, transform: cartVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 200ms` }}>
                                 <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border-b border-amber-100/50 p-5 shrink-0">
                                     <div className="flex justify-between items-start">
@@ -487,7 +477,6 @@ export default function Dashboard({
                                 </div>
                             </div>
 
-                            {/* زر الذهاب للشجرة السريع */}
                             <Link href={route('tree.index')} className="group block">
                                 <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-[1.5rem] p-5 shadow-lg shadow-indigo-200/50 flex items-center justify-between transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
                                     <div className="flex items-center gap-4">
@@ -500,10 +489,8 @@ export default function Dashboard({
                                     <svg className="w-5 h-5 text-white transform rtl:rotate-180 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>
                                 </div>
                             </Link>
-
                         </div>
                     </div>
-
                 </div>
             </div>
         </MainLayout>

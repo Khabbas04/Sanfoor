@@ -197,7 +197,11 @@ export default function Welcome({ auth }) {
                 @keyframes rotate-border { to { transform: rotate(360deg); } }
                 @keyframes bounce-s { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
-                .hero-curve { clip-path: polygon(0 0, 100% 0, 100% 90%, 50% 100%, 0 90%); }
+                /* 🔥 الانحناء الناعم الجديد بدل الـ Polygon 🔥 */
+                .hero-curve { 
+                    border-bottom-left-radius: 50% 80px; 
+                    border-bottom-right-radius: 50% 80px; 
+                }
             `}</style>
 
             <div className="font-t bg-[#fafbff] text-slate-800 overflow-x-hidden" dir="rtl">
@@ -205,10 +209,10 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     1. HERO SECTION (Video & Curve)
                 ════════════════════════════════════ */}
-                <section ref={heroRef} className="relative min-h-[95vh] flex flex-col items-center justify-center overflow-hidden pt-10 pb-24 hero-curve bg-slate-900">
+                <section ref={heroRef} className="relative min-h-[95vh] flex flex-col items-center justify-center overflow-hidden pt-10 pb-28 hero-curve bg-slate-900 z-10 shadow-2xl">
                     
                     {/* Video Background */}
-                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit]">
                         <video 
                             autoPlay 
                             loop 
@@ -218,7 +222,7 @@ export default function Welcome({ auth }) {
                         >
                             <source src="/videos/sanfoor-hero.mp4" type="video/mp4" />
                         </video>
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f19]/90 via-indigo-950/80 to-[#0b0f19]"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f19]/90 via-indigo-950/80 to-[#0b0f19] rounded-b-[inherit]"></div>
                     </div>
 
                     {/* Decorative Orbs */}
@@ -239,11 +243,12 @@ export default function Welcome({ auth }) {
                             </div>
                         </div>
 
-                        {/* Floating Animated Logo */}
-                        <div className="hero-animate relative inline-flex justify-center items-center mb-8" style={{ animationDelay: '0.3s' }}>
-                            <div className="absolute inset-0 bg-indigo-400/30 rounded-full blur-xl animate-ping-large"></div>
-                            <div className="relative w-24 h-24 sm:w-28 sm:h-28 animate-float">
-                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]" />
+                        {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
+                        <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
+                            <div className="absolute inset-0 bg-indigo-400/30 rounded-full blur-2xl animate-ping-large"></div>
+                            {/* تكبير الـ width والـ height للوجو */}
+                            <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
+                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
                         </div>
 
@@ -299,7 +304,7 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10">
+                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32">
                     <div className="absolute inset-0 dot-grid opacity-40 pointer-events-none" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -564,9 +569,9 @@ export default function Welcome({ auth }) {
                         <div className="morph-orb absolute w-[300px] h-[300px] bg-cyan-400/10 blur-[100px] bottom-[-20%] left-[-8%] pointer-events-none" style={{ animationDelay: '-6s' }} />
 
                         <div className={`max-w-4xl mx-auto px-4 relative z-10 text-center transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${ctaIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            {/* CTA Logo */}
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-[1.5rem] bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-xl p-3" style={{ animation: 'bounce-s 3s ease-in-out infinite' }}>
-                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]" />
+                            {/* 🔥 تكبير لوجو الـ CTA ليصبح متناسق مع الحجم الجديد 🔥 */}
+                            <div className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-2xl p-4" style={{ animation: 'bounce-s 3s ease-in-out infinite' }}>
+                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
                             </div>
                             
                             <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-5 leading-tight tracking-tight">
