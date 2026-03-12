@@ -11,12 +11,19 @@ export default function AiWidget({ user }) {
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [showEntrance, setShowEntrance] = useState(true);
     const scrollRef = useRef(null);
 
     // التمرير التلقائي لأسفل عند وصول رسالة جديدة
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [messages, isTyping]);
+
+    // 🆕 إيقاف أنيميشن الدخول بعد 3 ثوانٍ
+    useEffect(() => {
+        const timer = setTimeout(() => setShowEntrance(false), 3000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -28,7 +35,6 @@ export default function AiWidget({ user }) {
         setIsTyping(true);
 
         try {
-            // استخدام الـ Route الذي قمت بإنشائه مسبقاً في Laravel
             const response = await axios.post(route('ai.advisor.chat'), { message: msg });
             if (response.data.status === 'success') {
                 setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: response.data.reply }]);
@@ -41,62 +47,109 @@ export default function AiWidget({ user }) {
     };
 
     return (
-        <div className="fixed bottom-6 left-6 z-[999] font-sans" dir="rtl">
-            {/* واجهة الدردشة */}
-            {isOpen && (
-                <div className="mb-4 w-[350px] sm:w-[380px] h-[500px] bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="p-4 bg-indigo-600 text-white flex justify-between items-center shadow-lg">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white rounded-lg p-1">
-                                <img src="/images/sanfoor.png" alt="Sanfoor" />
-                            </div>
-                            <span className="font-black text-sm">مساعد سنفور الذكي</span>
-                        </div>
-                        <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
+        <>
+            {/* 🎨 أنيميشنات مخصصة */}
+            <style>{`
+                @keyframes ai-float-in {
+                    0% { opacity: 0; transform: translateY(40px) scale(0.6); }
+                    60% { opacity: 1; transform: translateY(-8px) scale(1.05); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes ai-chat-in {
+                    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes ai-ping-ring {
+                    0% { transform: scale(1); opacity: 0.25; }
+                    100% { transform: scale(1.8); opacity: 0; }
+                }
+                .ai-float-in { animation: ai-float-in 0.7s cubic-bezier(0.16,1,0.3,1) both; }
+                .ai-chat-in { animation: ai-chat-in 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+                .ai-ping-ring { animation: ai-ping-ring 2s cubic-bezier(0,0,0.2,1) infinite; }
+            `}</style>
 
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
-                        {messages.map(m => (
-                            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] p-3 rounded-2xl text-[13px] font-bold leading-relaxed shadow-sm ${
-                                    m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-200 border dark:border-white/5'
-                                }`}>
-                                    <ReactMarkdown>{m.content}</ReactMarkdown>
+            {/* 🗨️ نافذة الشات — الزاوية السفلية اليمنى */}
+            {isOpen && (
+                <div
+                    className="fixed right-4 sm:right-8 bottom-24 sm:bottom-28 z-[100] ai-chat-in font-sans"
+                    dir="rtl"
+                >
+                    <div className="w-[350px] sm:w-[380px] h-[500px] bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="p-4 bg-gradient-to-l from-indigo-600 to-violet-600 text-white flex justify-between items-center shadow-lg relative overflow-hidden">
+                            <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '12px 12px' }} />
+                            <div className="flex items-center gap-2.5 relative z-10">
+                                <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl p-1.5 shadow-inner">
+                                    <img src="/images/sanfoor.png" alt="Sanfoor" className="w-full h-full object-contain" />
+                                </div>
+                                <div>
+                                    <span className="font-black text-sm block leading-tight">مساعد سنفور الذكي</span>
+                                    <span className="text-[9px] font-bold text-indigo-200/70 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                                        نشط ويستمع
+                                    </span>
                                 </div>
                             </div>
-                        ))}
-                        {isTyping && (
-                            <div className="flex gap-1 p-2">
-                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-75"></div>
-                                <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce delay-150"></div>
-                            </div>
-                        )}
-                    </div>
+                            <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1.5 rounded-xl transition-all active:scale-90 relative z-10">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
 
-                    <form onSubmit={handleSend} className="p-3 border-t dark:border-white/10 bg-white dark:bg-slate-900">
-                        <input 
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            placeholder="اسأل سنفور..."
-                            className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-indigo-500 dark:text-white"
-                        />
-                    </form>
+                        {/* Messages */}
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-950/50">
+                            {messages.map(m => (
+                                <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[85%] p-3 rounded-2xl text-[13px] font-bold leading-relaxed shadow-sm ${
+                                        m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-200 border dark:border-white/5'
+                                    }`}>
+                                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                                    </div>
+                                </div>
+                            ))}
+                            {isTyping && (
+                                <div className="flex gap-1.5 p-2 items-center">
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '75ms' }}></div>
+                                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Input */}
+                        <form onSubmit={handleSend} className="p-3 border-t dark:border-white/10 bg-white dark:bg-slate-900">
+                            <input
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                placeholder="اسأل سنفور..."
+                                className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                            />
+                        </form>
+                    </div>
                 </div>
             )}
 
-            {/* زر التشغيل العائم */}
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group relative"
-            >
-                <img src="/images/sanfoor.png" className="w-9 h-9 object-contain transition-transform group-hover:rotate-12" />
+            {/* 🔘 زر التشغيل العائم — الزاوية السفلية اليمنى */}
+            <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-[100]">
+                {/* 🔵 حلقة النبض الخلفية (Ping Ring) */}
                 {!isOpen && (
-                    <span className="absolute top-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
                 )}
-            </button>
-        </div>
+
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`relative w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
+                >
+                    <img
+                        src="/images/sanfoor.png"
+                        className={`w-9 h-9 object-contain transition-transform duration-300 ${isOpen ? 'rotate-90 scale-75' : 'group-hover:rotate-12 group-hover:scale-110'}`}
+                    />
+
+                    {/* 🟢 نقطة "نشط" */}
+                    {!isOpen && (
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300" />
+                    )}
+                </button>
+            </div>
+        </>
     );
 }

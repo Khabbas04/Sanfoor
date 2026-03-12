@@ -54,8 +54,8 @@ class TreeController extends Controller
 
         // 7. Fetch user's cart (simulator) from DB
         $cart_course_ids = [];
-        if ($user->cart) {
-            $cart_course_ids = $user->cart->courses->pluck('id')->toArray();
+        if ($user->cartCourses) {
+            $cart_course_ids = $user->cartCourses->pluck('id')->toArray();
         }
 
         return Inertia::render('Tree/Index', [
@@ -147,6 +147,31 @@ class TreeController extends Controller
             return response()->json([
                 'message' => 'Error: ' . $e->getMessage() . ' | Line: ' . $e->getLine()
             ], 500);
+        }
+    }
+
+    /**
+     * 🔥 الدالة الجديدة المخصصة لإضافة أو إزالة مادة واحدة من المحاكي فقط 🔥
+     * هذه الدالة يتم استدعاؤها من واجهة المحادثة مع الذكاء الاصطناعي (سنفور)
+     */
+    public function toggleSingleCart(Request $request)
+    {
+        $request->validate([
+            'course_id' => 'required|exists:courses,id'
+        ]);
+
+        $user = Auth::user();
+        $courseId = $request->course_id;
+
+        // التحقق مما إذا كانت المادة موجودة في المحاكي مسبقاً
+        if ($user->cartCourses()->where('course_id', $courseId)->exists()) {
+            // إزالة المادة من المحاكي
+            $user->cartCourses()->detach($courseId);
+            return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من المحاكي.']);
+        } else {
+            // إضافة المادة إلى المحاكي
+            $user->cartCourses()->attach($courseId);
+            return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى المحاكي بنجاح.']);
         }
     }
 }
