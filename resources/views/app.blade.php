@@ -1,39 +1,40 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="rtl">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
 
-        <meta name="theme-color" content="#4f46e5">
+<head>
 
-        <link rel="icon" type="image/png" href="/images/sanfoor.png">
-        <link rel="apple-touch-icon" href="/images/sanfoor.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <meta name="description" content="سنفور - المساعد الأكاديمي الذكي لطلاب الجامعات. خطط لجدولك، احسب معدلك، وتخرج بامتياز باستخدام الذكاء الاصطناعي.">
-        <meta property="og:title" content="سنفور - المساعد الأكاديمي الذكي | Kulliya Campus">
-        <meta property="og:description" content="خطط لمسارك الأكاديمي بذكاء، تجنب التعارضات، وتوقع معدلك بدقة.">
-        <meta property="og:image" content="/images/sanfoor.png">
-        <meta property="og:type" content="website">
-        
-        <title inertia>{{ config('app.name', 'سنفور') }} - Kulliya Campus</title>
+<title inertia>Sanfoor | المرشد الأكاديمي الذكي</title>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta name="description" content="Sanfoor المرشد الأكاديمي الذكي الذي يساعد طلاب الجامعات على فهم الخطة الدراسية واختيار المواد باستخدام الذكاء الاصطناعي.">
 
-        @routes
-        @viteReactRefresh
-        @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
-        @inertiaHead
+<meta name="keywords" content="Sanfoor, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, University Planner">
 
-        <style>
-            body {
-                font-family: 'Cairo', sans-serif !important;
-            }
-        </style>
-    </head>
-    
-    <body class="antialiased bg-[#fafcff] text-slate-900 selection:bg-indigo-100 selection:text-indigo-900 overflow-x-hidden">
-        @inertia
-    </body>
+<link rel="icon" href="/images/sanfoor.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+font-family:'Cairo',sans-serif;
+}
+</style>
+
+@routes
+@viteReactRefresh
+@vite(['resources/js/app.jsx'])
+
+@inertiaHead
+
+</head>
+
+<body class="antialiased text-slate-900">
+
+@inertia
+
+</body>
 </html>
