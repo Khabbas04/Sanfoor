@@ -3,7 +3,7 @@ import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/AI/AiWidget';
-import ClickSpark from '@/components/ClickSpark'; // 🔥 تم استدعاء تأثير الشرارة هنا
+import ClickSpark from '@/components/ClickSpark';
 
 export default function MainLayout({ children }) {
     const { auth } = usePage().props;
@@ -11,7 +11,6 @@ export default function MainLayout({ children }) {
     const [mobileOpen, setMobileOpen] = useState(false);
 
     const { isDark, toggleTheme } = useTheme();
-
     const { lang, toggleLang } = useLanguage();
 
     useEffect(() => {
@@ -66,7 +65,6 @@ export default function MainLayout({ children }) {
     const t = translations[lang];
 
     return (
-        /* 🔥 تم تغليف الموقع بالكامل بتأثير الشرارة مع ألوان متوافقة مع الثيم 🔥 */
         <ClickSpark sparkColor={isDark ? '#c7d2fe' : '#4f46e5'} sparkSize={10} sparkRadius={15} sparkCount={8} duration={400}>
             <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 <Head>
@@ -120,32 +118,29 @@ export default function MainLayout({ children }) {
                                 </div>
                             </Link>
 
-                            {/* Central Links with Icons */}
+                            {/* Central Links with Icons (🔥 الآن مرئية للجميع 🔥) */}
                             <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-[1.25rem] border ${isDark ? 'bg-slate-900/50 border-white/5' : 'bg-slate-100/60 border-white/60 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)]'}`}>
                                 <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('welcome') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span>🏠</span> {t.home}
                                 </Link>
 
-                                {auth.user && (
-                                    <>
-                                        <Link href={route('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('tree.index') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                            <span>🌳</span> {t.tree}
-                                        </Link>
-                                        <Link href={route('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('calculator.index') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                            <span>📈</span> {t.calc}
-                                        </Link>
+                                <Link href={route('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('tree.index') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                    <span>🌳</span> {t.tree}
+                                </Link>
 
-                                        <Link href={route('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('campus.directory') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                            <span>🏢</span> {t.directory}
-                                        </Link>
+                                <Link href={route('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('calculator.index') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                    <span>📈</span> {t.calc}
+                                </Link>
 
-                                        <Link href={route('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${route().current('ai.advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
-                                            <span className="relative z-10 flex items-center gap-2">
-                                                <span className="group-hover:animate-pulse text-base">🤖</span> {t.ai}
-                                            </span>
-                                        </Link>
-                                    </>
-                                )}
+                                <Link href={route('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('campus.directory') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                    <span>🏢</span> {t.directory}
+                                </Link>
+
+                                <Link href={route('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${route().current('ai.advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        <span className="group-hover:animate-pulse text-base">🤖</span> {t.ai}
+                                    </span>
+                                </Link>
                             </div>
 
                             {/* Right Section: Theme, Lang & User */}
@@ -157,6 +152,7 @@ export default function MainLayout({ children }) {
                                     {isDark ? '☀️' : '🌙'}
                                 </button>
 
+                                {/* 🔥 هنا يبقى الشرط، لكي نظهر اسم المستخدم أو زر تسجيل الدخول 🔥 */}
                                 {auth.user ? (
                                     <div className="relative group hidden lg:block pointer-events-auto">
                                         <button className={`flex items-center gap-3 pl-2 pr-1.5 py-1.5 rounded-[1.25rem] border transition-all duration-300 ${isDark ? 'bg-slate-800 border-white/10 hover:border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm hover:shadow-md'}`}>
@@ -238,22 +234,29 @@ export default function MainLayout({ children }) {
                             </div>
                             <button onClick={() => setMobileOpen(false)} className="text-3xl opacity-70 hover:opacity-100">&times;</button>
                         </div>
+                        
+                        {/* 🔥 قائمة الهاتف: الميزات أصبحت تظهر للجميع 🔥 */}
                         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
                             <Link onClick={() => setMobileOpen(false)} href="/" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">🏠 {t.home}</Link>
+                            
+                            <Link onClick={() => setMobileOpen(false)} href={route('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">🌳 {t.tree}</Link>
+                            <Link onClick={() => setMobileOpen(false)} href={route('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">📈 {t.calc}</Link>
+                            <Link onClick={() => setMobileOpen(false)} href={route('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">🏢 {t.directory}</Link>
+                            <Link onClick={() => setMobileOpen(false)} href={route('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-center shadow-lg shadow-indigo-500/30">🤖 {t.ai}</Link>
+                            
+                            {/* خصائص مساحة المستخدم فقط */}
                             {auth.user && (
                                 <>
                                     {auth.user.role === 'admin' && (
-                                        <Link onClick={() => setMobileOpen(false)} href={route('admin.dashboard')} className="px-4 py-3.5 rounded-2xl font-black text-sm bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-2">🛡️ {t.admin}</Link>
+                                        <Link onClick={() => setMobileOpen(false)} href={route('admin.dashboard')} className="px-4 py-3.5 rounded-2xl font-black text-sm bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-2 mt-2">🛡️ {t.admin}</Link>
                                     )}
                                     <Link onClick={() => setMobileOpen(false)} href={route('dashboard')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">📊 {t.dashboard}</Link>
-                                    <Link onClick={() => setMobileOpen(false)} href={route('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">🌳 {t.tree}</Link>
-                                    <Link onClick={() => setMobileOpen(false)} href={route('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">📈 {t.calc}</Link>
-                                    <Link onClick={() => setMobileOpen(false)} href={route('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5">🏢 {t.directory}</Link>
-                                    <Link onClick={() => setMobileOpen(false)} href={route('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-center shadow-lg shadow-indigo-500/30">🤖 {t.ai}</Link>
                                 </>
                             )}
+                            
                             {!auth.user && <Link onClick={() => setMobileOpen(false)} href={route('login')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-center">{t.login}</Link>}
                         </div>
+
                         {auth.user && (
                             <div className="p-4 border-t border-slate-100 dark:border-white/5">
                                 <Link href={route('logout')} method="post" as="button" className="w-full py-3.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-sm transition-colors">👋 {t.logout}</Link>
@@ -272,6 +275,7 @@ export default function MainLayout({ children }) {
 
                 {/* PREMIUM FOOTER */}
                 <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
+                    {/* ... (باقي كود الفوتر كما هو بدون تعديل) ... */}
                     <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10 relative z-10">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-b border-white/10 pb-16">
