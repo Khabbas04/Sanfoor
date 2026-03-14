@@ -14,22 +14,25 @@ import 'reactflow/dist/style.css';
    CONSTANTS & LAYOUT ENGINE
    ═══════════════════════════════════════════════════════════ */
 
-const nodeWidth = 200;
-const nodeHeight = 88;
+const DESKTOP_NODE_WIDTH = 200;
+const DESKTOP_NODE_HEIGHT = 88;
+const MOBILE_NODE_WIDTH = 150;
+const MOBILE_NODE_HEIGHT = 72;
 
 const swalTheme = {
     confirmButtonColor: '#4f46e5',
     customClass: { popup: 'rounded-3xl font-t', title: 'font-t', htmlContainer: 'font-t' },
 };
 
-const getLayoutedElements = (nodes, edges, direction = 'TB') => {
+const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }) => {
+    const { width, height, ranksep, nodesep } = dimensions;
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
     dagreGraph.setGraph({
         rankdir: direction,
-        ranksep: 90,
-        nodesep: 30,
+        ranksep,
+        nodesep,
         edgesep: 15
     });
 
@@ -43,7 +46,7 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
     });
 
     sortedNodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+        dagreGraph.setNode(node.id, { width, height });
     });
 
     edges.forEach((edge) => {
@@ -79,8 +82,8 @@ const getLayoutedElements = (nodes, edges, direction = 'TB') => {
             targetPosition: 'top',
             sourcePosition: 'bottom',
             position: {
-                x: nodeWithPosition ? nodeWithPosition.x - nodeWidth / 2 : 0,
-                y: nodeWithPosition ? nodeWithPosition.y - nodeHeight / 2 : 0,
+                x: nodeWithPosition ? nodeWithPosition.x - width / 2 : 0,
+                y: nodeWithPosition ? nodeWithPosition.y - height / 2 : 0,
             },
         };
     });
@@ -115,6 +118,33 @@ export default function Tree({
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
+    const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+
+    const isMobile = viewportWidth < 1024;
+    const nodeDimensions = useMemo(() => (
+        isMobile
+            ? { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 }
+            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
+    ), [isMobile]);
+
+    const flowView = useMemo(() => (
+        isMobile
+            ? { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 }
+            : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
+    ), [isMobile]);
+
+    useEffect(() => {
+        const onResize = () => setViewportWidth(window.innerWidth);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+
+    useEffect(() => {
+        if (!isMobile) {
+            setIsSidebarOpen(false);
+        }
+    }, [isMobile]);
 
     const syncCartWithDB = useCallback((ids) => {
         router.post(route('cart.sync'), { course_ids: ids }, {
@@ -311,6 +341,9 @@ export default function Tree({
     }, [cartIds, courses, getCourseDepth, getTotalImpact]);
 
     const buildGraph = useCallback(() => {
+        const nodeWidth = nodeDimensions.width;
+        const nodeHeight = nodeDimensions.height;
+        const titleFontSize = isMobile ? '10px' : '11.5px';
         const initialNodes = [];
         const initialEdges = [];
 
@@ -403,7 +436,7 @@ export default function Tree({
                             </div>
                         </div>
                         <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2px 4px;">
-                            <h3 style="font-weight:900;font-size:11.5px;color:${t.textColor};line-height:1.45;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:${status !== 'locked' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};">${course.name}</h3>
+                            <h3 style="font-weight:900;font-size:${titleFontSize};color:${t.textColor};line-height:1.45;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:${status !== 'locked' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};">${course.name}</h3>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span style="font-size:8.5px;font-weight:800;font-family:monospace;text-transform:uppercase;padding:1px 6px;border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
@@ -461,8 +494,8 @@ export default function Tree({
             }
         });
 
-        return { initialNodes: getLayoutedElements(initialNodes, initialEdges), initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath]);
+        return { initialNodes: getLayoutedElements(initialNodes, initialEdges, 'TB', nodeDimensions), initialEdges };
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -475,6 +508,8 @@ export default function Tree({
 
     // 🛡️ حدود الحركة — يمنع الطالب من الضياع بالفراغ الأبيض
     const translateExtent = useMemo(() => {
+        const nodeWidth = nodeDimensions.width;
+        const nodeHeight = nodeDimensions.height;
         if (!nodes || nodes.length === 0) return undefined;
         const PAD = 500; // هامش مريح حول الشجرة
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -487,7 +522,7 @@ export default function Tree({
             if (y + nodeHeight > maxY) maxY = y + nodeHeight;
         });
         return [[minX - PAD, minY - PAD], [maxX + PAD, maxY + PAD]];
-    }, [nodes]);
+    }, [nodes, nodeDimensions]);
 
     const onPaneClick = useCallback(() => setSelectedCourse(null), []);
 
@@ -809,7 +844,9 @@ export default function Tree({
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
                 .react-flow__edge-updater { display: none !important; }
                 .sn-node-hover { cursor: pointer; }
-                .sn-node-hover:hover { transform: scale(1.05) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08) !important; z-index: 40; }
+                @media (hover: hover) and (pointer: fine) {
+                    .sn-node-hover:hover { transform: scale(1.05) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08) !important; z-index: 40; }
+                }
             `}</style>
 
             {/* ═══ HEADER ═══ */}
@@ -850,7 +887,13 @@ export default function Tree({
                 {isSidebarOpen && (<div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />)}
 
                 {/* ═══ SIDEBAR ═══ */}
-                <div className={`absolute lg:relative top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px] bg-slate-900/70 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-none lg:rounded-r-3xl z-50 lg:z-10 flex flex-col overflow-hidden transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+                <div className={`
+                    absolute lg:relative bg-slate-900/70 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 lg:z-10 flex flex-col overflow-hidden transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+                    ${isMobile
+                        ? `bottom-0 left-0 right-0 h-[78%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
+                        : `top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px] rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`
+                    }
+                `}>
 
                     <div className="flex p-2.5 gap-2 bg-white/5 border-b border-white/10 shrink-0">
                         <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
@@ -1238,10 +1281,10 @@ export default function Tree({
                 </div>
 
                 {/* ═══ GRAPH AREA ═══ */}
-                <div className="flex-1 relative h-full bg-slate-100/50 p-2 md:p-4 w-full" dir="ltr">
+                <div className={`flex-1 relative h-full bg-slate-100/50 ${isMobile ? 'p-1.5' : 'p-2 md:p-4'} w-full`} dir="ltr">
                     <div className="w-full h-full bg-white/60 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-[inset_0_2px_12px_rgba(0,0,0,0.04)] relative overflow-hidden backdrop-blur-sm">
 
-                        <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 max-w-[95%]">
+                        <div className={`absolute ${isMobile ? 'top-2' : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 max-w-[95%]`}>
                             {[{ id: 'none', label: '🌐 الخطة كاملة', active: 'bg-white text-slate-900 shadow-sm' }, { id: 'available', label: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }, { id: 'critical', label: '🚨 المسار الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' }].map(f => (
                                 <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{f.label}</button>
                             ))}
@@ -1271,14 +1314,20 @@ export default function Tree({
                             )}
                         </div>
 
-                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView fitViewOptions={{ padding: 0.2, minZoom: 0.1, maxZoom: 1.1 }} minZoom={0.1} maxZoom={1.5} translateExtent={translateExtent} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
-                            <Controls position="bottom-left" className={`border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
+                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView fitViewOptions={{ padding: flowView.fitPadding, minZoom: flowView.minZoom, maxZoom: flowView.maxZoom }} minZoom={flowView.minZoom} maxZoom={flowView.maxZoom} translateExtent={translateExtent} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} selectionOnDrag={false} panOnDrag={true} panOnScroll={false} zoomOnPinch={true} zoomOnScroll={!isMobile} zoomOnDoubleClick={!isMobile} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
+                            <Controls position="bottom-left" className={`hidden md:block border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
                             <Background
                                 color={isDark ? '#334155' : '#cbd5e1'}
                                 style={{ backgroundColor: isDark ? '#0a0f18' : '#fafcff' }}
                                 gap={28} size={1.2} variant="dots" opacity={0.6}
                             />
                         </ReactFlow>
+
+                        {isMobile && (
+                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-slate-900/85 text-white/80 text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md pointer-events-none">
+                                👌 اسحب للتنقل • قرّب بإصبعين
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
