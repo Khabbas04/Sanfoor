@@ -181,12 +181,12 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isOwner(): bool
     {
-        return $this->role === 'owner';
+        return strtolower((string) $this->role) === 'owner';
     }
 
     public function isAdminOrOwner(): bool
     {
-        return in_array($this->role, ['admin', 'owner'], true);
+        return in_array(strtolower((string) $this->role), ['admin', 'owner'], true);
     }
 
     // =========================================================

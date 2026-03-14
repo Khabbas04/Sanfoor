@@ -15,7 +15,9 @@ class OwnerMiddleware
             return redirect()->route('login');
         }
 
-        if (Auth::user()->role === 'owner') {
+        $role = strtolower((string) Auth::user()->role);
+
+        if ($role === 'owner') {
             return $next($request);
         }
 

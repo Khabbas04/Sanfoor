@@ -14,8 +14,8 @@ class AdminManagerController extends Controller
     public function index(): Response
     {
         $admins = User::query()
-            ->whereIn('role', ['owner', 'admin'])
-            ->orderByRaw("CASE WHEN role = 'owner' THEN 0 ELSE 1 END")
+            ->whereRaw('LOWER(role) IN (?, ?)', ['owner', 'admin'])
+            ->orderByRaw("CASE WHEN LOWER(role) = 'owner' THEN 0 ELSE 1 END")
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'role', 'created_at']);
 
@@ -39,7 +39,7 @@ class AdminManagerController extends Controller
 
         $user = User::findOrFail($data['user_id']);
 
-        if ($user->role === 'owner') {
+        if (strtolower((string) $user->role) === 'owner') {
             return back()->with('message', 'لا يمكن تعديل رتبة Owner.')->with('type', 'error');
         }
 
@@ -54,7 +54,7 @@ class AdminManagerController extends Controller
             'role' => ['required', 'in:admin,student'],
         ]);
 
-        if ($user->role === 'owner') {
+        if (strtolower((string) $user->role) === 'owner') {
             return back()->with('message', 'لا يمكن تعديل رتبة Owner.')->with('type', 'error');
         }
 
@@ -65,7 +65,7 @@ class AdminManagerController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
-        if ($user->role === 'owner') {
+        if (strtolower((string) $user->role) === 'owner') {
             return back()->with('message', 'لا يمكن حذف حساب Owner.')->with('type', 'error');
         }
 

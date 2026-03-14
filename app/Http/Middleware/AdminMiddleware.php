@@ -23,7 +23,9 @@ class AdminMiddleware
         }
 
         // 2. السماح للأدمن والـ Owner بالدخول للوحة الإدارة
-        if (in_array(Auth::user()->role, ['admin', 'owner'], true)) {
+        $role = strtolower((string) Auth::user()->role);
+
+        if (in_array($role, ['admin', 'owner'], true)) {
             return $next($request);
         }
 

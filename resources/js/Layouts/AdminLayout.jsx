@@ -3,6 +3,7 @@ import { Link, usePage, Head } from '@inertiajs/react';
 
 export default function AdminLayout({ children }) {
     const { auth } = usePage().props;
+    const role = (auth?.user?.role || '').toLowerCase();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // --- الروابط الديناميكية المحدثة مع رابط التقارير الجديد ---
@@ -11,7 +12,7 @@ export default function AdminLayout({ children }) {
         { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' }, // 🔥 الرابط الجديد
         { icon: '🏛️', name: 'الهيكلة والمواد', route: 'admin.courses', pattern: 'admin.courses|admin.colleges|admin.majors' },
         { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },
-        ...(auth.user.role === 'owner'
+        ...(role === 'owner'
             ? [{ icon: '👑', name: 'إدارة الأدمنز', route: 'admin.admins.index', pattern: 'admin.admins.*' }]
             : []),
         { icon: '⚙️', name: 'الإعدادات', route: '#', pattern: 'admin.settings.*' },
@@ -74,7 +75,7 @@ export default function AdminLayout({ children }) {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.15em] mb-1">
-                                {auth.user.role === 'owner' ? 'OWNER' : 'المدير التنفيذي'}
+                                {role === 'owner' ? 'OWNER' : 'المدير التنفيذي'}
                             </p>
                             <p className="font-black text-[15px] text-white truncate drop-shadow-sm">{auth.user.name}</p>
                             <div className="flex items-center gap-2 mt-2">
