@@ -47,6 +47,8 @@ export default function MainLayout({ children }) {
             admin: 'لوحة الإدارة',
             footerDesc: 'المساعد الأكاديمي الرقمي الأول لطلاب الجامعات. ندمج الذكاء الاصطناعي في رحلتك الدراسية لنمنحك تجربة تعليمية أذكى.',
             quickLinks: 'روابط سريعة',
+            terms: 'شروط الاستخدام',
+            privacy: 'سياسة الخصوصية',
             systemStatus: 'حالة النظام',
             aiEngine: 'محرك الذكاء الاصطناعي',
             version: 'إصدار النظام'
@@ -64,6 +66,8 @@ export default function MainLayout({ children }) {
             admin: 'Admin Panel',
             footerDesc: 'The first digital academic assistant for university students. Integrating AI into your journey for a smarter educational experience.',
             quickLinks: 'Quick Links',
+            terms: 'Terms of Use',
+            privacy: 'Privacy Policy',
             systemStatus: 'System Status',
             aiEngine: 'AI Engine',
             version: 'System Version'
@@ -316,6 +320,8 @@ export default function MainLayout({ children }) {
                                 <li><Link href={route('calculator.index')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📈</span> {t.calc}</Link></li>
                                 <li><Link href={route('campus.directory')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🏢</span> {t.directory}</Link></li>
                                 <li><Link href={route('ai.advisor')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🤖</span> {t.ai}</Link></li>
+                                <li><Link href={route('legal.terms')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📜</span> {t.terms}</Link></li>
+                                <li><Link href={route('legal.privacy')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🔐</span> {t.privacy}</Link></li>
                             </ul>
                         </div>
 

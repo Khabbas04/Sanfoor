@@ -25,6 +25,14 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('/terms-of-use', function () {
+    return Inertia::render('Legal/Terms');
+})->name('legal.terms');
+
+Route::get('/privacy-policy', function () {
+    return Inertia::render('Legal/Privacy');
+})->name('legal.privacy');
+
 // 2. لوحة تحكم الطالب (Dashboard)
 Route::get('/dashboard', function () {
     $user = Auth::user();
