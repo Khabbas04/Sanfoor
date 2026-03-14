@@ -10,8 +10,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laravel\Sanctum\HasApiTokens; // 🔥 التحديث 1: استيراد مكتبة التوكنات للموبايل
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Carbon;
+use App\Services\BrevoMailer;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable; // 🔥 التحديث 2: إضافة HasApiTokens هنا
 
@@ -173,5 +177,47 @@ class User extends Authenticatable
             'remaining_hours' => max(0, $requiredHours - $completedHours),
             'progress_percentage' => round(($completedHours / $requiredHours) * 100, 1)
         ];
+    }
+
+    // =========================================================
+    // 📧 إرسال الإيميلات عبر Brevo API (تجاوز الافتراضي)
+    // =========================================================
+
+    /**
+     * إرسال رابط إعادة تعيين كلمة المرور عبر Brevo
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $resetUrl = url(route('password.reset', [
+            'token' => $token,
+            'email' => $this->email,
+        ], false));
+
+        BrevoMailer::send(
+            $this->email,
+            'إعادة تعيين كلمة المرور - سنفور',
+            BrevoMailer::passwordResetHtml($resetUrl)
+        );
+    }
+
+    /**
+     * إرسال رابط تأكيد البريد الإلكتروني عبر Brevo
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $verifyUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            Carbon::now()->addMinutes(60),
+            [
+                'id'   => $this->getKey(),
+                'hash' => sha1($this->getEmailForVerification()),
+            ]
+        );
+
+        BrevoMailer::send(
+            $this->email,
+            'تأكيد البريد الإلكتروني - سنفور',
+            BrevoMailer::verifyEmailHtml($verifyUrl)
+        );
     }
 }
