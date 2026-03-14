@@ -209,20 +209,15 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     1. HERO SECTION (Video & Curve)
                 ════════════════════════════════════ */}
-                <section ref={heroRef} className="relative min-h-[95vh] flex flex-col items-center justify-center overflow-hidden pt-10 pb-28 hero-curve bg-slate-900 z-10 shadow-2xl">
-                    
-                    {/* Video Background */}
+                <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-10 pb-28 hero-curve bg-slate-900 z-10 shadow-2xl">
+
+                    {/* Static Image Background */}
                     <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit]">
-                        <video 
-                            autoPlay 
-                            loop 
-                            muted 
-                            playsInline 
-                            className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto object-cover -translate-x-1/2 -translate-y-1/2 opacity-30"
-                        >
-                            <source src="/videos/sanfoor-hero.mp4" type="video/mp4" />
-                        </video>
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f19]/90 via-indigo-950/80 to-[#0b0f19] rounded-b-[inherit]"></div>
+                        <div
+                            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                            style={{ backgroundImage: "url('/images/background.png')" }}
+                        ></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/82 via-[#0b1020]/76 to-[#04060d]/88 rounded-b-[inherit]"></div>
                     </div>
 
                     {/* Decorative Orbs */}
@@ -232,9 +227,11 @@ export default function Welcome({ auth }) {
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
+                        <div className="rounded-[2rem] bg-black/26 backdrop-blur-[1px] border border-white/10 p-6 sm:p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+
                         {/* Beta Badge */}
                         <div className="hero-animate mb-10" style={{ animationDelay: '0.1s' }}>
-                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-lg shadow-black/20 select-none">
+                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/30 text-white text-xs font-bold shadow-lg shadow-black/30 select-none">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
@@ -254,7 +251,7 @@ export default function Welcome({ auth }) {
 
                         {/* Heading */}
                         <h1 className="hero-animate mb-4" style={{ animationDelay: '0.65s' }}>
-                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-lg">
+                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.7)]">
                                 دليلك الذكي نحو
                             </span>
                         </h1>
@@ -266,8 +263,8 @@ export default function Welcome({ auth }) {
 
                         {/* Sub */}
                         <div className="h-rise-slow" style={{ animationDelay: '1.1s' }}>
-                            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-300 mb-12 font-medium leading-relaxed px-4">
-                                <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسملك خريطة تخصصك، يفتحلك المواد المتاحة، ويخطط فصلك القادم بدقة.
+                            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-100 mb-12 font-semibold leading-relaxed px-4 drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]">
+                                <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسم لك خريطة تخصصك، يفتح لك المواد المتاحة، ويخطط فصلك القادم بدقة.
                             </p>
                         </div>
 
@@ -296,6 +293,7 @@ export default function Welcome({ auth }) {
                                     </MagneticButton>
                                 </>
                             )}
+                        </div>
                         </div>
                     </div>
                 </section>

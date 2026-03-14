@@ -115,9 +115,6 @@ export default function Tree({
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
-    // 🆕 Hover Preview
-    const [hoveredCourse, setHoveredCourse] = useState(null);
-    const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
 
     const syncCartWithDB = useCallback((ids) => {
         router.post(route('cart.sync'), { course_ids: ids }, {
@@ -501,29 +498,6 @@ export default function Tree({
         setActiveTab('details');
         if (window.innerWidth < 1024) setIsSidebarOpen(true);
     }, [courses]);
-
-    // 🆕 FIX: Hover يظهر جنب الـ Node مش تحت الماوس
-    const onNodeMouseEnter = useCallback((e, node) => {
-        const course = courses.find(c => c.id === parseInt(node.id));
-        if (course) {
-            setHoveredCourse(course);
-            // نأخذ موقع الـ Node element الحقيقي
-            const nodeElement = document.querySelector(`[data-id="${node.id}"]`);
-            if (nodeElement) {
-                const rect = nodeElement.getBoundingClientRect();
-                setHoverPosition({
-                    x: rect.left - 270, // يسار الـ Node (عرض الـ tooltip ~ 260 + 10 margin)
-                    y: rect.top + (rect.height / 2) - 80, // منتصف الـ Node عمودياً
-                });
-            } else {
-                setHoverPosition({ x: e.clientX - 280, y: e.clientY - 80 });
-            }
-        }
-    }, [courses]);
-
-    const onNodeMouseLeave = useCallback(() => {
-        setHoveredCourse(null);
-    }, []);
 
     // 🆕 FIX: منع إلغاء مادة إذا مواد بعدها منجزة
     const togglePassed = async (courseId) => {
@@ -1297,95 +1271,7 @@ export default function Tree({
                             )}
                         </div>
 
-                        {/* 🆕 FIX: تحديث موقع Tooltip ليكون بجانب الـ Node دائمًا ولا يخرج عن الشاشة */}
-                        {hoveredCourse && !selectedCourse && (
-                            <div
-                                className="fixed z-[200] pointer-events-none"
-                                style={{
-                                    left: `${Math.max(10, Math.min(hoverPosition.x, window.innerWidth - 300))}px`,
-                                    top: `${Math.max(10, Math.min(hoverPosition.y, window.innerHeight - 350))}px`,
-                                    animation: 'sn-scale 0.15s ease-out both'
-                                }}
-                            >
-                                <div className="bg-slate-900/95 backdrop-blur-xl text-white p-4 rounded-2xl shadow-2xl border border-slate-700/50 w-[260px]">
-                                    {/* Header */}
-                                    <div className="flex justify-between items-start mb-2.5">
-                                        <div className="flex-1 min-w-0 ml-2">
-                                            <h4 className="font-[900] text-[13px] text-white leading-tight truncate">{hoveredCourse.name}</h4>
-                                            <p className="text-[10px] font-mono text-slate-400 mt-0.5">{hoveredCourse.code}</p>
-                                        </div>
-                                        <span className={`shrink-0 text-[9px] font-[800] px-2 py-1 rounded-lg ${getStatus(hoveredCourse) === 'passed' ? 'bg-emerald-500/20 text-emerald-300' :
-                                            getStatus(hoveredCourse) === 'cart' ? 'bg-amber-500/20 text-amber-300' :
-                                                getStatus(hoveredCourse) === 'available' ? 'bg-indigo-500/20 text-indigo-300' :
-                                                    'bg-slate-500/20 text-slate-400'
-                                            }`}>
-                                            {getStatus(hoveredCourse) === 'passed' ? '✅ منجز' :
-                                                getStatus(hoveredCourse) === 'cart' ? '🛒 محاكي' :
-                                                    getStatus(hoveredCourse) === 'available' ? '🔓 متاح' : '🔒 مقفل'}
-                                        </span>
-                                    </div>
-
-                                    {/* Stats Grid */}
-                                    <div className="grid grid-cols-3 gap-2 mb-2.5">
-                                        <div className="bg-white/5 rounded-lg p-1.5 text-center">
-                                            <p className="text-[8px] text-slate-500 font-bold">الساعات</p>
-                                            <p className="text-[14px] font-[900] text-white">{hoveredCourse.credit_hours}</p>
-                                        </div>
-                                        <div className="bg-white/5 rounded-lg p-1.5 text-center">
-                                            <p className="text-[8px] text-slate-500 font-bold">تفتح</p>
-                                            <p className="text-[14px] font-[900] text-violet-400">{getUnlocksDetailed(hoveredCourse.id).length}</p>
-                                        </div>
-                                        <div className="bg-white/5 rounded-lg p-1.5 text-center">
-                                            <p className="text-[8px] text-slate-500 font-bold">المستوى</p>
-                                            <p className="text-[14px] font-[900] text-cyan-400">{hoveredCourse.semester || 1}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Tags */}
-                                    <div className="flex flex-wrap gap-1.5">
-                                        <span className={`text-[8px] font-[800] px-2 py-0.5 rounded-md ${hoveredCourse.type === 'compulsory' ? 'bg-indigo-500/20 text-indigo-300' :
-                                            hoveredCourse.type === 'elective' ? 'bg-amber-500/20 text-amber-300' :
-                                                hoveredCourse.type === 'supporting' ? 'bg-fuchsia-500/20 text-fuchsia-300' :
-                                                    'bg-cyan-500/20 text-cyan-300'
-                                            }`}>
-                                            {hoveredCourse.type === 'compulsory' ? 'إجباري' : hoveredCourse.type === 'elective' ? 'اختياري' : hoveredCourse.type === 'supporting' ? 'مساندة' : 'متطلب جامعة'}
-                                        </span>
-
-                                        {getCourseDepth(hoveredCourse.id) >= 2 && getStatus(hoveredCourse) !== 'passed' && (
-                                            <span className="text-[8px] font-[800] px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-300 animate-pulse">🚨 مسار حرج</span>
-                                        )}
-
-                                        {getUnlocksDetailed(hoveredCourse.id).length >= 3 && getStatus(hoveredCourse) !== 'passed' && (
-                                            <span className="text-[8px] font-[800] px-2 py-0.5 rounded-md bg-violet-500/20 text-violet-300">🔑 مفصلية</span>
-                                        )}
-
-                                        {hoveredCourse.description && hoveredCourse.description.trim() !== '' && (
-                                            <span className="text-[8px] font-[800] px-2 py-0.5 rounded-md bg-slate-500/20 text-slate-400">📝 فيها وصف</span>
-                                        )}
-                                    </div>
-
-                                    {/* المواد اللي تفتحها */}
-                                    {getUnlocksDetailed(hoveredCourse.id).length > 0 && (
-                                        <div className="mt-2.5 pt-2 border-t border-slate-700/40">
-                                            <p className="text-[8px] font-[800] text-slate-500 mb-1">🚀 تفتح:</p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {getUnlocksDetailed(hoveredCourse.id).slice(0, 4).map(u => (
-                                                    <span key={u.id} className="text-[8px] font-bold bg-white/5 text-slate-300 px-1.5 py-0.5 rounded">{u.name}</span>
-                                                ))}
-                                                {getUnlocksDetailed(hoveredCourse.id).length > 4 && (
-                                                    <span className="text-[8px] font-bold text-slate-500">+{getUnlocksDetailed(hoveredCourse.id).length - 4} أخرى</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Hint */}
-                                    <p className="text-[8px] text-slate-600 font-bold text-center mt-2.5 border-t border-slate-700/40 pt-2">اضغط للتفاصيل الكاملة →</p>
-                                </div>
-                            </div>
-                        )}
-
-                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onNodeMouseEnter={onNodeMouseEnter} onNodeMouseLeave={onNodeMouseLeave} fitView fitViewOptions={{ padding: 0.2, minZoom: 0.1, maxZoom: 1.1 }} minZoom={0.1} maxZoom={1.5} translateExtent={translateExtent} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
+                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView fitViewOptions={{ padding: 0.2, minZoom: 0.1, maxZoom: 1.1 }} minZoom={0.1} maxZoom={1.5} translateExtent={translateExtent} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
                             <Controls position="bottom-left" className={`border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
                             <Background
                                 color={isDark ? '#334155' : '#cbd5e1'}
