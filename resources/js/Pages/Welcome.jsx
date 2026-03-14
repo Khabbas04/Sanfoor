@@ -37,7 +37,7 @@ function TreeNode({ x, y, delay, color, size = 52, label }) {
     return (
         <g className="tree-node" style={{ animationDelay: `${delay}s` }}>
             <rect x={x} y={y} width={size} height={size * 0.58} rx="12" fill={color} className="tree-node-rect" style={{ animationDelay: `${delay}s` }} />
-            {label && <text x={x + size / 2} y={y + size * 0.35} textAnchor="middle" fill="white" fontSize="8" fontWeight="800" className="select-none font-t">{label}</text>}
+            {label && <text x={x + size / 2} y={y + size * 0.35} textAnchor="middle" fill="white" fontSize="8" fontWeight="800" className="select-none">{label}</text>}
         </g>
     );
 }
@@ -65,10 +65,6 @@ export default function Welcome({ auth }) {
             </Head>
 
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap');
-
-                .font-t { font-family: 'Cairo', sans-serif; }
-
                 /* ── HERO ENTRANCE ── */
                 @keyframes heroSlideUp {
                     0% { opacity: 0; transform: translateY(40px); }
@@ -174,7 +170,7 @@ export default function Welcome({ auth }) {
                 }
             `}</style>
 
-            <div className="font-t bg-[#fafbff] text-slate-800 overflow-x-hidden" dir="rtl">
+            <div className="bg-[#fafbff] text-slate-800 overflow-x-hidden" dir="rtl">
 
                 {/* ════════════════════════════════════
                     1. HERO SECTION (Video & Curve)

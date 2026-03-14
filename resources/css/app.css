@@ -1,17 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;800;900&display=swap');
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* =========================================
-   Typography — Cairo
+   Typography — Global App Font
    ========================================= */
-body {
-    font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+html,
+body,
+#app {
+    font-family: 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+    font-weight: 700;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
 }
 
 /* =========================================
@@ -172,7 +182,7 @@ body {
     }
 
     .theme {
-        --font-sans: 'Geist Variable', sans-serif;
+        --font-sans: 'Tajawal', sans-serif;
     }
 
     /* 🔥 تم حذف الأكواد التي تسببت في الخطأ من هنا 🔥 */
