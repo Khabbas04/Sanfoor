@@ -44,6 +44,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Normalize role value on write (Owner/OWNER -> owner).
+     */
+    public function setRoleAttribute($value): void
+    {
+        $this->attributes['role'] = strtolower((string) $value);
+    }
+
+    /**
      * علاقة التخصص
      */
     public function major(): BelongsTo
