@@ -25,6 +25,9 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                     setSelectedUserId('');
                     Swal.fire({ icon: 'success', title: 'تمت الترقية', text: 'تمت ترقية الطالب إلى Admin.' });
                 },
+                onError: (errors) => {
+                    Swal.fire({ icon: 'error', title: 'فشل', text: Object.values(errors)[0] || 'حدث خطأ أثناء الترقية.' });
+                },
             },
         );
     };
@@ -41,7 +44,10 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
         }).then((res) => {
             if (!res.isConfirmed) return;
 
-            router.put(route('admin.admins.update_role', admin.id), { role: 'student' });
+            router.put(route('admin.admins.update_role', admin.id), { role: 'student' }, {
+                onSuccess: () => Swal.fire({ icon: 'success', title: 'تم التنزيل', text: `تم تنزيل ${admin.name} إلى Student.` }),
+                onError: (errors) => Swal.fire({ icon: 'error', title: 'فشل', text: Object.values(errors)[0] || 'حدث خطأ أثناء التنزيل.' }),
+            });
         });
     };
 
@@ -57,7 +63,10 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
         }).then((res) => {
             if (!res.isConfirmed) return;
 
-            router.delete(route('admin.admins.destroy', admin.id));
+            router.delete(route('admin.admins.destroy', admin.id), {}, {
+                onSuccess: () => Swal.fire({ icon: 'success', title: 'تم الحذف', text: `تم حذف حساب ${admin.name}.` }),
+                onError: (errors) => Swal.fire({ icon: 'error', title: 'فشل', text: Object.values(errors)[0] || 'حدث خطأ أثناء الحذف.' }),
+            });
         });
     };
 

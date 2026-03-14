@@ -32,6 +32,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
+        'ip_address',
+        'last_login_at',
     ];
 
     protected function casts(): array
@@ -57,16 +59,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function major(): BelongsTo
     {
         return $this->belongsTo(Major::class , 'major_id');
-    }
-
-    /**
-     * علاقة المهارات (اليدوية)
-     */
-    public function skills(): BelongsToMany
-    {
-        return $this->belongsToMany(Skill::class , 'user_skills')
-            ->withPivot('proficiency_level')
-            ->withTimestamps();
     }
 
     /**
@@ -154,11 +146,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
         foreach ($coursesWithGrades as $course) {
             $grade = (float) $course->pivot->grade;
-            
-            if ($grade > 0) {
-                $totalCredits += $course->credit_hours;
-                $weightedSum += ($grade * $course->credit_hours);
-            }
+            $totalCredits += $course->credit_hours;
+            $weightedSum += ($grade * $course->credit_hours);
         }
 
         if ($totalCredits == 0) {

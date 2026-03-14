@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,10 +35,10 @@ class AdminManagerController extends Controller
     public function promote(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'user_id' => ['required', 'exists:users,id'],
+            'user_id' => ['required', Rule::exists('users', 'id')->where('role', 'student')],
         ]);
 
-        $user = User::findOrFail($data['user_id']);
+        $user = User::find($data['user_id']);
 
         if (strtolower((string) $user->role) === 'owner') {
             return back()->with('message', 'لا يمكن تعديل رتبة Owner.')->with('type', 'error');
@@ -65,6 +66,10 @@ class AdminManagerController extends Controller
 
     public function destroy(User $user): RedirectResponse
     {
+        if ($user->id === auth()->id()) {
+            return back()->with('message', 'لا يمكنك حذف حسابك بنفسك.')->with('type', 'error');
+        }
+
         if (strtolower((string) $user->role) === 'owner') {
             return back()->with('message', 'لا يمكن حذف حساب Owner.')->with('type', 'error');
         }

@@ -163,7 +163,7 @@ export default function MainLayout({ children }) {
                                     <button className={`flex items-center gap-3 pl-2 pr-1.5 py-1.5 rounded-[1.25rem] border transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 hover:border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm hover:shadow-md'}`}>
                                         <div className="flex flex-col items-end leading-none ml-2">
                                             <div className="flex items-center gap-1.5">
-                                                <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{auth.user.name.split(' ')[0]}</span>
+                                                <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{(auth.user.name ?? '').split(' ')[0] || '?'}</span>
                                                 <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
                                                     {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : 'STUDENT'}
                                                 </span>
@@ -171,7 +171,7 @@ export default function MainLayout({ children }) {
                                             {auth.user.major && <span className="text-[10px] font-bold text-slate-400 mt-1 max-w-[100px] truncate">{auth.user.major.name}</span>}
                                         </div>
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-black text-sm shadow-inner relative overflow-hidden">
-                                            {auth.user.name.charAt(0)}
+                                            {auth.user.name?.charAt(0) ?? '?'}
                                         </div>
                                     </button>
 

@@ -1,9 +1,25 @@
 import PrimaryButton from '@/Components/PrimaryButton';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage, router } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 export default function VerifyEmail({ status }) {
     const { post, processing } = useForm({});
+    const { auth } = usePage().props;
+
+    // Auto-redirect when the user verifies their email in another tab/window
+    useEffect(() => {
+        if (auth?.user?.email_verified_at) {
+            router.visit(route('dashboard'));
+            return;
+        }
+
+        const interval = setInterval(() => {
+            router.reload({ only: ['auth'] });
+        }, 4000);
+
+        return () => clearInterval(interval);
+    }, [auth?.user?.email_verified_at]);
 
     const submit = (e) => {
         e.preventDefault();
@@ -36,6 +52,11 @@ export default function VerifyEmail({ status }) {
                         <PrimaryButton className="w-full justify-center py-3.5" disabled={processing}>
                             {processing ? 'جاري الإرسال...' : 'إعادة إرسال رابط التأكيد'}
                         </PrimaryButton>
+
+                        <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
+                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            جاري التحقق تلقائيًا...
+                        </div>
 
                         <Link
                             href={route('logout')}
