@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\AdminManagerController;
 use App\Http\Controllers\Admin\AdminStudentController;
 use App\Http\Controllers\TreeController;
 use App\Http\Controllers\AdminController;
@@ -123,6 +124,14 @@ Route::middleware('auth')->group(function () {
             // الهيكلية الأكاديمية
             Route::post('/colleges', [AdminController::class , 'storeCollege'])->name('colleges.store');
             Route::post('/majors', [AdminController::class , 'storeMajor'])->name('majors.store');
+
+            // إدارة الأدمنز (Owner فقط)
+            Route::middleware(['owner'])->group(function () {
+                Route::get('/admins', [AdminManagerController::class, 'index'])->name('admins.index');
+                Route::post('/admins/promote', [AdminManagerController::class, 'promote'])->name('admins.promote');
+                Route::put('/admins/{user}/role', [AdminManagerController::class, 'updateRole'])->name('admins.update_role');
+                Route::delete('/admins/{user}', [AdminManagerController::class, 'destroy'])->name('admins.destroy');
+            });
         }
         );    });
 

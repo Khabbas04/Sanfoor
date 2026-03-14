@@ -22,9 +22,8 @@ class AdminMiddleware
             return redirect()->route('login');
         }
 
-        // 2. التحقق من قيمة الـ role في جدول المستخدمين
-        // تأكد أن الحقل في قاعدة البيانات اسمه role وقيمته للأدمن هي 'admin'
-        if (Auth::user()->role === 'admin') {
+        // 2. السماح للأدمن والـ Owner بالدخول للوحة الإدارة
+        if (in_array(Auth::user()->role, ['admin', 'owner'], true)) {
             return $next($request);
         }
 

@@ -161,8 +161,8 @@ export default function MainLayout({ children }) {
                                         <div className="flex flex-col items-end leading-none ml-2">
                                             <div className="flex items-center gap-1.5">
                                                 <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{auth.user.name.split(' ')[0]}</span>
-                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${auth.user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
-                                                    {auth.user.role === 'admin' ? 'ADMIN' : 'STUDENT'}
+                                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${auth.user.role === 'owner' ? 'bg-rose-100 text-rose-800' : auth.user.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                                                    {auth.user.role === 'owner' ? 'OWNER' : auth.user.role === 'admin' ? 'ADMIN' : 'STUDENT'}
                                                 </span>
                                             </div>
                                             {auth.user.major && <span className="text-[10px] font-bold text-slate-400 mt-1 max-w-[100px] truncate">{auth.user.major.name}</span>}
@@ -179,7 +179,7 @@ export default function MainLayout({ children }) {
                                                 <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">📧</div>
                                                 <p className="text-xs font-bold truncate opacity-70">{auth.user.email}</p>
                                             </div>
-                                            {auth.user.role === 'admin' && (
+                                            {['admin', 'owner'].includes(auth.user.role) && (
                                                 <>
                                                     <Link href={route('admin.dashboard')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-black mb-2 ${isDark ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}>
                                                         <span>🛡️</span> {t.admin}
@@ -247,7 +247,7 @@ export default function MainLayout({ children }) {
                         
                         {auth.user && (
                             <>
-                                {auth.user.role === 'admin' && (
+                                {['admin', 'owner'].includes(auth.user.role) && (
                                     <Link onClick={() => setMobileOpen(false)} href={route('admin.dashboard')} className="px-4 py-3.5 rounded-2xl font-black text-sm bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-2 mt-2 transition-colors">🛡️ {t.admin}</Link>
                                 )}
                                 <Link onClick={() => setMobileOpen(false)} href={route('dashboard')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📊 {t.dashboard}</Link>

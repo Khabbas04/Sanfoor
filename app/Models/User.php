@@ -179,6 +179,16 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    public function isAdminOrOwner(): bool
+    {
+        return in_array($this->role, ['admin', 'owner'], true);
+    }
+
     // =========================================================
     // 📧 إرسال الإيميلات عبر Brevo API (تجاوز الافتراضي)
     // =========================================================

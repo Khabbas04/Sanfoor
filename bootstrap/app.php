@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // 🔥 تسجيل الاسم المستعار للميدلوير الخاص بالأدمن هنا 🔥
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'owner' => \App\Http\Middleware\OwnerMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

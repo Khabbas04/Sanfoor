@@ -32,6 +32,13 @@ class DatabaseSeeder extends Seeder
 
         // إنشاء مستخدم تجريبي (اختياري)
         User::factory()->create([
+            'name' => 'Owner User',
+            'email' => 'owner@sanfoor.com',
+            'password' => bcrypt('password'),
+            'role' => 'owner',
+        ]);
+
+        User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@sanfoor.com',
             'password' => bcrypt('password'),
