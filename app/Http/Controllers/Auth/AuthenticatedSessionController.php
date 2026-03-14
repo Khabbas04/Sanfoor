@@ -42,8 +42,9 @@ class AuthenticatedSessionController extends Controller
         ]);
 
         // 4. توجيه حسب الدور
+        // owner يفتح على MainLayout (dashboard) مع إبقاء إمكانية دخول لوحة الإدارة يدوياً
         $role = strtolower((string) $request->user()->role);
-        $targetRoute = in_array($role, ['owner', 'admin'], true)
+        $targetRoute = $role === 'admin'
             ? 'admin.dashboard'
             : 'dashboard';
 
