@@ -13,9 +13,9 @@ export default {
 
     theme: {
         extend: {
-            // 🔥 جعل خط Tajawal الخط الأساسي لكل الموقع 🔥
+            // 🔥 جعل خط Cairo الخط الأساسي لكل الموقع 🔥
             fontFamily: {
-                sans: ['Tajawal', ...defaultTheme.fontFamily.sans],
+                sans: ['Cairo', ...defaultTheme.fontFamily.sans],
             },
             // 1. تعريف ألوان الهوية الخاصة بـ سنفور (لسهولة التعديل لاحقاً)
             colors: {
