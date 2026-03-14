@@ -29,11 +29,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        if ($user) {
+            $user->load('major');
+
+            $normalizedRole = strtolower(trim((string) $user->role));
+            $user->setAttribute('role', $normalizedRole);
+            $user->setAttribute('is_owner', $normalizedRole === 'owner');
+            $user->setAttribute('is_admin_or_owner', in_array($normalizedRole, ['admin', 'owner'], true));
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                // 🔥 التعديل هنا: جلب علاقة التخصص (major) مع المستخدم
-                'user' => $request->user() ? $request->user()->load('major') : null,
+                'user' => $user,
             ],
         ];
     }

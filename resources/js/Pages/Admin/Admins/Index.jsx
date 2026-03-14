@@ -119,7 +119,7 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                                 </thead>
                                 <tbody>
                                     {admins.map((admin) => {
-                                        const isOwner = admin.role === 'owner';
+                                        const isOwner = String(admin.role || '').toLowerCase() === 'owner';
 
                                         return (
                                             <tr key={admin.id} className="border-b border-slate-100 last:border-b-0">
