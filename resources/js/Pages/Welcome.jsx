@@ -1,6 +1,6 @@
 import { Link, Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /* ─────────────────────────────────────────────
    Sanfoor – Premium Animated Landing Page v4.0
@@ -23,24 +23,9 @@ function useInView(threshold = 0.15) {
 
 // ── Magnetic Button Component ──
 function MagneticButton({ children, className = '', ...props }) {
-    const btnRef = useRef(null);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-    const handleMove = useCallback((e) => {
-        if (!btnRef.current) return;
-        const rect = btnRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left - rect.width / 2) * 0.2;
-        const y = (e.clientY - rect.top - rect.height / 2) * 0.2;
-        setOffset({ x, y });
-    }, []);
-
     return (
         <div
-            ref={btnRef}
-            onMouseMove={handleMove}
-            onMouseLeave={() => setOffset({ x: 0, y: 0 })}
             className="inline-block"
-            style={{ transform: `translate(${offset.x}px, ${offset.y}px)`, transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}
         >
             <div className={className} {...props}>{children}</div>
         </div>
@@ -64,22 +49,7 @@ function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
 }
 
 export default function Welcome({ auth }) {
-    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const heroRef = useRef(null);
-
-    // Parallax effect
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!heroRef.current) return;
-            const rect = heroRef.current.getBoundingClientRect();
-            setMousePos({
-                x: ((e.clientX - rect.left) / rect.width - 0.5) * 40,
-                y: ((e.clientY - rect.top) / rect.height - 0.5) * 40,
-            });
-        };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
 
     const [featRef, featIn] = useInView();
     const [previewRef, previewIn] = useInView();
@@ -217,17 +187,18 @@ export default function Welcome({ auth }) {
                             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                             style={{ backgroundImage: "url('/images/background.png')" }}
                         ></div>
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/82 via-[#0b1020]/76 to-[#04060d]/88 rounded-b-[inherit]"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#02040a]/92 via-[#060c1b]/86 to-[#03060f]/93 rounded-b-[inherit]"></div>
+                        <div className="absolute inset-0 bg-black/35 rounded-b-[inherit]"></div>
                     </div>
 
                     {/* Decorative Orbs */}
-                    <div className="orb-pulse absolute w-[420px] h-[420px] bg-indigo-500/20 blur-[100px] top-[-8%] right-[-8%] pointer-events-none z-0" />
-                    <div className="orb-pulse absolute w-[350px] h-[350px] bg-cyan-500/20 blur-[110px] bottom-[0%] left-[-6%] pointer-events-none z-0" style={{ animationDelay: '-4s' }} />
+                    <div className="absolute w-[420px] h-[420px] bg-indigo-500/20 blur-[100px] top-[-8%] right-[-8%] pointer-events-none z-0" />
+                    <div className="absolute w-[350px] h-[350px] bg-cyan-500/20 blur-[110px] bottom-[0%] left-[-6%] pointer-events-none z-0" />
 
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
-                        <div className="rounded-[2rem] bg-black/26 backdrop-blur-[1px] border border-white/10 p-6 sm:p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+                        <div className="rounded-[2rem] bg-black/52 backdrop-blur-[2px] border border-white/15 p-6 sm:p-8 md:p-10 shadow-[0_28px_80px_rgba(0,0,0,0.45)]">
 
                         {/* Beta Badge */}
                         <div className="hero-animate mb-10" style={{ animationDelay: '0.1s' }}>
@@ -251,19 +222,19 @@ export default function Welcome({ auth }) {
 
                         {/* Heading */}
                         <h1 className="hero-animate mb-4" style={{ animationDelay: '0.65s' }}>
-                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.7)]">
+                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]">
                                 دليلك الذكي نحو
                             </span>
                         </h1>
                         <h1 className="hero-animate mb-8" style={{ animationDelay: '0.85s' }}>
-                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight txt-grad drop-shadow-2xl">
+                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-cyan-200 drop-shadow-[0_10px_25px_rgba(0,0,0,0.95)]">
                                 التفوق الأكاديمي.
                             </span>
                         </h1>
 
                         {/* Sub */}
                         <div className="h-rise-slow" style={{ animationDelay: '1.1s' }}>
-                            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-slate-100 mb-12 font-semibold leading-relaxed px-4 drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]">
+                            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-white mb-12 font-semibold leading-relaxed px-4 drop-shadow-[0_4px_14px_rgba(0,0,0,0.75)]">
                                 <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسم لك خريطة تخصصك، يفتح لك المواد المتاحة، ويخطط فصلك القادم بدقة.
                             </p>
                         </div>

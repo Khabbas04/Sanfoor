@@ -5,7 +5,8 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/AI/AiWidget';
 
 export default function MainLayout({ children }) {
-    const { auth } = usePage().props;
+    const page = usePage();
+    const { auth } = page.props;
     const role = (auth?.user?.role || '').toLowerCase().trim();
     const isOwner = Boolean(auth?.user?.is_owner) || role === 'owner';
     const isAdminOrOwner = Boolean(auth?.user?.is_admin_or_owner) || ['admin', 'owner'].includes(role);
@@ -17,9 +18,14 @@ export default function MainLayout({ children }) {
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
+        handleScroll();
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    }, [page.url]);
+
+    useEffect(() => {
+        setMobileOpen(false);
+    }, [page.url]);
 
     useEffect(() => {
         const handleResize = () => { if (window.innerWidth >= 1024) setMobileOpen(false); };
