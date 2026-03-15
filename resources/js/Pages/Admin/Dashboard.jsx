@@ -2,7 +2,7 @@ import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
-export default function AdminDashboard({ auth, stats, demandReport = [] }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [] }) {
     return (
         <AdminLayout user={auth.user}>
             <Head title="لوحة التحكم المركزية - سنفور" />
@@ -34,7 +34,7 @@ export default function AdminDashboard({ auth, stats, demandReport = [] }) {
                                 أهلاً بك، <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">{auth.user.name}</span> 👋
                             </h1>
                             <p className="text-slate-400 font-bold text-sm md:text-base leading-relaxed">
-                                نراقب الآن أداء <span className="text-white">{stats.students_count}</span> طالب مسجل. النظام يقوم بتحليل <span className="text-white">{stats.courses_count}</span> مادة أكاديمية لتقديم أفضل استشارة ذكية.
+                                نراقب الآن أداء <span className="text-white">{stats.students_count}</span> طالب، وإدارة <span className="text-white">{stats.admins_count || 0}</span> أدمن + <span className="text-white">{stats.owners_count || 0}</span> مالك نظام، مع تحليل <span className="text-white">{stats.courses_count}</span> مادة أكاديمية.
                             </p>
                         </div>
                         <div className="flex shrink-0 gap-3">
@@ -45,7 +45,7 @@ export default function AdminDashboard({ auth, stats, demandReport = [] }) {
                 </div>
 
                 {/* 2. الإحصائيات الرئيسية - Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
                     <StatCard 
                         title="إجمالي الطلاب" 
                         value={stats.students_count} 
@@ -76,6 +76,22 @@ export default function AdminDashboard({ auth, stats, demandReport = [] }) {
                         icon="🛡️" 
                         color="rose" 
                         trend="حماية Postgre فعال"
+                    />
+                    <StatCard 
+                        title="بلاغات مفتوحة" 
+                        value={issueSummary.open || 0} 
+                        icon="🛠️" 
+                        color="amber" 
+                        trend={`إجمالي البلاغات: ${issueSummary.total || 0}`}
+                        link={route('admin.issues.index')}
+                    />
+                    <StatCard 
+                        title="التغطية الأكاديمية" 
+                        value={`${platform.colleges_count || 0}/${platform.majors_count || 0}`} 
+                        icon="🏛️" 
+                        color="indigo" 
+                        trend="كليات / تخصصات"
+                        link={route('admin.courses')}
                     />
                 </div>
 
@@ -125,6 +141,48 @@ export default function AdminDashboard({ auth, stats, demandReport = [] }) {
                             <p className="text-[10px] font-black opacity-60 uppercase mb-1">AI Advisor Status</p>
                             <h4 className="text-sm font-black mb-3">ذكاء اصطناعي نشط</h4>
                             <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-[10px] font-black transition-all">تهيئة الخوارزميات</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <div className="bg-white rounded-[2rem] p-6 sm:p-7 shadow-sm border border-slate-200">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">🛠️ آخر البلاغات</h3>
+                            <Link href={route('admin.issues.index')} className="text-xs font-black text-indigo-600 hover:underline">عرض الكل</Link>
+                        </div>
+                        <div className="space-y-3">
+                            {recentIssues.length > 0 ? recentIssues.map((issue) => (
+                                <div key={issue.id} className="p-3.5 border border-slate-200 rounded-xl hover:border-indigo-200 transition-colors">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <p className="text-[13px] font-black text-slate-800">#{issue.id} {issue.subject}</p>
+                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${issue.status === 'open' ? 'bg-rose-100 text-rose-700' : issue.status === 'in_progress' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            {issue.status === 'open' ? 'مفتوح' : issue.status === 'in_progress' ? 'قيد المعالجة' : 'محلول'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] font-bold text-slate-500">{issue.user?.name || 'غير معروف'} • {new Date(issue.created_at).toLocaleString()}</p>
+                                </div>
+                            )) : (
+                                <p className="text-sm text-slate-400 font-bold py-8 text-center">لا توجد بلاغات جديدة.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-[2rem] p-6 sm:p-7 shadow-sm border border-slate-200">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">📜 سجل حركات الإدارة</h3>
+                            <span className="text-xs font-black text-slate-400">آخر {logs.length} حركة</span>
+                        </div>
+                        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                            {logs.length > 0 ? logs.map((log) => (
+                                <div key={log.id} className="p-3.5 border border-slate-200 rounded-xl hover:border-indigo-200 transition-colors">
+                                    <p className="text-[11px] font-black text-indigo-600 mb-1">{log.action}</p>
+                                    <p className="text-[13px] font-bold text-slate-700 leading-relaxed">{log.details}</p>
+                                    <p className="text-[10px] font-black text-slate-400 mt-1.5">{log.user?.name || 'System'} • {new Date(log.created_at).toLocaleString()}</p>
+                                </div>
+                            )) : (
+                                <p className="text-sm text-slate-400 font-bold py-8 text-center">لا توجد حركات مسجلة حالياً.</p>
+                            )}
                         </div>
                     </div>
                 </div>

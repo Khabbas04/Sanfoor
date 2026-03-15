@@ -7,6 +7,7 @@ use App\Models\Major;
 use App\Models\College;
 use App\Models\User;
 use App\Models\AdminLog;
+use App\Models\IssueReport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -36,15 +37,30 @@ class AdminController extends Controller
             ->take(10)
             ->get();
 
+        $issueSummary = [
+            'open' => IssueReport::where('status', 'open')->count(),
+            'in_progress' => IssueReport::where('status', 'in_progress')->count(),
+            'resolved' => IssueReport::where('status', 'resolved')->count(),
+            'total' => IssueReport::count(),
+        ];
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
+                'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
+                'owners_count' => User::whereRaw('LOWER(role) = ?', ['owner'])->count(),
                 'courses_count' => Course::count(),
                 'compulsory_count' => Course::where('type', 'compulsory')->count(),
                 'elective_count' => Course::where('type', 'elective')->count(),
             ],
+            'platform' => [
+                'colleges_count' => College::count(),
+                'majors_count' => Major::count(),
+            ],
             'demandReport' => $demandReport,
-            'logs' => AdminLog::with('user')->latest()->take(10)->get()
+            'issueSummary' => $issueSummary,
+            'recentIssues' => IssueReport::with('user:id,name,email')->latest()->take(6)->get(),
+            'logs' => AdminLog::with('user:id,name,email')->latest()->take(25)->get(),
         ]);
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminLog;
 use App\Models\User;
 use App\Models\Major;
 use App\Models\College; 
@@ -12,6 +13,15 @@ use Carbon\Carbon;
 
 class AdminStudentController extends Controller
 {
+    private function logAction(string $action, string $details): void
+    {
+        AdminLog::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
+
     public function index(Request $request)
     {
         // 1. استعلام الطلاب مع الفلترة الذكية
@@ -93,6 +103,7 @@ class AdminStudentController extends Controller
         ]);
 
         $student->update($data);
+        $this->logAction('UPDATE_STUDENT', "تم تحديث بيانات الطالب {$student->email}");
 
         return back()->with('message', 'تم تحديث بيانات الطالب بنجاح');
     }
@@ -102,7 +113,9 @@ class AdminStudentController extends Controller
      */
     public function destroy(User $student)
     {
+        $email = $student->email;
         $student->delete();
+        $this->logAction('DELETE_STUDENT', "تم حذف حساب الطالب {$email}");
         return back()->with('message', 'تم حذف حساب الطالب بنجاح');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\IssueReport;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -30,6 +31,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $adminNotifications = null;
 
         if ($user) {
             $user->load('major');
@@ -38,6 +40,12 @@ class HandleInertiaRequests extends Middleware
             $user->setAttribute('role', $normalizedRole);
             $user->setAttribute('is_owner', $normalizedRole === 'owner');
             $user->setAttribute('is_admin_or_owner', in_array($normalizedRole, ['admin', 'owner'], true));
+
+            if (in_array($normalizedRole, ['admin', 'owner'], true)) {
+                $adminNotifications = [
+                    'open_issues_count' => IssueReport::where('status', 'open')->count(),
+                ];
+            }
         }
 
         return [
@@ -45,6 +53,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'admin_notifications' => $adminNotifications,
         ];
     }
 }

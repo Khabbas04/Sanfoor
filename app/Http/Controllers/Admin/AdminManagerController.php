@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,15 @@ use Inertia\Response;
 
 class AdminManagerController extends Controller
 {
+    private function logAction(string $action, string $details): void
+    {
+        AdminLog::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
+
     public function index(): Response
     {
         $admins = User::query()
@@ -45,6 +55,7 @@ class AdminManagerController extends Controller
         }
 
         $user->update(['role' => 'admin']);
+        $this->logAction('PROMOTE_USER_TO_ADMIN', "تمت ترقية المستخدم {$user->email} إلى admin");
 
         return back()->with('message', 'تمت ترقية المستخدم إلى Admin بنجاح.')->with('type', 'success');
     }
@@ -60,6 +71,7 @@ class AdminManagerController extends Controller
         }
 
         $user->update(['role' => $data['role']]);
+        $this->logAction('UPDATE_USER_ROLE', "تم تعديل رتبة المستخدم {$user->email} إلى {$data['role']}");
 
         return back()->with('message', 'تم تحديث رتبة المستخدم بنجاح.')->with('type', 'success');
     }
@@ -74,7 +86,9 @@ class AdminManagerController extends Controller
             return back()->with('message', 'لا يمكن حذف حساب Owner.')->with('type', 'error');
         }
 
+        $email = $user->email;
         $user->delete();
+        $this->logAction('DELETE_USER_ACCOUNT', "تم حذف حساب المستخدم {$email}");
 
         return back()->with('message', 'تم حذف حساب المستخدم بنجاح.')->with('type', 'success');
     }

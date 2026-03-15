@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
 
 export default function AdminLayout({ children }) {
-    const { auth } = usePage().props;
+    const { auth, admin_notifications: adminNotifications } = usePage().props;
     const role = (auth?.user?.role || '').toLowerCase().trim();
     const isOwner = Boolean(auth?.user?.is_owner) || role === 'owner';
+    const openIssuesCount = Number(adminNotifications?.open_issues_count || 0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // --- الروابط الديناميكية المحدثة مع رابط التقارير الجديد ---
@@ -77,7 +78,7 @@ export default function AdminLayout({ children }) {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.15em] mb-1">
-                                {isOwner ? 'OWNER' : 'المدير التنفيذي'}
+                                {isOwner ? 'OWNER' : 'ADMIN'}
                             </p>
                             <p className="font-black text-[15px] text-white truncate drop-shadow-sm">{auth.user.name ?? ''}</p>
                             <div className="flex items-center gap-2 mt-2">
@@ -122,6 +123,11 @@ export default function AdminLayout({ children }) {
                                 <span className={`relative z-10 font-black text-[13px] tracking-wide transition-colors ${active ? 'text-white' : 'group-hover:text-white'}`}>
                                     {item.name}
                                 </span>
+                                {item.route === 'admin.issues.index' && openIssuesCount > 0 && (
+                                    <span className="relative z-10 mr-auto min-w-[22px] h-[22px] px-1.5 rounded-md bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-[0_0_14px_rgba(244,63,94,0.45)]">
+                                        {openIssuesCount > 99 ? '99+' : openIssuesCount}
+                                    </span>
+                                )}
                                 {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full shadow-[0_0_15px_#fff]"></div>}
                             </Link>
                         );

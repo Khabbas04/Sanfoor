@@ -31,6 +31,11 @@ export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summ
         router.put(route('admin.issues.update_status', issueId), { status }, { preserveScroll: true });
     };
 
+    const removeIssue = (issueId) => {
+        if (!window.confirm('هل أنت متأكد من حذف هذا البلاغ نهائياً؟')) return;
+        router.delete(route('admin.issues.destroy', issueId), { preserveScroll: true });
+    };
+
     const applyFilter = (status) => {
         router.get(route('admin.issues.index'), status ? { status } : {}, { preserveState: true, preserveScroll: true });
     };
@@ -93,6 +98,7 @@ export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summ
                                     <button onClick={() => setStatus(issue.id, 'open')} className="px-3 py-2 rounded-lg text-xs font-black border bg-white text-slate-600 border-slate-200 hover:bg-slate-50">مفتوح</button>
                                     <button onClick={() => setStatus(issue.id, 'in_progress')} className="px-3 py-2 rounded-lg text-xs font-black border bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100">قيد المعالجة</button>
                                     <button onClick={() => setStatus(issue.id, 'resolved')} className="px-3 py-2 rounded-lg text-xs font-black border bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100">محلول</button>
+                                    <button onClick={() => removeIssue(issue.id)} className="px-3 py-2 rounded-lg text-xs font-black border bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100">حذف البلاغ</button>
                                 </div>
                             </div>
                         </article>

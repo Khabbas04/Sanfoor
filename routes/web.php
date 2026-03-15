@@ -150,6 +150,7 @@ Route::middleware('auth')->group(function () {
             // بلاغات الطلاب
             Route::get('/issues', [AdminIssueReportController::class, 'index'])->name('issues.index');
             Route::put('/issues/{issueReport}/status', [AdminIssueReportController::class, 'updateStatus'])->name('issues.update_status');
+            Route::delete('/issues/{issueReport}', [AdminIssueReportController::class, 'destroy'])->name('issues.destroy');
         }
         );    });
 
