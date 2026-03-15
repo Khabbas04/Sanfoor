@@ -4,18 +4,24 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/AI/AiWidget';
 
+// MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children }) {
     const page = usePage();
     const { auth } = page.props;
+
+    // Normalize role flags once so the layout can render the correct user actions.
     const role = (auth?.user?.role || '').toLowerCase().trim();
     const isOwner = Boolean(auth?.user?.is_owner) || role === 'owner';
     const isAdminOrOwner = Boolean(auth?.user?.is_admin_or_owner) || ['admin', 'owner'].includes(role);
+
+    // UI state for the floating navbar and mobile drawer menu.
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
     const { isDark, toggleTheme } = useTheme();
     const { lang, toggleLang } = useLanguage();
 
+    // Add the compact navbar style after the user scrolls down.
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         handleScroll();
@@ -23,16 +29,19 @@ export default function MainLayout({ children }) {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [page.url]);
 
+    // Close the mobile menu whenever the current route changes.
     useEffect(() => {
         setMobileOpen(false);
     }, [page.url]);
 
+    // Also close the mobile menu when switching back to desktop width.
     useEffect(() => {
         const handleResize = () => { if (window.innerWidth >= 1024) setMobileOpen(false); };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Shared translations used by navigation labels and the footer.
     const translations = {
         ar: {
             home: 'الرئيسية',
@@ -83,6 +92,7 @@ export default function MainLayout({ children }) {
     return (
         <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <Head>
+                {/* Load the main font and layout-scoped UI helper styles. */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
                 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
@@ -119,7 +129,7 @@ export default function MainLayout({ children }) {
                 `}</style>
             </Head>
 
-            {/* MODERN FLOATING NAVBAR */}
+            {/* Shared floating navbar used across the public-facing experience. */}
             <div className="fixed top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
                 <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[90px] sm:h-[120px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
@@ -166,7 +176,7 @@ export default function MainLayout({ children }) {
                             </Link>
                         </div>
 
-                        {/* Right Section: Theme, Lang & User */}
+                        {/* Theme toggle, language switcher, and account actions. */}
                         <div className="flex items-center gap-2 sm:gap-3">
                             <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-indigo-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
                                 {lang === 'ar' ? 'EN' : 'AR'}
@@ -229,7 +239,7 @@ export default function MainLayout({ children }) {
                                 </Link>
                             )}
 
-                            {/* Mobile Menu Button */}
+                            {/* Mobile menu button for the off-canvas navigation. */}
                             <button onClick={() => setMobileOpen(!mobileOpen)} className={`lg:hidden relative w-12 h-12 rounded-[1.25rem] flex items-center justify-center transition-all active:scale-95 z-[101] pointer-events-auto ${isDark ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50'}`}>
                                 <div className="flex flex-col items-center justify-center gap-[5px] w-5 h-5">
                                     <span className={`block w-full h-[2.5px] bg-current rounded-full transition-all duration-300 origin-left ${mobileOpen ? 'rotate-[42deg] w-[22px]' : ''}`}></span>
@@ -242,7 +252,7 @@ export default function MainLayout({ children }) {
                 </nav>
             </div>
 
-            {/* Mobile Menu */}
+            {/* Mobile drawer version of the main navigation. */}
             <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
                 <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
@@ -285,15 +295,15 @@ export default function MainLayout({ children }) {
                 </div>
             </div>
 
-            {/* MAIN CONTENT */}
+            {/* Routed page content is rendered inside the shared layout shell. */}
             <main className="flex-1 flex flex-col w-full relative z-10 pt-28 sm:pt-40 animate-fade-in-up">
                 {children}
             </main>
 
-            {/* AI WIDGET */}
+            {/* The floating AI assistant is available only for signed-in users. */}
             {auth.user && <AiWidget user={auth.user} />}
 
-            {/* PREMIUM FOOTER */}
+            {/* Global footer for quick links, legal pages, and platform status. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent opacity-50"></div>
                 

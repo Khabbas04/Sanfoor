@@ -5,11 +5,13 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import Swal from 'sweetalert2';
 
+// Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
+// Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#4338ca', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
 
-// ========== Typewriter ==========
+// Animate AI responses as they stream into the chat window.
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     const [txt, setTxt] = useState('');
     const idx = useRef(0), raf = useRef(null), done = useRef(false);
@@ -29,7 +31,7 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     return <ReactMarkdown>{txt}</ReactMarkdown>;
 };
 
-// ========== CourseButton ==========
+// Reusable button used to add or remove suggested courses from the simulator cart.
 const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' }) => {
     const rm = variant === 'remove';
     if (rm && !isAdded) return null;

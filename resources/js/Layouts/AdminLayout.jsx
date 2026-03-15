@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
 
+// AdminLayout wraps all admin pages with a shared sidebar, header, and logout flow.
 export default function AdminLayout({ children }) {
     const { auth, admin_notifications: adminNotifications } = usePage().props;
+
+    // Role and notification state is shared from Inertia middleware.
     const role = (auth?.user?.role || '').toLowerCase().trim();
     const isOwner = Boolean(auth?.user?.is_owner) || role === 'owner';
     const openIssuesCount = Number(adminNotifications?.open_issues_count || 0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    // --- الروابط الديناميكية المحدثة مع رابط التقارير الجديد ---
+    // Sidebar item metadata is centralized here for easier maintenance.
     const menuItems = [
         { icon: '📊', name: 'الإحصائيات العامة', route: 'admin.dashboard', pattern: 'admin.dashboard' },
         { icon: '🛠️', name: 'بلاغات الطلاب', route: 'admin.issues.index', pattern: 'admin.issues.*' },
-        { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' }, // 🔥 الرابط الجديد
+        { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' },
         { icon: '🏛️', name: 'الهيكلة والمواد', route: 'admin.courses', pattern: 'admin.courses|admin.colleges|admin.majors' },
         { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },
         ...(isOwner
@@ -21,6 +24,7 @@ export default function AdminLayout({ children }) {
         { icon: '⚙️', name: 'الإعدادات', route: '#', pattern: 'admin.settings.*' },
     ];
 
+    // Support pipe-separated route patterns so one item can cover multiple screens.
     const isRouteActive = (pattern) => {
         if (!pattern) return false;
         try {
@@ -34,10 +38,10 @@ export default function AdminLayout({ children }) {
     return (
         <div className="min-h-screen bg-[#f8fafc] text-right flex flex-col font-sans selection:bg-indigo-200 selection:text-indigo-900 relative" dir="rtl">
             
-            {/* الخلفية الشبكية المطورة */}
+            {/* Decorative grid background for the whole admin experience. */}
             <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-0" style={{ backgroundImage: 'radial-gradient(#4f46e5 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
 
-            {/* Mobile Overlay */}
+            {/* Tap outside the sidebar on mobile to close it. */}
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden transition-all duration-500"
@@ -45,7 +49,7 @@ export default function AdminLayout({ children }) {
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Primary admin navigation sidebar. */}
             <aside className={`fixed top-0 right-0 h-full w-72 bg-[#0b0f19] text-slate-300 shadow-[25px_0_50px_rgba(0,0,0,0.2)] z-50 flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-slate-800 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Logo Section */}
@@ -92,7 +96,7 @@ export default function AdminLayout({ children }) {
                     </div>
                 </div>
 
-                {/* Navigation Menu */}
+                {/* Render all sidebar links from the menuItems config above. */}
                 <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-2.5 scrollbar-hide">
                     <p className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 mt-2">القائمة الرئيسية</p>
                     {menuItems.map((item, index) => {
@@ -148,7 +152,7 @@ export default function AdminLayout({ children }) {
                 </div>
             </aside>
 
-            {/* Main Content Area */}
+            {/* Main admin content panel. */}
             <main className="lg:mr-72 flex-1 flex flex-col min-h-screen transition-all duration-500 relative z-10">
 
                 {/* Header Navbar */}
@@ -191,7 +195,7 @@ export default function AdminLayout({ children }) {
                     </div>
                 </div>
                 
-                {/* Global Styles */}
+                {/* Layout-scoped utility styles for the admin shell. */}
                 <style>{`
                     .scrollbar-hide::-webkit-scrollbar { display: none; }
                     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

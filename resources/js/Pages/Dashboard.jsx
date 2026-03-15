@@ -2,11 +2,14 @@ import MainLayout from '@/Layouts/MainLayout';
 import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
+// Resolve the deployment URL once for page-level SEO metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 /* ═══════════════════════════════════════════════════════════════
    HOOKS & COMPONENTS
    ═══════════════════════════════════════════════════════════════ */
+
+// Reveal dashboard sections progressively as they appear in view.
 function useReveal(threshold = 0.12) {
     const ref = useRef(null);
     const [visible, setVisible] = useState(false);
@@ -22,6 +25,7 @@ function useReveal(threshold = 0.12) {
     return [ref, visible];
 }
 
+// Animate KPI numbers instead of rendering them statically on first paint.
 function AnimatedCounter({ target, duration = 1400, decimals = 0 }) {
     const [value, setValue] = useState(0);
     const [ref, isVisible] = useReveal(0.3);
@@ -47,8 +51,10 @@ export default function Dashboard({
     gpa = "0.00",
     passed_courses = [],
     cart_courses = [],
-    ai_skills = [] // 🔥 استقبال المهارات
+    ai_skills = [],
 }) {
+
+    // Compute high-level academic summaries once per data change.
 
     const progressPct = useMemo(() => Math.min(Math.round((passed_hours / total_hours) * 100), 100), [passed_hours, total_hours]);
 
@@ -175,7 +181,7 @@ export default function Dashboard({
         return cart_courses.reduce((sum, course) => sum + course.credit_hours, 0);
     }, [cart_courses]);
 
-    // 🔥 حماية إضافية لضمان أن ai_skills عبارة عن مصفوفة دائماً لتجنب انهيار الصفحة
+    // Guard against malformed payloads so dashboard rendering never crashes.
     const safeSkills = Array.isArray(ai_skills) ? ai_skills : [];
 
     return (

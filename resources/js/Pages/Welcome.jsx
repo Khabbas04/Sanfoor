@@ -2,6 +2,7 @@ import { Link, Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useEffect, useRef, useState } from 'react';
 
+// Resolve the public site URL for canonical and social metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 /* ─────────────────────────────────────────────
@@ -9,7 +10,7 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
    By Kollia Team
 ───────────────────────────────────────────── */
 
-// ── Intersection Observer for scroll-triggered animations ──
+// Reveal sections only after they enter the viewport to keep motion intentional.
 function useInView(threshold = 0.15) {
     const ref = useRef(null);
     const [isInView, setIsInView] = useState(false);
@@ -23,7 +24,7 @@ function useInView(threshold = 0.15) {
     return [ref, isInView];
 }
 
-// ── Magnetic Button Component ──
+// Lightweight wrapper kept for future button motion experiments.
 function MagneticButton({ children, className = '', ...props }) {
     return (
         <div
@@ -34,7 +35,7 @@ function MagneticButton({ children, className = '', ...props }) {
     );
 }
 
-// ── Animated Tree SVG Components ──
+// Small SVG helpers used to visualize the study-tree concept in the landing page.
 function TreeNode({ x, y, delay, color, size = 52, label }) {
     return (
         <g className="tree-node" style={{ animationDelay: `${delay}s` }}>
@@ -53,6 +54,7 @@ function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
 export default function Welcome({ auth }) {
     const heroRef = useRef(null);
 
+    // Each observer controls the reveal timing of a different landing section.
     const [featRef, featIn] = useInView();
     const [previewRef, previewIn] = useInView();
     const [aiRef, aiIn] = useInView(0.3);

@@ -10,6 +10,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 
+// Resolve the deployment URL once for canonical metadata on the tree page.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 /* ═══════════════════════════════════════════════════════════
@@ -21,11 +22,13 @@ const DESKTOP_NODE_HEIGHT = 88;
 const MOBILE_NODE_WIDTH = 150;
 const MOBILE_NODE_HEIGHT = 72;
 
+// Shared SweetAlert theme so all tree interactions feel visually consistent.
 const swalTheme = {
     confirmButtonColor: '#4f46e5',
     customClass: { popup: 'rounded-3xl font-t', title: 'font-t', htmlContainer: 'font-t' },
 };
 
+// Build a readable DAG layout for course nodes before rendering with React Flow.
 const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }) => {
     const { width, height, ranksep, nodesep } = dimensions;
     const dagreGraph = new dagre.graphlib.Graph();
@@ -104,6 +107,8 @@ export default function Tree({
     college_name = '',
     passed_courses = []
 }) {
+
+    // Page-level state drives filtering, course selection, and AI planning behavior.
 
     const { lang } = useLanguage();
     const { isDark } = useTheme();
