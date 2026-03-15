@@ -11,10 +11,11 @@ class Major extends Model
 {
     use HasFactory;
 
+    // Basic major metadata managed from the academic structure admin tools.
     protected $fillable = ['college_id', 'name', 'code'];
 
     /**
-     * 🔥 العلاقة مع الكلية (كل تخصص ينتمي لكلية واحدة)
+     * The college that owns this academic major.
      */
     public function college(): BelongsTo
     {
@@ -22,7 +23,7 @@ class Major extends Model
     }
 
     /**
-     * العلاقة مع المستخدمين (الطلاب)
+     * Students assigned to this major.
      */
     public function users(): HasMany
     {

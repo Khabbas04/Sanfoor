@@ -9,24 +9,37 @@ use App\Http\Controllers\GradeController;
 use App\Http\Controllers\AiAdvisorController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\IssueReportController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
-/* |-------------------------------------------------------------------------- | Web Routes |-------------------------------------------------------------------------- */
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| This file contains the browser-facing routes for public pages, student
+| features, admin tools, and sitemap generation.
+|
+*/
 
-// 1. الصفحة الرئيسية
+// Expose the XML sitemap for search engines and crawler discovery.
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+
+// Public landing page.
 Route::get('/', function () {
     return Inertia::render('Welcome', [
-    'canLogin' => Route::has('login'),
-    'canRegister' => Route::has('register'),
-    'laravelVersion' => Application::VERSION,
-    'phpVersion' => PHP_VERSION,
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
     ]);
 });
 
+// Public legal pages.
 Route::get('/terms-of-use', function () {
     return Inertia::render('Legal/Terms');
 })->name('legal.terms');
@@ -35,123 +48,110 @@ Route::get('/privacy-policy', function () {
     return Inertia::render('Legal/Privacy');
 })->name('legal.privacy');
 
-// 2. لوحة تحكم الطالب (Dashboard)
+// Authenticated student dashboard.
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
+    // Load the academic relations needed by the dashboard cards and widgets.
     $user->load('major', 'cartCourses', 'passedCourses');
 
     $passedHours = $user->passedCourses->sum('credit_hours');
     $gpaData = $user->calculateGPA();
 
+    // Keep the payload focused on the fields rendered in the dashboard UI.
     $passedCourses = $user->passedCourses()
         ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
         ->withPivot('grade', 'studied_semester')
         ->get();
 
     return Inertia::render('Dashboard', [
-    'passed_hours' => (int)$passedHours,
-    'total_hours' => 132,
-    'gpa' => $gpaData['gpa4'] ?? '0.00',
-    'passed_courses' => $passedCourses,
-    'cart_courses' => $user->cartCourses,
-    'ai_skills' => $user->getSkillsFromPassedCourses(),
+        'passed_hours' => (int) $passedHours,
+        'total_hours' => 132,
+        'gpa' => $gpaData['gpa4'] ?? '0.00',
+        'passed_courses' => $passedCourses,
+        'cart_courses' => $user->cartCourses,
+        'ai_skills' => $user->getSkillsFromPassedCourses(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 3. مجموعة الروابط المحمية (الطلاب)
+// Student-only application features.
 Route::middleware('auth')->group(function () {
-
-    // إبلاغ عن مشكلة
+    // Student support and issue reporting.
     Route::get('/support/report-issue', [IssueReportController::class, 'create'])->name('support.issue.create');
     Route::post('/support/report-issue', [IssueReportController::class, 'store'])->name('support.issue.store');
 
-    // الخطة الشجرية والمحاكي
-    Route::get('/tree', [TreeController::class , 'index'])->name('tree.index');
-    Route::post('/tree/toggle', [TreeController::class , 'toggle'])->name('tree.toggle');
+    // Tree planner and course simulation features.
+    Route::get('/tree', [TreeController::class, 'index'])->name('tree.index');
+    Route::post('/tree/toggle', [TreeController::class, 'toggle'])->name('tree.toggle');
 
-    // مزامنة المحاكي
-    Route::post('/cart/sync', [CartController::class , 'sync'])->name('cart.sync');
+    // Synchronize the simulation cart with the backend.
+    Route::post('/cart/sync', [CartController::class, 'sync'])->name('cart.sync');
 
-    // إضافة/إزالة مادة واحدة للمحاكي (يستخدمه الـ AI Agent والشجرة)
-    Route::post('/cart/toggle-single', [TreeController::class , 'toggleSingleCart'])->name('cart.toggle.single');
+    // Toggle a single course from either the tree view or AI advisor flows.
+    Route::post('/cart/toggle-single', [TreeController::class, 'toggleSingleCart'])->name('cart.toggle.single');
 
-    // حاسبة التفوّق (GPA Simulator)
-    Route::get('/calculator', [GradeController::class , 'index'])->name('calculator.index');
-    Route::post('/grades/update', [GradeController::class , 'update'])->name('grades.update');
+    // GPA calculator and grade persistence endpoints.
+    Route::get('/calculator', [GradeController::class, 'index'])->name('calculator.index');
+    Route::post('/grades/update', [GradeController::class, 'update'])->name('grades.update');
 
-    // ==========================================
-    // 🏢 دليل المباني (Campus Directory)
-    // ==========================================
+    // Public-style utility page that is still available only for logged-in users.
     Route::get('/campus-directory', function () {
-            return Inertia::render('Campus/Directory');
-        }
-        )->name('campus.directory');
+        return Inertia::render('Campus/Directory');
+    })->name('campus.directory');
 
-        // ==========================================
-        // 🤖 المستشار الذكي "سنفور" (AI Agent)
-        // ==========================================
-        Route::get('/ai-advisor', [AiAdvisorController::class , 'index'])->name('ai.advisor');
-        Route::post('/ai-advisor/chat', [AiAdvisorController::class , 'chat'])->name('ai.advisor.chat');
-        Route::get('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class , 'getMessages'])->name('ai.advisor.messages');
+    // AI advisor routes, including chat lifecycle operations.
+    Route::get('/ai-advisor', [AiAdvisorController::class, 'index'])->name('ai.advisor');
+    Route::post('/ai-advisor/chat', [AiAdvisorController::class, 'chat'])->name('ai.advisor.chat');
+    Route::get('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class, 'getMessages'])->name('ai.advisor.messages');
+    Route::post('/ai-advisor/regenerate', [AiAdvisorController::class, 'regenerate'])->name('ai.advisor.regenerate');
+    Route::post('/ai-advisor/feedback', [AiAdvisorController::class, 'feedback'])->name('ai.advisor.feedback');
 
-        // إعادة توليد آخر رد AI
-        Route::post('/ai-advisor/regenerate', [AiAdvisorController::class , 'regenerate'])->name('ai.advisor.regenerate');
+    // Keep the bulk-delete route before the single chat route to avoid parameter collisions.
+    Route::delete('/ai-advisor/chats/all', [AiAdvisorController::class, 'destroyAll'])->name('ai.advisor.delete.all');
+    Route::delete('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class, 'destroy'])->name('ai.advisor.delete');
 
-        // تقييم رد AI (👍/👎)
-        Route::post('/ai-advisor/feedback', [AiAdvisorController::class , 'feedback'])->name('ai.advisor.feedback');
+    // Standard account management routes for logged-in users.
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        // ⚠️ مهم: حذف الكل لازم ييجي قبل حذف واحدة عشان Laravel ما تعتبر "all" كـ {chat_id}
-        Route::delete('/ai-advisor/chats/all', [AiAdvisorController::class , 'destroyAll'])->name('ai.advisor.delete.all');
-        Route::delete('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class , 'destroy'])->name('ai.advisor.delete');
+    // Admin-only routes for dashboards, academic data, and staff operations.
+    Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
+        Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
 
-        // الملف الشخصي
-        Route::get('/profile', [ProfileController::class , 'edit'])->name('profile.edit');
-        Route::patch('/profile', [ProfileController::class , 'update'])->name('profile.update');
-        Route::delete('/profile', [ProfileController::class , 'destroy'])->name('profile.destroy');
+        // Student management endpoints.
+        Route::get('/students', [AdminStudentController::class, 'index'])->name('students.index');
+        Route::put('/students/{student}', [AdminStudentController::class, 'update'])->name('students.update');
+        Route::delete('/students/{student}', [AdminStudentController::class, 'destroy'])->name('students.destroy');
 
-        // ==========================================
-        // 🔥 4. روابط الإدارة (محمية بميدلوير الأدمن)
-        // ==========================================
-        Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
+        // Course CRUD and import/export workflows.
+        Route::get('/courses', [AdminController::class, 'index'])->name('courses');
+        Route::post('/courses', [AdminController::class, 'store'])->name('courses.store');
+        Route::put('/courses/{course}', [AdminController::class, 'update'])->name('courses.update');
+        Route::delete('/courses/{course}', [AdminController::class, 'destroy'])->name('courses.destroy');
+        Route::post('/courses/import', [AdminController::class, 'import'])->name('courses.import');
+        Route::post('/courses/export', [AdminController::class, 'export'])->name('courses.export');
+        Route::post('/courses/bulk-delete', [AdminController::class, 'bulkDelete'])->name('courses.bulk_delete');
 
-            Route::get('/dashboard', [AdminController::class , 'dashboard'])->name('dashboard');
-            Route::get('/reports/demand', [AdminController::class , 'demandReport'])->name('reports.demand');
-            Route::get('/reports/ai-insights', [AiAdvisorController::class , 'getAdminReports'])->name('reports.ai_insights');
+        // Academic structure management.
+        Route::post('/colleges', [AdminController::class, 'storeCollege'])->name('colleges.store');
+        Route::post('/majors', [AdminController::class, 'storeMajor'])->name('majors.store');
 
-            // إدارة الطلاب
-            Route::get('/students', [AdminStudentController::class , 'index'])->name('students.index');
-            Route::put('/students/{student}', [AdminStudentController::class , 'update'])->name('students.update');
-            Route::delete('/students/{student}', [AdminStudentController::class , 'destroy'])->name('students.destroy');
+        // Owner-only staff management routes.
+        Route::middleware(['owner'])->group(function () {
+            Route::get('/admins', [AdminManagerController::class, 'index'])->name('admins.index');
+            Route::post('/admins/promote', [AdminManagerController::class, 'promote'])->name('admins.promote');
+            Route::put('/admins/{user}/role', [AdminManagerController::class, 'updateRole'])->name('admins.update_role');
+            Route::delete('/admins/{user}', [AdminManagerController::class, 'destroy'])->name('admins.destroy');
+        });
 
-            // إدارة المواد (CRUD)
-            Route::get('/courses', [AdminController::class , 'index'])->name('courses');
-            Route::post('/courses', [AdminController::class , 'store'])->name('courses.store');
-            Route::put('/courses/{course}', [AdminController::class , 'update'])->name('courses.update');
-            Route::delete('/courses/{course}', [AdminController::class , 'destroy'])->name('courses.destroy');
-
-            // الأدوات المتقدمة
-            Route::post('/courses/import', [AdminController::class , 'import'])->name('courses.import');
-            Route::post('/courses/export', [AdminController::class , 'export'])->name('courses.export');
-            Route::post('/courses/bulk-delete', [AdminController::class , 'bulkDelete'])->name('courses.bulk_delete');
-
-            // الهيكلية الأكاديمية
-            Route::post('/colleges', [AdminController::class , 'storeCollege'])->name('colleges.store');
-            Route::post('/majors', [AdminController::class , 'storeMajor'])->name('majors.store');
-
-            // إدارة الأدمنز (Owner فقط)
-            Route::middleware(['owner'])->group(function () {
-                Route::get('/admins', [AdminManagerController::class, 'index'])->name('admins.index');
-                Route::post('/admins/promote', [AdminManagerController::class, 'promote'])->name('admins.promote');
-                Route::put('/admins/{user}/role', [AdminManagerController::class, 'updateRole'])->name('admins.update_role');
-                Route::delete('/admins/{user}', [AdminManagerController::class, 'destroy'])->name('admins.destroy');
-            });
-
-            // بلاغات الطلاب
-            Route::get('/issues', [AdminIssueReportController::class, 'index'])->name('issues.index');
-            Route::put('/issues/{issueReport}/status', [AdminIssueReportController::class, 'updateStatus'])->name('issues.update_status');
-            Route::delete('/issues/{issueReport}', [AdminIssueReportController::class, 'destroy'])->name('issues.destroy');
-        }
-        );    });
+        // Student issue management in the admin panel.
+        Route::get('/issues', [AdminIssueReportController::class, 'index'])->name('issues.index');
+        Route::put('/issues/{issueReport}/status', [AdminIssueReportController::class, 'updateStatus'])->name('issues.update_status');
+        Route::delete('/issues/{issueReport}', [AdminIssueReportController::class, 'destroy'])->name('issues.destroy');
+    });
+});
 
 require __DIR__ . '/auth.php';

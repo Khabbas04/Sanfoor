@@ -11,18 +11,19 @@ class Course extends Model
 {
     use HasFactory;
 
+    // These fields are managed directly from the admin course CRUD flows.
     protected $fillable = [
-        'name', 
-        'code', 
-        'credit_hours', 
-        'type', 
-        'semester', 
+        'name',
+        'code',
+        'credit_hours',
+        'type',
+        'semester',
         'major_id',
-        'description'
+        'description',
     ];
 
     /**
-     * 1. علاقة التخصص
+     * The major this course belongs to.
      */
     public function major(): BelongsTo
     {
@@ -30,7 +31,7 @@ class Course extends Model
     }
 
     /**
-     * 2. علاقة المتطلبات السابقة (ماذا آخذ قبل هذه المادة؟)
+     * Courses that must be completed before taking this course.
      */
     public function prerequisites(): BelongsToMany
     {
@@ -38,7 +39,7 @@ class Course extends Model
     }
 
     /**
-     * 3. علاقة المواد التابعة (ماذا تفتح هذه المادة؟)
+     * Courses unlocked by completing this course.
      */
     public function children(): BelongsToMany
     {
@@ -46,8 +47,7 @@ class Course extends Model
     }
 
     /**
-     * 🔥 4. علاقة المحاكي (التي تعالج خطأ تقرير الطلب) 🔥
-     * تربط المادة بالطلاب الذين أضافوها للمحاكي عبر جدول user_carts
+     * Users who added this course to their simulation carts.
      */
     public function cartUsers(): BelongsToMany
     {

@@ -1,2 +1,6 @@
+# Allow all major crawlers to access the public website.
 User-agent: *
-Disallow:
+Allow: /
+
+# Point search engines to the dynamic XML sitemap endpoint.
+Sitemap: https://sanfoor.me/sitemap.xml

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Laravel\Sanctum\HasApiTokens; // 🔥 التحديث 1: استيراد مكتبة التوكنات للموبايل
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Carbon;
@@ -17,18 +17,21 @@ use App\Services\BrevoMailer;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens, HasFactory, Notifiable; // 🔥 التحديث 2: إضافة HasApiTokens هنا
+    // HasApiTokens is kept for future mobile or API-based authentication flows.
+    use HasApiTokens, HasFactory, Notifiable;
 
+    // These attributes are safe to mass assign during registration and profile updates.
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
         'major_id',
-        'ip_address',       
+        'ip_address',
         'last_login_at',
     ];
 
+    // Hide sensitive authentication and security fields from serialized responses.
     protected $hidden = [
         'password',
         'remember_token',
@@ -54,15 +57,15 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * علاقة التخصص
+     * The academic major assigned to the user.
      */
     public function major(): BelongsTo
     {
-        return $this->belongsTo(Major::class , 'major_id');
+        return $this->belongsTo(Major::class, 'major_id');
     }
 
     /**
-     * علاقة المحاكي (كائن الربط)
+     * The user cart parent record when a dedicated cart entity is needed.
      */
     public function cart(): HasOne
     {
@@ -70,7 +73,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * علاقة مواد المحاكي (للقراءة والتحكم من الـ AI)
+     * Courses currently added to the simulation cart.
      */
     public function cartCourses(): BelongsToMany
     {
@@ -79,64 +82,65 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * علاقة المواد المنجزة
+     * Courses already completed by the student, including grade metadata.
      */
     public function passedCourses(): BelongsToMany
     {
         return $this->belongsToMany(
-            Course::class ,
-            'course_user', 
-            'user_id', 
-            'course_id' 
+            Course::class,
+            'course_user',
+            'user_id',
+            'course_id'
         )->withPivot('grade', 'studied_semester')->withTimestamps();
     }
 
     /**
-     * سجل محادثات الذكاء الاصطناعي
+     * AI chat threads owned by this user.
      */
     public function chats(): HasMany
     {
         return $this->hasMany(Chat::class)->latest();
     }
 
+    /**
+     * Issue reports submitted by the user.
+     */
     public function issueReports(): HasMany
     {
         return $this->hasMany(IssueReport::class);
     }
 
-    // =========================================================
-    // 🔥 وظائف الذكاء الاصطناعي والتحليلات الجديدة 🔥
-    // =========================================================
+    // ---------------------------------------------------------------------
+    // Academic analytics helpers used by dashboards and advisor features.
+    // ---------------------------------------------------------------------
 
     /**
-     * استخلاص المهارات من المواد المنجزة (AI Skill Mapping)
-     * تستخدم لعرض مهارات الطالب في الداشبورد بناءً على نجاحه في المواد
+     * Build a unique skill list from completed courses for dashboard display.
      */
     public function getSkillsFromPassedCourses()
     {
         return $this->passedCourses()
-            // 🔥 تحديد اسم الجدول لمنع خطأ الـ SQL (Undefined column / Ambiguity)
+            // Qualify the column name to avoid ambiguous SQL in joined queries.
             ->whereNotNull('courses.skills')
-            // 🔥 التأكد من عدم جلب حقول تحتوي على نصوص فارغة
-            ->where('courses.skills', '!=', '') 
+            ->where('courses.skills', '!=', '')
             ->get()
             ->flatMap(function ($course) {
-                // تحويل المهارات من نص (Comma separated) إلى مصفوفة
+                // Convert the comma-separated skill string into normalized objects.
                 $skillsArray = explode(',', $course->skills);
+
                 return array_map(fn($skill) => [
                     'name' => trim($skill),
                     'course_source' => $course->name,
-                    'course_code' => $course->code
+                    'course_code' => $course->code,
                 ], $skillsArray);
             })
-            // 🔥 تصفية إضافية لمنع أي مهارة فارغة من الظهور في الداشبورد
-            ->filter(fn($skill) => !empty($skill['name'])) 
+            ->filter(fn($skill) => !empty($skill['name']))
             ->unique('name')
             ->values();
     }
 
     /**
-     * دالة حساب المعدل التراكمي المركزية
+     * Calculate the weighted GPA in both percentage and 4.0 scale formats.
      */
     public function calculateGPA()
     {
@@ -164,39 +168,46 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return [
             'percentage' => round($percentage, 2),
-            'gpa4' => $gpa4
+            'gpa4' => $gpa4,
         ];
     }
 
     /**
-     * التحقق مما إذا كان الطالب مؤهلاً للتخرج (AI Graduation Auditor)
+     * Check whether the student has completed the minimum graduation hours.
      */
     public function isEligibleForGraduation($requiredHours = 132)
     {
         $completedHours = $this->passedCourses()->sum('credit_hours');
+
         return [
             'is_eligible' => $completedHours >= $requiredHours,
             'remaining_hours' => max(0, $requiredHours - $completedHours),
-            'progress_percentage' => round(($completedHours / $requiredHours) * 100, 1)
+            'progress_percentage' => round(($completedHours / $requiredHours) * 100, 1),
         ];
     }
 
+    /**
+     * Convenience helper for owner-only authorization checks.
+     */
     public function isOwner(): bool
     {
         return strtolower((string) $this->role) === 'owner';
     }
 
+    /**
+     * Convenience helper for admin and owner authorization checks.
+     */
     public function isAdminOrOwner(): bool
     {
         return in_array(strtolower((string) $this->role), ['admin', 'owner'], true);
     }
 
-    // =========================================================
-    // 📧 إرسال الإيميلات عبر Brevo API (تجاوز الافتراضي)
-    // =========================================================
+    // ---------------------------------------------------------------------
+    // Notification overrides that route email through Brevo instead of mail.
+    // ---------------------------------------------------------------------
 
     /**
-     * إرسال رابط إعادة تعيين كلمة المرور عبر Brevo
+     * Send the password reset email through Brevo.
      */
     public function sendPasswordResetNotification($token): void
     {
@@ -213,7 +224,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * إرسال رابط تأكيد البريد الإلكتروني عبر Brevo
+     * Send the email verification message through Brevo.
      */
     public function sendEmailVerificationNotification(): void
     {
