@@ -7,10 +7,11 @@ import { createRoot } from 'react-dom/client';
 import { LanguageProvider } from '@/Contexts/LanguageContext';
 import { ThemeProvider } from '@/Contexts/ThemeContext';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'Sanfoor';
+const defaultTitle = 'سنفور | Sanfoor - المرشد الأكاديمي الذكي';
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => (title ? `${title} | ${appName}` : defaultTitle),
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.jsx`,

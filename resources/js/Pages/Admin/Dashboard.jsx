@@ -2,10 +2,17 @@ import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [] }) {
     return (
         <AdminLayout user={auth.user}>
-            <Head title="لوحة التحكم المركزية - سنفور" />
+            <Head>
+                <title>لوحة الإدارة المركزية | سنفور</title>
+                <meta name="description" content="لوحة تحكم الإدارة في سنفور لمتابعة مؤشرات المنصة، البلاغات، وسجل العمليات." />
+                <meta name="robots" content="noindex,nofollow,noarchive" />
+                <link rel="canonical" href={`${siteUrl}/admin/dashboard`} />
+            </Head>
 
             <style>{`
                 @keyframes slideInRight {

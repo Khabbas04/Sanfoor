@@ -2,6 +2,8 @@ import MainLayout from '@/Layouts/MainLayout';
 import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 /* ═══════════════════════════════════════════════════════════════
    HOOKS & COMPONENTS
    ═══════════════════════════════════════════════════════════════ */
@@ -178,7 +180,12 @@ export default function Dashboard({
 
     return (
         <MainLayout user={auth.user}>
-            <Head title="لوحة التحكم - سنفور" />
+            <Head>
+                <title>لوحة الطالب | سنفور</title>
+                <meta name="description" content="لوحة الطالب في سنفور لمتابعة الساعات المنجزة، المعدل، والمواد المسجلة ضمن حسابك الشخصي." />
+                <meta name="robots" content="noindex,nofollow,noarchive" />
+                <link rel="canonical" href={`${siteUrl}/dashboard`} />
+            </Head>
 
             <style>{`
                 @keyframes sn-up { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }

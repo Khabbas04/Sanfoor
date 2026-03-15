@@ -4,6 +4,8 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 export default function Calculator({ auth, initialCourses }) {
     // 1. تهيئة المواد (بدون أي تعقيدات)
     const [courses, setCourses] = useState(() => {
@@ -109,7 +111,12 @@ export default function Calculator({ auth, initialCourses }) {
 
     return (
         <MainLayout user={auth.user}>
-            <Head title="حاسبة التفوق الأكاديمي - Kulliya Campus" />
+            <Head>
+                <title>حاسبة الأداء الأكاديمي | سنفور</title>
+                <meta name="description" content="حاسبة أكاديمية داخل سنفور لحساب النسبة والمعدل التراكمي وتتبع أداء المواد لكل فصل." />
+                <meta name="robots" content="noindex,nofollow,noarchive" />
+                <link rel="canonical" href={`${siteUrl}/calculator`} />
+            </Head>
             
             <div className="py-12 bg-slate-50 min-h-screen relative overflow-hidden" dir="rtl">
                 

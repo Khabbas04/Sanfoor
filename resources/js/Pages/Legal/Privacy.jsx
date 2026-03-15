@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 const updatedAt = '15 مارس 2026';
 
 const sections = [
@@ -77,7 +79,20 @@ const sections = [
 export default function Privacy() {
     return (
         <MainLayout>
-            <Head title="سياسة الخصوصية - سنفور" />
+            <Head>
+                <title>سياسة الخصوصية | سنفور</title>
+                <meta name="description" content="سياسة خصوصية سنفور توضح كيفية جمع البيانات، استخدامها، وحمايتها أثناء استخدام المنصة." />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={`${siteUrl}/privacy-policy`} />
+                <meta property="og:type" content="article" />
+                <meta property="og:title" content="سياسة الخصوصية | سنفور" />
+                <meta property="og:description" content="تفاصيل الخصوصية وحماية البيانات في منصة سنفور." />
+                <meta property="og:url" content={`${siteUrl}/privacy-policy`} />
+                <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
+                <meta name="twitter:card" content="summary" />
+                <meta name="twitter:title" content="سياسة الخصوصية | سنفور" />
+                <meta name="twitter:description" content="كيف يتعامل سنفور مع بياناتك وخصوصيتك." />
+            </Head>
 
             <div className="min-h-screen py-10 sm:py-14" dir="rtl">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

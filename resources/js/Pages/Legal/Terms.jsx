@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 const updatedAt = '15 مارس 2026';
 
 const sections = [
@@ -49,7 +51,20 @@ const sections = [
 export default function Terms() {
     return (
         <MainLayout>
-            <Head title="شروط الاستخدام - سنفور" />
+            <Head>
+                <title>شروط الاستخدام | سنفور</title>
+                <meta name="description" content="اقرأ شروط استخدام منصة سنفور لمعرفة ضوابط الخدمة، الصلاحيات، والمسؤوليات القانونية للمستخدم." />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={`${siteUrl}/terms-of-use`} />
+                <meta property="og:type" content="article" />
+                <meta property="og:title" content="شروط الاستخدام | سنفور" />
+                <meta property="og:description" content="الشروط القانونية المنظمة لاستخدام منصة سنفور." />
+                <meta property="og:url" content={`${siteUrl}/terms-of-use`} />
+                <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
+                <meta name="twitter:card" content="summary" />
+                <meta name="twitter:title" content="شروط الاستخدام | سنفور" />
+                <meta name="twitter:description" content="تعرف على الشروط القانونية لاستخدام منصة سنفور." />
+            </Head>
 
             <div className="min-h-screen py-10 sm:py-14" dir="rtl">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

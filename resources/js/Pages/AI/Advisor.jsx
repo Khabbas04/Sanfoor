@@ -5,6 +5,8 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import Swal from 'sweetalert2';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 const swal = { confirmButtonColor: '#4338ca', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
 
 // ========== Typewriter ==========
@@ -536,7 +538,12 @@ export default function Advisor() {
     const Grp = ({label, items}) => items.length === 0 ? null : <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-wider px-2.5 pt-2 pb-1">{label}</p>{items.map(c=><ChatItem key={c.id} c={c}/>)}</div>;
 
     return (
-        <MainLayout><Head title="سنفور — المرشد الذكي"/>
+        <MainLayout><Head>
+            <title>المستشار الأكاديمي الذكي | سنفور</title>
+            <meta name="description" content="مساعد ذكي داخل سنفور لتحليل وضعك الأكاديمي واقتراح مواد مناسبة بناءً على خطتك وسجلك." />
+            <meta name="robots" content="noindex,nofollow,noarchive" />
+            <link rel="canonical" href={`${siteUrl}/ai-advisor`} />
+        </Head>
         <style>{`
             :root { --sfr-primary: #4338ca; --sfr-accent: #7c3aed; }
             .sfr-scrollbar::-webkit-scrollbar { width: 3px; }

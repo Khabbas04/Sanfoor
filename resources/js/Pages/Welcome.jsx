@@ -2,6 +2,8 @@ import { Link, Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useEffect, useRef, useState } from 'react';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 /* ─────────────────────────────────────────────
    Sanfoor – Premium Animated Landing Page v4.0
    By Kollia Team
@@ -60,8 +62,20 @@ export default function Welcome({ auth }) {
     return (
         <MainLayout>
             <Head>
-                <title>سنفور - مرشدك الأكاديمي الذكي</title>
-                <meta name="description" content="سنفور – المرشد الأكاديمي الذكي لطلاب الجامعات الأردنية. خطط لمسارك الجامعي بذكاء." />
+                <title>سنفور | Sanfoor - المرشد الأكاديمي الذكي</title>
+                <meta name="description" content="منصة سنفور تساعد طلاب الجامعات على تخطيط المسار الأكاديمي، إدارة الخطة الدراسية، واختيار المواد بذكاء مدعوم بالذكاء الاصطناعي." />
+                <meta name="keywords" content="سنفور, Sanfoor, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, اختيار المواد, GPA" />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={`${siteUrl}/`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:title" content="سنفور | Sanfoor - المرشد الأكاديمي الذكي" />
+                <meta property="og:description" content="خطط مسارك الجامعي بذكاء، وتابع تقدمك الدراسي من مكان واحد." />
+                <meta property="og:url" content={`${siteUrl}/`} />
+                <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="سنفور | Sanfoor - المرشد الأكاديمي الذكي" />
+                <meta name="twitter:description" content="دليلك الذكي لاختيار المواد وفهم الخطة الجامعية." />
+                <meta name="twitter:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>
 
             <style>{`

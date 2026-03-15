@@ -10,6 +10,8 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS & LAYOUT ENGINE
    ═══════════════════════════════════════════════════════════ */
@@ -830,7 +832,12 @@ export default function Tree({
 
     return (
         <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: 'calc(100vh - 80px)' }}>
-            <Head title={lang === 'ar' ? "الخطة الشجرية - سنفور" : "Tree Path - Sanfoor"} />
+            <Head>
+                <title>{lang === 'ar' ? 'الخطة الشجرية الذكية | سنفور' : 'Smart Course Tree | Sanfoor'}</title>
+                <meta name="description" content={lang === 'ar' ? 'استعرض خطتك الشجرية، تتبع المتطلبات السابقة، وخطط تسجيل المواد بشكل ذكي داخل حسابك.' : 'Visualize your study tree, track prerequisites, and plan your courses smartly inside your account.'} />
+                <meta name="robots" content="noindex,nofollow,noarchive" />
+                <link rel="canonical" href={`${siteUrl}/tree`} />
+            </Head>
 
             <style>{`
                 @keyframes sn-scale { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }

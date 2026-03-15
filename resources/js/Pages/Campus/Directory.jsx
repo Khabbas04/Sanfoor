@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import MainLayout from '@/Layouts/MainLayout';
 import { Head } from '@inertiajs/react';
 
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
 /* ═══════════════════════════════════════════════════════════════
    HOOKS
    ═══════════════════════════════════════════════════════════════ */
@@ -100,7 +102,12 @@ export default function Directory({ auth }) {
 
     return (
         <MainLayout user={auth?.user}>
-            <Head title="دليل المباني الذكي - سنفور" />
+            <Head>
+                <title>دليل المباني الذكي | سنفور</title>
+                <meta name="description" content="دليل مباني الجامعة داخل سنفور للبحث عن الكليات والخدمات الأكاديمية بسرعة وسهولة." />
+                <meta name="robots" content="noindex,nofollow,noarchive" />
+                <link rel="canonical" href={`${siteUrl}/campus-directory`} />
+            </Head>
 
             <style>{`
                 @keyframes sn-up { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
