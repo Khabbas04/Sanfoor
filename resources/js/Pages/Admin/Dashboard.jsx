@@ -113,6 +113,7 @@ export default function AdminDashboard({ auth, stats, demandReport = [] }) {
                     <div className="bg-[#f8fafc] rounded-[2.5rem] p-8 border border-slate-200">
                         <h3 className="text-lg font-black text-slate-800 mb-6">إجراءات سريعة</h3>
                         <div className="space-y-4">
+                            <QuickLink title="بلاغات الطلاب" icon="🛠️" route={route('admin.issues.index')} />
                             <QuickLink title="إضافة كلية جديدة" icon="🏛️" route={route('admin.courses')} />
                             <QuickLink title="تحديث خطة تخصص" icon="🌳" route={route('admin.courses')} />
                             <QuickLink title="سجل حركات الإدارة" icon="📜" route={route('admin.dashboard')} />

@@ -99,6 +99,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Chat::class)->latest();
     }
 
+    public function issueReports(): HasMany
+    {
+        return $this->hasMany(IssueReport::class);
+    }
+
     // =========================================================
     // 🔥 وظائف الذكاء الاصطناعي والتحليلات الجديدة 🔥
     // =========================================================

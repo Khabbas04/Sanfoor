@@ -10,6 +10,7 @@ export default function AdminLayout({ children }) {
     // --- الروابط الديناميكية المحدثة مع رابط التقارير الجديد ---
     const menuItems = [
         { icon: '📊', name: 'الإحصائيات العامة', route: 'admin.dashboard', pattern: 'admin.dashboard' },
+        { icon: '🛠️', name: 'بلاغات الطلاب', route: 'admin.issues.index', pattern: 'admin.issues.*' },
         { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' }, // 🔥 الرابط الجديد
         { icon: '🏛️', name: 'الهيكلة والمواد', route: 'admin.courses', pattern: 'admin.courses|admin.colleges|admin.majors' },
         { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },

@@ -47,6 +47,8 @@ export default function MainLayout({ children }) {
             admin: 'لوحة الإدارة',
             footerDesc: 'المساعد الأكاديمي الرقمي الأول لطلاب الجامعات. ندمج الذكاء الاصطناعي في رحلتك الدراسية لنمنحك تجربة تعليمية أذكى.',
             quickLinks: 'روابط سريعة',
+            legal: 'قانوني',
+            reportIssue: 'الإبلاغ عن مشكلة',
             terms: 'شروط الاستخدام',
             privacy: 'سياسة الخصوصية',
             systemStatus: 'حالة النظام',
@@ -66,6 +68,8 @@ export default function MainLayout({ children }) {
             admin: 'Admin Panel',
             footerDesc: 'The first digital academic assistant for university students. Integrating AI into your journey for a smarter educational experience.',
             quickLinks: 'Quick Links',
+            legal: 'Legal',
+            reportIssue: 'Report an Issue',
             terms: 'Terms of Use',
             privacy: 'Privacy Policy',
             systemStatus: 'System Status',
@@ -297,15 +301,15 @@ export default function MainLayout({ children }) {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-10 relative z-10">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 border-b border-white/10 pb-16">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-10 border-b border-white/10 pb-16">
 
-                        <div className="md:col-span-5 space-y-6">
+                        <div className="md:col-span-4 space-y-6">
                             <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center p-2.5 shadow-lg">
-                                    <img src="/images/sanfoor.png" alt="Logo" className="w-full h-full object-contain hover:scale-110 transition-transform duration-500" />
+                                <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center p-3 shadow-lg">
+                                    <img src="/images/sanfoor.png" alt="Logo" className="w-full h-full object-contain hover:scale-105 transition-transform duration-500" />
                                 </div>
                                 <div className="flex flex-col leading-none">
-                                    <h3 className="text-3xl font-black text-white pb-1">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
+                                    <h3 className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] pb-1">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
                                     {lang === 'ar' && <span className="text-sm font-black text-indigo-400 tracking-[0.25em] uppercase">Sanfoor</span>}
                                 </div>
                             </div>
@@ -320,12 +324,29 @@ export default function MainLayout({ children }) {
                                 <li><Link href={route('calculator.index')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📈</span> {t.calc}</Link></li>
                                 <li><Link href={route('campus.directory')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🏢</span> {t.directory}</Link></li>
                                 <li><Link href={route('ai.advisor')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🤖</span> {t.ai}</Link></li>
-                                <li><Link href={route('legal.terms')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📜</span> {t.terms}</Link></li>
-                                <li><Link href={route('legal.privacy')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🔐</span> {t.privacy}</Link></li>
                             </ul>
                         </div>
 
-                        <div className="md:col-span-4 space-y-5 flex flex-col md:items-end">
+                        <div className="md:col-span-2 space-y-5">
+                            <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.legal}</h4>
+                            <ul className="space-y-3">
+                                <li><Link href={route('legal.terms')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📜</span> {t.terms}</Link></li>
+                                <li><Link href={route('legal.privacy')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🔐</span> {t.privacy}</Link></li>
+                            </ul>
+
+                            <Link
+                                href={route('support.issue.create')}
+                                className="group block mt-5 rounded-2xl border border-indigo-500/30 bg-gradient-to-l from-indigo-600/25 to-violet-600/20 px-4 py-4 shadow-[0_10px_30px_-15px_rgba(79,70,229,0.5)] hover:from-indigo-600/35 hover:to-violet-600/30 transition-all"
+                            >
+                                <p className="text-[11px] font-black text-indigo-200/80 mb-1">دعم فني</p>
+                                <p className="text-sm font-black text-white flex items-center gap-2">
+                                    <span className="text-base group-hover:rotate-12 transition-transform">🛠️</span>
+                                    {t.reportIssue}
+                                </p>
+                            </Link>
+                        </div>
+
+                        <div className="md:col-span-3 space-y-5 flex flex-col md:items-end">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.systemStatus}</h4>
                             
                             {/* 🔥 مربع حالة النظام الاحترافي 🔥 */}

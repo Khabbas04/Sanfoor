@@ -8,6 +8,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\AiAdvisorController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\IssueReportController;
+use App\Http\Controllers\Admin\AdminIssueReportController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -59,6 +61,10 @@ Route::get('/dashboard', function () {
 
 // 3. مجموعة الروابط المحمية (الطلاب)
 Route::middleware('auth')->group(function () {
+
+    // إبلاغ عن مشكلة
+    Route::get('/support/report-issue', [IssueReportController::class, 'create'])->name('support.issue.create');
+    Route::post('/support/report-issue', [IssueReportController::class, 'store'])->name('support.issue.store');
 
     // الخطة الشجرية والمحاكي
     Route::get('/tree', [TreeController::class , 'index'])->name('tree.index');
@@ -140,6 +146,10 @@ Route::middleware('auth')->group(function () {
                 Route::put('/admins/{user}/role', [AdminManagerController::class, 'updateRole'])->name('admins.update_role');
                 Route::delete('/admins/{user}', [AdminManagerController::class, 'destroy'])->name('admins.destroy');
             });
+
+            // بلاغات الطلاب
+            Route::get('/issues', [AdminIssueReportController::class, 'index'])->name('issues.index');
+            Route::put('/issues/{issueReport}/status', [AdminIssueReportController::class, 'updateStatus'])->name('issues.update_status');
         }
         );    });
 
