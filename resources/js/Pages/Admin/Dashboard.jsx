@@ -197,17 +197,21 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
 function StatCard({ title, value, icon, color, trend, link = "#" }) {
     const colors = {
-        indigo: "from-indigo-500 to-blue-600 text-indigo-600 bg-indigo-50 shadow-indigo-100",
-        violet: "from-violet-500 to-purple-600 text-violet-600 bg-violet-50 shadow-violet-100",
-        emerald: "from-emerald-500 to-teal-600 text-emerald-600 bg-emerald-50 shadow-emerald-100",
-        rose: "from-rose-500 to-pink-600 text-rose-600 bg-rose-50 shadow-rose-100"
+        indigo: { gradient: "from-indigo-500 to-blue-600", text: "text-indigo-600", shadow: "shadow-indigo-100" },
+        violet: { gradient: "from-violet-500 to-purple-600", text: "text-violet-600", shadow: "shadow-violet-100" },
+        emerald: { gradient: "from-emerald-500 to-teal-600", text: "text-emerald-600", shadow: "shadow-emerald-100" },
+        rose: { gradient: "from-rose-500 to-pink-600", text: "text-rose-600", shadow: "shadow-rose-100" },
+        amber: { gradient: "from-amber-500 to-orange-600", text: "text-amber-600", shadow: "shadow-amber-100" },
+        slate: { gradient: "from-slate-500 to-slate-700", text: "text-slate-600", shadow: "shadow-slate-100" },
     };
+
+    const colorConfig = colors[color] || colors.slate;
 
     return (
         <Link href={link} className="block group">
-            <div className={`bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-xl ${colors[color].split(' ').slice(-1)}`}>
+            <div className={`bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all duration-300 group-hover:-translate-y-2 group-hover:shadow-xl ${colorConfig.shadow}`}>
                 <div className="flex justify-between items-start mb-6">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-gradient-to-br ${colors[color].split(' ').slice(0,2).join(' ')} text-white shadow-lg transition-transform group-hover:rotate-6`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl bg-gradient-to-br ${colorConfig.gradient} text-white shadow-lg transition-transform group-hover:rotate-6`}>
                         {icon}
                     </div>
                     <div className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-2 group-hover:text-slate-400 transition-colors">Stats Tracker</div>
@@ -215,7 +219,7 @@ function StatCard({ title, value, icon, color, trend, link = "#" }) {
                 <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">{value}</h3>
                 <p className="text-[11px] font-black text-slate-400 uppercase mb-4">{title}</p>
                 <div className="flex items-center gap-1.5 pt-4 border-t border-slate-50">
-                    <span className={`w-1.5 h-1.5 rounded-full bg-current ${colors[color].split(' ')[2]}`}></span>
+                    <span className={`w-1.5 h-1.5 rounded-full bg-current ${colorConfig.text}`}></span>
                     <span className="text-[10px] font-bold text-slate-500">{trend}</span>
                 </div>
             </div>
