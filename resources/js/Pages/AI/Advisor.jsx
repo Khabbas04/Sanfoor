@@ -295,7 +295,7 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
                 {u ? <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white">{name?.charAt(0)||'أ'}</div>
-                    : <div className="w-8 h-8 rounded-xl bg-white border border-indigo-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden p-0.5 shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-contain" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
+                    : <div className="w-8 h-8 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
                 <div className={`group/m ${u ? 'bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white rounded-2xl rounded-se-sm shadow-lg shadow-indigo-200/20 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
@@ -624,7 +624,7 @@ export default function Advisor() {
             <div className="px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <div className="w-10 h-10 bg-white border-2 border-indigo-100 rounded-xl flex items-center justify-center shadow-sm overflow-hidden p-0.5 sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-contain" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
+                        <div className="w-10 h-10 bg-white border-2 border-indigo-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"/>
                     </div>
                     <div>
@@ -645,7 +645,7 @@ export default function Advisor() {
                 {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-indigo-400"><div className="w-7 h-7 border-[3px] border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                 <div className="space-y-3">
                     {msgs.map(m=><Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id===lastAi} onRegen={regen} onFb={fb} onFollow={send}/>)}
-                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-xl bg-white border border-indigo-100 flex items-center justify-center shrink-0 p-0.5 shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-contain"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-indigo-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
+                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-indigo-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
                 </div>)}<div className="h-2"/>
             </div>
 
