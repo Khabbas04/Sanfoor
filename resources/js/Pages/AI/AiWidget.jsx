@@ -80,7 +80,7 @@ export default function AiWidget({ user }) {
                             <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '12px 12px' }} />
                             <div className="flex items-center gap-2.5 relative z-10">
                                 <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl p-1.5 shadow-inner">
-                                    <img src="/images/sanfoor.png" alt="Sanfoor" className="w-full h-full object-contain" />
+                                    <img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-contain" />
                                 </div>
                                 <div>
                                     <span className="font-black text-sm block leading-tight">مساعد سنفور الذكي</span>
@@ -140,7 +140,7 @@ export default function AiWidget({ user }) {
                     className={`relative w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
                 >
                     <img
-                        src="/images/sanfoor.png"
+                        src="/images/aiwidget.png"
                         className={`w-9 h-9 object-contain transition-transform duration-300 ${isOpen ? 'rotate-90 scale-75' : 'group-hover:rotate-12 group-hover:scale-110'}`}
                     />
 
