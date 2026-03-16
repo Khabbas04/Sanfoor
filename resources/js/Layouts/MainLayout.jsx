@@ -62,20 +62,7 @@ export default function MainLayout({ children }) {
             privacy: 'سياسة الخصوصية',
             systemStatus: 'حالة النظام',
             aiEngine: 'محرك الذكاء الاصطناعي',
-            version: 'إصدار النظام',
-            academicSnapshot: 'ملخصك الأكاديمي',
-            gpa: 'المعدل',
-            cartHours: 'ساعات المحاكي',
-            completedCourses: 'مواد منجزة',
-            remainingHours: 'ساعات متبقية',
-            smartActions: 'إجراءات ذكية سريعة',
-            buildPlan: 'ابنِ خطة فصل',
-            reviewCart: 'راجع المحاكي',
-            askAdvisor: 'اسأل المستشار',
-            openDashboard: 'لوحة الطالب',
-            quickStart: 'ابدأ الآن',
-            systemSync: 'آخر مزامنة',
-            uptime: 'جاهزية النظام'
+            version: 'إصدار النظام'
         },
         en: {
             home: 'Home',
@@ -96,49 +83,11 @@ export default function MainLayout({ children }) {
             privacy: 'Privacy Policy',
             systemStatus: 'System Status',
             aiEngine: 'AI Engine',
-            version: 'System Version',
-            academicSnapshot: 'Academic Snapshot',
-            gpa: 'GPA',
-            cartHours: 'Cart Hours',
-            completedCourses: 'Completed Courses',
-            remainingHours: 'Remaining Hours',
-            smartActions: 'Smart Quick Actions',
-            buildPlan: 'Build Plan',
-            reviewCart: 'Review Cart',
-            askAdvisor: 'Ask Advisor',
-            openDashboard: 'Student Dashboard',
-            quickStart: 'Start Now',
-            systemSync: 'Last Sync',
-            uptime: 'System Uptime'
+            version: 'System Version'
         }
     };
 
     const t = translations[lang];
-    const user = auth?.user;
-    const firstName = (user?.name ?? '').split(' ')[0] || '?';
-    const gpa = Number(user?.gpa);
-    const gpaText = Number.isFinite(gpa) ? gpa.toFixed(2) : '—';
-    const cartHours = user?.current_cart_hours ?? user?.cart_hours ?? user?.simulator_hours ?? 0;
-    const completedCourses = user?.completed_courses_count ?? user?.passed_courses_count ?? user?.completed_courses ?? '—';
-    const remainingHours = user?.remaining_hours ?? user?.remaining_credit_hours ?? '—';
-
-    const homeActive = route().current('welcome');
-    const treeActive = route().current('tree.index');
-    const calcActive = route().current('calculator.index');
-    const directoryActive = route().current('campus.directory');
-    const aiActive = route().current('ai.advisor');
-
-    const navItemClass = (isActive) => `relative flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${
-        isActive
-            ? (isDark ? 'bg-indigo-600 text-white shadow-[0_10px_24px_-16px_rgba(99,102,241,0.8)]' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/70')
-            : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'
-    }`;
-
-    const aiItemClass = `relative flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl overflow-hidden group ${
-        aiActive
-            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]'
-            : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'
-    }`;
 
     return (
         <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -148,10 +97,6 @@ export default function MainLayout({ children }) {
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
                 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
                 <style>{`
-                    :root {
-                        --brand-indigo: #4f46e5;
-                        --brand-cyan: #06b6d4;
-                    }
                     * { scroll-behavior: smooth; }
                     ::selection { background: #e0e7ff; color: #312e81; }
                     ::-webkit-scrollbar { width: 6px; }
@@ -181,18 +126,6 @@ export default function MainLayout({ children }) {
                         box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15) !important;
                         border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'} !important;
                     }
-
-                    .nav-link-dot {
-                        position: absolute;
-                        bottom: 0.35rem;
-                        left: 50%;
-                        width: 5px;
-                        height: 5px;
-                        border-radius: 999px;
-                        transform: translateX(-50%);
-                        background: rgba(255,255,255,0.95);
-                        box-shadow: 0 0 10px rgba(255,255,255,0.5);
-                    }
                 `}</style>
             </Head>
 
@@ -220,27 +153,23 @@ export default function MainLayout({ children }) {
 
                         {/* Central Links with Icons */}
                         <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-[1.25rem] border transition-all duration-500 hover:shadow-lg ${isDark ? 'bg-slate-900/50 border-white/5 hover:border-white/10' : 'bg-slate-100/60 border-white/60 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] hover:bg-slate-100/80'}`}>
-                            <Link href="/" className={navItemClass(homeActive)}>
+                            <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('welcome') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">🏠</span> {t.home}
-                                {homeActive && <span className="nav-link-dot"></span>}
                             </Link>
 
-                            <Link href={route('tree.index')} className={navItemClass(treeActive)}>
+                            <Link href={route('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('tree.index') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">🌳</span> {t.tree}
-                                {treeActive && <span className="nav-link-dot"></span>}
                             </Link>
 
-                            <Link href={route('calculator.index')} className={navItemClass(calcActive)}>
+                            <Link href={route('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('calculator.index') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">📈</span> {t.calc}
-                                {calcActive && <span className="nav-link-dot"></span>}
                             </Link>
 
-                            <Link href={route('campus.directory')} className={navItemClass(directoryActive)}>
+                            <Link href={route('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('campus.directory') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
-                                {directoryActive && <span className="nav-link-dot"></span>}
                             </Link>
 
-                            <Link href={route('ai.advisor')} className={aiItemClass}>
+                            <Link href={route('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${route().current('ai.advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
                                 <span className="relative z-10 flex items-center gap-2">
                                     <span className="group-hover:animate-pulse text-base">🤖</span> {t.ai}
                                 </span>
@@ -261,7 +190,7 @@ export default function MainLayout({ children }) {
                                     <button className={`flex items-center gap-3 pl-2 pr-1.5 py-1.5 rounded-[1.25rem] border transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 hover:border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm hover:shadow-md'}`}>
                                         <div className="flex flex-col items-end leading-none ml-2">
                                             <div className="flex items-center gap-1.5">
-                                                <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{firstName}</span>
+                                                <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{(auth.user.name ?? '').split(' ')[0] || '?'}</span>
                                                 <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
                                                     {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : 'STUDENT'}
                                                 </span>
@@ -323,41 +252,6 @@ export default function MainLayout({ children }) {
                 </nav>
             </div>
 
-            {/* Lightweight snapshot keeps key academic context visible after login. */}
-            {user && (
-                <div className="relative z-[70] mt-24 sm:mt-32 px-4 sm:px-6 lg:px-8">
-                    <div className={`max-w-7xl mx-auto rounded-2xl border px-4 sm:px-6 py-3.5 sm:py-4 backdrop-blur-lg ${isDark ? 'bg-slate-900/55 border-white/10' : 'bg-white/90 border-slate-200/70 shadow-[0_15px_40px_-22px_rgba(15,23,42,0.3)]'}`}>
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                            <div className="flex items-center gap-2.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <p className={`text-[12px] sm:text-[13px] font-black tracking-wide ${isDark ? 'text-indigo-200' : 'text-indigo-700'}`}>
-                                    {t.academicSnapshot}
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                                <div className={`rounded-xl px-3 py-2 ${isDark ? 'bg-white/5' : 'bg-slate-50'} text-center`}>
-                                    <p className="text-[10px] font-bold text-slate-400">{t.gpa}</p>
-                                    <p className={`text-[13px] sm:text-[14px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{gpaText}</p>
-                                </div>
-                                <div className={`rounded-xl px-3 py-2 ${isDark ? 'bg-white/5' : 'bg-slate-50'} text-center`}>
-                                    <p className="text-[10px] font-bold text-slate-400">{t.cartHours}</p>
-                                    <p className={`text-[13px] sm:text-[14px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{cartHours}</p>
-                                </div>
-                                <div className={`rounded-xl px-3 py-2 ${isDark ? 'bg-white/5' : 'bg-slate-50'} text-center`}>
-                                    <p className="text-[10px] font-bold text-slate-400">{t.completedCourses}</p>
-                                    <p className={`text-[13px] sm:text-[14px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{completedCourses}</p>
-                                </div>
-                                <div className={`rounded-xl px-3 py-2 ${isDark ? 'bg-white/5' : 'bg-slate-50'} text-center`}>
-                                    <p className="text-[10px] font-bold text-slate-400">{t.remainingHours}</p>
-                                    <p className={`text-[13px] sm:text-[14px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{remainingHours}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* Mobile drawer version of the main navigation. */}
             <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
@@ -402,44 +296,9 @@ export default function MainLayout({ children }) {
             </div>
 
             {/* Routed page content is rendered inside the shared layout shell. */}
-            <main className={`flex-1 flex flex-col w-full relative z-10 animate-fade-in-up ${user ? 'pt-5 sm:pt-7' : 'pt-28 sm:pt-40'} pb-24 lg:pb-0`}>
+            <main className="flex-1 flex flex-col w-full relative z-10 pt-28 sm:pt-40 animate-fade-in-up">
                 {children}
             </main>
-
-            {/* Mobile-first quick access bar for the most frequent actions. */}
-            <div className="fixed bottom-0 left-0 right-0 z-[95] lg:hidden px-2 pb-2">
-                <div className={`mx-auto max-w-lg rounded-2xl border backdrop-blur-xl px-2 py-1.5 ${isDark ? 'bg-slate-900/85 border-white/10' : 'bg-white/95 border-slate-200 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)]'}`}>
-                    <div className="grid grid-cols-5 gap-1">
-                        <Link href="/" className={`flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black transition-colors ${homeActive ? 'text-indigo-500' : 'text-slate-500'}`}>
-                            <span className="text-base">🏠</span>
-                            {t.home}
-                        </Link>
-                        <Link href={route('tree.index')} className={`flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black transition-colors ${treeActive ? 'text-indigo-500' : 'text-slate-500'}`}>
-                            <span className="text-base">🌳</span>
-                            {t.tree}
-                        </Link>
-                        <Link href={route('calculator.index')} className={`flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black transition-colors ${calcActive ? 'text-indigo-500' : 'text-slate-500'}`}>
-                            <span className="text-base">📈</span>
-                            {t.calc}
-                        </Link>
-                        <Link href={route('ai.advisor')} className={`flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black transition-colors ${aiActive ? 'text-indigo-500' : 'text-slate-500'}`}>
-                            <span className="text-base">🤖</span>
-                            AI
-                        </Link>
-                        {user ? (
-                            <Link href={route('dashboard')} className="flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black text-slate-500 transition-colors">
-                                <span className="text-base">📊</span>
-                                {t.dashboard}
-                            </Link>
-                        ) : (
-                            <Link href={route('login')} className="flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black text-slate-500 transition-colors">
-                                <span className="text-base">🔐</span>
-                                {t.login}
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </div>
 
             {/* The floating AI assistant is available only for signed-in users. */}
             {auth.user && <AiWidget user={auth.user} />}
@@ -465,24 +324,6 @@ export default function MainLayout({ children }) {
                                 </div>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">{t.footerDesc}</p>
-
-                            <div className="space-y-3 max-w-sm">
-                                <p className="text-[11px] font-black text-indigo-300 tracking-wide">{t.smartActions}</p>
-                                <div className="grid grid-cols-2 gap-2.5">
-                                    <Link href={route('tree.index')} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-black text-slate-200 hover:border-indigo-400/40 hover:text-indigo-300 transition-colors">
-                                        🌳 {t.buildPlan}
-                                    </Link>
-                                    <Link href={route('calculator.index')} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-black text-slate-200 hover:border-indigo-400/40 hover:text-indigo-300 transition-colors">
-                                        📈 {t.reviewCart}
-                                    </Link>
-                                    <Link href={route('ai.advisor')} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-black text-slate-200 hover:border-indigo-400/40 hover:text-indigo-300 transition-colors">
-                                        🤖 {t.askAdvisor}
-                                    </Link>
-                                    <Link href={route(user ? 'dashboard' : 'login')} className="rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-3 py-2.5 text-xs font-black text-indigo-200 hover:bg-indigo-500/20 transition-colors">
-                                        🚀 {user ? t.openDashboard : t.quickStart}
-                                    </Link>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="md:col-span-3 space-y-5">
@@ -532,14 +373,6 @@ export default function MainLayout({ children }) {
                                     <span className="text-[11px] font-black text-white bg-white/10 px-2 py-0.5 rounded border border-white/5 flex items-center gap-1.5">
                                         v2.1.4 <span className="text-indigo-400 text-[9px] bg-indigo-500/10 px-1 rounded">BETA</span>
                                     </span>
-                                </div>
-                                <div className="flex justify-between items-center mt-3">
-                                    <span className="text-xs font-bold text-slate-400">{t.systemSync}</span>
-                                    <span className="text-[11px] font-black text-slate-200">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-US')}</span>
-                                </div>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="text-xs font-bold text-slate-400">{t.uptime}</span>
-                                    <span className="text-[11px] font-black text-emerald-300">99.9%</span>
                                 </div>
                             </div>
                             
