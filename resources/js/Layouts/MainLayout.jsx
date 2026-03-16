@@ -131,12 +131,12 @@ export default function MainLayout({ children }) {
 
             {/* Shared floating navbar used across the public-facing experience. */}
             <div className="fixed top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
-                <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[90px] sm:h-[120px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
+                <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[76px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
                         {/* Logo Section */}
                         <Link href="/" className="flex items-center gap-4 group relative">
-                            <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex items-center justify-center transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3">
+                            <div className="relative w-14 h-14 sm:w-20 sm:h-20 flex items-center justify-center transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3">
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl" />
                             </div>
                             <div className="flex flex-col justify-center relative leading-none">
@@ -296,7 +296,7 @@ export default function MainLayout({ children }) {
             </div>
 
             {/* Routed page content is rendered inside the shared layout shell. */}
-            <main className="flex-1 flex flex-col w-full relative z-10 pt-28 sm:pt-40 animate-fade-in-up">
+            <main className="flex-1 flex flex-col w-full relative z-10 pt-22 sm:pt-28 animate-fade-in-up">
                 {children}
             </main>
 
