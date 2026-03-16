@@ -315,12 +315,12 @@ export default function MainLayout({ children }) {
 
                         <div className="md:col-span-4 space-y-6">
                             <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center p-3 shadow-lg">
-                                    <img src="/images/sanfoor.png" alt="Logo" className="w-full h-full object-contain hover:scale-105 transition-transform duration-500" />
+                                <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex items-center justify-center transition-transform duration-500 hover:scale-105 hover:-rotate-3">
+                                    <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl" />
                                 </div>
                                 <div className="flex flex-col leading-none">
-                                    <h3 className="text-4xl sm:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] pb-1">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
-                                    {lang === 'ar' && <span className="text-sm font-black text-indigo-400 tracking-[0.25em] uppercase">Sanfoor</span>}
+                                    <h3 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] tracking-tight pb-0.5">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
+                                    {lang === 'ar' && <span className="text-[0.65rem] sm:text-[0.8rem] font-black text-indigo-400 tracking-[0.2em] uppercase">Sanfoor</span>}
                                 </div>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed max-w-sm">{t.footerDesc}</p>
