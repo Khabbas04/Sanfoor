@@ -195,7 +195,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
 
     return (
         <AdminLayout>
-            <Head title="إدارة النظام - Kulliya Campus" />
+            <Head title="إدارة النظام - Sanfoor" />
 
             <style>{`
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
