@@ -308,7 +308,7 @@ export default function AdminLayout({ children }) {
                 </div>
                 
                 {/* Layout-scoped utility styles for the admin shell. */}
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     .scrollbar-hide::-webkit-scrollbar { display: none; }
                     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
                     
@@ -324,7 +324,7 @@ export default function AdminLayout({ children }) {
                         background: #4f46e5;
                         color: white;
                     }
-                `}</style>
+                ` }} />
             </main>
         </div>
     );

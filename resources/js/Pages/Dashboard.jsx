@@ -193,7 +193,7 @@ export default function Dashboard({
                 <link rel="canonical" href={`${siteUrl}/dashboard`} />
             </Head>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes sn-up { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes sn-pop { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
                 @keyframes sn-shimmer { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
@@ -204,7 +204,7 @@ export default function Dashboard({
                 @keyframes sn-gradient-drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
+            ` }} />
 
             <div className="py-6 sm:py-8 min-h-screen selection:bg-indigo-100 selection:text-indigo-900" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">

@@ -80,7 +80,7 @@ export default function Welcome({ auth }) {
                 <meta name="twitter:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 /* ── HERO ENTRANCE ── */
                 @keyframes heroSlideUp {
                     0% { opacity: 0; transform: translateY(40px); }
@@ -184,7 +184,7 @@ export default function Welcome({ auth }) {
                     border-bottom-left-radius: 50% 80px; 
                     border-bottom-right-radius: 50% 80px; 
                 }
-            `}</style>
+            ` }} />
 
             <div className="bg-[#fafbff] text-slate-800 overflow-x-hidden" dir="rtl">
 

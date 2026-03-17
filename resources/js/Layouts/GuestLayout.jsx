@@ -5,7 +5,7 @@ export default function GuestLayout({ children }) {
         <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden selection:bg-indigo-100 selection:text-indigo-700" dir="rtl">
 
             {/* ── Page keyframes ── */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes sn-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
                 @keyframes sn-shimmer { 0%{transform:translateX(100%)} 100%{transform:translateX(-100%)} }
                 @keyframes sn-glow { 0%,100%{opacity:0.15;transform:scale(1)} 50%{opacity:0.3;transform:scale(1.08)} }
@@ -14,7 +14,7 @@ export default function GuestLayout({ children }) {
                 @keyframes sn-orb-drift { 0%{transform:translate(0,0)} 33%{transform:translate(15px,-20px)} 66%{transform:translate(-10px,15px)} 100%{transform:translate(0,0)} }
                 .sn-card-enter { animation: sn-scale 0.6s cubic-bezier(0.16,1,0.3,1) 0.1s both; }
                 .sn-footer-enter { animation: sn-up 0.5s cubic-bezier(0.16,1,0.3,1) 0.3s both; }
-            `}</style>
+            ` }} />
 
             {/* ══════════════════════════════════════
                 BACKGROUND

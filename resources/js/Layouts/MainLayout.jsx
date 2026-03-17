@@ -96,7 +96,7 @@ export default function MainLayout({ children }) {
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
                 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-                <style>{`
+                <style dangerouslySetInnerHTML={{ __html: `
                     * { scroll-behavior: smooth; }
                     ::selection { background: #e0e7ff; color: #312e81; }
                     ::-webkit-scrollbar { width: 6px; }
@@ -126,7 +126,7 @@ export default function MainLayout({ children }) {
                         box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15) !important;
                         border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'} !important;
                     }
-                `}</style>
+                ` }} />
             </Head>
 
             {/* Shared floating navbar used across the public-facing experience. */}

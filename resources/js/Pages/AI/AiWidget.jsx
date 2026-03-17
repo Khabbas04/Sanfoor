@@ -49,7 +49,7 @@ export default function AiWidget({ user }) {
     return (
         <>
             {/* 🎨 أنيميشنات مخصصة */}
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes ai-float-in {
                     0% { opacity: 0; transform: translateY(40px) scale(0.6); }
                     60% { opacity: 1; transform: translateY(-8px) scale(1.05); }
@@ -66,7 +66,7 @@ export default function AiWidget({ user }) {
                 .ai-float-in { animation: ai-float-in 0.7s cubic-bezier(0.16,1,0.3,1) both; }
                 .ai-chat-in { animation: ai-chat-in 0.35s cubic-bezier(0.16,1,0.3,1) both; }
                 .ai-ping-ring { animation: ai-ping-ring 2s cubic-bezier(0,0,0.2,1) infinite; }
-            `}</style>
+            ` }} />
 
             {/* 🗨️ نافذة الشات — الزاوية السفلية اليمنى */}
             {isOpen && (

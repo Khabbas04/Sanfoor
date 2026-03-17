@@ -79,11 +79,11 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                 <link rel="canonical" href={`${siteUrl}/admin/dashboard`} />
             </Head>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
                 .animate-slide-in { animation: slideInRight 0.5s ease-out forwards; }
                 .delay-100 { animation-delay: 100ms; } .delay-200 { animation-delay: 200ms; }
-            `}</style>
+            ` }} />
 
             <div className="space-y-8 pb-10" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 {/* Top bar */}

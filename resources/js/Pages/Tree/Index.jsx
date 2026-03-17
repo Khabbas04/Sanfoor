@@ -844,7 +844,7 @@ export default function Tree({
                 <link rel="canonical" href={`${siteUrl}/tree`} />
             </Head>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes sn-scale { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
                 @keyframes sn-slide-r { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
                 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
@@ -859,7 +859,7 @@ export default function Tree({
                 @media (hover: hover) and (pointer: fine) {
                     .sn-node-hover:hover { transform: scale(1.05) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08) !important; z-index: 40; }
                 }
-            `}</style>
+            ` }} />
 
             {/* ═══ HEADER ═══ */}
             <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 flex justify-between items-center relative">

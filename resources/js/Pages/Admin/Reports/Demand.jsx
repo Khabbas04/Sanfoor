@@ -243,7 +243,7 @@ export default function Demand({
                 </div>
             </div>
 
-            <style jsx>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes shine {
                     from { transform: translateX(-100%); }
                     to { transform: translateX(100%); }
@@ -251,7 +251,7 @@ export default function Demand({
                 .animate-shine {
                     animation: shine 2s infinite linear;
                 }
-            `}</style>
+            ` }} />
         </AdminLayout>
     );
 }

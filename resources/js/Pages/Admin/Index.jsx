@@ -206,7 +206,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         <AdminLayout>
             <Head title="إدارة النظام - Sanfoor" />
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
                 .delay-100 { animation-delay: 100ms; }
@@ -222,7 +222,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 /* 🔥 إضافة كلاس لإخفاء السكرول بار داخل الفورم 🔥 */
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
+            ` }} />
 
             <div className="p-4 md:p-8 bg-[#f4f7f9] min-h-screen" dir="rtl">
 

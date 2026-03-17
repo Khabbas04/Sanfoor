@@ -109,13 +109,13 @@ export default function Directory({ auth }) {
                 <link rel="canonical" href={`${siteUrl}/campus-directory`} />
             </Head>
 
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes sn-up { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes sn-pop { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
                 @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); } }
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}</style>
+            ` }} />
 
             <div className="py-6 sm:py-8 min-h-screen selection:bg-indigo-100 selection:text-indigo-900" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">

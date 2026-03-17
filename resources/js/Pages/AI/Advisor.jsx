@@ -546,7 +546,7 @@ export default function Advisor() {
             <meta name="robots" content="noindex,nofollow,noarchive" />
             <link rel="canonical" href={`${siteUrl}/ai-advisor`} />
         </Head>
-        <style>{`
+        <style dangerouslySetInnerHTML={{ __html: `
             :root { --sfr-primary: #4338ca; --sfr-accent: #7c3aed; }
             .sfr-scrollbar::-webkit-scrollbar { width: 3px; }
             .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(165,180,252,.3); border-radius: 10px; }
@@ -569,7 +569,7 @@ export default function Advisor() {
             .sfr-glow { animation: sfr-glow 3s infinite; }
             .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .15s; cursor: pointer; }
             .sfr-action-btn:hover { background: #f1f5f9; }
-        `}</style>
+        ` }} />
 
         <div className="py-2.5 md:py-5 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
         <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
