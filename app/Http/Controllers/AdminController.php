@@ -10,8 +10,10 @@ use App\Models\AdminLog;
 use App\Models\IssueReport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -103,6 +105,36 @@ class AdminController extends Controller
         return Inertia::render('Admin/Logs', [
             'logs' => AdminLog::with('user:id,name,email')->latest()->take(120)->get(),
         ]);
+    }
+
+    /**
+     * تنفيذ تفريغ كاش النظام بأوامر Artisan بشكل آمن.
+     */
+    public function clearCache(Request $request)
+    {
+        try {
+            Artisan::call('optimize:clear');
+            Artisan::call('config:cache');
+            Artisan::call('route:cache');
+
+            $actor = Auth::user();
+            $this->logAction('CLEAR_SYSTEM_CACHE', "تم تنفيذ تفريغ كاش النظام بواسطة {$actor?->name} ({$actor?->email})");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'System cache cleared successfully',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to clear system cache', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to clear system cache. Please try again.',
+            ], 500);
+        }
     }
 
     // =========================================================

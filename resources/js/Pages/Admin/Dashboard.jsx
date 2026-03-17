@@ -1,6 +1,7 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
@@ -141,7 +142,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             <QuickLink title="إضافة كلية جديدة" icon="🏛️" route={route('admin.structure')} />
                             <QuickLink title="تحديث خطة تخصص" icon="🌳" route={route('admin.courses')} />
                             <QuickLink title="سجل حركات الإدارة" icon="📜" route={route('admin.logs')} />
-                            <QuickLink title="تفريغ كاش النظام" icon="🧹" route={route('admin.dashboard')} />
+                            <ClearCacheButton />
                         </div>
                         
                         <div className="mt-8 p-6 bg-indigo-600 rounded-3xl text-white relative overflow-hidden group">
