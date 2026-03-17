@@ -5,6 +5,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [] }) {
+
     return (
         <AdminLayout user={auth.user}>
             <Head>
@@ -137,9 +138,9 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                         <h3 className="text-lg font-black text-slate-800 mb-6">إجراءات سريعة</h3>
                         <div className="space-y-4">
                             <QuickLink title="بلاغات الطلاب" icon="🛠️" route={route('admin.issues.index')} />
-                            <QuickLink title="إضافة كلية جديدة" icon="🏛️" route={route('admin.courses')} />
+                            <QuickLink title="إضافة كلية جديدة" icon="🏛️" route={route('admin.structure')} />
                             <QuickLink title="تحديث خطة تخصص" icon="🌳" route={route('admin.courses')} />
-                            <QuickLink title="سجل حركات الإدارة" icon="📜" route={route('admin.dashboard')} />
+                            <QuickLink title="سجل حركات الإدارة" icon="📜" route={route('admin.logs')} />
                             <QuickLink title="تفريغ كاش النظام" icon="🧹" route={route('admin.dashboard')} />
                         </div>
                         

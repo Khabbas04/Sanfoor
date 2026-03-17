@@ -128,6 +128,8 @@ Route::middleware('auth')->group(function () {
 
         // Course CRUD and import/export workflows.
         Route::get('/courses', [AdminController::class, 'index'])->name('courses');
+        Route::get('/structure', [AdminController::class, 'structure'])->name('structure');
+        Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
         Route::post('/courses', [AdminController::class, 'store'])->name('courses.store');
         Route::put('/courses/{course}', [AdminController::class, 'update'])->name('courses.update');
         Route::delete('/courses/{course}', [AdminController::class, 'destroy'])->name('courses.destroy');

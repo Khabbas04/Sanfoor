@@ -5,7 +5,6 @@ import Swal from 'sweetalert2';
 
 export default function AdminIndex({ courses, universities, colleges, majors, logs }) {
 
-    const [activeTab, setActiveTab] = useState('plan');
     const [selectedIds, setSelectedIds] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeMajorFilter, setActiveMajorFilter] = useState('');
@@ -221,18 +220,12 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-5 animate-fade-in-up">
                     <div>
                         <h1 className="text-3xl font-[900] text-slate-800 tracking-tight">إدارة النظام الأكاديمي</h1>
-                        <p className="text-slate-500 mt-1.5 font-bold text-sm">التحكم المركزي في الكليات، التخصصات، والمواد الدراسية.</p>
-                    </div>
-                    
-                    <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-200/60 overflow-x-auto w-full md:w-auto">
-                        <button onClick={() => setActiveTab('plan')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold transition-all text-sm whitespace-nowrap ${activeTab === 'plan' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50'}`}>📚 الشجرة والمواد</button>
-                        <button onClick={() => setActiveTab('structure')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold transition-all text-sm whitespace-nowrap ${activeTab === 'structure' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50'}`}>🏛️ الكليات والتخصصات</button>
-                        <button onClick={() => setActiveTab('logs')} className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl font-bold transition-all text-sm whitespace-nowrap ${activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50'}`}>🕵️ السجل</button>
+                        <p className="text-slate-500 mt-1.5 font-bold text-sm">إدارة الشجرة الأكاديمية والمواد فقط. تمت إدارة الكليات والتخصصات والسجل من لوحة الداشبورد.</p>
                     </div>
                 </div>
 
                 {/* --- 2. محتوى تبويب: الكليات والتخصصات --- */}
-                {activeTab === 'structure' && (
+                {false && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up delay-100">
                         <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
                             <div className="absolute top-0 right-0 w-2 h-full bg-gradient-to-b from-blue-500 to-cyan-500"></div>
@@ -279,7 +272,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 )}
 
                 {/* --- 3. محتوى تبويب: الشجرة والمواد --- */}
-                {activeTab === 'plan' && (
+                {(
                     <div className="space-y-8 animate-fade-in-up delay-100">
 
                         <div className={`bg-[#0b0f19] p-8 md:p-10 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden border border-slate-800 transition-opacity duration-300 ${editingCourse ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
@@ -554,7 +547,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 )}
 
                 {/* --- 4. محتوى تبويب: سجل العمليات --- */}
-                {activeTab === 'logs' && (
+                {false && (
                     <div className="bg-white rounded-[2rem] border border-slate-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.03)] overflow-hidden animate-fade-in-up delay-100">
                         <div className="p-6 md:p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                             <div>

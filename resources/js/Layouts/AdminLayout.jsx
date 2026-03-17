@@ -16,7 +16,9 @@ export default function AdminLayout({ children }) {
         { icon: '📊', name: 'الإحصائيات العامة', route: 'admin.dashboard', pattern: 'admin.dashboard' },
         { icon: '🛠️', name: 'بلاغات الطلاب', route: 'admin.issues.index', pattern: 'admin.issues.*' },
         { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' },
-        { icon: '🏛️', name: 'الهيكلة والمواد', route: 'admin.courses', pattern: 'admin.courses|admin.colleges|admin.majors' },
+        { icon: '📚', name: 'الشجرة والمواد', route: 'admin.courses', pattern: 'admin.courses.*' },
+        { icon: '🏛️', name: 'الكليات والتخصصات', route: 'admin.structure', pattern: 'admin.structure|admin.colleges|admin.majors' },
+        { icon: '📜', name: 'سجل العمليات', route: 'admin.logs', pattern: 'admin.logs' },
         { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },
         ...(isOwner
             ? [{ icon: '👑', name: 'إدارة الأدمنز', route: 'admin.admins.index', pattern: 'admin.admins.*' }]

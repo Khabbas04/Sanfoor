@@ -57,6 +57,8 @@ class AdminController extends Controller
                 'colleges_count' => College::count(),
                 'majors_count' => Major::count(),
             ],
+            'colleges' => College::select('id', 'name')->orderBy('name')->get(),
+            'majors' => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get(),
             'demandReport' => $demandReport,
             'issueSummary' => $issueSummary,
             'recentIssues' => IssueReport::with('user:id,name,email')->latest()->take(6)->get(),
@@ -75,6 +77,31 @@ class AdminController extends Controller
             'colleges' => College::all(),
             'majors' => Major::all(),
             'logs' => AdminLog::with('user')->latest()->take(50)->get()
+        ]);
+    }
+
+    /**
+     * صفحة مستقلة لإدارة الكليات والتخصصات
+     */
+    public function structure()
+    {
+        return Inertia::render('Admin/Structure', [
+            'platform' => [
+                'colleges_count' => College::count(),
+                'majors_count' => Major::count(),
+            ],
+            'colleges' => College::select('id', 'name')->orderBy('name')->get(),
+            'majors' => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get(),
+        ]);
+    }
+
+    /**
+     * صفحة مستقلة لسجل عمليات الإدارة
+     */
+    public function logs()
+    {
+        return Inertia::render('Admin/Logs', [
+            'logs' => AdminLog::with('user:id,name,email')->latest()->take(120)->get(),
         ]);
     }
 
