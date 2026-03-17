@@ -54,7 +54,16 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
-    const safeStudentsCount = Number(stats.students_count || 0);
+    const safeAuth = auth || {};
+    const safeUser = safeAuth.user || { name: 'Admin' };
+    const safeStats = stats || {};
+    const safePlatform = platform || {};
+    const safeIssueSummary = issueSummary || {};
+    const safeDemandReport = Array.isArray(demandReport) ? demandReport : [];
+    const safeRecentIssues = Array.isArray(recentIssues) ? recentIssues : [];
+    const safeLogs = Array.isArray(logs) ? logs : [];
+
+    const safeStudentsCount = Number(safeStats.students_count || 0);
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
@@ -71,13 +80,8 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const getStatusLabel = (s) => s === 'open' ? t.statusOpen : s === 'in_progress' ? t.statusInProgress : t.statusResolved;
 
     return (
-        <AdminLayout user={auth.user}>
-            <Head>
-                <title>{t.title} | سنفور</title>
-                <meta name="description" content="لوحة تحكم الإدارة في سنفور لمتابعة مؤشرات المنصة، البلاغات، وسجل العمليات." />
-                <meta name="robots" content="noindex,nofollow,noarchive" />
-                <link rel="canonical" href={`${siteUrl}/admin/dashboard`} />
-            </Head>
+        <AdminLayout user={safeUser}>
+            <Head title={`${t.title} | سنفور`} />
 
             <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
@@ -103,12 +107,12 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                 {t.infrastructure} • v2.1.4
                             </div>
                             <h1 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
-                                {t.greeting} <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">{auth.user.name}</span> 👋
+                                {t.greeting} <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">{safeUser.name}</span> 👋
                             </h1>
                             <p className="text-slate-400 font-bold text-sm md:text-base leading-relaxed">
                                 {lang === 'ar'
-                                    ? <>نراقب الآن أداء <span className="text-white">{stats.students_count}</span> طالب، وإدارة <span className="text-white">{stats.admins_count || 0}</span> أدمن + <span className="text-white">{stats.owners_count || 0}</span> مالك نظام، مع تحليل <span className="text-white">{stats.courses_count}</span> مادة أكاديمية.</>
-                                    : <>Monitoring <span className="text-white">{stats.students_count}</span> students, managing <span className="text-white">{stats.admins_count || 0}</span> admins + <span className="text-white">{stats.owners_count || 0}</span> owners, analyzing <span className="text-white">{stats.courses_count}</span> courses.</>
+                                    ? <>نراقب الآن أداء <span className="text-white">{safeStats.students_count || 0}</span> طالب، وإدارة <span className="text-white">{safeStats.admins_count || 0}</span> أدمن + <span className="text-white">{safeStats.owners_count || 0}</span> مالك نظام، مع تحليل <span className="text-white">{safeStats.courses_count || 0}</span> مادة أكاديمية.</>
+                                    : <>Monitoring <span className="text-white">{safeStats.students_count || 0}</span> students, managing <span className="text-white">{safeStats.admins_count || 0}</span> admins + <span className="text-white">{safeStats.owners_count || 0}</span> owners, analyzing <span className="text-white">{safeStats.courses_count || 0}</span> courses.</>
                                 }
                             </p>
                         </div>
@@ -121,12 +125,12 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
                 {/* KPI Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                    <StatCard title={t.totalStudents} value={stats.students_count} icon="👨‍🎓" color="indigo" trend={t.activeNow} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.courses} value={stats.courses_count} icon="📚" color="violet" trend={`${stats.compulsory_count} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.simulatorRequests} value={demandReport.reduce((acc, curr) => acc + parseInt(curr.cart_users_count), 0)} icon="🛒" color="emerald" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={t.activeNow} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="violet" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="emerald" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="rose" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.openReports} value={issueSummary.open || 0} icon="🛠️" color="amber" trend={`${t.totalReports} ${issueSummary.total || 0}`} link={route('admin.issues.index')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.academicCoverage} value={`${platform.colleges_count || 0}/${platform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.openReports} value={safeIssueSummary.open || 0} icon="🛠️" color="amber" trend={`${t.totalReports} ${safeIssueSummary.total || 0}`} link={route('admin.issues.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
                 </div>
 
                 {/* Reports + Quick Actions */}
@@ -139,7 +143,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             <Link href={route('admin.reports.demand')} className="text-xs font-black text-indigo-500 hover:underline">{t.viewFullReport}</Link>
                         </div>
                         <div className="space-y-6">
-                            {demandReport.slice(0, 5).map((item) => (
+                            {safeDemandReport.slice(0, 5).map((item) => (
                                 <div key={item.id} className="group">
                                     <div className="flex justify-between mb-2">
                                         <span className={`text-xs font-black group-hover:text-indigo-500 transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.name}</span>
@@ -150,7 +154,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                     </div>
                                 </div>
                             ))}
-                            {demandReport.length === 0 && <p className={`text-center py-10 font-bold ${subtext}`}>{t.noSimulatorData}</p>}
+                            {safeDemandReport.length === 0 && <p className={`text-center py-10 font-bold ${subtext}`}>{t.noSimulatorData}</p>}
                         </div>
                     </div>
 
@@ -180,7 +184,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             <Link href={route('admin.issues.index')} className="text-xs font-black text-indigo-500 hover:underline">{t.viewAll}</Link>
                         </div>
                         <div className="space-y-3">
-                            {recentIssues.length > 0 ? recentIssues.map((issue) => (
+                            {safeRecentIssues.length > 0 ? safeRecentIssues.map((issue) => (
                                 <div key={issue.id} className={`p-3.5 border rounded-xl transition-colors ${logRow}`}>
                                     <div className="flex items-center justify-between mb-1.5">
                                         <p className={`text-[13px] font-black ${heading}`}>#{issue.id} {issue.subject}</p>
@@ -195,10 +199,10 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                     <div className={`${card} rounded-[2rem] p-6 sm:p-7 shadow-sm`}>
                         <div className="flex items-center justify-between mb-5">
                             <h3 className={`text-lg font-black ${heading} flex items-center gap-2`}>📜 {t.adminLog}</h3>
-                            <span className={`text-xs font-black ${subtext}`}>{t.lastMoves(logs.length)}</span>
+                            <span className={`text-xs font-black ${subtext}`}>{t.lastMoves(safeLogs.length)}</span>
                         </div>
                         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                            {logs.length > 0 ? logs.map((log) => (
+                            {safeLogs.length > 0 ? safeLogs.map((log) => (
                                 <div key={log.id} className={`p-3.5 border rounded-xl transition-colors ${logRow}`}>
                                     <p className="text-[11px] font-black text-indigo-500 mb-1">{log.action}</p>
                                     <p className={`text-[13px] font-bold leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{log.details}</p>
