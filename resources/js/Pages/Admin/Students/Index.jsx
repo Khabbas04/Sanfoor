@@ -328,8 +328,7 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                     <div className="fixed inset-0 z-[200] overflow-hidden">
                         <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>
                         
-                        <div className="absolute inset-y-0 left-0 w-full max-w-md bg-white shadow-2xl flex flex-col animate-slideInLeft border-r border-slate-200">
-                                                    <div className={`absolute inset-y-0 left-0 w-full max-w-md ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'} shadow-2xl flex flex-col animate-slideInLeft border-r`}>
+                        <div className={`absolute inset-y-0 left-0 w-full max-w-md ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'} shadow-2xl flex flex-col animate-slideInLeft border-r`}>
                             
                             {/* هيدر اللوحة */}
                             <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-6 relative overflow-hidden shrink-0">
