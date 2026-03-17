@@ -515,7 +515,7 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
 
             </div>
             
-            <style jsx global>{`
+            <style>{`
                 @keyframes slideInLeft {
                     from { transform: translateX(-100%); }
                     to { transform: translateX(0); }
