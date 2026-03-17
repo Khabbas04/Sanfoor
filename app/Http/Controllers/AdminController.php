@@ -112,17 +112,39 @@ class AdminController extends Controller
      */
     public function clearCache(Request $request)
     {
+        $actor = Auth::user();
+
         try {
             Artisan::call('optimize:clear');
             Artisan::call('config:cache');
-            Artisan::call('route:cache');
 
-            $actor = Auth::user();
-            $this->logAction('CLEAR_SYSTEM_CACHE', "تم تنفيذ تفريغ كاش النظام بواسطة {$actor?->name} ({$actor?->email})");
+            $warning = null;
+            try {
+                Artisan::call('route:cache');
+            } catch (\Throwable $routeCacheError) {
+                // Route cache can fail when any route uses a Closure; keep the system operational.
+                Artisan::call('route:clear');
+                $warning = 'Route cache was skipped because closure-based routes are present.';
+
+                Log::warning('Route cache skipped during clear-cache operation', [
+                    'user_id' => Auth::id(),
+                    'error' => $routeCacheError->getMessage(),
+                ]);
+            }
+
+            $details = "تم تنفيذ تفريغ كاش النظام بواسطة {$actor?->name} ({$actor?->email})";
+            if ($warning) {
+                $details .= ' - تم تجاوز route:cache بسبب وجود Closure routes.';
+            }
+
+            $this->logAction('CLEAR_SYSTEM_CACHE', $details);
 
             return response()->json([
                 'success' => true,
-                'message' => 'System cache cleared successfully',
+                'message' => $warning
+                    ? 'System cache cleared successfully (route cache skipped).'
+                    : 'System cache cleared successfully',
+                'warning' => $warning,
             ]);
         } catch (\Throwable $e) {
             Log::error('Failed to clear system cache', [

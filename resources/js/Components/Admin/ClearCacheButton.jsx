@@ -30,12 +30,13 @@ export default function ClearCacheButton() {
 
         try {
             const response = await axios.post(route('admin.clear-cache'));
+            const warning = response?.data?.warning;
 
             await Swal.fire({
-                icon: 'success',
+                icon: warning ? 'info' : 'success',
                 title: 'تم بنجاح',
-                text: response?.data?.message || 'System cache cleared successfully',
-                timer: 1800,
+                text: warning || response?.data?.message || 'System cache cleared successfully',
+                timer: warning ? 2600 : 1800,
                 showConfirmButton: false,
                 toast: true,
                 position: 'top-end',
