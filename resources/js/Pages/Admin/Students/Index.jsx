@@ -515,22 +515,7 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
 
             </div>
             
-            <style>{`
-                @keyframes slideInLeft {
-                    from { transform: translateX(-100%); }
-                    to { transform: translateX(0); }
-                }
-                .animate-slideInLeft {
-                    animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                }
-                @keyframes slideDown {
-                    from { opacity: 0; transform: translateY(-10px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-slideDown {
-                    animation: slideDown 0.3s ease-out forwards;
-                }
-            `}</style>
+
         </AdminLayout>
     );
 }

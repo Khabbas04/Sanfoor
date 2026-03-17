@@ -305,11 +305,7 @@ export default function Calculator({ auth, initialCourses }) {
             </div>
             
             {/* قمت بحذف جميع اكواد الأنيميشن المزعجة من الـ CSS لإيقاف الاختفاء */}
-            <style>{`
-                ::-webkit-scrollbar { width: 6px; }
-                ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-            `}</style>
+            <style dangerouslySetInnerHTML={{ __html: '::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }' }} />
         </MainLayout>
     );
 }
