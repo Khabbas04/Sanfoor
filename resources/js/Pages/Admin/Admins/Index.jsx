@@ -83,7 +83,6 @@ const translations = {
 };
 
 export default function AdminsIndex({ auth, admins = [], students = [] }) {
-export default function AdminsIndex({ auth, admins = [], students = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
