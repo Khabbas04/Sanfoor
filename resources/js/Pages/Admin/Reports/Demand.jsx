@@ -13,6 +13,7 @@ export default function Demand({
 }) {
     const [selectedCollege, setSelectedCollege] = React.useState(filters.college_id || '');
     const [selectedMajor, setSelectedMajor] = React.useState(filters.major_id || '');
+    const [query, setQuery] = React.useState('');
 
     const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
 
@@ -34,14 +35,24 @@ export default function Demand({
     // 🔥 التأكد من وجود بيانات قبل محاولة استخراج الاسم
     const topCourseName = courseDemand.length > 0 ? courseDemand[0].name : 'لا توجد بيانات';
 
+    const visibleCourses = React.useMemo(() => {
+        if (!query) return courseDemand;
+        const q = query.toLowerCase();
+        return courseDemand.filter((course) => {
+            const name = String(course.name || '').toLowerCase();
+            const code = String(course.code || '').toLowerCase();
+            return name.includes(q) || code.includes(q);
+        });
+    }, [courseDemand, query]);
+
     return (
         <AdminLayout user={auth.user}>
             <Head title="تحليل طلب المواد - Admin" />
 
-            <div className="py-8 bg-[#f8fafc] dark:bg-[#0a0f18] min-h-screen font-sans" dir="rtl">
+            <div className="py-8 bg-[#f8fafc] min-h-screen font-sans" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4">
                     
-                    <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] shadow-sm border dark:border-white/5">
+                    <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
                         <div>
                             <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-4">
                                 <span className="p-3 bg-indigo-600 rounded-3xl shadow-xl shadow-indigo-100 text-white transition-transform hover:scale-110">🤖</span> 
@@ -62,7 +73,7 @@ export default function Demand({
                         </div>
                     </div>
 
-                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm mb-10">
+                    <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200 shadow-sm mb-10">
                         <div className="flex flex-wrap gap-6 items-end text-right">
                             <div className="flex-1 min-w-[250px]">
                                 <label className="text-[10px] font-black text-indigo-500 block mb-3 mr-3 uppercase tracking-widest">فرز حسب الكلية</label>
@@ -73,7 +84,7 @@ export default function Demand({
                                         setSelectedMajor(''); 
                                         applyFilter(e.target.value, '');
                                     }}
-                                    className="w-full bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-indigo-500 rounded-2xl py-4 px-5 font-black text-sm transition-all outline-none text-slate-700 dark:text-slate-200 shadow-inner"
+                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl py-4 px-5 font-black text-sm transition-all outline-none text-slate-700 shadow-inner"
                                 >
                                     <option value="">جميع كليات الجامعة</option>
                                     {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -88,7 +99,7 @@ export default function Demand({
                                         setSelectedMajor(e.target.value);
                                         applyFilter(selectedCollege, e.target.value);
                                     }}
-                                    className="w-full bg-slate-50 dark:bg-white/5 border-2 border-transparent focus:border-indigo-500 rounded-2xl py-4 px-5 font-black text-sm transition-all outline-none text-slate-700 dark:text-slate-200 shadow-inner"
+                                    className="w-full bg-slate-50 border-2 border-transparent focus:border-indigo-500 rounded-2xl py-4 px-5 font-black text-sm transition-all outline-none text-slate-700 shadow-inner"
                                 >
                                     <option value="">جميع تخصصات الكلية</option>
                                     {majors
@@ -108,10 +119,10 @@ export default function Demand({
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
-                        <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-8 rounded-[3rem] shadow-sm border dark:border-white/5">
+                        <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] shadow-sm border border-slate-200">
                             <div className="mb-8 flex justify-between items-center text-right">
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-800 dark:text-white">توقعات الطلب على المواد</h2>
+                                    <h2 className="text-xl font-black text-slate-800">توقعات الطلب على المواد</h2>
                                     <p className="text-xs text-slate-400 font-bold mt-1">المواد الـ 10 الأكثر رغبة حسب محاكاة الطلاب</p>
                                 </div>
                             </div>
@@ -154,8 +165,8 @@ export default function Demand({
                                 </div>
                             </div>
                             
-                            <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-white/5 shadow-sm flex-1">
-                                <h4 className="font-black text-slate-800 dark:text-white mb-4">إجمالي الطلاب المشاركين</h4>
+                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex-1">
+                                <h4 className="font-black text-slate-800 mb-4">إجمالي الطلاب المشاركين</h4>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-5xl font-black text-indigo-600 leading-none">{totalStudents}</span>
                                     <span className="text-sm font-bold text-slate-400">طالب فاعِل</span>
@@ -165,7 +176,7 @@ export default function Demand({
                         </div>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-sm border dark:border-white/5 overflow-hidden relative">
+                    <div className="bg-white rounded-[3rem] shadow-sm border border-slate-200 overflow-hidden relative">
                         <div className="p-10 border-b dark:border-white/5 flex justify-between items-center text-right">
                             <h2 className="text-xl font-black text-slate-800 dark:text-white">قائمة المواد المفصلة (الـ 15 الأعلى)</h2>
                             <div className="flex gap-2">
@@ -175,9 +186,18 @@ export default function Demand({
                         </div>
 
                         <div className="p-10">
+                            <div className="mb-6">
+                                <input
+                                    type="text"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="بحث باسم المادة أو الرمز..."
+                                    className="w-full max-w-md rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500"
+                                />
+                            </div>
                             <div className="space-y-10">
-                                {courseDemand && courseDemand.length > 0 ? (
-                                    courseDemand.map((course, index) => {
+                                {visibleCourses && visibleCourses.length > 0 ? (
+                                    visibleCourses.map((course, index) => {
                                         const percentage = totalStudents > 0 ? ((course.cart_users_count / totalStudents) * 100).toFixed(1) : 0;
                                         return (
                                             <div key={course.id || index} className="relative group/item text-right">
@@ -188,19 +208,19 @@ export default function Demand({
                                                         </div>
                                                         <div className="text-right">
                                                             <span className="text-[10px] font-black text-indigo-400 block mb-0.5 uppercase tracking-tighter">{course.code}</span>
-                                                            <h3 className="font-black text-slate-800 dark:text-white text-base">{course.name}</h3>
+                                                            <h3 className="font-black text-slate-800 text-base">{course.name}</h3>
                                                         </div>
                                                     </div>
                                                     <div className="text-left">
                                                         <div className="flex items-baseline gap-1.5 justify-end">
-                                                            <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{course.cart_users_count}</span>
+                                                            <span className="text-2xl font-black text-slate-900 leading-none">{course.cart_users_count}</span>
                                                             <span className="text-[11px] text-slate-400 font-bold uppercase">طالب</span>
                                                         </div>
                                                         <p className="text-[10px] font-black text-indigo-500 mt-1">{percentage}% من إجمالي المحاكاة</p>
                                                     </div>
                                                 </div>
 
-                                                <div className="w-full h-5 bg-slate-50 dark:bg-white/5 rounded-2xl overflow-hidden flex p-1 border dark:border-white/5 shadow-inner">
+                                                <div className="w-full h-5 bg-slate-50 rounded-2xl overflow-hidden flex p-1 border border-slate-200 shadow-inner">
                                                     <div 
                                                         className={`h-full transition-all duration-1000 rounded-xl bg-gradient-to-r shadow-lg ${getProgressColor(course.cart_users_count)}`}
                                                         style={{ width: `${percentage}%`, minWidth: '2%' }}
@@ -213,7 +233,7 @@ export default function Demand({
                                     })
                                 ) : (
                                     <div className="py-32 text-center flex flex-col items-center">
-                                        <div className="w-24 h-24 bg-slate-50 dark:bg-white/5 rounded-full flex items-center justify-center text-4xl mb-6 border-2 border-dashed dark:border-white/10 opacity-50">🏜️</div>
+                                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-4xl mb-6 border-2 border-dashed border-slate-200 opacity-50">🏜️</div>
                                         <p className="text-slate-400 font-black text-lg">لا توجد بيانات لهذه الفئة حالياً</p>
                                     </div>
                                 )}

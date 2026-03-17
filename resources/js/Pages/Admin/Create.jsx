@@ -1,5 +1,6 @@
 import React from 'react';
 import { useForm, Head } from '@inertiajs/react';
+import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
 
 export default function CreateCourse({ universities, colleges, majors }) {
@@ -48,10 +49,16 @@ export default function CreateCourse({ universities, colleges, majors }) {
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-8 font-cairo" dir="rtl">
+        <AdminLayout>
             <Head title="إضافة مادة جديدة - لوحة الإدارة" />
-            
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+
+            <div className="max-w-5xl mx-auto p-2 sm:p-4 font-cairo space-y-6" dir="rtl">
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6">
+                    <h1 className="text-2xl font-black text-slate-900 mb-1">📚 إنشاء مادة جديدة</h1>
+                    <p className="text-sm font-bold text-slate-500">أدخل بيانات المادة وربطها بالتخصص بشكل مباشر.</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                 <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
                     <span className="text-indigo-600">📚</span> إضافة مادة جديدة
                 </h2>
@@ -167,7 +174,8 @@ export default function CreateCourse({ universities, colleges, majors }) {
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
-        </div>
+        </AdminLayout>
     );
 }

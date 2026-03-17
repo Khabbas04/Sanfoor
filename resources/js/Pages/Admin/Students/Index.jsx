@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
@@ -12,6 +12,20 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
     // 🔥 حالات التعديل الجديدة 🔥
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', email: '', major_id: '' });
+
+    const pageStats = useMemo(() => {
+        const list = students?.data || [];
+        const totalCartCourses = list.reduce((sum, s) => sum + Number(s?.stats?.cart_courses_count || 0), 0);
+        const avgGpaRaw = list.length
+            ? list.reduce((sum, s) => sum + Number(s?.stats?.gpa || 0), 0) / list.length
+            : 0;
+
+        return {
+            listedStudents: list.length,
+            totalCartCourses,
+            avgGpa: avgGpaRaw.toFixed(1),
+        };
+    }, [students]);
 
     // دالة البحث
     const handleSearch = (e) => {
@@ -88,8 +102,8 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                 {/* ════════════════════════════════════
                     1. HEADER & SEARCH
                 ════════════════════════════════════ */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 sticky top-24 z-20">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                         <div>
                             <h1 className="text-3xl font-[900] text-slate-900 tracking-tight flex items-center gap-3">
                                 <span>👨‍🎓</span> قاعدة بيانات الطلاب
@@ -106,6 +120,23 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                 className="w-full bg-white border border-slate-200 rounded-xl py-3 pr-10 pl-4 font-bold text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
                             />
                             <span className="absolute right-4 top-3.5 opacity-40">🔍</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <p className="text-[11px] font-black text-slate-400 mb-1">طلاب معروضون حالياً</p>
+                            <p className="text-2xl font-black text-slate-900">{pageStats.listedStudents}</p>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <p className="text-[11px] font-black text-slate-400 mb-1">مواد داخل المحاكيات</p>
+                            <p className="text-2xl font-black text-amber-600">{pageStats.totalCartCourses}</p>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                            <p className="text-[11px] font-black text-slate-400 mb-1">متوسط المعدل (القائمة)</p>
+                            <p className="text-2xl font-black text-indigo-600">{pageStats.avgGpa}%</p>
                         </div>
                     </div>
                 </div>

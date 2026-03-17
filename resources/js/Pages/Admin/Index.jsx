@@ -44,6 +44,16 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
     const safeMajors = majors || [];
     const safeCourses = courses || [];
 
+    const kpi = useMemo(() => ({
+        totalCourses: safeCourses.length,
+        filteredCourses: safeCourses.filter(c => {
+            if (!activeMajorFilter) return true;
+            if (activeMajorFilter === 'general') return c.major_id === null;
+            return c.major_id == activeMajorFilter;
+        }).length,
+        selectedCount: selectedIds.length,
+    }), [safeCourses, activeMajorFilter, selectedIds.length]);
+
   // ✅ تم إلغاء فلتر الجامعة لعرض كافة الكليات فوراً
 const filteredManualColleges = safeColleges; 
 const filteredManualMajors = safeMajors.filter(m => m.college_id == data.college_id);
@@ -221,6 +231,21 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                     <div>
                         <h1 className="text-3xl font-[900] text-slate-800 tracking-tight">إدارة النظام الأكاديمي</h1>
                         <p className="text-slate-500 mt-1.5 font-bold text-sm">إدارة الشجرة الأكاديمية والمواد فقط. تمت إدارة الكليات والتخصصات والسجل من لوحة الداشبورد.</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 animate-fade-in-up delay-100">
+                    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p className="text-[11px] font-black text-slate-400 mb-1">إجمالي المواد</p>
+                        <p className="text-2xl font-black text-slate-900">{kpi.totalCourses}</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p className="text-[11px] font-black text-slate-400 mb-1">مواد ضمن الفلتر الحالي</p>
+                        <p className="text-2xl font-black text-indigo-600">{kpi.filteredCourses}</p>
+                    </div>
+                    <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p className="text-[11px] font-black text-slate-400 mb-1">مواد محددة للحذف</p>
+                        <p className="text-2xl font-black text-rose-600">{kpi.selectedCount}</p>
                     </div>
                 </div>
 

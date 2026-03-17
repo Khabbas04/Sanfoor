@@ -6,6 +6,8 @@ import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [] }) {
+    const safeStudentsCount = Number(stats.students_count || 0);
+    const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
     return (
         <AdminLayout user={auth.user}>
@@ -27,6 +29,10 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
             `}</style>
 
             <div className="space-y-8 pb-10" dir="rtl">
+                <div className="flex items-center justify-between bg-white border border-slate-200 rounded-2xl px-5 py-3">
+                    <p className="text-xs font-black text-slate-500">لوحة متابعة تشغيلية: الإحصائيات، البلاغات، السجل، والتحكم السريع.</p>
+                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1">Live Ops</span>
+                </div>
                 
                 {/* 1. الترحيب والبحث السريع */}
                 <div className="relative overflow-hidden bg-[#0b0f19] rounded-[3rem] p-10 text-white shadow-2xl border border-white/5">
@@ -125,7 +131,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                                         <div 
                                             className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-1000" 
-                                            style={{ width: `${(item.cart_users_count / stats.students_count) * 100}%` }}
+                                            style={{ width: `${(Number(item.cart_users_count || 0) / demandBase) * 100}%` }}
                                         ></div>
                                     </div>
                                 </div>

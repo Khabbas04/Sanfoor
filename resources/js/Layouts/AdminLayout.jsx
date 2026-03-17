@@ -3,13 +3,41 @@ import { Link, usePage, Head } from '@inertiajs/react';
 
 // AdminLayout wraps all admin pages with a shared sidebar, header, and logout flow.
 export default function AdminLayout({ children }) {
-    const { auth, admin_notifications: adminNotifications } = usePage().props;
+    const { auth, admin_notifications: adminNotifications, message, type } = usePage().props;
 
     // Role and notification state is shared from Inertia middleware.
     const role = (auth?.user?.role || '').toLowerCase().trim();
     const isOwner = Boolean(auth?.user?.is_owner) || role === 'owner';
     const openIssuesCount = Number(adminNotifications?.open_issues_count || 0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    const getCurrentRouteName = () => {
+        try {
+            return route().current();
+        } catch (e) {
+            return '';
+        }
+    };
+
+    const currentRouteName = getCurrentRouteName();
+    const pageTitles = {
+        'admin.dashboard': 'لوحة الإدارة المركزية',
+        'admin.courses': 'إدارة الشجرة والمواد',
+        'admin.structure': 'إدارة الكليات والتخصصات',
+        'admin.logs': 'سجل عمليات الإدارة',
+        'admin.students.index': 'إدارة الطلاب',
+        'admin.issues.index': 'بلاغات الطلاب',
+        'admin.reports.demand': 'تحليل طلب المواد',
+        'admin.admins.index': 'إدارة الأدمنز',
+    };
+
+    const currentPageTitle = pageTitles[currentRouteName] || 'لوحة الأدمن';
+    const flashType = String(type || '').toLowerCase();
+    const flashClass = flashType === 'error'
+        ? 'border-rose-200 bg-rose-50 text-rose-700'
+        : flashType === 'success'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            : 'border-indigo-200 bg-indigo-50 text-indigo-700';
 
     // Sidebar item metadata is centralized here for easier maintenance.
     const menuItems = [
@@ -166,7 +194,7 @@ export default function AdminLayout({ children }) {
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                                <span className="font-black text-slate-800 text-[15px] tracking-tight">النظام المركزي للتحكم</span>
+                                <span className="font-black text-slate-800 text-[15px] tracking-tight">{currentPageTitle}</span>
                             </div>
                             <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5 ml-4 italic opacity-70">Infrastructure v2.1.4</span>
                         </div>
@@ -193,6 +221,11 @@ export default function AdminLayout({ children }) {
                 {/* Children Content */}
                 <div className="p-5 md:p-10 flex-1">
                     <div className="animate-fade-in-up max-w-[1600px] mx-auto">
+                        {message && (
+                            <div className={`mb-6 px-4 py-3 rounded-2xl border text-sm font-black ${flashClass}`}>
+                                {message}
+                            </div>
+                        )}
                         {children}
                     </div>
                 </div>

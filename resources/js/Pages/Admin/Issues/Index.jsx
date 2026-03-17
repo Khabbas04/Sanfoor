@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Swal from 'sweetalert2';
 
 const statusLabels = {
     open: 'مفتوح',
@@ -27,18 +28,42 @@ const priorityLabel = {
 };
 
 export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summary = {} }) {
+    const [query, setQuery] = useState('');
+
     const setStatus = (issueId, status) => {
         router.put(route('admin.issues.update_status', issueId), { status }, { preserveScroll: true });
     };
 
-    const removeIssue = (issueId) => {
-        if (!window.confirm('هل أنت متأكد من حذف هذا البلاغ نهائياً؟')) return;
+    const removeIssue = async (issueId) => {
+        const result = await Swal.fire({
+            icon: 'warning',
+            title: 'تأكيد الحذف',
+            text: 'هل أنت متأكد من حذف هذا البلاغ نهائياً؟',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، احذف',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+        });
+
+        if (!result.isConfirmed) return;
         router.delete(route('admin.issues.destroy', issueId), { preserveScroll: true });
     };
 
     const applyFilter = (status) => {
         router.get(route('admin.issues.index'), status ? { status } : {}, { preserveState: true, preserveScroll: true });
     };
+
+    const visibleIssues = useMemo(() => {
+        if (!query) return issues;
+        const q = query.toLowerCase();
+        return issues.filter((issue) => {
+            const subject = String(issue.subject || '').toLowerCase();
+            const message = String(issue.message || '').toLowerCase();
+            const user = String(issue.user?.name || '').toLowerCase();
+            return subject.includes(q) || message.includes(q) || user.includes(q);
+        });
+    }, [issues, query]);
 
     return (
         <AdminLayout user={auth.user}>
@@ -59,15 +84,24 @@ export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summ
                     <SummaryCard title="محلولة" value={summary.resolved || 0} color="emerald" />
                 </div>
 
-                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-2">
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-wrap gap-2 sticky top-24 z-10">
                     <button onClick={() => applyFilter('')} className={`px-4 py-2 rounded-xl text-xs font-black border ${!filters.status ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>كل البلاغات</button>
                     <button onClick={() => applyFilter('open')} className={`px-4 py-2 rounded-xl text-xs font-black border ${filters.status === 'open' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>مفتوحة</button>
                     <button onClick={() => applyFilter('in_progress')} className={`px-4 py-2 rounded-xl text-xs font-black border ${filters.status === 'in_progress' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>قيد المعالجة</button>
                     <button onClick={() => applyFilter('resolved')} className={`px-4 py-2 rounded-xl text-xs font-black border ${filters.status === 'resolved' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>محلولة</button>
+                    <div className="mr-auto w-full sm:w-72">
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            placeholder="بحث بالعنوان أو الوصف..."
+                            className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
                 </div>
 
                 <div className="space-y-3">
-                    {issues.map((issue) => (
+                    {visibleIssues.map((issue) => (
                         <article key={issue.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
                             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                                 <div className="space-y-2">
@@ -104,9 +138,9 @@ export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summ
                         </article>
                     ))}
 
-                    {issues.length === 0 && (
+                    {visibleIssues.length === 0 && (
                         <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center">
-                            <p className="text-slate-400 font-black">لا توجد بلاغات حالياً.</p>
+                            <p className="text-slate-400 font-black">لا توجد بلاغات مطابقة للفلتر الحالي.</p>
                             <Link href={route('admin.dashboard')} className="mt-4 inline-flex text-sm font-black text-indigo-600 hover:text-indigo-700">
                                 الرجوع للوحة الرئيسية
                             </Link>

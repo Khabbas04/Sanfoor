@@ -4,6 +4,24 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
 
 export default function AdminStructure({ auth, platform = {}, colleges = [], majors = [] }) {
+    const [collegeQuery, setCollegeQuery] = React.useState('');
+    const [majorQuery, setMajorQuery] = React.useState('');
+
+    const visibleColleges = React.useMemo(() => {
+        if (!collegeQuery) return colleges;
+        return colleges.filter((college) => String(college.name || '').toLowerCase().includes(collegeQuery.toLowerCase()));
+    }, [colleges, collegeQuery]);
+
+    const visibleMajors = React.useMemo(() => {
+        if (!majorQuery) return majors;
+        return majors.filter((major) => {
+            const name = String(major.name || '').toLowerCase();
+            const code = String(major.code || '').toLowerCase();
+            const q = majorQuery.toLowerCase();
+            return name.includes(q) || code.includes(q);
+        });
+    }, [majors, majorQuery]);
+
     const {
         data: colData,
         setData: setColData,
@@ -86,12 +104,19 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
                         </form>
 
                         <div className="mt-5 border-t border-slate-100 pt-4 max-h-60 overflow-y-auto space-y-2">
-                            {colleges.map((college) => (
+                            <input
+                                type="text"
+                                value={collegeQuery}
+                                onChange={(e) => setCollegeQuery(e.target.value)}
+                                placeholder="ابحث عن كلية..."
+                                className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500 mb-2"
+                            />
+                            {visibleColleges.map((college) => (
                                 <div key={college.id} className="text-[12px] font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
                                     {college.name}
                                 </div>
                             ))}
-                            {colleges.length === 0 && <p className="text-[12px] font-bold text-slate-400">لا توجد كليات مسجلة بعد.</p>}
+                            {visibleColleges.length === 0 && <p className="text-[12px] font-bold text-slate-400">لا توجد نتائج مطابقة.</p>}
                         </div>
                     </div>
 
@@ -153,13 +178,20 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
                         </form>
 
                         <div className="mt-5 border-t border-slate-100 pt-4 max-h-60 overflow-y-auto space-y-2">
-                            {majors.map((major) => (
+                            <input
+                                type="text"
+                                value={majorQuery}
+                                onChange={(e) => setMajorQuery(e.target.value)}
+                                placeholder="ابحث عن تخصص أو رمز..."
+                                className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500 mb-2"
+                            />
+                            {visibleMajors.map((major) => (
                                 <div key={major.id} className="text-[12px] font-bold text-slate-600 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
                                     <span>{major.name}</span>
                                     <span dir="ltr" className="text-[10px] text-slate-400 font-black">{major.code}</span>
                                 </div>
                             ))}
-                            {majors.length === 0 && <p className="text-[12px] font-bold text-slate-400">لا توجد تخصصات مسجلة بعد.</p>}
+                            {visibleMajors.length === 0 && <p className="text-[12px] font-bold text-slate-400">لا توجد نتائج مطابقة.</p>}
                         </div>
                     </div>
                 </div>

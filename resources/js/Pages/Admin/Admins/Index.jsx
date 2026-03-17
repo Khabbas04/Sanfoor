@@ -5,11 +5,23 @@ import Swal from 'sweetalert2';
 
 export default function AdminsIndex({ auth, admins = [], students = [] }) {
     const [selectedUserId, setSelectedUserId] = useState('');
+    const [query, setQuery] = useState('');
 
     const selectedStudent = useMemo(
         () => students.find((s) => String(s.id) === String(selectedUserId)),
         [students, selectedUserId],
     );
+
+    const filteredAdmins = useMemo(() => {
+        if (!query) return admins;
+        const q = query.toLowerCase();
+        return admins.filter((admin) => {
+            const name = String(admin.name || '').toLowerCase();
+            const email = String(admin.email || '').toLowerCase();
+            const role = String(admin.role || '').toLowerCase();
+            return name.includes(q) || email.includes(q) || role.includes(q);
+        });
+    }, [admins, query]);
 
     const handlePromote = () => {
         if (!selectedUserId) {
@@ -83,6 +95,21 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                         </p>
                     </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                            <p className="text-[11px] font-black text-slate-400 mb-1">إجمالي الأدمنز</p>
+                            <p className="text-2xl font-black text-slate-900">{admins.length}</p>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                            <p className="text-[11px] font-black text-slate-400 mb-1">طلاب متاحون للترقية</p>
+                            <p className="text-2xl font-black text-indigo-600">{students.length}</p>
+                        </div>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                            <p className="text-[11px] font-black text-slate-400 mb-1">حسابات Owner</p>
+                            <p className="text-2xl font-black text-amber-600">{admins.filter((a) => String(a.role || '').toLowerCase() === 'owner').length}</p>
+                        </div>
+                    </div>
+
                     <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm mb-6">
                         <h2 className="text-sm font-black text-slate-800 mb-4">ترقية طالب إلى Admin</h2>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -115,6 +142,15 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                     </div>
 
                     <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/70">
+                            <input
+                                type="text"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="بحث في الأدمنز بالاسم أو الإيميل..."
+                                className="w-full md:w-80 rounded-xl border-slate-200 bg-white text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-right">
                                 <thead className="bg-slate-50 border-b border-slate-100">
@@ -127,7 +163,7 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {admins.map((admin) => {
+                                    {filteredAdmins.map((admin) => {
                                         const isOwner = String(admin.role || '').toLowerCase() === 'owner';
 
                                         return (
@@ -179,10 +215,10 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                                         );
                                     })}
 
-                                    {admins.length === 0 && (
+                                    {filteredAdmins.length === 0 && (
                                         <tr>
                                             <td colSpan="5" className="text-center py-8 text-slate-400 font-bold text-sm">
-                                                لا يوجد حسابات Admin/Owner.
+                                                لا توجد نتائج مطابقة.
                                             </td>
                                         </tr>
                                     )}
