@@ -56,6 +56,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            // Inertia client expects flash to be an object-shaped payload on every page.
+            'flash' => [
+                'message' => fn () => $request->session()->get('message'),
+                'type' => fn () => $request->session()->get('type'),
+            ],
             // Keep admin notifications separate so non-admin pages can ignore them safely.
             'admin_notifications' => $adminNotifications,
         ];

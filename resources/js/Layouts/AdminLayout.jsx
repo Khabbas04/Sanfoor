@@ -5,7 +5,9 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 
 // AdminLayout wraps all admin pages with a shared sidebar, header, and logout flow.
 export default function AdminLayout({ children }) {
-    const { auth, admin_notifications: adminNotifications, message, type } = usePage().props;
+    const { auth, admin_notifications: adminNotifications, flash } = usePage().props;
+    const message = flash?.message;
+    const type = flash?.type;
 
     // Role and notification state is shared from Inertia middleware.
     const role = (auth?.user?.role || '').toLowerCase().trim();
