@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, usePage, Head } from '@inertiajs/react';
+import React, { useState } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 
 // AdminLayout wraps all admin pages with a shared sidebar, header, and logout flow.
 export default function AdminLayout({ children }) {
@@ -44,7 +44,7 @@ export default function AdminLayout({ children }) {
         { icon: '📊', name: 'الإحصائيات العامة', route: 'admin.dashboard', pattern: 'admin.dashboard' },
         { icon: '🛠️', name: 'بلاغات الطلاب', route: 'admin.issues.index', pattern: 'admin.issues.*' },
         { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' },
-        { icon: '📚', name: 'الشجرة والمواد', route: 'admin.courses', pattern: 'admin.courses.*' },
+        { icon: '📚', name: 'الشجرة والمواد', route: 'admin.courses', pattern: 'admin.courses' },
         { icon: '🏛️', name: 'الكليات والتخصصات', route: 'admin.structure', pattern: 'admin.structure|admin.colleges|admin.majors' },
         { icon: '📜', name: 'سجل العمليات', route: 'admin.logs', pattern: 'admin.logs' },
         { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },
@@ -58,8 +58,16 @@ export default function AdminLayout({ children }) {
     const isRouteActive = (pattern) => {
         if (!pattern) return false;
         try {
-            const patterns = pattern.split('|');
-            return patterns.some(p => route().current(p) || route().current(p + '.*'));
+            const patterns = pattern.split('|').map((p) => p.trim()).filter(Boolean);
+            return patterns.some((p) => {
+                // If the pattern already contains wildcard, trust it as-is.
+                if (p.includes('*')) {
+                    return route().current(p);
+                }
+
+                // Match both the exact route and nested routes.
+                return route().current(p) || route().current(`${p}.*`);
+            });
         } catch (e) {
             return false;
         }
