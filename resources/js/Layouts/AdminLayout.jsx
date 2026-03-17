@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
+import { useTheme } from '@/Contexts/ThemeContext';
+import { useLanguage } from '@/Contexts/LanguageContext';
 
 // AdminLayout wraps all admin pages with a shared sidebar, header, and logout flow.
 export default function AdminLayout({ children }) {
@@ -11,6 +13,69 @@ export default function AdminLayout({ children }) {
     const openIssuesCount = Number(adminNotifications?.open_issues_count || 0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    const { isDark, toggleTheme } = useTheme();
+    const { lang, toggleLang } = useLanguage();
+
+    const translations = {
+        ar: {
+            dashboard: 'الإحصائيات العامة',
+            issues: 'بلاغات الطلاب',
+            demand: 'تحليل طلب المواد',
+            courses: 'الشجرة والمواد',
+            structure: 'الكليات والتخصصات',
+            logs: 'سجل العمليات',
+            students: 'إدارة الطلاب',
+            admins: 'إدارة الأدمنز',
+            settings: 'الإعدادات',
+            mainMenu: 'القائمة الرئيسية',
+            online: 'أونلاين',
+            safeLogout: 'خروج آمن من النظام',
+            studentProfile: 'بروفايل الطالب',
+            frontEnd: 'الواجهة الأمامية',
+            site: 'الموقع',
+            pageTitles: {
+                'admin.dashboard': 'لوحة الإدارة المركزية',
+                'admin.courses': 'إدارة الشجرة والمواد',
+                'admin.structure': 'إدارة الكليات والتخصصات',
+                'admin.logs': 'سجل عمليات الإدارة',
+                'admin.students.index': 'إدارة الطلاب',
+                'admin.issues.index': 'بلاغات الطلاب',
+                'admin.reports.demand': 'تحليل طلب المواد',
+                'admin.admins.index': 'إدارة الأدمنز',
+            },
+            defaultTitle: 'لوحة الأدمن',
+        },
+        en: {
+            dashboard: 'General Stats',
+            issues: 'Student Reports',
+            demand: 'Course Demand',
+            courses: 'Tree & Courses',
+            structure: 'Colleges & Majors',
+            logs: 'Activity Log',
+            students: 'Manage Students',
+            admins: 'Manage Admins',
+            settings: 'Settings',
+            mainMenu: 'Main Menu',
+            online: 'Online',
+            safeLogout: 'Secure Logout',
+            studentProfile: 'Student Profile',
+            frontEnd: 'Front Website',
+            site: 'Site',
+            pageTitles: {
+                'admin.dashboard': 'Admin Control Center',
+                'admin.courses': 'Tree & Courses',
+                'admin.structure': 'Colleges & Majors',
+                'admin.logs': 'Activity Log',
+                'admin.students.index': 'Manage Students',
+                'admin.issues.index': 'Student Reports',
+                'admin.reports.demand': 'Course Demand Analysis',
+                'admin.admins.index': 'Manage Admins',
+            },
+            defaultTitle: 'Admin Panel',
+        },
+    };
+    const t = translations[lang] || translations.ar;
+
     const getCurrentRouteName = () => {
         try {
             return route().current();
@@ -20,38 +85,28 @@ export default function AdminLayout({ children }) {
     };
 
     const currentRouteName = getCurrentRouteName();
-    const pageTitles = {
-        'admin.dashboard': 'لوحة الإدارة المركزية',
-        'admin.courses': 'إدارة الشجرة والمواد',
-        'admin.structure': 'إدارة الكليات والتخصصات',
-        'admin.logs': 'سجل عمليات الإدارة',
-        'admin.students.index': 'إدارة الطلاب',
-        'admin.issues.index': 'بلاغات الطلاب',
-        'admin.reports.demand': 'تحليل طلب المواد',
-        'admin.admins.index': 'إدارة الأدمنز',
-    };
+    const currentPageTitle = t.pageTitles[currentRouteName] || t.defaultTitle;
 
-    const currentPageTitle = pageTitles[currentRouteName] || 'لوحة الأدمن';
     const flashType = String(type || '').toLowerCase();
     const flashClass = flashType === 'error'
-        ? 'border-rose-200 bg-rose-50 text-rose-700'
+        ? 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
         : flashType === 'success'
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-indigo-200 bg-indigo-50 text-indigo-700';
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+            : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
 
     // Sidebar item metadata is centralized here for easier maintenance.
     const menuItems = [
-        { icon: '📊', name: 'الإحصائيات العامة', route: 'admin.dashboard', pattern: 'admin.dashboard' },
-        { icon: '🛠️', name: 'بلاغات الطلاب', route: 'admin.issues.index', pattern: 'admin.issues.*' },
-        { icon: '🔥', name: 'تحليل طلب المواد', route: 'admin.reports.demand', pattern: 'admin.reports.*' },
-        { icon: '📚', name: 'الشجرة والمواد', route: 'admin.courses', pattern: 'admin.courses' },
-        { icon: '🏛️', name: 'الكليات والتخصصات', route: 'admin.structure', pattern: 'admin.structure|admin.colleges|admin.majors' },
-        { icon: '📜', name: 'سجل العمليات', route: 'admin.logs', pattern: 'admin.logs' },
-        { icon: '👨‍🎓', name: 'إدارة الطلاب', route: 'admin.students.index', pattern: 'admin.students.*' },
+        { icon: '📊', name: t.dashboard, route: 'admin.dashboard', pattern: 'admin.dashboard' },
+        { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*' },
+        { icon: '🔥', name: t.demand, route: 'admin.reports.demand', pattern: 'admin.reports.*' },
+        { icon: '📚', name: t.courses, route: 'admin.courses', pattern: 'admin.courses' },
+        { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.colleges|admin.majors' },
+        { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
+        { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },
         ...(isOwner
-            ? [{ icon: '👑', name: 'إدارة الأدمنز', route: 'admin.admins.index', pattern: 'admin.admins.*' }]
+            ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }]
             : []),
-        { icon: '⚙️', name: 'الإعدادات', route: '#', pattern: 'admin.settings.*' },
+        { icon: '⚙️', name: t.settings, route: '#', pattern: 'admin.settings.*' },
     ];
 
     // Support pipe-separated route patterns so one item can cover multiple screens.
@@ -74,10 +129,10 @@ export default function AdminLayout({ children }) {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] text-right flex flex-col font-sans selection:bg-indigo-200 selection:text-indigo-900 relative" dir="rtl">
+        <div className={`min-h-screen transition-colors duration-300 text-right flex flex-col font-sans selection:bg-indigo-200 selection:text-indigo-900 relative ${isDark ? 'bg-[#0d1117]' : 'bg-[#f8fafc]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             
             {/* Decorative grid background for the whole admin experience. */}
-            <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-0" style={{ backgroundImage: 'radial-gradient(#4f46e5 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
+            <div className="fixed inset-0 pointer-events-none opacity-[0.04] z-0" style={{ backgroundImage: 'radial-gradient(#4f46e5 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
 
             {/* Tap outside the sidebar on mobile to close it. */}
             {isSidebarOpen && (
@@ -128,7 +183,7 @@ export default function AdminLayout({ children }) {
                                     <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                                 </div>
-                                <span className="text-[10px] text-emerald-400 font-black">أونلاين</span>
+                                <span className="text-[10px] text-emerald-400 font-black">{t.online}</span>
                             </div>
                         </div>
                     </div>
@@ -136,7 +191,7 @@ export default function AdminLayout({ children }) {
 
                 {/* Render all sidebar links from the menuItems config above. */}
                 <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-2.5 scrollbar-hide">
-                    <p className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 mt-2">القائمة الرئيسية</p>
+                    <p className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 mt-2">{t.mainMenu}</p>
                     {menuItems.map((item, index) => {
                         const active = isRouteActive(item.pattern);
                         let href = '#';
@@ -185,7 +240,7 @@ export default function AdminLayout({ children }) {
                         className="w-full flex items-center justify-center gap-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 py-4 rounded-2xl hover:bg-rose-600 hover:text-white transition-all font-black text-[11px] group shadow-lg"
                     >
                         <span className="text-lg group-hover:-translate-x-1 group-hover:rotate-12 transition-transform">👋</span>
-                        خروج آمن من النظام
+                        {t.safeLogout}
                     </Link>
                 </div>
             </aside>
@@ -194,34 +249,48 @@ export default function AdminLayout({ children }) {
             <main className="lg:mr-72 flex-1 flex flex-col min-h-screen transition-all duration-500 relative z-10">
 
                 {/* Header Navbar */}
-                <header className="bg-white/80 backdrop-blur-3xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border-b border-slate-200/80 h-20 flex items-center px-6 md:px-10 justify-between sticky top-0 z-30">
+                <header className={`backdrop-blur-3xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border-b h-20 flex items-center px-6 md:px-10 justify-between sticky top-0 z-30 transition-colors duration-300 ${isDark ? 'bg-[#0b0f19]/90 border-slate-800' : 'bg-white/80 border-slate-200/80'}`}>
                     <div className="flex items-center gap-5">
-                        <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all shadow-sm active:scale-90">
+                        <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-3 rounded-2xl border text-slate-600 hover:text-indigo-600 transition-all shadow-sm active:scale-90 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-indigo-50'}`}>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
                         </button>
                         <div className="flex flex-col">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                                <span className="font-black text-slate-800 text-[15px] tracking-tight">{currentPageTitle}</span>
+                                <span className={`font-black text-[15px] tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{currentPageTitle}</span>
                             </div>
                             <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5 ml-4 italic opacity-70">Infrastructure v2.1.4</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 md:gap-5">
+                    <div className="flex items-center gap-3 md:gap-4">
+                        {/* Language Toggle */}
+                        <button
+                            onClick={toggleLang}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-slate-700 text-indigo-400 hover:bg-slate-700' : 'bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200'}`}
+                        >
+                            {lang === 'ar' ? 'EN' : 'AR'}
+                        </button>
+                        {/* Theme Toggle */}
+                        <button
+                            onClick={toggleTheme}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-slate-700 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'}`}
+                        >
+                            {isDark ? '☀️' : '🌙'}
+                        </button>
                         <Link
                             href={route('dashboard')}
-                            className="hidden sm:flex items-center gap-2.5 px-5 py-2.5 bg-slate-100 text-slate-700 rounded-2xl hover:bg-slate-900 hover:text-white text-[11px] font-black transition-all shadow-inner active:scale-95"
+                            className={`hidden sm:flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all shadow-inner active:scale-95 ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white'}`}
                         >
-                            <span>👤</span> بروفايل الطالب
+                            <span>👤</span> {t.studentProfile}
                         </Link>
                         <Link
                             href="/"
                             className="flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl hover:shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 text-[11px] font-black transition-all group"
                         >
                             <span className="text-base group-hover:scale-125 transition-transform duration-500">🌐</span> 
-                            <span className="hidden md:inline">الواجهة الأمامية</span>
-                            <span className="md:hidden">الموقع</span>
+                            <span className="hidden md:inline">{t.frontEnd}</span>
+                            <span className="md:hidden">{t.site}</span>
                         </Link>
                     </div>
                 </header>
