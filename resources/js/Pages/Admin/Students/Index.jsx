@@ -105,7 +105,6 @@ const translations = {
 };
 
 export default function AdminStudents({ auth, students, filters, majors = [] }) {
-export default function AdminStudents({ auth, students, filters, majors = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;

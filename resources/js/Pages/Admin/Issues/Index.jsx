@@ -87,7 +87,6 @@ const priorityClassDark = {
 };
 
 export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summary = {} }) {
-export default function AdminIssuesIndex({ auth, issues = [], filters = {}, summary = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
