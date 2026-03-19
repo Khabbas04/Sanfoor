@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 
 export default function CollegesIndex({ colleges }) {
@@ -115,10 +115,7 @@ export default function CollegesIndex({ colleges }) {
                                         <button
                                             onClick={() => {
                                                 if (confirm('هل تريد حذف هذه الكلية؟')) {
-                                                    window.location.href = route(
-                                                        'admin.colleges.destroy',
-                                                        college.id
-                                                    );
+                                                    router.delete(route('admin.colleges.destroy', college.id));
                                                 }
                                             }}
                                             className="flex-1 px-3 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"

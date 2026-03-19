@@ -3,6 +3,17 @@ import MainLayout from '@/Layouts/MainLayout';
 import { Head } from '@inertiajs/react';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+const LANDMARK_TYPES = {
+    all: { label: 'الكل', icon: '🧭' },
+    restaurant: { label: 'مطاعم', icon: '🍽️' },
+    prayer_room: { label: 'مصليات', icon: '🕌' },
+    library: { label: 'مكتبات', icon: '📚' },
+    clinic: { label: 'عيادات', icon: '🏥' },
+    parking: { label: 'مواقف', icon: '🅿️' },
+    sports: { label: 'رياضة', icon: '⚽' },
+    shop: { label: 'محلات', icon: '🏪' },
+    other: { label: 'أخرى', icon: '📍' },
+};
 
 /* ═══════════════════════════════════════════════════════════════
    HOOKS
@@ -22,9 +33,10 @@ function useReveal(threshold = 0.12) {
     return [ref, visible];
 }
 
-export default function Directory({ auth, colleges = [] }) {
+export default function Directory({ auth, colleges = [], landmarks = [] }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState(null);
+    const [landmarkType, setLandmarkType] = useState('all');
 
     const [headerRef, headerVis] = useReveal(0.1);
     const [gridRef, gridVis] = useReveal(0.1);
@@ -52,6 +64,21 @@ export default function Directory({ auth, colleges = [] }) {
     }, [filteredColleges, activeTab]);
 
     const activeCollege = filteredColleges.find(c => c.id === activeTab);
+
+    const filteredLandmarks = useMemo(() => {
+        const searchLower = searchTerm.toLowerCase().trim();
+        return landmarks.filter((landmark) => {
+            const matchesType = landmarkType === 'all' || landmark.type === landmarkType;
+            if (!searchLower) return matchesType;
+
+            const matchesSearch =
+                landmark.name.toLowerCase().includes(searchLower) ||
+                landmark.building_location?.toLowerCase().includes(searchLower) ||
+                landmark.description?.toLowerCase().includes(searchLower);
+
+            return matchesType && matchesSearch;
+        });
+    }, [landmarks, landmarkType, searchTerm]);
 
     // Helper to check if college belongs to student's major
     const isStudentCollege = (collegeId) => {
@@ -249,6 +276,94 @@ export default function Directory({ auth, colleges = [] }) {
                             </button>
                         </div>
                     )}
+
+                    {/* 4. Campus Landmarks */}
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 sm:p-8 space-y-5">
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                            <h3 className="text-xl sm:text-2xl font-black text-slate-800">معالم الجامعة</h3>
+                            <span className="text-xs font-black text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                {filteredLandmarks.length} معلم
+                            </span>
+                        </div>
+
+                        <div className="overflow-x-auto hide-scrollbar">
+                            <div className="flex gap-2 flex-nowrap pb-2">
+                                {Object.entries(LANDMARK_TYPES).map(([key, info]) => {
+                                    const isActive = landmarkType === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setLandmarkType(key)}
+                                            className={`px-4 py-2 rounded-xl text-sm font-black whitespace-nowrap transition-all duration-300 flex items-center gap-2 border ${
+                                                isActive
+                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-200'
+                                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                            }`}
+                                        >
+                                            <span>{info.icon}</span>
+                                            <span>{info.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {filteredLandmarks.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {filteredLandmarks.map((landmark) => {
+                                    const typeInfo = LANDMARK_TYPES[landmark.type] || LANDMARK_TYPES.other;
+                                    return (
+                                        <div
+                                            key={landmark.id}
+                                            className="rounded-2xl border border-slate-200 bg-slate-50/70 overflow-hidden hover:shadow-md transition-shadow"
+                                        >
+                                            <div className="p-5 space-y-3">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <h4 className="text-base font-black text-slate-800">{landmark.name}</h4>
+                                                    <span className="text-xs font-black bg-white border border-slate-200 text-slate-600 px-2 py-1 rounded-lg">
+                                                        {typeInfo.icon} {typeInfo.label}
+                                                    </span>
+                                                </div>
+
+                                                {landmark.description && (
+                                                    <p className="text-sm text-slate-600 font-bold leading-relaxed line-clamp-3">
+                                                        {landmark.description}
+                                                    </p>
+                                                )}
+
+                                                {landmark.building_location && (
+                                                    <p className="text-sm font-bold text-slate-700">📍 {landmark.building_location}</p>
+                                                )}
+
+                                                {(landmark.location_latitude || landmark.location_longitude) && (
+                                                    <p className="text-xs text-slate-500 font-bold">
+                                                        {landmark.location_latitude && `العرض: ${landmark.location_latitude}`}
+                                                        {landmark.location_latitude && landmark.location_longitude ? ' | ' : ''}
+                                                        {landmark.location_longitude && `الطول: ${landmark.location_longitude}`}
+                                                    </p>
+                                                )}
+
+                                                {landmark.maps_url && (
+                                                    <a
+                                                        href={landmark.maps_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex items-center gap-1 text-sm font-black text-emerald-700 hover:underline"
+                                                    >
+                                                        🗺️ فتح على الخريطة
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center">
+                                <p className="text-slate-500 font-bold">لا يوجد معالم مطابقة للفلاتر الحالية.</p>
+                            </div>
+                        )}
+                    </div>
 
                 </div>
             </div>

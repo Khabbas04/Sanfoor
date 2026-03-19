@@ -101,8 +101,15 @@ Route::middleware('auth')->group(function () {
             ->orderBy('name')
             ->get();
 
+        $landmarks = \App\Models\Landmark::query()
+            ->where('is_active', true)
+            ->orderBy('type')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Campus/Directory', [
             'colleges' => $colleges,
+            'landmarks' => $landmarks,
         ]);
     })->name('campus.directory');
 
