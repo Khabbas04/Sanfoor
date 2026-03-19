@@ -53,6 +53,26 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
     }, [landmarks, landmarkSearch, landmarkType]);
 
     const myCollegeId = auth?.user?.major?.college_id;
+    const buildingLegend = useMemo(() => {
+        const map = new Map();
+
+        colleges.forEach((college) => {
+            const symbol = (college.building_symbol || '').trim();
+            if (!symbol) return;
+
+            if (!map.has(symbol)) {
+                map.set(symbol, {
+                    symbol,
+                    location: college.building_location || 'غير محدد',
+                    colleges: [],
+                });
+            }
+
+            map.get(symbol).colleges.push(college.name);
+        });
+
+        return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol, 'ar'));
+    }, [colleges]);
 
     return (
         <MainLayout user={auth?.user}>
@@ -99,6 +119,42 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             </div>
                         </div>
                     </section>
+
+                    {buildingLegend.length > 0 && (
+                        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-900">معاني رموز المباني</h2>
+                                <span className="text-xs font-black text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                    كما هو موضح في الخريطة الرسمية
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {buildingLegend.map((entry) => (
+                                    <article
+                                        key={entry.symbol}
+                                        className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className="min-w-[52px] h-[52px] rounded-xl bg-rose-700 text-white flex items-center justify-center text-xl font-black shadow-sm">
+                                                {entry.symbol}
+                                            </div>
+                                            <div className="flex-1 space-y-2">
+                                                <p className="text-sm font-black text-slate-700">📍 {entry.location}</p>
+                                                <p className="text-sm text-slate-600 font-bold leading-relaxed">
+                                                    {entry.colleges.join(' - ')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+
+                            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600 font-bold">
+                                ترميز الطوابق: 100 = الطابق الأول، 200 = الطابق الثاني، 300 = الطابق الثالث.
+                            </div>
+                        </section>
+                    )}
 
                     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
                         <div className="flex items-center justify-between gap-3 flex-wrap">
