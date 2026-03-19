@@ -11,8 +11,23 @@ class College extends Model
 {
     use HasFactory;
 
-    // 🔥 أضفنا university_id هنا لكي يسمح النظام بحفظ رقم الجامعة
-    protected $fillable = ['university_id', 'name'];
+    // 🔥 أضفنا حقول التفاصيل الملموسة عن الكلية
+    protected $fillable = [
+        'university_id',
+        'name',
+        'description',
+        'building_symbol',
+        'building_location',
+        'services',
+        'image_url',
+        'location_latitude',
+        'location_longitude',
+        'maps_url',
+    ];
+
+    protected $casts = [
+        'services' => 'json',
+    ];
 
     /**
      * 🔥 العلاقة مع الجامعة (كل كلية تنتمي لجامعة واحدة)

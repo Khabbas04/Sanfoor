@@ -96,7 +96,13 @@ Route::middleware('auth')->group(function () {
 
     // Public-style utility page that is still available only for logged-in users.
     Route::get('/campus-directory', function () {
-        return Inertia::render('Campus/Directory');
+        $colleges = \App\Models\College::with('university')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Campus/Directory', [
+            'colleges' => $colleges,
+        ]);
     })->name('campus.directory');
 
     // AI advisor routes, including chat lifecycle operations.
