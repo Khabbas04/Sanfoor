@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useForm, Link } from '@inertiajs/react';
 import AdminLayout from '../../../Layouts/AdminLayout';
 
-export default function CollegeForm({ college, universities = [] }) {
+export default function CollegeForm({ college }) {
     const isEditing = !!college;
     const { data, setData, post, put, processing, errors } = useForm({
-        university_id: college?.university_id ?? '',
         name: college?.name ?? '',
         description: college?.description ?? '',
         building_symbol: college?.building_symbol ?? '',
@@ -48,28 +47,6 @@ export default function CollegeForm({ college, universities = [] }) {
                     </h1>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* University selection - required */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                الجامعة *
-                            </label>
-                            <select
-                                value={data.university_id}
-                                onChange={(e) => setData('university_id', e.target.value)}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">اختر جامعة</option>
-                                {universities.map((uni) => (
-                                    <option key={uni.id} value={uni.id}>
-                                        {uni.name}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.university_id && (
-                                <p className="text-red-600 text-sm mt-1">{errors.university_id}</p>
-                            )}
-                        </div>
-
                         {/* College name - required */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">

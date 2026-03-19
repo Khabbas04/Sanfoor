@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\College;
 use App\Models\Landmark;
+use App\Models\University;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -24,18 +25,21 @@ class AdminCollegeController extends Controller
 
     public function createCollege()
     {
-        $universities = \App\Models\University::orderBy('name')->get();
-
         return Inertia::render('Admin/Colleges/Form', [
             'college' => null,
-            'universities' => $universities,
         ]);
     }
 
     public function storeCollege(Request $request)
     {
+        $defaultUniversityId = University::query()->value('id');
+        if (!$defaultUniversityId) {
+            return back()
+                ->withInput()
+                ->withErrors(['name' => 'لا يمكن إضافة كلية قبل إنشاء الجامعة الأساسية أولاً.']);
+        }
+
         $validated = $request->validate([
-            'university_id' => 'required|exists:universities,id',
             'name' => 'required|string|max:255|unique:colleges,name',
             'description' => 'nullable|string',
             'building_symbol' => 'nullable|string|max:50',
@@ -47,6 +51,8 @@ class AdminCollegeController extends Controller
             'maps_url' => 'nullable|url',
         ]);
 
+        $validated['university_id'] = $defaultUniversityId;
+
         College::create($validated);
 
         return redirect()->route('admin.colleges.index')
@@ -55,18 +61,21 @@ class AdminCollegeController extends Controller
 
     public function editCollege(College $college)
     {
-        $universities = \App\Models\University::orderBy('name')->get();
-
         return Inertia::render('Admin/Colleges/Form', [
             'college' => $college,
-            'universities' => $universities,
         ]);
     }
 
     public function updateCollege(Request $request, College $college)
     {
+        $defaultUniversityId = University::query()->value('id');
+        if (!$defaultUniversityId) {
+            return back()
+                ->withInput()
+                ->withErrors(['name' => 'لا يمكن تحديث الكلية قبل إنشاء الجامعة الأساسية أولاً.']);
+        }
+
         $validated = $request->validate([
-            'university_id' => 'required|exists:universities,id',
             'name' => 'required|string|max:255|unique:colleges,name,' . $college->id,
             'description' => 'nullable|string',
             'building_symbol' => 'nullable|string|max:50',
@@ -77,6 +86,8 @@ class AdminCollegeController extends Controller
             'location_longitude' => 'nullable|numeric',
             'maps_url' => 'nullable|url',
         ]);
+
+        $validated['university_id'] = $defaultUniversityId;
 
         $college->update($validated);
 
