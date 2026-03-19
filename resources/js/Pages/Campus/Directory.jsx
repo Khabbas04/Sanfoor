@@ -53,6 +53,27 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
     }, [landmarks, landmarkSearch, landmarkType]);
 
     const myCollegeId = auth?.user?.major?.college_id;
+    const groupedBuildings = useMemo(() => {
+        const map = new Map();
+
+        filteredColleges.forEach((college) => {
+            const symbol = (college.building_symbol || 'غير محدد').trim() || 'غير محدد';
+            const key = `${symbol}::${college.building_location || 'غير محدد'}`;
+
+            if (!map.has(key)) {
+                map.set(key, {
+                    symbol,
+                    location: college.building_location || 'غير محدد',
+                    colleges: [],
+                });
+            }
+
+            map.get(key).colleges.push(college);
+        });
+
+        return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol, 'ar'));
+    }, [filteredColleges]);
+
     const buildingLegend = useMemo(() => {
         const map = new Map();
 
@@ -158,9 +179,9 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
 
                     <section className="rounded-[2rem] border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-5">
                         <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <h2 className="text-xl sm:text-2xl font-black text-slate-900">الكليات</h2>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-900">الكليات حسب رمز المبنى</h2>
                             <span className="text-xs font-black text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                عرض بطاقات مباشرة بدون تبويبات
+                                التجميع مطابق لفكرة الصورة الرسمية
                             </span>
                         </div>
 
@@ -175,96 +196,66 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             />
                         </div>
 
-                        {filteredColleges.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                                {filteredColleges.map((college) => {
-                                    const isMyCollege = myCollegeId === college.id;
-
-                                    return (
-                                        <article
-                                            key={college.id}
-                                            className={`rounded-3xl border bg-white overflow-hidden shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-                                                isMyCollege ? 'border-emerald-300 ring-2 ring-emerald-100' : 'border-slate-200'
-                                            }`}
-                                        >
-                                            <div className={`h-2 ${isMyCollege ? 'bg-gradient-to-r from-emerald-500 to-cyan-500' : 'bg-gradient-to-r from-indigo-500 to-cyan-500'}`} />
-
-                                            <div className="p-5 space-y-4">
-                                                {college.image_url ? (
-                                                    <img
-                                                        src={college.image_url}
-                                                        alt={college.name}
-                                                        className="w-full h-44 rounded-2xl border border-slate-200 object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-44 rounded-2xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 font-black">
-                                                        لا توجد صورة
-                                                    </div>
-                                                )}
-
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <h3 className="text-xl font-black text-slate-900 leading-tight">{college.name}</h3>
-                                                    {college.building_symbol && (
-                                                        <span className="text-xs font-black px-2.5 py-1.5 rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50">
-                                                            {college.building_symbol}
-                                                        </span>
-                                                    )}
+                        {groupedBuildings.length > 0 ? (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                                {groupedBuildings.map((group) => (
+                                    <article
+                                        key={`${group.symbol}-${group.location}`}
+                                        className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300"
+                                    >
+                                        <div className="h-2 bg-gradient-to-r from-rose-700 to-rose-500" />
+                                        <div className="p-5 sm:p-6 space-y-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="min-w-[52px] h-[52px] rounded-xl bg-rose-700 text-white flex items-center justify-center text-xl font-black">
+                                                    {group.symbol}
                                                 </div>
-
-                                                {isMyCollege && (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-black px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                                        🌟 كليتك الحالية
-                                                    </span>
-                                                )}
-
-                                                <div className="space-y-2 text-sm text-slate-700 font-bold">
-                                                    {college.building_location && <p>📍 {college.building_location}</p>}
-                                                    {(college.location_latitude || college.location_longitude) && (
-                                                        <p className="text-xs text-slate-500">
-                                                            {college.location_latitude && `العرض: ${college.location_latitude}`}
-                                                            {college.location_latitude && college.location_longitude ? ' | ' : ''}
-                                                            {college.location_longitude && `الطول: ${college.location_longitude}`}
-                                                        </p>
-                                                    )}
+                                                <div>
+                                                    <h3 className="text-lg font-black text-slate-900">رمز المبنى: {group.symbol}</h3>
+                                                    <p className="text-sm font-bold text-slate-600">📍 {group.location}</p>
                                                 </div>
-
-                                                {college.description && (
-                                                    <p className="text-sm text-slate-600 leading-relaxed line-clamp-4">
-                                                        {college.description}
-                                                    </p>
-                                                )}
-
-                                                {Array.isArray(college.services) && college.services.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {college.services.map((service, index) => (
-                                                            <span
-                                                                key={index}
-                                                                className="px-2.5 py-1.5 rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 text-xs font-black"
-                                                            >
-                                                                {service}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {college.maps_url && (
-                                                    <a
-                                                        href={college.maps_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 text-sm font-black text-indigo-700 hover:underline"
-                                                    >
-                                                        🗺️ فتح موقع الكلية على الخريطة
-                                                    </a>
-                                                )}
                                             </div>
-                                        </article>
-                                    );
-                                })}
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {group.colleges.map((college) => {
+                                                    const isMyCollege = myCollegeId === college.id;
+
+                                                    return (
+                                                        <span
+                                                            key={college.id}
+                                                            className={`px-3 py-2 rounded-xl text-sm font-black border ${
+                                                                isMyCollege
+                                                                    ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                                                                    : 'bg-slate-50 border-slate-200 text-slate-700'
+                                                            }`}
+                                                        >
+                                                            {isMyCollege ? '🌟 ' : ''}
+                                                            {college.name}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <p className="text-sm text-slate-600 leading-relaxed font-bold">
+                                                {group.colleges[0]?.description || 'لا يوجد وصف متاح لهذا المبنى.'}
+                                            </p>
+
+                                            {group.colleges.some((college) => college.maps_url) && (
+                                                <a
+                                                    href={group.colleges.find((college) => college.maps_url)?.maps_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-sm font-black text-indigo-700 hover:underline"
+                                                >
+                                                    🗺️ فتح موقع المبنى على الخريطة
+                                                </a>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
                             </div>
                         ) : (
                             <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center bg-slate-50">
-                                <p className="text-slate-500 font-black">لا توجد كليات مطابقة للبحث.</p>
+                                <p className="text-slate-500 font-black">لا توجد مجموعات مباني مطابقة للبحث.</p>
                             </div>
                         )}
                     </section>
