@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\College;
 use App\Models\Landmark;
-use App\Models\University;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -14,7 +13,7 @@ class AdminCollegeController extends Controller
 
     public function indexColleges()
     {
-        $colleges = College::with('university')
+        $colleges = College::query()
             ->orderBy('name')
             ->get();
 
@@ -32,13 +31,6 @@ class AdminCollegeController extends Controller
 
     public function storeCollege(Request $request)
     {
-        $defaultUniversityId = University::query()->value('id');
-        if (!$defaultUniversityId) {
-            return back()
-                ->withInput()
-                ->withErrors(['name' => 'لا يمكن إضافة كلية قبل إنشاء الجامعة الأساسية أولاً.']);
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:colleges,name',
             'description' => 'nullable|string',
@@ -50,8 +42,6 @@ class AdminCollegeController extends Controller
             'location_longitude' => 'nullable|numeric',
             'maps_url' => 'nullable|url',
         ]);
-
-        $validated['university_id'] = $defaultUniversityId;
 
         College::create($validated);
 
@@ -68,13 +58,6 @@ class AdminCollegeController extends Controller
 
     public function updateCollege(Request $request, College $college)
     {
-        $defaultUniversityId = University::query()->value('id');
-        if (!$defaultUniversityId) {
-            return back()
-                ->withInput()
-                ->withErrors(['name' => 'لا يمكن تحديث الكلية قبل إنشاء الجامعة الأساسية أولاً.']);
-        }
-
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:colleges,name,' . $college->id,
             'description' => 'nullable|string',
@@ -86,8 +69,6 @@ class AdminCollegeController extends Controller
             'location_longitude' => 'nullable|numeric',
             'maps_url' => 'nullable|url',
         ]);
-
-        $validated['university_id'] = $defaultUniversityId;
 
         $college->update($validated);
 

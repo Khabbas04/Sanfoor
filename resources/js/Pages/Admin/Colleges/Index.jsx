@@ -79,9 +79,6 @@ export default function CollegesIndex({ colleges }) {
 
                                     <div>
                                         <h3 className="text-xl font-black text-slate-900">{college.name}</h3>
-                                        {college.university?.name && (
-                                            <p className="text-sm text-slate-500 font-bold mt-1">🏫 {college.university.name}</p>
-                                        )}
                                     </div>
 
                                     <div className="space-y-2 text-sm text-slate-700 font-bold">
