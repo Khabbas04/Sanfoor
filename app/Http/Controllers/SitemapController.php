@@ -6,14 +6,11 @@ use App\Models\Course;
 use App\Models\Major;
 use App\Models\Plan;
 use App\Models\University;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route as LaravelRoute;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Facades\Schema;
-use Spatie\Sitemap\Sitemap;
-use Spatie\Sitemap\Tags\Url;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class SitemapController extends Controller
@@ -30,17 +27,12 @@ class SitemapController extends Controller
         $now = now();
 
         try {
-            $xml = Cache::remember('seo:sitemap:xml:v1', now()->addHour(), function () use ($baseUrl, $now) {
+            $xml = Cache::remember('seo:sitemap:xml:v2', now()->addHour(), function () use ($baseUrl, $now) {
                 return $this->buildSitemapXml($baseUrl, $now);
             });
         } catch (Throwable $exception) {
             // Never fail crawlers with 500 because of cache backend issues.
-            try {
-                $xml = $this->buildSitemapXml($baseUrl, $now);
-            } catch (Throwable $nestedException) {
-                // Last-resort fallback: return a minimal valid sitemap.
-                $xml = $this->buildMinimalSitemapXml($baseUrl, $now);
-            }
+            $xml = $this->buildSitemapXml($baseUrl, $now);
         }
 
         // Return a cached-friendly XML response for crawlers and search engines.
@@ -57,19 +49,30 @@ class SitemapController extends Controller
      */
     private function buildSitemapXml(string $baseUrl, $now): string
     {
-        // Create the sitemap instance that will hold all static and dynamic URLs.
-        $sitemap = Sitemap::create();
+        try {
+            $entries = [];
+            $seen = [];
 
-        // Add public static pages that should always appear in the sitemap.
-        $this->addStaticPages($sitemap, $baseUrl, $now);
+            // Core pages are intentionally pinned with explicit priorities.
+            $this->addCorePages($entries, $seen, $baseUrl, $now);
 
-        // Add database-driven resources only when their listing routes are public.
-        $this->addDynamicModelPagesSafely($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPagesSafely($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPagesSafely($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPagesSafely($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+            // Add all remaining public GET routes discovered from the router.
+            $this->addPublicRoutePages($entries, $seen, $baseUrl, $now);
 
-        return $sitemap->render();
+            // Add database-driven details when matching public dynamic routes exist.
+            $this->addDynamicModelPagesSafely($entries, $seen, University::class, 'universities', '/universities', 0.8, 'weekly', $baseUrl, $now);
+            $this->addDynamicModelPagesSafely($entries, $seen, Major::class, 'majors', '/majors', 0.8, 'weekly', $baseUrl, $now);
+            $this->addDynamicModelPagesSafely($entries, $seen, Course::class, 'courses', '/courses', 0.8, 'weekly', $baseUrl, $now);
+            $this->addDynamicModelPagesSafely($entries, $seen, Plan::class, 'plans', '/plans', 0.75, 'weekly', $baseUrl, $now);
+
+            usort($entries, function (array $a, array $b): int {
+                return strcmp($a['loc'], $b['loc']);
+            });
+
+            return $this->renderXml($entries);
+        } catch (Throwable $exception) {
+            return $this->buildMinimalSitemapXml($baseUrl, $now);
+        }
     }
 
     /**
@@ -77,7 +80,7 @@ class SitemapController extends Controller
      */
     private function buildMinimalSitemapXml(string $baseUrl, $now): string
     {
-        $escapedLoc = htmlspecialchars($baseUrl . '/', ENT_XML1);
+        $escapedLoc = htmlspecialchars($baseUrl . '/', ENT_XML1 | ENT_QUOTES, 'UTF-8');
         $lastMod = $now->toAtomString();
 
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
@@ -92,10 +95,35 @@ class SitemapController extends Controller
     }
 
     /**
+     * Render valid XML from normalized sitemap entry rows.
+     *
+     * @param array<int, array{loc:string,lastmod:string,changefreq:string,priority:string}> $entries
+     */
+    private function renderXml(array $entries): string
+    {
+        $xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+        $xml .= "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n";
+
+        foreach ($entries as $entry) {
+            $xml .= "  <url>\n";
+            $xml .= '    <loc>' . htmlspecialchars($entry['loc'], ENT_XML1 | ENT_QUOTES, 'UTF-8') . "</loc>\n";
+            $xml .= '    <lastmod>' . $entry['lastmod'] . "</lastmod>\n";
+            $xml .= '    <changefreq>' . $entry['changefreq'] . "</changefreq>\n";
+            $xml .= '    <priority>' . $entry['priority'] . "</priority>\n";
+            $xml .= "  </url>\n";
+        }
+
+        $xml .= "</urlset>\n";
+
+        return $xml;
+    }
+
+    /**
      * Protect dynamic additions so one failing source does not break the endpoint.
      */
     private function addDynamicModelPagesSafely(
-        Sitemap $sitemap,
+        array &$entries,
+        array &$seen,
         string $modelClass,
         string $tableName,
         string $pathPrefix,
@@ -106,7 +134,8 @@ class SitemapController extends Controller
     ): void {
         try {
             $this->addDynamicModelPages(
-                $sitemap,
+                $entries,
+                $seen,
                 $modelClass,
                 $tableName,
                 $pathPrefix,
@@ -121,19 +150,16 @@ class SitemapController extends Controller
     }
 
     /**
-     * Add the required public static pages to the sitemap.
+     * Add stable, high-value public pages.
      */
-    private function addStaticPages(Sitemap $sitemap, string $baseUrl, $now): void
+    private function addCorePages(array &$entries, array &$seen, string $baseUrl, $now): void
     {
         $staticPages = [
-            ['path' => '/', 'priority' => 1.0, 'change' => Url::CHANGE_FREQUENCY_DAILY],
-            ['path' => '/terms-of-use', 'priority' => 0.5, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/privacy-policy', 'priority' => 0.5, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/login', 'priority' => 0.4, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/register', 'priority' => 0.4, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/about', 'priority' => 0.7, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/contact', 'priority' => 0.7, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/features', 'priority' => 0.8, 'change' => Url::CHANGE_FREQUENCY_WEEKLY],
+            ['path' => '/', 'priority' => '1.0', 'change' => 'daily'],
+            ['path' => '/terms-of-use', 'priority' => '0.6', 'change' => 'monthly'],
+            ['path' => '/privacy-policy', 'priority' => '0.6', 'change' => 'monthly'],
+            ['path' => '/login', 'priority' => '0.4', 'change' => 'monthly'],
+            ['path' => '/register', 'priority' => '0.4', 'change' => 'monthly'],
         ];
 
         foreach ($staticPages as $page) {
@@ -141,22 +167,129 @@ class SitemapController extends Controller
                 continue;
             }
 
-            $sitemap->add(
-                Url::create($baseUrl . $page['path'])
-                    ->setPriority($page['priority'])
-                    ->setChangeFrequency($page['change'])
-                    ->setLastModificationDate($now)
+            $this->addEntry(
+                $entries,
+                $seen,
+                $baseUrl,
+                $page['path'],
+                $now->toAtomString(),
+                $page['change'],
+                $page['priority']
             );
         }
     }
 
     /**
-     * Add database-backed resource URLs in chunks to avoid memory issues.
+     * Auto-include public GET routes while skipping private or utility endpoints.
+     */
+    private function addPublicRoutePages(array &$entries, array &$seen, string $baseUrl, $now): void
+    {
+        $excluded = [
+            '/sitemap.xml',
+            '/up',
+        ];
+
+        foreach (RouteFacade::getRoutes() as $route) {
+            if (!$route instanceof LaravelRoute) {
+                continue;
+            }
+
+            if (!$this->isPublicGetRoute($route)) {
+                continue;
+            }
+
+            $path = '/' . ltrim($route->uri(), '/');
+            $path = $path === '//' ? '/' : $path;
+
+            if (in_array($path, $excluded, true)) {
+                continue;
+            }
+
+            // Skip dynamic placeholders in this static pass.
+            if (str_contains($path, '{')) {
+                continue;
+            }
+
+            if (str_starts_with($path, '/admin')) {
+                continue;
+            }
+
+            [$changefreq, $priority] = $this->metadataForPath($path);
+
+            $this->addEntry(
+                $entries,
+                $seen,
+                $baseUrl,
+                $path,
+                $now->toAtomString(),
+                $changefreq,
+                $priority
+            );
+        }
+    }
+
+    /**
+     * Return sitemap metadata defaults for known path categories.
      *
-     * @param class-string<Model> $modelClass
+     * @return array{0:string,1:string}
+     */
+    private function metadataForPath(string $path): array
+    {
+        if ($path === '/') {
+            return ['daily', '1.0'];
+        }
+
+        if ($path === '/login' || $path === '/register') {
+            return ['monthly', '0.4'];
+        }
+
+        if (str_contains($path, 'privacy') || str_contains($path, 'terms')) {
+            return ['monthly', '0.6'];
+        }
+
+        if (str_contains($path, 'forgot-password') || str_contains($path, 'reset-password')) {
+            return ['yearly', '0.2'];
+        }
+
+        return ['monthly', '0.5'];
+    }
+
+    /**
+     * Append a deduplicated URL entry.
+     */
+    private function addEntry(
+        array &$entries,
+        array &$seen,
+        string $baseUrl,
+        string $path,
+        string $lastMod,
+        string $changefreq,
+        string $priority
+    ): void {
+        $normalizedPath = '/' . ltrim($path, '/');
+        $normalizedPath = $normalizedPath === '//' ? '/' : $normalizedPath;
+
+        $loc = $baseUrl . ($normalizedPath === '/' ? '/' : $normalizedPath);
+
+        if (isset($seen[$loc])) {
+            return;
+        }
+
+        $seen[$loc] = true;
+        $entries[] = [
+            'loc' => $loc,
+            'lastmod' => $lastMod,
+            'changefreq' => $changefreq,
+            'priority' => $priority,
+        ];
+    }
+
+    /**
+     * Add database-backed resource URLs in chunks to avoid memory issues.
      */
     private function addDynamicModelPages(
-        Sitemap $sitemap,
+        array &$entries,
+        array &$seen,
         string $modelClass,
         string $tableName,
         string $pathPrefix,
@@ -174,8 +307,8 @@ class SitemapController extends Controller
             return;
         }
 
-        // Skip resources whose listing pages are not publicly accessible.
-        if (!$this->isPublicGetPath($pathPrefix)) {
+        // Skip resources when no public listing or detail route is present.
+        if (!$this->isPublicGetPath($pathPrefix) && !$this->hasPublicDynamicPrefix($pathPrefix)) {
             return;
         }
 
@@ -190,7 +323,7 @@ class SitemapController extends Controller
             $modelClass::query()
                 ->select($selectColumns)
                 ->orderBy('id')
-                ->chunkById(500, function ($rows) use ($sitemap, $pathPrefix, $priority, $changeFrequency, $baseUrl, $fallbackDate) {
+                ->chunkById(500, function ($rows) use (&$entries, &$seen, $pathPrefix, $priority, $changeFrequency, $baseUrl, $fallbackDate) {
                     foreach ($rows as $row) {
                         $lastModified = $fallbackDate;
 
@@ -198,11 +331,18 @@ class SitemapController extends Controller
                             $lastModified = $row->updated_at;
                         }
 
-                        $sitemap->add(
-                            Url::create($baseUrl . $pathPrefix . '/' . $row->id)
-                                ->setPriority($priority)
-                                ->setChangeFrequency($changeFrequency)
-                                ->setLastModificationDate($lastModified)
+                        $lastModifiedIso = method_exists($lastModified, 'toAtomString')
+                            ? $lastModified->toAtomString()
+                            : now()->toAtomString();
+
+                        $this->addEntry(
+                            $entries,
+                            $seen,
+                            $baseUrl,
+                            $pathPrefix . '/' . $row->id,
+                            $lastModifiedIso,
+                            $changeFrequency,
+                            number_format($priority, 2, '.', '')
                         );
                     }
                 });
@@ -222,6 +362,18 @@ class SitemapController extends Controller
             return false;
         }
 
+        return $this->isPublicGetRoute($route);
+    }
+
+    /**
+     * Check whether a given route is crawl-safe public GET endpoint.
+     */
+    private function isPublicGetRoute(LaravelRoute $route): bool
+    {
+        if (!in_array('GET', $route->methods(), true)) {
+            return false;
+        }
+
         $middleware = $route->gatherMiddleware();
 
         foreach ($middleware as $item) {
@@ -230,11 +382,38 @@ class SitemapController extends Controller
                 || str_starts_with($item, 'verified')
                 || str_starts_with($item, 'admin')
                 || str_starts_with($item, 'owner')
+                || str_starts_with($item, 'signed')
             ) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * Check if there is a public GET dynamic route like /resource/{id}.
+     */
+    private function hasPublicDynamicPrefix(string $pathPrefix): bool
+    {
+        $prefix = trim($pathPrefix, '/');
+
+        foreach (RouteFacade::getRoutes() as $route) {
+            if (!$route instanceof LaravelRoute) {
+                continue;
+            }
+
+            if (!$this->isPublicGetRoute($route)) {
+                continue;
+            }
+
+            $uri = trim($route->uri(), '/');
+
+            if (preg_match('/^' . preg_quote($prefix, '/') . '\/\{[^\/]+\}$/', $uri) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
