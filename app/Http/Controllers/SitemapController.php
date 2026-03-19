@@ -35,7 +35,12 @@ class SitemapController extends Controller
             });
         } catch (Throwable $exception) {
             // Never fail crawlers with 500 because of cache backend issues.
-            $xml = $this->buildSitemapXml($baseUrl, $now);
+            try {
+                $xml = $this->buildSitemapXml($baseUrl, $now);
+            } catch (Throwable $nestedException) {
+                // Last-resort fallback: return a minimal valid sitemap.
+                $xml = $this->buildMinimalSitemapXml($baseUrl, $now);
+            }
         }
 
         // Return a cached-friendly XML response for crawlers and search engines.
@@ -59,12 +64,60 @@ class SitemapController extends Controller
         $this->addStaticPages($sitemap, $baseUrl, $now);
 
         // Add database-driven resources only when their listing routes are public.
-        $this->addDynamicModelPages($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPages($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPages($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPages($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPagesSafely($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPagesSafely($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPagesSafely($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPagesSafely($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
 
         return $sitemap->render();
+    }
+
+    /**
+     * Build minimal XML when normal generation cannot complete.
+     */
+    private function buildMinimalSitemapXml(string $baseUrl, $now): string
+    {
+        $escapedLoc = htmlspecialchars($baseUrl . '/', ENT_XML1);
+        $lastMod = $now->toAtomString();
+
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            . "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+            . "  <url>\n"
+            . "    <loc>{$escapedLoc}</loc>\n"
+            . "    <lastmod>{$lastMod}</lastmod>\n"
+            . "    <changefreq>daily</changefreq>\n"
+            . "    <priority>1.0</priority>\n"
+            . "  </url>\n"
+            . "</urlset>\n";
+    }
+
+    /**
+     * Protect dynamic additions so one failing source does not break the endpoint.
+     */
+    private function addDynamicModelPagesSafely(
+        Sitemap $sitemap,
+        string $modelClass,
+        string $tableName,
+        string $pathPrefix,
+        float $priority,
+        string $changeFrequency,
+        string $baseUrl,
+        $fallbackDate,
+    ): void {
+        try {
+            $this->addDynamicModelPages(
+                $sitemap,
+                $modelClass,
+                $tableName,
+                $pathPrefix,
+                $priority,
+                $changeFrequency,
+                $baseUrl,
+                $fallbackDate,
+            );
+        } catch (Throwable $exception) {
+            // Keep sitemap generation alive even if one model source fails.
+        }
     }
 
     /**
@@ -113,7 +166,11 @@ class SitemapController extends Controller
         $fallbackDate,
     ): void {
         // Skip this resource completely if the production table does not exist yet.
-        if (!Schema::hasTable($tableName)) {
+        try {
+            if (!Schema::hasTable($tableName)) {
+                return;
+            }
+        } catch (Throwable $exception) {
             return;
         }
 
@@ -129,25 +186,29 @@ class SitemapController extends Controller
             $selectColumns[] = 'updated_at';
         }
 
-        $modelClass::query()
-            ->select($selectColumns)
-            ->orderBy('id')
-            ->chunkById(500, function ($rows) use ($sitemap, $pathPrefix, $priority, $changeFrequency, $baseUrl, $fallbackDate) {
-                foreach ($rows as $row) {
-                    $lastModified = $fallbackDate;
+        try {
+            $modelClass::query()
+                ->select($selectColumns)
+                ->orderBy('id')
+                ->chunkById(500, function ($rows) use ($sitemap, $pathPrefix, $priority, $changeFrequency, $baseUrl, $fallbackDate) {
+                    foreach ($rows as $row) {
+                        $lastModified = $fallbackDate;
 
-                    if (isset($row->updated_at) && $row->updated_at) {
-                        $lastModified = $row->updated_at;
+                        if (isset($row->updated_at) && $row->updated_at) {
+                            $lastModified = $row->updated_at;
+                        }
+
+                        $sitemap->add(
+                            Url::create($baseUrl . $pathPrefix . '/' . $row->id)
+                                ->setPriority($priority)
+                                ->setChangeFrequency($changeFrequency)
+                                ->setLastModificationDate($lastModified)
+                        );
                     }
-
-                    $sitemap->add(
-                        Url::create($baseUrl . $pathPrefix . '/' . $row->id)
-                            ->setPriority($priority)
-                            ->setChangeFrequency($changeFrequency)
-                            ->setLastModificationDate($lastModified)
-                    );
-                }
-            });
+                });
+        } catch (Throwable $exception) {
+            return;
+        }
     }
 
     /**
