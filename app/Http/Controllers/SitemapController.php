@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 
 class SitemapController extends Controller
 {
@@ -28,21 +29,14 @@ class SitemapController extends Controller
         // Use a single timestamp fallback when a record has no updated_at value.
         $now = now();
 
-        $xml = Cache::remember('seo:sitemap:xml:v1', now()->addHour(), function () use ($baseUrl, $now) {
-            // Create the sitemap instance that will hold all static and dynamic URLs.
-            $sitemap = Sitemap::create();
-
-            // Add public static pages that should always appear in the sitemap.
-            $this->addStaticPages($sitemap, $baseUrl, $now);
-
-            // Add database-driven resources only when their listing routes are public.
-            $this->addDynamicModelPages($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-            $this->addDynamicModelPages($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-            $this->addDynamicModelPages($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-            $this->addDynamicModelPages($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-
-            return $sitemap->render();
-        });
+        try {
+            $xml = Cache::remember('seo:sitemap:xml:v1', now()->addHour(), function () use ($baseUrl, $now) {
+                return $this->buildSitemapXml($baseUrl, $now);
+            });
+        } catch (Throwable $exception) {
+            // Never fail crawlers with 500 because of cache backend issues.
+            $xml = $this->buildSitemapXml($baseUrl, $now);
+        }
 
         // Return a cached-friendly XML response for crawlers and search engines.
         return response($xml, 200, [
@@ -51,6 +45,26 @@ class SitemapController extends Controller
             'X-Robots-Tag' => 'index, follow',
             'ETag' => '"' . md5($xml) . '"',
         ]);
+    }
+
+    /**
+     * Build XML sitemap content.
+     */
+    private function buildSitemapXml(string $baseUrl, $now): string
+    {
+        // Create the sitemap instance that will hold all static and dynamic URLs.
+        $sitemap = Sitemap::create();
+
+        // Add public static pages that should always appear in the sitemap.
+        $this->addStaticPages($sitemap, $baseUrl, $now);
+
+        // Add database-driven resources only when their listing routes are public.
+        $this->addDynamicModelPages($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPages($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPages($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+        $this->addDynamicModelPages($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+
+        return $sitemap->render();
     }
 
     /**
@@ -109,16 +123,28 @@ class SitemapController extends Controller
         }
 
         // Read records in chunks so large datasets do not exhaust server memory.
+        $selectColumns = ['id'];
+
+        if (Schema::hasColumn($tableName, 'updated_at')) {
+            $selectColumns[] = 'updated_at';
+        }
+
         $modelClass::query()
-            ->select(['id', 'updated_at'])
+            ->select($selectColumns)
             ->orderBy('id')
             ->chunkById(500, function ($rows) use ($sitemap, $pathPrefix, $priority, $changeFrequency, $baseUrl, $fallbackDate) {
                 foreach ($rows as $row) {
+                    $lastModified = $fallbackDate;
+
+                    if (isset($row->updated_at) && $row->updated_at) {
+                        $lastModified = $row->updated_at;
+                    }
+
                     $sitemap->add(
                         Url::create($baseUrl . $pathPrefix . '/' . $row->id)
                             ->setPriority($priority)
                             ->setChangeFrequency($changeFrequency)
-                            ->setLastModificationDate($row->updated_at ?? $fallbackDate)
+                            ->setLastModificationDate($lastModified)
                     );
                 }
             });
@@ -131,7 +157,7 @@ class SitemapController extends Controller
     {
         try {
             $route = RouteFacade::getRoutes()->match(Request::create($path, 'GET'));
-        } catch (NotFoundHttpException $exception) {
+        } catch (Throwable $exception) {
             return false;
         }
 
