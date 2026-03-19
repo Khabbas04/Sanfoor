@@ -7,9 +7,13 @@ use App\Models\Major;
 use App\Models\Plan;
 use App\Models\University;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Sitemap\Sitemap;
 use Spatie\Sitemap\Tags\Url;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SitemapController extends Controller
 {
@@ -24,22 +28,28 @@ class SitemapController extends Controller
         // Use a single timestamp fallback when a record has no updated_at value.
         $now = now();
 
-        // Create the sitemap instance that will hold all static and dynamic URLs.
-        $sitemap = Sitemap::create();
+        $xml = Cache::remember('seo:sitemap:xml:v1', now()->addHour(), function () use ($baseUrl, $now) {
+            // Create the sitemap instance that will hold all static and dynamic URLs.
+            $sitemap = Sitemap::create();
 
-        // Add public static pages that should always appear in the sitemap.
-        $this->addStaticPages($sitemap, $baseUrl, $now);
+            // Add public static pages that should always appear in the sitemap.
+            $this->addStaticPages($sitemap, $baseUrl, $now);
 
-        // Add database-driven resources only when their tables exist in production.
-        $this->addDynamicModelPages($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPages($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPages($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
-        $this->addDynamicModelPages($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+            // Add database-driven resources only when their listing routes are public.
+            $this->addDynamicModelPages($sitemap, University::class, 'universities', '/universities', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+            $this->addDynamicModelPages($sitemap, Major::class, 'majors', '/majors', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+            $this->addDynamicModelPages($sitemap, Course::class, 'courses', '/courses', 0.8, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+            $this->addDynamicModelPages($sitemap, Plan::class, 'plans', '/plans', 0.75, Url::CHANGE_FREQUENCY_WEEKLY, $baseUrl, $now);
+
+            return $sitemap->render();
+        });
 
         // Return a cached-friendly XML response for crawlers and search engines.
-        return response($sitemap->render(), 200, [
-            'Content-Type' => 'application/xml',
+        return response($xml, 200, [
+            'Content-Type' => 'application/xml; charset=UTF-8',
             'Cache-Control' => 'public, max-age=3600',
+            'X-Robots-Tag' => 'index, follow',
+            'ETag' => '"' . md5($xml) . '"',
         ]);
     }
 
@@ -50,14 +60,20 @@ class SitemapController extends Controller
     {
         $staticPages = [
             ['path' => '/', 'priority' => 1.0, 'change' => Url::CHANGE_FREQUENCY_DAILY],
-            ['path' => '/login', 'priority' => 0.6, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
-            ['path' => '/register', 'priority' => 0.6, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
+            ['path' => '/terms-of-use', 'priority' => 0.5, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
+            ['path' => '/privacy-policy', 'priority' => 0.5, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
+            ['path' => '/login', 'priority' => 0.4, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
+            ['path' => '/register', 'priority' => 0.4, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
             ['path' => '/about', 'priority' => 0.7, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
             ['path' => '/contact', 'priority' => 0.7, 'change' => Url::CHANGE_FREQUENCY_MONTHLY],
             ['path' => '/features', 'priority' => 0.8, 'change' => Url::CHANGE_FREQUENCY_WEEKLY],
         ];
 
         foreach ($staticPages as $page) {
+            if (!$this->isPublicGetPath($page['path'])) {
+                continue;
+            }
+
             $sitemap->add(
                 Url::create($baseUrl . $page['path'])
                     ->setPriority($page['priority'])
@@ -87,6 +103,11 @@ class SitemapController extends Controller
             return;
         }
 
+        // Skip resources whose listing pages are not publicly accessible.
+        if (!$this->isPublicGetPath($pathPrefix)) {
+            return;
+        }
+
         // Read records in chunks so large datasets do not exhaust server memory.
         $modelClass::query()
             ->select(['id', 'updated_at'])
@@ -101,5 +122,32 @@ class SitemapController extends Controller
                     );
                 }
             });
+    }
+
+    /**
+     * Check if a GET path exists and does not require auth/admin middlewares.
+     */
+    private function isPublicGetPath(string $path): bool
+    {
+        try {
+            $route = RouteFacade::getRoutes()->match(Request::create($path, 'GET'));
+        } catch (NotFoundHttpException $exception) {
+            return false;
+        }
+
+        $middleware = $route->gatherMiddleware();
+
+        foreach ($middleware as $item) {
+            if (
+                str_starts_with($item, 'auth')
+                || str_starts_with($item, 'verified')
+                || str_starts_with($item, 'admin')
+                || str_starts_with($item, 'owner')
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
