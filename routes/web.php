@@ -11,6 +11,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
+use App\Http\Controllers\AdminCollegeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -147,6 +148,21 @@ Route::middleware('auth')->group(function () {
         // Academic structure management.
         Route::post('/colleges', [AdminController::class, 'storeCollege'])->name('colleges.store');
         Route::post('/majors', [AdminController::class, 'storeMajor'])->name('majors.store');
+
+        // Colleges and landmarks management - complete CRUD with UI forms.
+        Route::get('/colleges/list', [AdminCollegeController::class, 'indexColleges'])->name('colleges.index');
+        Route::get('/colleges/new', [AdminCollegeController::class, 'createCollege'])->name('colleges.create');
+        Route::post('/colleges/new', [AdminCollegeController::class, 'storeCollege'])->name('colleges.store_new');
+        Route::get('/colleges/{college}/edit', [AdminCollegeController::class, 'editCollege'])->name('colleges.edit');
+        Route::put('/colleges/{college}', [AdminCollegeController::class, 'updateCollege'])->name('colleges.update');
+        Route::delete('/colleges/{college}', [AdminCollegeController::class, 'destroyCollege'])->name('colleges.destroy');
+
+        Route::get('/landmarks', [AdminCollegeController::class, 'indexLandmarks'])->name('landmarks.index');
+        Route::get('/landmarks/new', [AdminCollegeController::class, 'createLandmark'])->name('landmarks.create');
+        Route::post('/landmarks/new', [AdminCollegeController::class, 'storeLandmark'])->name('landmarks.store_new');
+        Route::get('/landmarks/{landmark}/edit', [AdminCollegeController::class, 'editLandmark'])->name('landmarks.edit');
+        Route::put('/landmarks/{landmark}', [AdminCollegeController::class, 'updateLandmark'])->name('landmarks.update');
+        Route::delete('/landmarks/{landmark}', [AdminCollegeController::class, 'destroyLandmark'])->name('landmarks.destroy');
 
         // Owner-only staff management routes.
         Route::middleware(['owner'])->group(function () {

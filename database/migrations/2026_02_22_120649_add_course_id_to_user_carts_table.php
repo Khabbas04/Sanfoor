@@ -8,10 +8,8 @@ return new class extends Migration
 {
 public function up(): void
 {
-    Schema::table('user_carts', function (Blueprint $table) {
-        // ضفنا nullable() عشان لارافيل ما يزعل من الصفوف القديمة
-        $table->foreignId('course_id')->nullable()->after('user_id')->constrained()->onDelete('cascade');
-    });
+    // This migration is a no-op because course_id was already added in the create_user_carts migration
+    // Keeping this file to maintain migration history
 }
 
     /**
