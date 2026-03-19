@@ -9,12 +9,6 @@ use Inertia\Inertia;
 
 class AdminCollegeController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-        $this->middleware('admin');
-    }
-
     // ==================== Colleges ====================
 
     public function indexColleges()

@@ -34,7 +34,8 @@ function useReveal(threshold = 0.12) {
 }
 
 export default function Directory({ auth, colleges = [], landmarks = [] }) {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [collegeSearch, setCollegeSearch] = useState('');
+    const [landmarkSearch, setLandmarkSearch] = useState('');
     const [activeTab, setActiveTab] = useState(null);
     const [landmarkType, setLandmarkType] = useState('all');
 
@@ -45,7 +46,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
     // 🧠 Smart filtering for colleges
     const filteredColleges = useMemo(() => {
         return colleges.filter(college => {
-            const searchLower = searchTerm.toLowerCase().trim();
+            const searchLower = collegeSearch.toLowerCase().trim();
             if (!searchLower) return true;
             return (
                 college.name.toLowerCase().includes(searchLower) ||
@@ -54,7 +55,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                 college.building_symbol?.toLowerCase().includes(searchLower)
             );
         });
-    }, [searchTerm, colleges]);
+    }, [collegeSearch, colleges]);
 
     // Set first college as active on load
     useEffect(() => {
@@ -66,7 +67,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
     const activeCollege = filteredColleges.find(c => c.id === activeTab);
 
     const filteredLandmarks = useMemo(() => {
-        const searchLower = searchTerm.toLowerCase().trim();
+        const searchLower = landmarkSearch.toLowerCase().trim();
         return landmarks.filter((landmark) => {
             const matchesType = landmarkType === 'all' || landmark.type === landmarkType;
             if (!searchLower) return matchesType;
@@ -78,7 +79,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
 
             return matchesType && matchesSearch;
         });
-    }, [landmarks, landmarkType, searchTerm]);
+    }, [landmarks, landmarkType, landmarkSearch]);
 
     // Helper to check if college belongs to student's major
     const isStudentCollege = (collegeId) => {
@@ -131,9 +132,24 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                     type="text"
                                     placeholder="ابحث عن كلية (مثال: هندسة، تكنولوجيا)..."
                                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pr-12 pl-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-400 shadow-sm"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    value={collegeSearch}
+                                    onChange={(e) => setCollegeSearch(e.target.value)}
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-3xl">
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                    <p className="text-[11px] text-slate-500 font-black">عدد الكليات</p>
+                                    <p className="text-xl text-slate-900 font-black mt-1">{colleges.length}</p>
+                                </div>
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                    <p className="text-[11px] text-slate-500 font-black">المعالم النشطة</p>
+                                    <p className="text-xl text-slate-900 font-black mt-1">{landmarks.length}</p>
+                                </div>
+                                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                    <p className="text-[11px] text-slate-500 font-black">نتائج بحث الكليات</p>
+                                    <p className="text-xl text-slate-900 font-black mt-1">{filteredColleges.length}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -271,7 +287,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             <span className="text-5xl mb-4 opacity-50">🏛️</span>
                             <h3 className="text-lg font-black text-slate-700 mb-2">لم نجد ما تبحث عنه</h3>
                             <p className="text-slate-400 text-sm">ليس هناك كليات في الداتابيس حاليًا.</p>
-                            <button onClick={() => setSearchTerm('')} className="mt-4 text-indigo-600 text-sm font-black bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors">
+                            <button onClick={() => setCollegeSearch('')} className="mt-4 text-indigo-600 text-sm font-black bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors">
                                 إعادة تعيين البحث
                             </button>
                         </div>
@@ -284,6 +300,17 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             <span className="text-xs font-black text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg">
                                 {filteredLandmarks.length} معلم
                             </span>
+                        </div>
+
+                        <div className="w-full relative">
+                            <span className="absolute inset-y-0 right-4 flex items-center text-xl opacity-50">🔎</span>
+                            <input
+                                type="text"
+                                placeholder="ابحث عن معلم (مطعم، مصلى، مكتبة...)"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pr-12 pl-4 text-sm font-bold text-slate-700 focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition-all placeholder:text-slate-400"
+                                value={landmarkSearch}
+                                onChange={(e) => setLandmarkSearch(e.target.value)}
+                            />
                         </div>
 
                         <div className="overflow-x-auto hide-scrollbar">
@@ -317,6 +344,13 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                             key={landmark.id}
                                             className="rounded-2xl border border-slate-200 bg-slate-50/70 overflow-hidden hover:shadow-md transition-shadow"
                                         >
+                                            {landmark.image_url && (
+                                                <img
+                                                    src={landmark.image_url}
+                                                    alt={landmark.name}
+                                                    className="w-full h-32 object-cover"
+                                                />
+                                            )}
                                             <div className="p-5 space-y-3">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <h4 className="text-base font-black text-slate-800">{landmark.name}</h4>
