@@ -118,7 +118,7 @@ export default function AdminLayout({ children }) {
         { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*' },
         { icon: '🔥', name: t.demand, route: 'admin.reports.demand', pattern: 'admin.reports.*' },
         { icon: '📚', name: t.courses, route: 'admin.courses', pattern: 'admin.courses' },
-        { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.colleges|admin.majors' },
+        { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors' },
         { icon: '🧩', name: t.collegesDirectory, route: 'admin.colleges.index', pattern: 'admin.colleges.*' },
         { icon: '📍', name: t.campusLandmarks, route: 'admin.landmarks.index', pattern: 'admin.landmarks.*' },
         { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
