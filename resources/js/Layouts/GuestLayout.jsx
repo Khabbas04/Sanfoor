@@ -91,6 +91,9 @@ export default function GuestLayout({ children }) {
                 <p className="text-slate-400 text-[11px] font-bold tracking-wide">
                     © {new Date().getFullYear()} سنفور — المرشد الأكاديمي الذكي
                 </p>
+                <p className="mt-1 text-slate-400 text-[11px] font-black uppercase tracking-[0.12em]">
+                    By Asem Alkhabbas
+                </p>
             </div>
 
         </div>

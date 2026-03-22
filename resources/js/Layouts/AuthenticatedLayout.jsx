@@ -171,6 +171,10 @@ export default function AuthenticatedLayout({ header, children }) {
             )}
 
             <main>{children}</main>
+
+            <footer className="border-t border-gray-200 bg-white py-4 text-center">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-gray-400">By Asem Alkhabbas</p>
+            </footer>
         </div>
     );
 }

@@ -326,6 +326,10 @@ export default function AdminLayout({ children }) {
                         {children}
                     </div>
                 </div>
+
+                <footer className={`px-5 md:px-10 pb-6 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em]">By Asem Alkhabbas</p>
+                </footer>
                 
                 {/* Layout-scoped utility styles for the admin shell. */}
                 <style dangerouslySetInnerHTML={{ __html: `
