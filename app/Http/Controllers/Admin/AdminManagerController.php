@@ -36,9 +36,17 @@ class AdminManagerController extends Controller
             ->limit(300)
             ->get(['id', 'name', 'email']);
 
+        $loginLogs = AdminLog::query()
+            ->with('user:id,name,email,role')
+            ->where('action', 'USER_LOGIN')
+            ->latest()
+            ->take(80)
+            ->get(['id', 'user_id', 'action', 'details', 'created_at']);
+
         return Inertia::render('Admin/Admins/Index', [
             'admins' => $admins,
             'students' => $students,
+            'loginLogs' => $loginLogs,
         ]);
     }
 

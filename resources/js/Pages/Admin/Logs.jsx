@@ -9,25 +9,34 @@ const t = {
         pageTitle: 'سجل العمليات | سنفور', header: '📜 سجل عمليات الإدارة',
         headerSub: 'صفحة مستقلة لمتابعة كل عمليات الإضافة، التعديل، والحذف.',
         tableTitle: '🕵️ سجل نشاطات النظام', lastOps: (n) => `آخر ${n} عملية موثقة في النظام.`,
+        loginTableTitle: '🔐 سجل تسجيل الدخول', loginLastOps: (n) => `آخر ${n} عملية دخول ناجحة.`,
         searchPlaceholder: 'بحث بالعملية أو المسؤول...',
+        searchLoginPlaceholder: 'بحث بالمستخدم أو الإيميل...',
         colDate: 'التاريخ والوقت', colAdmin: 'المسؤول (الأدمن)', colDetails: 'تفاصيل العملية',
+        colUser: 'المستخدم', colRole: 'الدور', colLoginAt: 'وقت تسجيل الدخول',
         unknownUser: 'مستخدم غير معروف', noResults: 'لا توجد عمليات مطابقة للبحث.',
+        noLoginResults: 'لا توجد عمليات تسجيل دخول مطابقة.',
     },
     en: {
         pageTitle: 'Activity Log | Sanfoor', header: '📜 Admin Activity Log',
         headerSub: 'Standalone page to track all add, update, and delete operations.',
         tableTitle: '🕵️ System Activity Log', lastOps: (n) => `Last ${n} documented operations.`,
+        loginTableTitle: '🔐 Login Activity', loginLastOps: (n) => `Last ${n} successful logins.`,
         searchPlaceholder: 'Search by action or admin...',
+        searchLoginPlaceholder: 'Search by user or email...',
         colDate: 'Date & Time', colAdmin: 'Admin', colDetails: 'Operation Details',
+        colUser: 'User', colRole: 'Role', colLoginAt: 'Login At',
         unknownUser: 'Unknown User', noResults: 'No matching operations found.',
+        noLoginResults: 'No matching login events found.',
     },
 };
 
-export default function AdminLogs({ auth, logs = [] }) {
+export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const tr = t[lang] || t.ar;
     const [query, setQuery] = React.useState('');
+    const [loginQuery, setLoginQuery] = React.useState('');
 
     const filteredLogs = React.useMemo(() => {
         if (!query) return logs;
@@ -39,6 +48,20 @@ export default function AdminLogs({ auth, logs = [] }) {
             return action.includes(q) || details.includes(q) || user.includes(q);
         });
     }, [logs, query]);
+
+    const filteredLoginLogs = React.useMemo(() => {
+        if (!loginQuery) return loginLogs;
+        const q = loginQuery.toLowerCase();
+
+        return loginLogs.filter((log) => {
+            const userName = String(log.user?.name || '').toLowerCase();
+            const userEmail = String(log.user?.email || '').toLowerCase();
+            const role = String(log.user?.role || '').toLowerCase();
+            const details = String(log.details || '').toLowerCase();
+
+            return userName.includes(q) || userEmail.includes(q) || role.includes(q) || details.includes(q);
+        });
+    }, [loginLogs, loginQuery]);
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const heading = isDark ? 'text-slate-100' : 'text-slate-800';
@@ -67,6 +90,56 @@ export default function AdminLogs({ auth, logs = [] }) {
                 </div>
 
                 <div className={`${card} rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.03)] overflow-hidden`}>
+                    <div className={`p-6 md:p-8 border-b flex justify-between items-center ${isDark ? 'border-slate-700 bg-slate-900/40' : 'border-slate-100 bg-slate-50/50'}`}>
+                        <div>
+                            <h2 className={`text-xl font-[900] ${heading} tracking-tight`}>{tr.loginTableTitle}</h2>
+                            <p className={`text-[11px] font-bold mt-1 ${subtext}`}>{tr.loginLastOps(loginLogs.length)}</p>
+                        </div>
+                        <div className="w-64">
+                            <input
+                                type="text"
+                                value={loginQuery}
+                                onChange={(e) => setLoginQuery(e.target.value)}
+                                placeholder={tr.searchLoginPlaceholder}
+                                className={`w-full rounded-xl text-sm font-bold border ${inputCls}`}
+                            />
+                        </div>
+                    </div>
+
+                    <div className={`overflow-x-auto border-b ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                        <table className="w-full text-right whitespace-nowrap">
+                            <thead className={`sticky top-0 text-[11px] font-black uppercase tracking-widest border-b z-10 ${theadCls}`}>
+                                <tr>
+                                    <th className="p-5">{tr.colUser}</th>
+                                    <th className="p-5">{tr.colRole}</th>
+                                    <th className="p-5">{tr.colLoginAt}</th>
+                                </tr>
+                            </thead>
+                            <tbody className={`${divider} divide-y text-sm`}>
+                                {filteredLoginLogs.length > 0 ? filteredLoginLogs.map((log) => {
+                                    const role = String(log.user?.role || '').toUpperCase() || 'N/A';
+
+                                    return (
+                                        <tr key={`login-${log.id}`} className={`${rowHover} transition-colors`}>
+                                            <td className={`p-5 font-[900] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                                                <div>{log.user?.name || tr.unknownUser}</div>
+                                                <div className={`text-[11px] mt-1 font-bold ${subtext}`}>{log.user?.email || '---'}</div>
+                                            </td>
+                                            <td className={`p-5 font-black text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{role}</td>
+                                            <td className={`p-5 font-mono text-[11px] font-bold ${subtext}`} dir="ltr">
+                                                {new Date(log.created_at).toLocaleString('en-GB')}
+                                            </td>
+                                        </tr>
+                                    );
+                                }) : (
+                                    <tr>
+                                        <td colSpan="3" className={`p-10 text-center font-bold ${subtext}`}>{tr.noLoginResults}</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <div className={`p-6 md:p-8 border-b flex justify-between items-center ${isDark ? 'border-slate-700 bg-slate-900/40' : 'border-slate-100 bg-slate-50/50'}`}>
                         <div>
                             <h2 className={`text-xl font-[900] ${heading} tracking-tight`}>{tr.tableTitle}</h2>

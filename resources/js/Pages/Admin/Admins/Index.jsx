@@ -42,6 +42,13 @@ const translations = {
         yes: 'نعم',
         confirmDelete: 'نعم، احذف',
         cancel: 'إلغاء',
+        loginActivityTitle: 'سجل الدخول (للأونر)',
+        loginActivitySubheading: 'آخر من سجل دخول للموقع مع التاريخ والوقت.',
+        loginUser: 'المستخدم',
+        loginRole: 'الدور',
+        loginAt: 'وقت الدخول',
+        unknownUser: 'مستخدم محذوف',
+        noLoginLogs: 'لا يوجد سجل دخول حتى الآن.',
     },
     en: {
         pageTitle: 'Manage Admins - Owner',
@@ -79,10 +86,17 @@ const translations = {
         yes: 'Yes',
         confirmDelete: 'Yes, Delete',
         cancel: 'Cancel',
+        loginActivityTitle: 'Login Activity (Owner)',
+        loginActivitySubheading: 'Recent successful logins with date and time.',
+        loginUser: 'User',
+        loginRole: 'Role',
+        loginAt: 'Login At',
+        unknownUser: 'Deleted user',
+        noLoginLogs: 'No login activity yet.',
     },
 };
 
-export default function AdminsIndex({ auth, admins = [], students = [] }) {
+    export default function AdminsIndex({ auth, admins = [], students = [], loginLogs = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -300,6 +314,58 @@ export default function AdminsIndex({ auth, admins = [], students = [] }) {
                                         <tr>
                                             <td colSpan="5" className={`text-center py-8 ${isDark ? 'text-slate-500' : 'text-slate-400'} font-bold text-sm`}>
                                                 {t.noResults}
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className={`${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'} border rounded-2xl overflow-hidden shadow-sm mt-6`}>
+                        <div className={`px-4 py-4 border-b ${isDark ? 'border-slate-700 bg-slate-900/50' : 'border-slate-100 bg-slate-50/70'}`}>
+                            <h2 className={`text-sm font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{t.loginActivityTitle}</h2>
+                            <p className={`mt-1 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.loginActivitySubheading}</p>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className={`w-full ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+                                <thead className={`${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'} border-b`}>
+                                    <tr>
+                                        <th className={`px-4 py-3 text-xs font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.loginUser}</th>
+                                        <th className={`px-4 py-3 text-xs font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.loginRole}</th>
+                                        <th className={`px-4 py-3 text-xs font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.loginAt}</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {loginLogs.map((log) => {
+                                        const role = String(log?.user?.role || '').toUpperCase() || 'N/A';
+                                        const userName = log?.user?.name || t.unknownUser;
+                                        const userEmail = log?.user?.email || '---';
+
+                                        return (
+                                            <tr key={log.id} className={`border-b ${isDark ? 'border-slate-700 hover:bg-slate-700/30' : 'border-slate-100 hover:bg-slate-50/50'} last:border-b-0`}>
+                                                <td className="px-4 py-3">
+                                                    <p className={`text-sm font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{userName}</p>
+                                                    <p className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`px-2 py-1 rounded-md text-[11px] font-black ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+                                                        {role}
+                                                    </span>
+                                                </td>
+                                                <td className={`px-4 py-3 text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                    {new Date(log.created_at).toLocaleString()}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+
+                                    {loginLogs.length === 0 && (
+                                        <tr>
+                                            <td colSpan="3" className={`text-center py-8 ${isDark ? 'text-slate-500' : 'text-slate-400'} font-bold text-sm`}>
+                                                {t.noLoginLogs}
                                             </td>
                                         </tr>
                                     )}
