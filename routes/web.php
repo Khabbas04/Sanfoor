@@ -49,6 +49,10 @@ Route::get('/privacy-policy', function () {
     return Inertia::render('Legal/Privacy');
 })->name('legal.privacy');
 
+Route::get('/about-us', function () {
+    return Inertia::render('Legal/About');
+})->name('legal.about');
+
 // Authenticated student dashboard.
 Route::get('/dashboard', function () {
     $user = Auth::user();

@@ -57,6 +57,7 @@ export default function MainLayout({ children }) {
             footerDesc: 'المساعد الأكاديمي الرقمي الأول لطلاب الجامعات. ندمج الذكاء الاصطناعي في رحلتك الدراسية لنمنحك تجربة تعليمية أذكى.',
             quickLinks: 'روابط سريعة',
             legal: 'قانوني',
+            about: 'من نحن',
             reportIssue: 'الإبلاغ عن مشكلة',
             terms: 'شروط الاستخدام',
             privacy: 'سياسة الخصوصية',
@@ -78,6 +79,7 @@ export default function MainLayout({ children }) {
             footerDesc: 'The first digital academic assistant for university students. Integrating AI into your journey for a smarter educational experience.',
             quickLinks: 'Quick Links',
             legal: 'Legal',
+            about: 'About Us',
             reportIssue: 'Report an Issue',
             terms: 'Terms of Use',
             privacy: 'Privacy Policy',
@@ -340,6 +342,7 @@ export default function MainLayout({ children }) {
                         <div className="md:col-span-2 space-y-5">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.legal}</h4>
                             <ul className="space-y-3">
+                                <li><Link href={route('legal.about')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>✨</span> {t.about}</Link></li>
                                 <li><Link href={route('legal.terms')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📜</span> {t.terms}</Link></li>
                                 <li><Link href={route('legal.privacy')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🔐</span> {t.privacy}</Link></li>
                             </ul>
