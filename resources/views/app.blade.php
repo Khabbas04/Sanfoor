@@ -12,6 +12,53 @@
     $appUrl = rtrim(config('app.url', url('/')), '/');
     $creatorName = 'Asem Alkhabbas';
     $creatorLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas-667471371/';
+	$schemaGraph = [
+		'@context' => 'https://schema.org',
+		'@graph' => [
+			[
+				'@id' => "{$appUrl}/#creator",
+				'@type' => 'Person',
+				'name' => $creatorName,
+				'jobTitle' => 'Founder & Developer',
+				'url' => $creatorLinkedIn,
+				'sameAs' => [$creatorLinkedIn],
+			],
+			[
+				'@id' => "{$appUrl}/#organization",
+				'@type' => 'Organization',
+				'name' => 'Sanfoor',
+				'url' => "{$appUrl}/",
+				'logo' => "{$appUrl}/images/sanfoor.png",
+				'founder' => [
+					'@id' => "{$appUrl}/#creator",
+				],
+			],
+			[
+				'@id' => "{$appUrl}/#website",
+				'@type' => 'WebSite',
+				'name' => 'Sanfoor',
+				'url' => "{$appUrl}/",
+				'publisher' => [
+					'@id' => "{$appUrl}/#organization",
+				],
+				'creator' => [
+					'@id' => "{$appUrl}/#creator",
+				],
+			],
+			[
+				'@id' => "{$appUrl}/#webpage",
+				'@type' => 'WebPage',
+				'url' => "{$appUrl}/",
+				'name' => 'Sanfoor - المرشد الأكاديمي الذكي',
+				'isPartOf' => [
+					'@id' => "{$appUrl}/#website",
+				],
+				'author' => [
+					'@id' => "{$appUrl}/#creator",
+				],
+			],
+		],
+	];
 @endphp
 
 <meta name="description" content="سنفور - المرشد الأكاديمي الذكي لطلاب الجامعات.">
@@ -34,55 +81,7 @@
 <link rel="author" href="{{ $creatorLinkedIn }}">
 
 <script type="application/ld+json">
-{
-	"@context": "https://schema.org",
-	"@graph": [
-		{
-			"@id": "{{ $appUrl }}/#creator",
-			"@type": "Person",
-			"name": "{{ $creatorName }}",
-			"jobTitle": "Founder & Developer",
-			"url": "{{ $creatorLinkedIn }}",
-			"sameAs": [
-				"{{ $creatorLinkedIn }}"
-			]
-		},
-		{
-			"@id": "{{ $appUrl }}/#organization",
-			"@type": "Organization",
-			"name": "Sanfoor",
-			"url": "{{ $appUrl }}/",
-			"logo": "{{ $appUrl }}/images/sanfoor.png",
-			"founder": {
-				"@id": "{{ $appUrl }}/#creator"
-			}
-		},
-		{
-			"@id": "{{ $appUrl }}/#website",
-			"@type": "WebSite",
-			"name": "Sanfoor",
-			"url": "{{ $appUrl }}/",
-			"publisher": {
-				"@id": "{{ $appUrl }}/#organization"
-			},
-			"creator": {
-				"@id": "{{ $appUrl }}/#creator"
-			}
-		},
-		{
-			"@id": "{{ $appUrl }}/#webpage",
-			"@type": "WebPage",
-			"url": "{{ $appUrl }}/",
-			"name": "Sanfoor - المرشد الأكاديمي الذكي",
-			"isPartOf": {
-				"@id": "{{ $appUrl }}/#website"
-			},
-			"author": {
-				"@id": "{{ $appUrl }}/#creator"
-			}
-		}
-	]
-}
+{!! json_encode($schemaGraph, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
 </script>
 
 <link rel="icon" href="/images/sanfoor.png">
