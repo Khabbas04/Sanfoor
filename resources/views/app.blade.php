@@ -8,10 +8,82 @@
 
 <title inertia>{{ config('app.name', 'Sanfoor') }}</title>
 
+@php
+    $appUrl = rtrim(config('app.url', url('/')), '/');
+    $creatorName = 'Asem Alkhabbas';
+    $creatorLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas-667471371/';
+@endphp
+
 <meta name="description" content="سنفور - المرشد الأكاديمي الذكي لطلاب الجامعات.">
 <meta name="keywords" content="Sanfoor, سنفور, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, University Planner, GPA Calculator">
+<meta name="author" content="Asem Alkhabbas">
+<meta name="creator" content="{{ $creatorName }}">
+<meta name="publisher" content="{{ $creatorName }}">
+<meta name="copyright" content="{{ now()->year }} {{ $creatorName }}">
 <meta name="robots" content="index,follow">
 <meta name="theme-color" content="#0f172a">
+<meta property="og:site_name" content="Sanfoor">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Sanfoor - المرشد الأكاديمي الذكي">
+<meta property="og:description" content="سنفور - المرشد الأكاديمي الذكي لطلاب الجامعات.">
+<meta property="og:url" content="{{ $appUrl }}/">
+<meta property="og:image" content="{{ $appUrl }}/images/sanfoor.png">
+<meta property="og:locale" content="ar_JO">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ $appUrl }}/images/sanfoor.png">
+<link rel="author" href="{{ $creatorLinkedIn }}">
+
+<script type="application/ld+json">
+{
+	"@context": "https://schema.org",
+	"@graph": [
+		{
+			"@id": "{{ $appUrl }}/#creator",
+			"@type": "Person",
+			"name": "{{ $creatorName }}",
+			"jobTitle": "Founder & Developer",
+			"url": "{{ $creatorLinkedIn }}",
+			"sameAs": [
+				"{{ $creatorLinkedIn }}"
+			]
+		},
+		{
+			"@id": "{{ $appUrl }}/#organization",
+			"@type": "Organization",
+			"name": "Sanfoor",
+			"url": "{{ $appUrl }}/",
+			"logo": "{{ $appUrl }}/images/sanfoor.png",
+			"founder": {
+				"@id": "{{ $appUrl }}/#creator"
+			}
+		},
+		{
+			"@id": "{{ $appUrl }}/#website",
+			"@type": "WebSite",
+			"name": "Sanfoor",
+			"url": "{{ $appUrl }}/",
+			"publisher": {
+				"@id": "{{ $appUrl }}/#organization"
+			},
+			"creator": {
+				"@id": "{{ $appUrl }}/#creator"
+			}
+		},
+		{
+			"@id": "{{ $appUrl }}/#webpage",
+			"@type": "WebPage",
+			"url": "{{ $appUrl }}/",
+			"name": "Sanfoor - المرشد الأكاديمي الذكي",
+			"isPartOf": {
+				"@id": "{{ $appUrl }}/#website"
+			},
+			"author": {
+				"@id": "{{ $appUrl }}/#creator"
+			}
+		}
+	]
+}
+</script>
 
 <link rel="icon" href="/images/sanfoor.png">
 

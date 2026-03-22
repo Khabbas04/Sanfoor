@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 
 // Resolve the public site URL for canonical and social metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+const creatorName = 'Asem Alkhabbas';
+const creatorLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas-667471371/';
 
 /* ─────────────────────────────────────────────
    Sanfoor – Premium Animated Landing Page v4.0
@@ -68,6 +70,9 @@ export default function Welcome({ auth }) {
                 <title>سنفور | Sanfoor - المرشد الأكاديمي الذكي</title>
                 <meta name="description" content="منصة سنفور تساعد طلاب الجامعات على تخطيط المسار الأكاديمي، إدارة الخطة الدراسية، واختيار المواد بذكاء مدعوم بالذكاء الاصطناعي." />
                 <meta name="keywords" content="سنفور, Sanfoor, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, اختيار المواد, GPA" />
+                <meta name="author" content={creatorName} />
+                <meta name="creator" content={creatorName} />
+                <meta name="publisher" content={creatorName} />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/`} />
                 <meta property="og:type" content="website" />
@@ -75,10 +80,27 @@ export default function Welcome({ auth }) {
                 <meta property="og:description" content="خطط مسارك الجامعي بذكاء، وتابع تقدمك الدراسي من مكان واحد." />
                 <meta property="og:url" content={`${siteUrl}/`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
+                <meta property="article:author" content={creatorName} />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="سنفور | Sanfoor - المرشد الأكاديمي الذكي" />
                 <meta name="twitter:description" content="دليلك الذكي لاختيار المواد وفهم الخطة الجامعية." />
                 <meta name="twitter:image" content={`${siteUrl}/images/sanfoor.png`} />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org',
+                            '@type': 'WebPage',
+                            name: 'سنفور | Sanfoor - المرشد الأكاديمي الذكي',
+                            url: `${siteUrl}/`,
+                            author: {
+                                '@type': 'Person',
+                                name: creatorName,
+                                url: creatorLinkedIn,
+                            },
+                        }),
+                    }}
+                />
             </Head>
 
             <style dangerouslySetInnerHTML={{ __html: `
@@ -234,6 +256,16 @@ export default function Welcome({ auth }) {
                                 </span>
                                 <span className="font-i tracking-wide">النظام الذكي الأول في الجامعات</span>
                             </div>
+
+                            <a
+                                href={creatorLinkedIn}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[11px] font-black tracking-wide hover:bg-white/20 transition-colors"
+                            >
+                                <span>Created by</span>
+                                <span className="text-cyan-200">{creatorName}</span>
+                            </a>
                         </div>
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
