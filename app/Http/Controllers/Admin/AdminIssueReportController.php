@@ -18,6 +18,7 @@ class AdminIssueReportController extends Controller
             'user_id' => auth()->id(),
             'action' => $action,
             'details' => $details,
+            'ip_address' => request()->ip(),
         ]);
     }
 

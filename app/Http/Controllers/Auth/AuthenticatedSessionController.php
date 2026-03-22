@@ -58,6 +58,7 @@ class AuthenticatedSessionController extends Controller
                     $user->role,
                     $request->ip()
                 ),
+                'ip_address' => $request->ip(),
             ]);
         } catch (Throwable $e) {
             Log::warning('Failed to write USER_LOGIN admin log', [

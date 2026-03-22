@@ -24,7 +24,8 @@ class AdminController extends Controller
         AdminLog::create([
             'user_id' => Auth::id(),
             'action' => $action,
-            'details' => $details
+            'details' => $details,
+            'ip_address' => request()->ip()
         ]);
     }
 
@@ -103,7 +104,7 @@ class AdminController extends Controller
     public function logs()
     {
         return Inertia::render('Admin/Logs', [
-            'logs' => AdminLog::with('user:id,name,email')->latest()->take(200)->get(),
+            'logs' => AdminLog::with('user:id,name,email')->select('*')->latest()->take(200)->get(),
             'loginLogs' => AdminLog::with('user:id,name,email,role')
                 ->where('action', 'USER_LOGIN')
                 ->latest()
