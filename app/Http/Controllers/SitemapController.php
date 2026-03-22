@@ -109,6 +109,8 @@ class SitemapController extends Controller
     private function addRequestedImportantPages(array &$entries, array &$seen, string $baseUrl, $now): void
     {
         $pages = [
+            ['path' => '/', 'priority' => '1.00', 'change' => 'daily'],
+            ['path' => '/about-us', 'priority' => '0.90', 'change' => 'weekly'],
             ['path' => '/ai-advisor', 'priority' => '0.95', 'change' => 'daily'],
             ['path' => '/tree', 'priority' => '0.90', 'change' => 'weekly'],
             ['path' => '/campus-directory', 'priority' => '0.85', 'change' => 'monthly'],

@@ -2,6 +2,8 @@ import { Head, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+const founderName = 'Asem Alkhabbas';
+const founderLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas-667471371/';
 
 const pillars = [
     {
@@ -48,6 +50,9 @@ export default function About() {
             <Head>
                 <title>من نحن | سنفور</title>
                 <meta name="description" content="تعرف على سنفور: منصة الإرشاد الأكاديمي الذكي التي تساعد الطالب على فهم خطته، اختيار مواده، واتخاذ قرارات أدق بثقة." />
+                <meta name="author" content={founderName} />
+                <meta name="creator" content={founderName} />
+                <meta name="publisher" content={founderName} />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/about-us`} />
                 <meta property="og:type" content="website" />
@@ -55,9 +60,43 @@ export default function About() {
                 <meta property="og:description" content="قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب الجامعات." />
                 <meta property="og:url" content={`${siteUrl}/about-us`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
+                <meta property="article:author" content={founderName} />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="من نحن | سنفور" />
                 <meta name="twitter:description" content="تعرف على رؤية سنفور لبناء مساعد أكاديمي رقمي للطلاب." />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            '@context': 'https://schema.org',
+                            '@graph': [
+                                {
+                                    '@type': 'AboutPage',
+                                    name: 'من نحن | سنفور',
+                                    url: `${siteUrl}/about-us`,
+                                    description:
+                                        'قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب الجامعات.',
+                                    author: {
+                                        '@type': 'Person',
+                                        name: founderName,
+                                        url: founderLinkedIn,
+                                    },
+                                },
+                                {
+                                    '@type': 'Organization',
+                                    name: 'Sanfoor',
+                                    url: `${siteUrl}/`,
+                                    logo: `${siteUrl}/images/sanfoor.png`,
+                                    founder: {
+                                        '@type': 'Person',
+                                        name: founderName,
+                                        url: founderLinkedIn,
+                                    },
+                                },
+                            ],
+                        }),
+                    }}
+                />
             </Head>
 
             <style
@@ -134,6 +173,22 @@ export default function About() {
                                 <p className="mt-3 text-slate-600 font-bold leading-relaxed text-sm sm:text-[15px]">{item.text}</p>
                             </article>
                         ))}
+                    </section>
+
+                    <section className="mt-8 sm:mt-10 about-reveal rounded-3xl border border-slate-200 bg-white p-6 sm:p-8" style={{ animationDelay: '600ms' }}>
+                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.12em]">Founder</p>
+                        <h3 className="mt-2 text-2xl font-black text-slate-900">{founderName}</h3>
+                        <p className="mt-2 text-slate-600 font-bold text-sm sm:text-[15px] leading-relaxed">
+                            تم تأسيس سنفور وتطويره برؤية تركز على الطالب أولا: تبسيط القرار الأكاديمي وتحويل التخطيط الجامعي إلى تجربة واضحة وعملية.
+                        </p>
+                        <a
+                            href={founderLinkedIn}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-black text-xs hover:bg-indigo-100 transition-colors"
+                        >
+                            LinkedIn Profile
+                        </a>
                     </section>
 
                     <section className="mt-8 sm:mt-10 grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-6">
