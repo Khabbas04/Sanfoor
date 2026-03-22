@@ -132,6 +132,21 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
         return { todayLogs, actionTypes };
     }, [logs]);
 
+    const loginStats = React.useMemo(() => {
+        const now = new Date();
+        const today = Math.floor(now / (1000 * 60 * 60 * 24));
+        
+        const todayLogins = loginLogs.filter((log) => {
+            const logDay = Math.floor(new Date(log.created_at) / (1000 * 60 * 60 * 24));
+            return logDay === today;
+        }).length;
+
+        const uniqueUsers = new Set(loginLogs.map((log) => log.user_id)).size;
+        const totalLogins = loginLogs.length;
+
+        return { todayLogins, uniqueUsers, totalLogins };
+    }, [loginLogs]);
+
     const getRoleColor = (role) => {
         const roleUpper = String(role || '').toUpperCase();
         if (roleUpper === 'ADMIN') return isDark ? 'bg-purple-900/40 text-purple-300 border-purple-700' : 'bg-purple-100 text-purple-700 border-purple-200';
