@@ -12,6 +12,7 @@ use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use App\Http\Controllers\AdminCollegeController;
+use App\Models\Course;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -63,6 +64,21 @@ Route::get('/dashboard', function () {
     $passedHours = $user->passedCourses->sum('credit_hours');
     $gpaData = $user->calculateGPA();
 
+    $plannerCoursesQuery = Course::query()
+        ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
+        ->with(['prerequisites:id']);
+
+    if ($user->major_id) {
+        $plannerCoursesQuery->where(function ($query) use ($user) {
+            $query->where('major_id', $user->major_id)
+                ->orWhereNull('major_id');
+        });
+    } else {
+        $plannerCoursesQuery->whereNull('major_id');
+    }
+
+    $plannerCourses = $plannerCoursesQuery->get();
+
     // Keep the payload focused on the fields rendered in the dashboard UI.
     $passedCourses = $user->passedCourses()
         ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
@@ -76,6 +92,7 @@ Route::get('/dashboard', function () {
         'passed_courses' => $passedCourses,
         'cart_courses' => $user->cartCourses,
         'ai_skills' => $user->getSkillsFromPassedCourses(),
+        'planner_courses' => $plannerCourses,
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

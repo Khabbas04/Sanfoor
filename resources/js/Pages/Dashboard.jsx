@@ -1,5 +1,5 @@
 import MainLayout from '@/Layouts/MainLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
 // Resolve the deployment URL once for page-level SEO metadata.
@@ -52,6 +52,7 @@ export default function Dashboard({
     passed_courses = [],
     cart_courses = [],
     ai_skills = [],
+    planner_courses = [],
 }) {
 
     // Compute high-level academic summaries once per data change.
@@ -96,6 +97,7 @@ export default function Dashboard({
 
     const [metricsRef, metricsVis] = useReveal(0.08);
     const [aiRef, aiVis] = useReveal(0.15);
+    const [smartRef, smartVis] = useReveal(0.1);
     const [recordRef, recordVis] = useReveal(0.10); 
     const [cartRef, cartVis] = useReveal(0.10);
     const [skillsRef, skillsVis] = useReveal(0.12);
@@ -162,6 +164,18 @@ export default function Dashboard({
 
     const [recordActiveTab, setRecordActiveTab] = useState(recordSemesters.length > 0 ? recordSemesters[0] : 'all');
 
+    const [localCartCourses, setLocalCartCourses] = useState(Array.isArray(cart_courses) ? cart_courses : []);
+    const [smartPace, setSmartPace] = useState('balanced');
+    const [smartFocus, setSmartFocus] = useState('major');
+    const [smartProtectGpa, setSmartProtectGpa] = useState(true);
+    const [smartPlan, setSmartPlan] = useState([]);
+    const [smartHours, setSmartHours] = useState(0);
+    const [isApplyingSmartPlan, setIsApplyingSmartPlan] = useState(false);
+
+    useEffect(() => {
+        setLocalCartCourses(Array.isArray(cart_courses) ? cart_courses : []);
+    }, [cart_courses]);
+
     const recordDisplayedCourses = useMemo(() => {
         if (recordActiveTab === 'all') return processedCourses;
         return processedCourses.filter(c => c.localSemester === recordActiveTab);
@@ -177,9 +191,145 @@ export default function Dashboard({
         return 'bg-rose-100 text-rose-700 border-rose-200'; 
     };
 
+    const plannerCourses = useMemo(() => {
+        if (!Array.isArray(planner_courses)) return [];
+
+        return planner_courses.map((course) => ({
+            ...course,
+            credit_hours: Number(course.credit_hours || 0),
+            semester: Number(course.semester || 1),
+            prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : [],
+        }));
+    }, [planner_courses]);
+
+    const passedCourseIds = useMemo(() => new Set(processedCourses.map((course) => course.id)), [processedCourses]);
     const cartTotalHours = useMemo(() => {
-        return cart_courses.reduce((sum, course) => sum + course.credit_hours, 0);
-    }, [cart_courses]);
+        return localCartCourses.reduce((sum, course) => sum + Number(course.credit_hours || 0), 0);
+    }, [localCartCourses]);
+
+    const smartPlanInsights = useMemo(() => {
+        if (!smartPlan.length) return null;
+
+        const majorCount = smartPlan.filter((course) => course.major_id !== null).length;
+        const universityCount = smartPlan.length - majorCount;
+        const heavyCount = smartPlan.filter((course) => course.credit_hours >= 3 && course.type === 'compulsory').length;
+
+        return {
+            majorCount,
+            universityCount,
+            heavyCount,
+        };
+    }, [smartPlan]);
+
+    const generateSmartPlan = useCallback(() => {
+        if (!plannerCourses.length) {
+            setSmartPlan([]);
+            setSmartHours(0);
+            return;
+        }
+
+        const childrenMap = new Map();
+
+        plannerCourses.forEach((course) => {
+            course.prerequisites.forEach((prereq) => {
+                const list = childrenMap.get(prereq.id) || [];
+                list.push(course.id);
+                childrenMap.set(prereq.id, list);
+            });
+        });
+
+        const unlockCache = new Map();
+        const unlockScore = (courseId, visited = new Set()) => {
+            if (unlockCache.has(courseId)) return unlockCache.get(courseId);
+            if (visited.has(courseId)) return 0;
+
+            const nextVisited = new Set(visited);
+            nextVisited.add(courseId);
+
+            const children = childrenMap.get(courseId) || [];
+            const score = children.reduce((sum, childId) => sum + 1 + unlockScore(childId, nextVisited), 0);
+
+            unlockCache.set(courseId, score);
+            return score;
+        };
+
+        const available = plannerCourses.filter((course) => {
+            if (passedCourseIds.has(course.id)) return false;
+            if (!course.prerequisites.length) return true;
+
+            return course.prerequisites.every((prereq) => passedCourseIds.has(prereq.id));
+        });
+
+        const targetHoursMap = {
+            heavy: 18,
+            balanced: 15,
+            light: 12,
+        };
+
+        const targetHours = targetHoursMap[smartPace] || 15;
+
+        const scored = available
+            .map((course) => {
+                const unlock = unlockScore(course.id);
+                const isMajor = course.major_id !== null;
+                const isCompulsory = course.type === 'compulsory';
+                const isHeavy = isMajor && isCompulsory && course.credit_hours >= 3;
+
+                let score = unlock * 7 + course.credit_hours;
+
+                if (smartFocus === 'major') {
+                    score += isMajor ? 8 : -3;
+                } else if (smartFocus === 'graduation') {
+                    score += unlock * 4 + (isCompulsory ? 4 : 0);
+                } else if (smartFocus === 'gpa') {
+                    score += course.credit_hours <= 3 ? 4 : -2;
+                    score += isHeavy ? -4 : 2;
+                }
+
+                if (smartProtectGpa && isHeavy) {
+                    score -= 2;
+                }
+
+                return { course, score, isHeavy };
+            })
+            .sort((a, b) => b.score - a.score);
+
+        const selected = [];
+        let selectedHours = 0;
+        let heavyCount = 0;
+
+        scored.forEach((entry) => {
+            const { course, isHeavy } = entry;
+
+            if (selectedHours + course.credit_hours > targetHours) return;
+            if (smartProtectGpa && isHeavy && heavyCount >= 3) return;
+
+            selected.push(course);
+            selectedHours += course.credit_hours;
+
+            if (isHeavy) {
+                heavyCount += 1;
+            }
+        });
+
+        setSmartPlan(selected);
+        setSmartHours(selectedHours);
+    }, [plannerCourses, passedCourseIds, smartPace, smartFocus, smartProtectGpa]);
+
+    const applySmartPlan = useCallback(() => {
+        const smartIds = smartPlan.map((course) => course.id);
+
+        setIsApplyingSmartPlan(true);
+        setLocalCartCourses(smartPlan);
+
+        router.post(route('cart.sync'), {
+            course_ids: smartIds,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => setIsApplyingSmartPlan(false),
+        });
+    }, [smartPlan]);
 
     // Guard against malformed payloads so dashboard rendering never crashes.
     const safeSkills = Array.isArray(ai_skills) ? ai_skills : [];
@@ -330,7 +480,110 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    {/* 🔥 4. SMART SKILLS SECTION — الميزة الجديدة 🔥 */}
+                    {/* 4. SMART SCHEDULE GENERATOR */}
+                    <div ref={smartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden" style={{ opacity: smartVis ? 1 : 0, transform: smartVis ? 'translateY(0)' : 'translateY(16px)', transition: `all 750ms ${spring}` }}>
+                        <div className="p-6 sm:p-8 border-b border-slate-100 bg-gradient-to-l from-cyan-50/60 via-white to-indigo-50/50">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                        <span className="text-2xl">🧠</span> الجدول الذكي للفصل القادم
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-500 mt-1">اختر أسلوبك، والنظام يقترح جدول بدون تعارض متطلبات وبحمل دراسي مناسب لك.</p>
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] font-black bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
+                                    <span className="text-slate-400">الخطة الحالية:</span>
+                                    <span className="text-indigo-600">{cartTotalHours} ساعة</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                <div>
+                                    <p className="text-[11px] font-black text-slate-500 mb-2">نمط الفصل</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'light', label: 'خفيف', icon: '🏖️' },
+                                            { id: 'balanced', label: 'متوازن', icon: '⚖️' },
+                                            { id: 'heavy', label: 'مكثف', icon: '🚀' },
+                                        ].map((mode) => (
+                                            <button key={mode.id} onClick={() => setSmartPace(mode.id)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${smartPace === mode.id ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                                                <span className="ml-1">{mode.icon}</span>{mode.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="text-[11px] font-black text-slate-500 mb-2">الأولوية</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[
+                                            { id: 'major', label: 'مواد تخصص' },
+                                            { id: 'graduation', label: 'تسريع تخرج' },
+                                            { id: 'gpa', label: 'حماية المعدل' },
+                                        ].map((focus) => (
+                                            <button key={focus.id} onClick={() => setSmartFocus(focus.id)} className={`rounded-xl border px-2 py-2 text-[11px] font-black transition-all ${smartFocus === focus.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200/60' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
+                                                {focus.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 bg-slate-50/60 cursor-pointer">
+                                    <div>
+                                        <p className="text-[12px] font-black text-slate-700">توازن الحمل</p>
+                                        <p className="text-[10px] font-bold text-slate-400">حد أقصى 3 مواد ثقيلة في الخطة المقترحة</p>
+                                    </div>
+                                    <button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-14 h-8 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                                        <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-6'}`} />
+                                    </button>
+                                </label>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3 mt-6">
+                                <button onClick={generateSmartPlan} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[12px] font-black transition-colors shadow-lg shadow-indigo-200/60">
+                                    توليد جدول ذكي
+                                </button>
+                                <span className="text-[11px] font-bold text-slate-500">الهدف المتوقع: {smartPace === 'heavy' ? 18 : smartPace === 'light' ? 12 : 15} ساعة</span>
+                            </div>
+                        </div>
+
+                        <div className="p-6 sm:p-8 bg-white">
+                            {smartPlan.length > 0 ? (
+                                <>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="text-[11px] font-black bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">{smartHours} ساعة مقترحة</span>
+                                            <span className="text-[11px] font-black bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">{smartPlan.length} مواد</span>
+                                            {smartPlanInsights ? <span className="text-[11px] font-black bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">{smartPlanInsights.majorCount} تخصص • {smartPlanInsights.universityCount} جامعة</span> : null}
+                                        </div>
+                                        <button onClick={applySmartPlan} disabled={isApplyingSmartPlan} className="bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-[12px] font-black transition-colors">
+                                            {isApplyingSmartPlan ? 'جاري التطبيق...' : 'اعتماد الخطة في المحاكي'}
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                        {smartPlan.map((course, idx) => (
+                                            <div key={course.id} className="rounded-2xl border border-slate-100 p-4 hover:border-indigo-200 hover:bg-indigo-50/40 transition-all" style={{ animation: `sn-up 0.45s ${spring} ${idx * 45}ms both` }}>
+                                                <div className="flex items-center justify-between gap-2 mb-2">
+                                                    <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-1 rounded-md">{course.credit_hours} س</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 font-mono">{course.code}</span>
+                                                </div>
+                                                <h4 className="text-[13px] font-black text-slate-800 line-clamp-2">{course.name}</h4>
+                                                <p className="text-[10px] font-bold text-slate-400 mt-2">{course.major_id !== null ? 'مادة تخصص' : 'متطلب جامعة'} • فصل {course.semester || '-'}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-10 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60">
+                                    <span className="text-4xl opacity-60">📅</span>
+                                    <p className="text-sm font-black text-slate-700 mt-3">لا يوجد اقتراح بعد</p>
+                                    <p className="text-xs font-bold text-slate-400 mt-1">اضغط "توليد جدول ذكي" للحصول على أفضل خطة حسب وضعك الأكاديمي.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* 🔥 5. SMART SKILLS SECTION — الميزة الجديدة 🔥 */}
                     <div ref={skillsRef} className="space-y-4" style={{ opacity: skillsVis ? 1 : 0, transform: skillsVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring}` }}>
                         <div className="flex items-center justify-between px-2">
                             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
@@ -359,7 +612,7 @@ export default function Dashboard({
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
                         
-                        {/* 5. السجل الأكاديمي (الجانب الأيمن) */}
+                        {/* 6. السجل الأكاديمي (الجانب الأيمن) */}
                         <div className="lg:col-span-8 space-y-7">
                             {processedCourses.length > 0 ? (
                                 <div ref={recordRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden" style={{ opacity: recordVis ? 1 : 0, transform: recordVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 100ms` }}>
@@ -446,7 +699,7 @@ export default function Dashboard({
                             )}
                         </div>
 
-                        {/* 6. المحاكي المصغر (الجانب الأيسر) */}
+                        {/* 7. المحاكي المصغر (الجانب الأيسر) */}
                         <div className="lg:col-span-4 space-y-7">
                             <div ref={cartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]" style={{ opacity: cartVis ? 1 : 0, transform: cartVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 200ms` }}>
                                 <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border-b border-amber-100/50 p-5 shrink-0">
@@ -465,7 +718,7 @@ export default function Dashboard({
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 hide-scrollbar">
-                                    {cart_courses.length > 0 ? cart_courses.map((course, idx) => (
+                                    {localCartCourses.length > 0 ? localCartCourses.map((course, idx) => (
                                         <div key={course.id} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between shadow-sm group hover:border-amber-200 transition-colors">
                                             <div className="min-w-0 pr-2">
                                                 <h4 className="text-[12px] font-[900] text-slate-800 truncate">{course.name}</h4>
