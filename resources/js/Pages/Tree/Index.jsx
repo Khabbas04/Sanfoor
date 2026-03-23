@@ -122,6 +122,9 @@ export default function Tree({
     const [showAiSettings, setShowAiSettings] = useState(false);
     const [targetHours, setTargetHours] = useState(15);
     const [schedulePace, setSchedulePace] = useState('balanced');
+    const [smartFocus, setSmartFocus] = useState('major');
+    const [smartProtectGpa, setSmartProtectGpa] = useState(true);
+    const [smartMetaByCourseId, setSmartMetaByCourseId] = useState({});
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
@@ -204,6 +207,31 @@ export default function Tree({
         let maxDepth = 0;
         for (const u of unlocks) maxDepth = Math.max(maxDepth, 1 + getCourseDepth(u.id, new Set(visited)));
         return maxDepth;
+    }, [courses]);
+
+    const coursesWithDifficulty = useMemo(() => {
+        return courses.map((course) => {
+            const semester = Number(course.semester || 1);
+            const recommendedYear = Math.min(4, Math.max(1, Math.ceil(semester / 2)));
+            const avgGrade = Number(course.avg_grade ?? 72);
+            const failRate = Number(course.fail_rate ?? 18);
+            const prerequisitesCount = Number(course.prerequisites_count || (course.prerequisites?.length || 0));
+            const baseDifficulty =
+                ((100 - avgGrade) * 0.5)
+                + (failRate * 0.35)
+                + Math.min(prerequisitesCount * 7, 25)
+                + ((recommendedYear - 1) * 6);
+
+            return {
+                ...course,
+                recommended_year: recommendedYear,
+                avg_grade: Number(avgGrade.toFixed(1)),
+                fail_rate: Number(failRate.toFixed(1)),
+                graded_attempts: Number(course.graded_attempts || 0),
+                prerequisites_count: prerequisitesCount,
+                difficulty_score: Math.max(0, Math.min(100, Number(baseDifficulty.toFixed(1)))),
+            };
+        });
     }, [courses]);
 
     // 🆕 أقصر طريق لفتح مادة مقفلة
@@ -625,6 +653,11 @@ export default function Tree({
         if (cartIds.includes(course.id)) {
             updatedCart = cartIds.filter(id => id !== course.id);
             setCartIds(updatedCart);
+            setSmartMetaByCourseId((prev) => {
+                const next = { ...prev };
+                delete next[course.id];
+                return next;
+            });
             syncCartWithDB(updatedCart);
             return;
         }
@@ -659,45 +692,147 @@ export default function Tree({
     };
 
     const executeSmartSchedule = () => {
-        let trulyAvailable = courses.filter(c => {
+        const paceConfig = {
+            light: { targetDifficulty: 32, maxDifficulty: 52, maxHeavyCourses: 2, yearBias: -1 },
+            balanced: { targetDifficulty: 52, maxDifficulty: 74, maxHeavyCourses: 3, yearBias: 0 },
+            heavy: { targetDifficulty: 72, maxDifficulty: 100, maxHeavyCourses: 4, yearBias: 1 },
+        };
+
+        const pace = paceConfig[schedulePace] || paceConfig.balanced;
+
+        const passedCredits = coursesWithDifficulty
+            .filter((course) => passedIds.includes(course.id))
+            .reduce((sum, course) => sum + (Number(course.credit_hours) || 0), 0);
+
+        const currentAcademicYear = passedCredits < 33 ? 1 : passedCredits < 66 ? 2 : passedCredits < 99 ? 3 : 4;
+
+        const childrenMap = new Map();
+        coursesWithDifficulty.forEach((course) => {
+            (course.prerequisites || []).forEach((prereq) => {
+                const list = childrenMap.get(prereq.id) || [];
+                list.push(course.id);
+                childrenMap.set(prereq.id, list);
+            });
+        });
+
+        const unlockCache = new Map();
+        const unlockScore = (courseId, visited = new Set()) => {
+            if (unlockCache.has(courseId)) return unlockCache.get(courseId);
+            if (visited.has(courseId)) return 0;
+
+            const nextVisited = new Set(visited);
+            nextVisited.add(courseId);
+
+            const children = childrenMap.get(courseId) || [];
+            const score = children.reduce((sum, childId) => sum + 1 + unlockScore(childId, nextVisited), 0);
+
+            unlockCache.set(courseId, score);
+            return score;
+        };
+
+        let trulyAvailable = coursesWithDifficulty.filter(c => {
             if (passedIds.includes(c.id)) return false;
             if (!c.prerequisites || c.prerequisites.length === 0) return true;
             return c.prerequisites.every(p => passedIds.includes(p.id));
         });
 
-        const criticalAndMajor = trulyAvailable.filter(c => getCourseDepth(c.id) > 0 || c.major_id !== null);
-        const universityAndElective = trulyAvailable.filter(c => c.major_id === null || c.type === 'elective');
-        criticalAndMajor.sort((a, b) => getCourseDepth(b.id) - getCourseDepth(a.id));
+        const scored = trulyAvailable.map((course) => {
+            const unlock = unlockScore(course.id);
+            const isMajor = course.major_id !== null;
+            const isCompulsory = course.type === 'compulsory';
+            const difficulty = Number(course.difficulty_score || 0);
+            const isHeavy = difficulty >= 65 || Number(course.fail_rate || 0) >= 30;
+            const yearGap = Number(course.recommended_year || 1) - currentAcademicYear;
+            const difficultyFit = Math.max(0, 100 - Math.abs(difficulty - pace.targetDifficulty) * 1.7);
+            const dataConfidence = Math.min(100, 42 + (Number(course.graded_attempts || 0) * 7));
+
+            let yearFit = 0;
+            if (pace.yearBias === -1) {
+                yearFit = yearGap <= 0 ? 18 : Math.max(-28, -9 * yearGap);
+            } else if (pace.yearBias === 0) {
+                yearFit = Math.max(-22, 18 - Math.abs(yearGap) * 10);
+            } else {
+                yearFit = yearGap >= 0 ? 14 : Math.max(-24, yearGap * 12);
+            }
+
+            let score = unlock * 5 + difficultyFit + yearFit + (difficulty <= pace.maxDifficulty ? 12 : -42);
+
+            if (smartFocus === 'major') {
+                score += isMajor ? 10 : -5;
+            } else if (smartFocus === 'graduation') {
+                score += (unlock * 4) + (isCompulsory ? 5 : 0) + (yearGap <= 1 ? 6 : -6);
+            } else if (smartFocus === 'gpa') {
+                score += Number(course.avg_grade || 0) >= 75 ? 9 : -9;
+                score += Number(course.fail_rate || 0) <= 20 ? 7 : -11;
+                score += difficulty < 55 ? 5 : -8;
+            }
+
+            if (smartProtectGpa) {
+                score += Number(course.fail_rate || 0) > 35 ? -18 : 4;
+            }
+
+            return { course, score, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence };
+        }).sort((a, b) => b.score - a.score);
 
         let newCart = [];
         let currentHours = 0;
-        const addCourse = (course) => {
+        let heavyCount = 0;
+        const selectedMeta = {};
+
+        const addCourse = (entry) => {
+            const { course, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence } = entry;
             if (currentHours + course.credit_hours <= targetHours && !newCart.includes(course.id)) {
+                if (schedulePace === 'light' && difficulty > 58) return false;
+                if (schedulePace === 'balanced' && difficulty > 85) return false;
+                if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
+
+                const confidence = Math.max(
+                    0,
+                    Math.min(
+                        100,
+                        Number((
+                            (difficultyFit * 0.34)
+                            + ((100 - Math.min(Math.abs(yearGap) * 22, 100)) * 0.26)
+                            + (Math.min(unlock * 18, 100) * 0.24)
+                            + (dataConfidence * 0.16)
+                        ).toFixed(1)),
+                    ),
+                );
+
+                selectedMeta[course.id] = {
+                    confidence,
+                    dataConfidence,
+                    reasons: [
+                        `يفتح ${unlock} مواد`,
+                        `صعوبة ${Math.round(difficulty)}%`,
+                        `سنة ${course.recommended_year}`,
+                    ],
+                };
+
                 newCart.push(course.id);
                 currentHours += course.credit_hours;
+                if (isHeavy) heavyCount += 1;
                 return true;
             }
             return false;
         };
 
-        if (schedulePace === 'heavy') {
-            criticalAndMajor.forEach(addCourse);
-            universityAndElective.forEach(addCourse);
-        } else if (schedulePace === 'balanced') {
-            let uniCounter = 0;
-            universityAndElective.forEach(c => { if (uniCounter < 1 && addCourse(c)) uniCounter++; });
-            criticalAndMajor.forEach(addCourse);
-            universityAndElective.forEach(addCourse);
-        } else {
-            universityAndElective.forEach(addCourse);
-            criticalAndMajor.forEach(addCourse);
-        }
+        scored.forEach((entry) => addCourse(entry));
+
+        const avgDifficulty = newCart.length
+            ? (newCart.reduce((sum, courseId) => sum + Number(coursesWithDifficulty.find((course) => course.id === courseId)?.difficulty_score || 0), 0) / newCart.length)
+            : 0;
 
         if (newCart.length > 0) {
             setCartIds(newCart);
+            setSmartMetaByCourseId(selectedMeta);
             syncCartWithDB(newCart);
             setShowAiSettings(false);
-            Swal.fire({ icon: 'success', title: 'تم التخطيط!', text: `تم اقتراح جدول بقيمة ${currentHours} ساعة بناءً على مسارك.`, ...swalTheme });
+            const avgConfidence = Object.values(selectedMeta).length
+                ? Object.values(selectedMeta).reduce((sum, item) => sum + Number(item.confidence || 0), 0) / Object.values(selectedMeta).length
+                : 0;
+
+            Swal.fire({ icon: 'success', title: 'تم التخطيط!', text: `تم اقتراح جدول بقيمة ${currentHours} ساعة وبمتوسط صعوبة ${avgDifficulty.toFixed(1)}% وثقة ${avgConfidence.toFixed(1)}%.`, ...swalTheme });
         } else {
             Swal.fire({ icon: 'info', title: 'لا يوجد مواد', text: 'لا يوجد مواد متاحة حالياً. تأكد من إنجاز متطالباتك.', ...swalTheme });
         }
@@ -750,13 +885,19 @@ export default function Tree({
 
     const workloadAnalysis = useMemo(() => {
         if (totalCartCredits === 0) return null;
-        const cartCourses = courses.filter(c => cartIds.includes(c.id));
-        let heavyCount = cartCourses.filter(c => c.major_id !== null && c.type === 'compulsory').length;
+        const cartCourses = coursesWithDifficulty.filter(c => cartIds.includes(c.id));
+        const heavyCount = cartCourses.filter(c => Number(c.difficulty_score || 0) >= 65 || Number(c.fail_rate || 0) >= 30).length;
+        const avgDifficulty = cartCourses.length
+            ? cartCourses.reduce((sum, c) => sum + Number(c.difficulty_score || 0), 0) / cartCourses.length
+            : 0;
+
         if (totalCartCredits > 18) return { msg: '🚨 تجاوزت الحد الأقصى للساعات!', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
-        if (heavyCount >= 4) return { msg: '⚖️ العبء مرتفع. أدمج مادة اختيارية.', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+        if (schedulePace === 'light' && avgDifficulty > 55) return { msg: '⚠️ هذا أعلى من مستوى الخفيف. خفف مواد الصعوبة العالية.', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
+        if (schedulePace === 'heavy' && avgDifficulty < 50) return { msg: '💡 النمط مكثف لكن الصعوبة الفعلية منخفضة حالياً.', cls: 'bg-sky-50 text-sky-700 border-sky-200' };
+        if (heavyCount >= 4) return { msg: '⚖️ العبء مرتفع جداً بناءً على صعوبة المواد الفعلية.', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
         if (totalCartCredits < 12) return { msg: '🐌 عبء منخفض. توقع تأخر بالتخرج.', cls: 'bg-slate-50 text-slate-600 border-slate-200' };
-        return { msg: '✨ جدول متوازن ومثالي!', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-    }, [cartIds, courses, totalCartCredits]);
+        return { msg: `✨ جدول متوازن ومثالي بمتوسط صعوبة ${avgDifficulty.toFixed(1)}%.`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    }, [cartIds, coursesWithDifficulty, totalCartCredits, schedulePace]);
 
     const render4YearPlan = () => {
         let simulatedPassed = new Set(passedIds);
@@ -1207,7 +1348,9 @@ export default function Tree({
                                     <div className="bg-indigo-50/70 border border-indigo-100 p-5 rounded-[1.25rem] space-y-4">
                                         <div className="flex justify-between items-center"><h3 className="font-[800] text-indigo-800 text-[13px]">⚙️ إعدادات التوليد</h3><button onClick={() => setShowAiSettings(false)} className="text-slate-400 text-[11px] font-bold hover:text-rose-500 transition-colors">✕ إلغاء</button></div>
                                         <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الساعات المستهدفة:</label><div className="flex bg-white rounded-xl p-1 border border-indigo-100/60 shadow-sm">{[12, 15, 18].map(h => (<button key={h} onClick={() => setTargetHours(h)} className={`flex-1 py-2 text-[12px] font-[800] rounded-lg transition-all ${targetHours === h ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>{h} ساعة</button>))}</div></div>
-                                        <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">نمط الفصل:</label><div className="space-y-2">{[{ id: 'heavy', icon: '🏋️', label: 'مكثف (مواد تخصص)' }, { id: 'balanced', icon: '⚖️', label: 'متوازن (ينصح به)' }, { id: 'light', icon: '🏖️', label: 'خفيف (مواد جامعة)' }].map(p => (<button key={p.id} onClick={() => setSchedulePace(p.id)} className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center gap-2.5 shadow-sm ${schedulePace === p.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'}`}><span>{p.icon}</span><span className="text-[12px] font-bold">{p.label}</span></button>))}</div></div>
+                                        <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">نمط الصعوبة:</label><div className="space-y-2">{[{ id: 'heavy', icon: '🏋️', label: 'مكثف (صعوبة فعلية أعلى)' }, { id: 'balanced', icon: '⚖️', label: 'متوازن (صعوبة وسط)' }, { id: 'light', icon: '🏖️', label: 'خفيف (صعوبة أقل)' }].map(p => (<button key={p.id} onClick={() => setSchedulePace(p.id)} className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center gap-2.5 shadow-sm ${schedulePace === p.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'}`}><span>{p.icon}</span><span className="text-[12px] font-bold">{p.label}</span></button>))}</div></div>
+                                        <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الأولوية:</label><div className="grid grid-cols-3 gap-2">{[{ id: 'major', label: 'مواد تخصص' }, { id: 'graduation', label: 'تسريع تخرج' }, { id: 'gpa', label: 'حماية المعدل' }].map(f => (<button key={f.id} onClick={() => setSmartFocus(f.id)} className={`py-2 text-[11px] font-[800] rounded-lg border transition-all ${smartFocus === f.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}>{f.label}</button>))}</div></div>
+                                        <label className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5 cursor-pointer"><div><p className="text-[11px] font-[800] text-slate-700">توازن الحمل</p><p className="text-[10px] font-bold text-slate-400">تقليل المواد عالية الرسوب والصعوبة</p></div><button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-12 h-7 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}><span className={`block w-5 h-5 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-5'}`} /></button></label>
                                         <button onClick={executeSmartSchedule} className="w-full bg-indigo-700 hover:bg-indigo-800 text-white py-3 rounded-xl font-[800] text-[13px] shadow-lg hover:-translate-y-0.5 active:scale-[0.97] transition-all">🚀 توليد الآن</button>
                                     </div>
                                 )}
@@ -1249,10 +1392,19 @@ export default function Tree({
 
                                 {cartIds.length > 0 ? (
                                     <div className="space-y-2.5 pb-8">
-                                        <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
-                                        {courses.filter(c => cartIds.includes(c.id)).map(c => (
+                                        <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); setSmartMetaByCourseId({}); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
+                                        {coursesWithDifficulty.filter(c => cartIds.includes(c.id)).map(c => (
                                             <div key={c.id} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center group hover:border-indigo-200 transition-colors">
-                                                <div className="min-w-0 flex-1 ml-3"><p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p><p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code}</p></div>
+                                                <div className="min-w-0 flex-1 ml-3">
+                                                    <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code} • سنة {c.recommended_year} • صعوبة {Math.round(c.difficulty_score)}%</p>
+                                                    {smartMetaByCourseId[c.id] ? (
+                                                        <div className="mt-1.5 flex flex-wrap gap-1">
+                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${(smartMetaByCourseId[c.id].confidence || 0) >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (smartMetaByCourseId[c.id].confidence || 0) >= 55 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>ثقة {Math.round(smartMetaByCourseId[c.id].confidence || 0)}%</span>
+                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-md border bg-sky-50 text-sky-700 border-sky-200">بيانات {Math.round(smartMetaByCourseId[c.id].dataConfidence || 0)}%</span>
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                                 <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
                                             </div>
                                         ))}

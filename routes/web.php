@@ -16,6 +16,7 @@ use App\Models\Course;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 /*
@@ -64,8 +65,32 @@ Route::get('/dashboard', function () {
     $passedHours = $user->passedCourses->sum('credit_hours');
     $gpaData = $user->calculateGPA();
 
+    $courseStatsSubquery = DB::table('course_user')
+        ->selectRaw('course_id')
+        ->selectRaw('AVG(grade) as avg_grade')
+        ->selectRaw('COUNT(*) as graded_attempts')
+        ->selectRaw('SUM(CASE WHEN grade < 60 THEN 1 ELSE 0 END) as failed_attempts')
+        ->whereNotNull('grade')
+        ->groupBy('course_id');
+
     $plannerCoursesQuery = Course::query()
-        ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
+        ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
+            $join->on('courses.id', '=', 'course_stats.course_id');
+        })
+        ->select([
+            'courses.id',
+            'courses.name',
+            'courses.code',
+            'courses.credit_hours',
+            'courses.type',
+            'courses.semester',
+            'courses.major_id',
+        ])
+        ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
+        ->selectRaw('COALESCE(course_stats.graded_attempts, 0) as graded_attempts')
+        ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
+        ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate')
+        ->withCount('prerequisites')
         ->with(['prerequisites:id']);
 
     if ($user->major_id) {

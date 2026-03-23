@@ -21,8 +21,35 @@ class TreeController extends Controller
         // 2. إجبار النظام على أخذ تخصص الطالب حصراً لمنع تداخل البيانات
         $selectedMajorId = $user->major_id;
 
-        // 3. بناء الاستعلام مع المتطلبات
-        $query = Course::with(['prerequisites']);
+        $courseStatsSubquery = DB::table('course_user')
+            ->selectRaw('course_id')
+            ->selectRaw('AVG(grade) as avg_grade')
+            ->selectRaw('COUNT(*) as graded_attempts')
+            ->selectRaw('SUM(CASE WHEN grade < 60 THEN 1 ELSE 0 END) as failed_attempts')
+            ->whereNotNull('grade')
+            ->groupBy('course_id');
+
+        // 3. بناء الاستعلام مع المتطلبات ومؤشرات الصعوبة
+        $query = Course::query()
+            ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
+                $join->on('courses.id', '=', 'course_stats.course_id');
+            })
+            ->select([
+                'courses.id',
+                'courses.name',
+                'courses.code',
+                'courses.credit_hours',
+                'courses.type',
+                'courses.semester',
+                'courses.major_id',
+                'courses.description',
+            ])
+            ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
+            ->selectRaw('COALESCE(course_stats.graded_attempts, 0) as graded_attempts')
+            ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
+            ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate')
+            ->withCount('prerequisites')
+            ->with(['prerequisites']);
 
         // 4. الفلترة الصارمة حسب التخصص
         if ($selectedMajorId) {

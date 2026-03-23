@@ -66,6 +66,13 @@ export default function Dashboard({
         return 'السنة الرابعة (خريج)';
     }, [passed_hours]);
 
+    const currentAcademicYearNumber = useMemo(() => {
+        if (passed_hours < 33) return 1;
+        if (passed_hours < 66) return 2;
+        if (passed_hours < 99) return 3;
+        return 4;
+    }, [passed_hours]);
+
     const standing = useMemo(() => {
         const n = parseFloat(gpa);
         if (isNaN(n) || n === 0) return { label: 'غير محدد بعد', cls: 'text-slate-500 bg-slate-50 border-slate-200', icon: '⏳' };
@@ -194,12 +201,31 @@ export default function Dashboard({
     const plannerCourses = useMemo(() => {
         if (!Array.isArray(planner_courses)) return [];
 
-        return planner_courses.map((course) => ({
-            ...course,
-            credit_hours: Number(course.credit_hours || 0),
-            semester: Number(course.semester || 1),
-            prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : [],
-        }));
+        return planner_courses.map((course) => {
+            const semester = Number(course.semester || 1);
+            const recommendedYear = Math.min(4, Math.max(1, Math.ceil(semester / 2)));
+            const avgGrade = Number(course.avg_grade ?? 72);
+            const failRate = Number(course.fail_rate ?? 18);
+            const prerequisitesCount = Number(course.prerequisites_count || 0);
+            const baseDifficulty =
+                ((100 - avgGrade) * 0.5)
+                + (failRate * 0.35)
+                + Math.min(prerequisitesCount * 7, 25)
+                + ((recommendedYear - 1) * 6);
+
+            return {
+                ...course,
+                credit_hours: Number(course.credit_hours || 0),
+                semester,
+                recommended_year: recommendedYear,
+                avg_grade: Number(avgGrade.toFixed(1)),
+                fail_rate: Number(failRate.toFixed(1)),
+                graded_attempts: Number(course.graded_attempts || 0),
+                prerequisites_count: prerequisitesCount,
+                prerequisites: Array.isArray(course.prerequisites) ? course.prerequisites : [],
+                difficulty_score: Math.max(0, Math.min(100, Number(baseDifficulty.toFixed(1)))),
+            };
+        });
     }, [planner_courses]);
 
     const passedCourseIds = useMemo(() => new Set(processedCourses.map((course) => course.id)), [processedCourses]);
@@ -212,12 +238,14 @@ export default function Dashboard({
 
         const majorCount = smartPlan.filter((course) => course.major_id !== null).length;
         const universityCount = smartPlan.length - majorCount;
-        const heavyCount = smartPlan.filter((course) => course.credit_hours >= 3 && course.type === 'compulsory').length;
+        const heavyCount = smartPlan.filter((course) => Number(course.difficulty_score || 0) >= 65).length;
+        const avgDifficulty = smartPlan.reduce((sum, course) => sum + Number(course.difficulty_score || 0), 0) / smartPlan.length;
 
         return {
             majorCount,
             universityCount,
             heavyCount,
+            avgDifficulty: Number(avgDifficulty.toFixed(1)),
         };
     }, [smartPlan]);
 
@@ -260,37 +288,53 @@ export default function Dashboard({
             return course.prerequisites.every((prereq) => passedCourseIds.has(prereq.id));
         });
 
-        const targetHoursMap = {
-            heavy: 18,
-            balanced: 15,
-            light: 12,
+        const paceConfig = {
+            light: { targetHours: 12, targetDifficulty: 32, maxDifficulty: 52, maxHeavyCourses: 2, yearBias: -1 },
+            balanced: { targetHours: 15, targetDifficulty: 52, maxDifficulty: 74, maxHeavyCourses: 3, yearBias: 0 },
+            heavy: { targetHours: 18, targetDifficulty: 72, maxDifficulty: 100, maxHeavyCourses: 4, yearBias: 1 },
         };
 
-        const targetHours = targetHoursMap[smartPace] || 15;
+        const pace = paceConfig[smartPace] || paceConfig.balanced;
+
+        const targetHours = pace.targetHours;
 
         const scored = available
             .map((course) => {
                 const unlock = unlockScore(course.id);
                 const isMajor = course.major_id !== null;
                 const isCompulsory = course.type === 'compulsory';
-                const isHeavy = isMajor && isCompulsory && course.credit_hours >= 3;
+                const difficulty = Number(course.difficulty_score || 0);
+                const isHeavy = difficulty >= 65 || Number(course.fail_rate || 0) >= 30;
+                const yearGap = Number(course.recommended_year || 1) - currentAcademicYearNumber;
+                const difficultyFit = Math.max(0, 100 - Math.abs(difficulty - pace.targetDifficulty) * 1.7);
+                const dataConfidence = Math.min(100, 42 + (Number(course.graded_attempts || 0) * 7));
 
-                let score = unlock * 7 + course.credit_hours;
+                let yearFit = 0;
+                if (pace.yearBias === -1) {
+                    yearFit = yearGap <= 0 ? 18 : Math.max(-28, -9 * yearGap);
+                } else if (pace.yearBias === 0) {
+                    yearFit = Math.max(-22, 18 - Math.abs(yearGap) * 10);
+                } else {
+                    yearFit = yearGap >= 0 ? 14 : Math.max(-24, yearGap * 12);
+                }
+
+                let score = unlock * 5 + difficultyFit + yearFit + (difficulty <= pace.maxDifficulty ? 12 : -42);
 
                 if (smartFocus === 'major') {
-                    score += isMajor ? 8 : -3;
+                    score += isMajor ? 10 : -5;
                 } else if (smartFocus === 'graduation') {
-                    score += unlock * 4 + (isCompulsory ? 4 : 0);
+                    score += (unlock * 4) + (isCompulsory ? 5 : 0) + (yearGap <= 1 ? 6 : -6);
                 } else if (smartFocus === 'gpa') {
-                    score += course.credit_hours <= 3 ? 4 : -2;
-                    score += isHeavy ? -4 : 2;
+                    score += Number(course.avg_grade || 0) >= 75 ? 9 : -9;
+                    score += Number(course.fail_rate || 0) <= 20 ? 7 : -11;
+                    score += difficulty < 55 ? 5 : -8;
                 }
 
-                if (smartProtectGpa && isHeavy) {
-                    score -= 2;
+                if (smartProtectGpa) {
+                    score += Number(course.fail_rate || 0) > 35 ? -18 : 4;
                 }
 
-                return { course, score, isHeavy };
+                return { course, score, isHeavy, unlock, yearGap, difficultyFit, dataConfidence };
             })
             .sort((a, b) => b.score - a.score);
 
@@ -299,12 +343,42 @@ export default function Dashboard({
         let heavyCount = 0;
 
         scored.forEach((entry) => {
-            const { course, isHeavy } = entry;
+            const { course, isHeavy, unlock, yearGap, difficultyFit, dataConfidence } = entry;
+            const difficulty = Number(course.difficulty_score || 0);
 
             if (selectedHours + course.credit_hours > targetHours) return;
-            if (smartProtectGpa && isHeavy && heavyCount >= 3) return;
+            if (smartPace === 'light' && difficulty > 58) return;
+            if (smartPace === 'balanced' && difficulty > 85) return;
+            if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return;
 
-            selected.push(course);
+            const confidence = Math.max(
+                0,
+                Math.min(
+                    100,
+                    Number((
+                        (difficultyFit * 0.34)
+                        + ((100 - Math.min(Math.abs(yearGap) * 22, 100)) * 0.26)
+                        + (Math.min(unlock * 18, 100) * 0.24)
+                        + (dataConfidence * 0.16)
+                    ).toFixed(1)),
+                ),
+            );
+
+            const recommendationReasons = [
+                `يفتح ${unlock} مواد لاحقة`,
+                `صعوبة ${Math.round(difficulty)}%`,
+                `سنة المادة ${course.recommended_year}`,
+                Number(course.fail_rate || 0) <= 20 ? 'نسبة رسوب منخفضة' : 'نسبة رسوب مرتفعة نسبيًا',
+            ];
+
+            const enrichedCourse = {
+                ...course,
+                recommendation_confidence: confidence,
+                recommendation_reasons: recommendationReasons,
+                data_confidence: dataConfidence,
+            };
+
+            selected.push(enrichedCourse);
             selectedHours += course.credit_hours;
 
             if (isHeavy) {
@@ -314,7 +388,7 @@ export default function Dashboard({
 
         setSmartPlan(selected);
         setSmartHours(selectedHours);
-    }, [plannerCourses, passedCourseIds, smartPace, smartFocus, smartProtectGpa]);
+    }, [plannerCourses, passedCourseIds, smartPace, smartFocus, smartProtectGpa, currentAcademicYearNumber]);
 
     const applySmartPlan = useCallback(() => {
         const smartIds = smartPlan.map((course) => course.id);
@@ -554,6 +628,7 @@ export default function Dashboard({
                                             <span className="text-[11px] font-black bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">{smartHours} ساعة مقترحة</span>
                                             <span className="text-[11px] font-black bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">{smartPlan.length} مواد</span>
                                             {smartPlanInsights ? <span className="text-[11px] font-black bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">{smartPlanInsights.majorCount} تخصص • {smartPlanInsights.universityCount} جامعة</span> : null}
+                                            {smartPlanInsights ? <span className="text-[11px] font-black bg-amber-50 text-amber-700 px-3 py-1 rounded-full border border-amber-200">صعوبة متوسطة {Math.round(smartPlanInsights.avgDifficulty)}%</span> : null}
                                         </div>
                                         <button onClick={applySmartPlan} disabled={isApplyingSmartPlan} className="bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-[12px] font-black transition-colors">
                                             {isApplyingSmartPlan ? 'جاري التطبيق...' : 'اعتماد الخطة في المحاكي'}
@@ -568,7 +643,20 @@ export default function Dashboard({
                                                     <span className="text-[10px] font-bold text-slate-400 font-mono">{course.code}</span>
                                                 </div>
                                                 <h4 className="text-[13px] font-black text-slate-800 line-clamp-2">{course.name}</h4>
-                                                <p className="text-[10px] font-bold text-slate-400 mt-2">{course.major_id !== null ? 'مادة تخصص' : 'متطلب جامعة'} • فصل {course.semester || '-'}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 mt-2">{course.major_id !== null ? 'مادة تخصص' : 'متطلب جامعة'} • سنة {course.recommended_year} • صعوبة {Math.round(course.difficulty_score || 0)}%</p>
+                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${(course.recommendation_confidence || 0) >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (course.recommendation_confidence || 0) >= 55 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                                        ثقة الترشيح {Math.round(course.recommendation_confidence || 0)}%
+                                                    </span>
+                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${(course.data_confidence || 0) >= 65 ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                                        موثوقية البيانات {Math.round(course.data_confidence || 0)}%
+                                                    </span>
+                                                </div>
+                                                <div className="mt-2 flex flex-wrap gap-1">
+                                                    {(course.recommendation_reasons || []).slice(0, 2).map((reason, reasonIdx) => (
+                                                        <span key={`${course.id}-${reasonIdx}`} className="text-[10px] font-bold text-slate-600 bg-white border border-slate-200 rounded-md px-2 py-0.5">{reason}</span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
