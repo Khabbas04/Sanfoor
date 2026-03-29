@@ -17,11 +17,27 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     const idx = useRef(0), raf = useRef(null), done = useRef(false);
     useEffect(() => {
         if (!isAnimating) { setTxt(content); done.current = true; return; }
+
+        // Skip animation for very long outputs to keep UX snappy.
+        if ((content || '').length > 900) {
+            setTxt(content);
+            done.current = true;
+            onComplete?.();
+            return;
+        }
+
         idx.current = 0; setTxt(''); done.current = false;
         const go = () => {
             if (done.current) return;
             const i = idx.current;
-            if (i < content.length) { const n = Math.min(i + 3, content.length); setTxt(content.slice(0, n)); idx.current = n; if (n % 18 === 0) onScroll?.(); raf.current = requestAnimationFrame(go); }
+            if (i < content.length) {
+                const speed = content.length > 450 ? 24 : 14;
+                const n = Math.min(i + speed, content.length);
+                setTxt(content.slice(0, n));
+                idx.current = n;
+                if (n % 60 === 0) onScroll?.();
+                raf.current = requestAnimationFrame(go);
+            }
             else { done.current = true; onComplete?.(); }
         };
         raf.current = requestAnimationFrame(go);

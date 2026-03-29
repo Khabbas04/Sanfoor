@@ -21,7 +21,7 @@ class AiAdvisorController extends Controller
     // ==========================================
     
     /** الحد الأقصى لعدد الرسائل المرسلة للـ AI (Context Window) */
-    private const MAX_CONTEXT_MESSAGES = 20;
+    private const MAX_CONTEXT_MESSAGES = 12;
     
     /** الحد الأقصى للرسائل في الساعة لكل طالب */
     private const RATE_LIMIT_PER_HOUR = 40;
@@ -34,6 +34,9 @@ class AiAdvisorController extends Controller
 
     /** الحد الأقصى للساعات لطالب الإنذار */
     private const MAX_HOURS_PROBATION = 12;
+
+    /** تفعيل توليد عنوان ذكي عبر API (قد يزيد زمن الاستجابة) */
+    private const ENABLE_SMART_TITLE = false;
 
     // ==========================================
     // 🔧 أدوات مساعدة
@@ -317,6 +320,8 @@ class AiAdvisorController extends Controller
         6. نسّق إجابتك بشكل جميل بالرموز التعبيرية (🚀🎯💡📊⚡) والخط العريض.
         7. **قاعدة حاسمة:** اكتب أسماء المواد بالضبط كما في القائمة عشان نظامنا يربطها بأزرار الإضافة.
         8. في نهاية كل رد، أضف 2-3 أسئلة متابعة مقترحة للطالب.
+        9. ⛔ لا تستخدم أي HTML نهائياً (مثل <div> أو <span> أو <br>). استخدم نص نظيف أو Markdown بسيط فقط.
+        10. ⛔ لا ترجع markdown code fences مثل ```json.
 
         🎮 [الأدوات التفاعلية - Interactive Widgets]:
         يمكنك استخدام أدوات تفاعلية خاصة بالإضافة للنص العادي. أضفها في حقل \"interactive_widget\" في الرد:
@@ -530,16 +535,19 @@ class AiAdvisorController extends Controller
     private function callGeminiAPI($contents, $apiKey)
     {
         $baseUrl = "https://" . "generativelanguage.googleapis.com";
-        $endpoint = "/v1beta/models/gemini-2.5-flash:generateContent?key=";
+        $model = env('GEMINI_MODEL', 'gemini-2.0-flash-lite');
+        $endpoint = "/v1beta/models/{$model}:generateContent?key=";
         $url = $baseUrl . $endpoint . $apiKey;
 
         $response = Http::withoutVerifying()
-            ->timeout(90)
+            ->timeout(35)
             ->withHeaders(['Content-Type' => 'application/json'])
             ->post($url, [
                 'contents' => $contents,
                 'generationConfig' => [
                     'responseMimeType' => 'application/json',
+                    'temperature' => 0.35,
+                    'maxOutputTokens' => 900,
                 ],
             ]);
 
@@ -585,6 +593,27 @@ class AiAdvisorController extends Controller
         $fallback = preg_replace('/[{}"\[\]]/', '', $clean);
         $fallback = preg_replace('/(reply|suggested_courses|courses_to_remove|follow_up_suggestions|interactive_widget)\s*:/', '', $fallback);
         return ['reply' => trim($fallback), 'follow_up_suggestions' => [], 'interactive_widget' => null];
+    }
+
+    /**
+     * تنظيف الرد النهائي وعزل أي HTML أو نصوص تقنية غير مرغوبة.
+     */
+    private function normalizeReplyText(string $text): string
+    {
+        $clean = str_replace(['\\n', '\n'], "\n", $text);
+
+        // إزالة أي كتل أكواد/markdown fences إن ظهرت.
+        $clean = preg_replace('/```(?:json|html|markdown)?(.*?)```/is', '$1', $clean);
+
+        // إزالة وسوم HTML بالكامل لمنع ظهورها للطالب.
+        $clean = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $clean);
+        $clean = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $clean);
+        $clean = strip_tags($clean);
+
+        $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
+
+        return trim((string) $clean);
     }
 
     /**
@@ -774,9 +803,7 @@ class AiAdvisorController extends Controller
             $matched = $this->matchCoursesInReply($replyText, $availableCourses['map'], $cartData['map']);
 
             // تنظيف النص
-            $finalReply = str_replace('\n', "\n", $replyText);
-            $finalReply = preg_replace('/\n{3,}/', "\n\n", $finalReply);
-            $finalReply = trim($finalReply);
+            $finalReply = $this->normalizeReplyText($replyText);
 
             // جلب تفاصيل المواد
             $suggestedDetails = [];
@@ -806,8 +833,13 @@ class AiAdvisorController extends Controller
 
             // توليد عنوان ذكي لمحادثة جديدة (async-style بعد الرد)
             if ($isNewChat) {
-                $smartTitle = $this->generateSmartTitle($userMessage, $finalReply, $apiKey);
-                $chat->update(['title' => $smartTitle]);
+                if (self::ENABLE_SMART_TITLE) {
+                    $smartTitle = $this->generateSmartTitle($userMessage, $finalReply, $apiKey);
+                    $chat->update(['title' => $smartTitle]);
+                } else {
+                    $smartTitle = mb_substr($userMessage, 0, 35) . (mb_strlen($userMessage) > 35 ? '...' : '');
+                    $chat->update(['title' => $smartTitle]);
+                }
             }
 
             return response()->json([
@@ -826,7 +858,7 @@ class AiAdvisorController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'reply' => "⚠️ **حدث خطأ فني أثناء الاتصال بالذكاء الاصطناعي.**\n\n`{$e->getMessage()}`\n\nيرجى المحاولة مرة أخرى. 🔄",
+                'reply' => "⚠️ صار تأخير أو مشكلة مؤقتة بالرد.\n\nحاول مرة ثانية بسؤال أقصر، وأنا جاهز.",
                 'suggested_courses' => [],
                 'courses_to_remove' => [],
                 'follow_up_suggestions' => ['حاول مرة أخرى', 'اسأل سؤال آخر'],
