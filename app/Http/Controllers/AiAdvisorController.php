@@ -40,6 +40,9 @@ class AiAdvisorController extends Controller
     /** أقصى طول للنص النهائي المعروض للطالب */
     private const MAX_REPLY_LENGTH = 12000;
 
+    /** عدد محاولات تكملة الرد إذا توقف بسبب حد التوكن */
+    private const MAX_CONTINUATION_PASSES = 2;
+
     /** أقصى عدد أسئلة متابعة */
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
 
@@ -601,32 +604,67 @@ class AiAdvisorController extends Controller
             $url = $baseUrl . $endpoint . $apiKey;
 
             try {
-                $response = Http::withoutVerifying()
-                    ->connectTimeout(8)
-                    ->timeout(110)
-                    ->retry(2, 300)
-                    ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post($url, [
-                        'contents' => $contents,
-                        'generationConfig' => [
-                            'responseMimeType' => 'application/json',
-                            'temperature' => 0.35,
-                            'maxOutputTokens' => 3200,
-                        ],
-                    ]);
+                $requestContents = $contents;
+                $fullText = '';
 
-                if (!$response->successful()) {
-                    $lastError = "{$model}: HTTP {$response->status()}";
-                    continue;
+                for ($pass = 0; $pass <= self::MAX_CONTINUATION_PASSES; $pass++) {
+                    $response = Http::withoutVerifying()
+                        ->connectTimeout(8)
+                        ->timeout(180)
+                        ->retry(2, 300)
+                        ->withHeaders(['Content-Type' => 'application/json'])
+                        ->post($url, [
+                            'contents' => $requestContents,
+                            'generationConfig' => [
+                                'responseMimeType' => 'application/json',
+                                'temperature' => 0.35,
+                                'maxOutputTokens' => 4096,
+                            ],
+                        ]);
+
+                    if (!$response->successful()) {
+                        $lastError = "{$model}: HTTP {$response->status()}";
+                        continue 2;
+                    }
+
+                    $data = $response->json();
+                    $candidate = $data['candidates'][0] ?? null;
+                    $chunk = $candidate['content']['parts'][0]['text'] ?? null;
+
+                    if (!is_string($chunk) || trim($chunk) === '') {
+                        $lastError = "{$model}: empty candidate text";
+                        continue 2;
+                    }
+
+                    $fullText .= $chunk;
+
+                    $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
+                    $stoppedByTokenLimit = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
+
+                    if (!$stoppedByTokenLimit) {
+                        return $fullText;
+                    }
+
+                    if ($pass >= self::MAX_CONTINUATION_PASSES) {
+                        return $fullText;
+                    }
+
+                    // اطلب تكملة الرد بدون إعادة البداية عند انقطاعه بسبب التوكن.
+                    $requestContents[] = [
+                        'role' => 'model',
+                        'parts' => [['text' => $chunk]],
+                    ];
+                    $requestContents[] = [
+                        'role' => 'user',
+                        'parts' => [[
+                            'text' => 'اكمل الرد من آخر نقطة وصلت لها فقط، بدون إعادة أي جزء سابق، وحافظ على نفس التنسيق المطلوب.'
+                        ]],
+                    ];
                 }
 
-                $data = $response->json();
-                if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-                    $lastError = "{$model}: empty candidate text";
-                    continue;
+                if ($fullText !== '') {
+                    return $fullText;
                 }
-
-                return $data['candidates'][0]['content']['parts'][0]['text'];
             } catch (\Throwable $exception) {
                 $lastError = "{$model}: {$exception->getMessage()}";
                 continue;
@@ -784,8 +822,10 @@ class AiAdvisorController extends Controller
             return 'ما وصلني رد واضح هذه المرة. اكتب سؤالك بصيغة أقصر وأنا أجاوبك فوراً.';
         }
 
-        if (mb_strlen($clean, 'UTF-8') > self::MAX_REPLY_LENGTH) {
-            $clean = mb_substr($clean, 0, self::MAX_REPLY_LENGTH, 'UTF-8') . "\n\n...";
+        // لا نقص الرد تلقائياً حتى لا يظهر للطالب نص مقطوع.
+        if (self::MAX_REPLY_LENGTH > 0 && mb_strlen($clean, 'UTF-8') > self::MAX_REPLY_LENGTH) {
+            // حفاظاً على الذاكرة فقط: لا نقص إلا عند تجاوز كبير جداً.
+            $clean = mb_substr($clean, 0, self::MAX_REPLY_LENGTH, 'UTF-8');
         }
 
         return $clean;
@@ -1024,7 +1064,7 @@ class AiAdvisorController extends Controller
 
     public function chat(Request $request)
     {
-        set_time_limit(240);
+        set_time_limit(420);
 
         $request->validate([
             'message' => 'required|string|max:2000',
