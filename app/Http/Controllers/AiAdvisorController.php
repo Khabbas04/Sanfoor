@@ -615,18 +615,29 @@ class AiAdvisorController extends Controller
         $clean = preg_replace('/```(?:json)?(.*?)```/is', '$1', $rawText);
         $clean = trim($clean);
 
-        $parsed = json_decode($clean, true);
+        $parsed = null;
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
+        $decodedFull = json_decode($clean, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedFull)) {
+            $parsed = $decodedFull;
+        } else {
             $jsonFragment = $this->extractJsonObject($clean);
             if ($jsonFragment !== null) {
-                $parsed = json_decode($jsonFragment, true);
+                $decodedFragment = json_decode($jsonFragment, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decodedFragment)) {
+                    $parsed = $decodedFragment;
+                }
             }
         }
 
-        if (json_last_error() === JSON_ERROR_NONE && isset($parsed['reply'])) {
+        if (is_array($parsed) && isset($parsed['reply'])) {
+            $reply = $parsed['reply'];
+            if (is_array($reply) || is_object($reply)) {
+                $reply = json_encode($reply, JSON_UNESCAPED_UNICODE);
+            }
+
             return [
-                'reply' => $parsed['reply'],
+                'reply' => (string) ($reply ?? ''),
                 'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [],
                 'interactive_widget' => $parsed['interactive_widget'] ?? null,
             ];
@@ -639,10 +650,16 @@ class AiAdvisorController extends Controller
             return ['reply' => $reply, 'follow_up_suggestions' => [], 'interactive_widget' => null];
         }
 
-        // آخر حل: رجّع النص كامل بدون JSON wrappers
-        $fallback = preg_replace('/[{}"\[\]]/', '', $clean);
-        $fallback = preg_replace('/(reply|suggested_courses|courses_to_remove|follow_up_suggestions|interactive_widget)\s*:/', '', $fallback);
-        return ['reply' => trim($fallback), 'follow_up_suggestions' => [], 'interactive_widget' => null];
+        // آخر حل: رجّع النص الخام بعد تنظيف بسيط بدل تشويهه بحذف شامل للرموز.
+        $fallback = preg_replace('/^\s*\{+\s*/u', '', $clean);
+        $fallback = preg_replace('/\s*\}+\s*$/u', '', $fallback);
+        $fallback = trim($fallback);
+
+        if ($fallback === '') {
+            $fallback = 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.';
+        }
+
+        return ['reply' => $fallback, 'follow_up_suggestions' => [], 'interactive_widget' => null];
     }
 
     /**
