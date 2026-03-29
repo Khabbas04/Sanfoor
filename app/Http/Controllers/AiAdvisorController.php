@@ -586,9 +586,38 @@ class AiAdvisorController extends Controller
     }
 
     /**
+     * جلب مفاتيح Gemini مع دعم أكثر من مفتاح للفشل التلقائي.
+     *
+     * الأولوية:
+     * 1) GEMINI_API_KEYS بصيغة مفصولة بفواصل.
+     * 2) GEMINI_API_KEY كمفتاح احتياطي.
+     */
+    private function getGeminiApiKeys(): array
+    {
+        $keys = [];
+
+        $keysCsv = (string) env('GEMINI_API_KEYS', '');
+        if (trim($keysCsv) !== '') {
+            foreach (explode(',', $keysCsv) as $key) {
+                $value = trim((string) $key);
+                if ($value !== '') {
+                    $keys[] = $value;
+                }
+            }
+        }
+
+        $single = trim((string) env('GEMINI_API_KEY', ''));
+        if ($single !== '') {
+            $keys[] = $single;
+        }
+
+        return array_values(array_unique($keys));
+    }
+
+    /**
      * استدعاء Gemini API
      */
-    private function callGeminiAPI($contents, $apiKey)
+    private function callGeminiAPI($contents, array $apiKeys)
     {
         $baseUrl = "https://" . "generativelanguage.googleapis.com";
         $models = array_values(array_unique(array_filter([
@@ -597,76 +626,82 @@ class AiAdvisorController extends Controller
             'gemini-2.5-flash',
         ])));
 
+        if (empty($apiKeys)) {
+            throw new \Exception('No Gemini API keys configured');
+        }
+
         $lastError = 'Unknown Gemini error';
 
-        foreach ($models as $model) {
-            $endpoint = "/v1beta/models/{$model}:generateContent?key=";
-            $url = $baseUrl . $endpoint . $apiKey;
+        foreach ($apiKeys as $keyIndex => $apiKey) {
+            foreach ($models as $model) {
+                $endpoint = "/v1beta/models/{$model}:generateContent?key=";
+                $url = $baseUrl . $endpoint . $apiKey;
 
-            try {
-                $requestContents = $contents;
-                $fullText = '';
+                try {
+                    $requestContents = $contents;
+                    $fullText = '';
 
-                for ($pass = 0; $pass <= self::MAX_CONTINUATION_PASSES; $pass++) {
-                    $response = Http::withoutVerifying()
-                        ->connectTimeout(8)
-                        ->timeout(0)
-                        ->retry(2, 300)
-                        ->withHeaders(['Content-Type' => 'application/json'])
-                        ->post($url, [
-                            'contents' => $requestContents,
-                            'generationConfig' => [
-                                'responseMimeType' => 'application/json',
-                                'temperature' => 0.35,
-                            ],
-                        ]);
+                    for ($pass = 0; $pass <= self::MAX_CONTINUATION_PASSES; $pass++) {
+                        $response = Http::withoutVerifying()
+                            ->connectTimeout(8)
+                            ->timeout(0)
+                            ->retry(2, 300)
+                            ->withHeaders(['Content-Type' => 'application/json'])
+                            ->post($url, [
+                                'contents' => $requestContents,
+                                'generationConfig' => [
+                                    'responseMimeType' => 'application/json',
+                                    'temperature' => 0.35,
+                                ],
+                            ]);
 
-                    if (!$response->successful()) {
-                        $lastError = "{$model}: HTTP {$response->status()}";
-                        continue 2;
+                        if (!$response->successful()) {
+                            $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP {$response->status()}";
+                            continue 2;
+                        }
+
+                        $data = $response->json();
+                        $candidate = $data['candidates'][0] ?? null;
+                        $chunk = $candidate['content']['parts'][0]['text'] ?? null;
+
+                        if (!is_string($chunk) || trim($chunk) === '') {
+                            $lastError = "key#" . ($keyIndex + 1) . " {$model}: empty candidate text";
+                            continue 2;
+                        }
+
+                        $fullText .= $chunk;
+
+                        $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
+                        $stoppedByTokenLimit = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
+
+                        if (!$stoppedByTokenLimit) {
+                            return $fullText;
+                        }
+
+                        if ($pass >= self::MAX_CONTINUATION_PASSES) {
+                            return $fullText;
+                        }
+
+                        // اطلب تكملة الرد بدون إعادة البداية عند انقطاعه بسبب التوكن.
+                        $requestContents[] = [
+                            'role' => 'model',
+                            'parts' => [['text' => $chunk]],
+                        ];
+                        $requestContents[] = [
+                            'role' => 'user',
+                            'parts' => [[
+                                'text' => 'اكمل الرد من آخر نقطة وصلت لها فقط، بدون إعادة أي جزء سابق، وحافظ على نفس التنسيق المطلوب.'
+                            ]],
+                        ];
                     }
 
-                    $data = $response->json();
-                    $candidate = $data['candidates'][0] ?? null;
-                    $chunk = $candidate['content']['parts'][0]['text'] ?? null;
-
-                    if (!is_string($chunk) || trim($chunk) === '') {
-                        $lastError = "{$model}: empty candidate text";
-                        continue 2;
-                    }
-
-                    $fullText .= $chunk;
-
-                    $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
-                    $stoppedByTokenLimit = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
-
-                    if (!$stoppedByTokenLimit) {
+                    if ($fullText !== '') {
                         return $fullText;
                     }
-
-                    if ($pass >= self::MAX_CONTINUATION_PASSES) {
-                        return $fullText;
-                    }
-
-                    // اطلب تكملة الرد بدون إعادة البداية عند انقطاعه بسبب التوكن.
-                    $requestContents[] = [
-                        'role' => 'model',
-                        'parts' => [['text' => $chunk]],
-                    ];
-                    $requestContents[] = [
-                        'role' => 'user',
-                        'parts' => [[
-                            'text' => 'اكمل الرد من آخر نقطة وصلت لها فقط، بدون إعادة أي جزء سابق، وحافظ على نفس التنسيق المطلوب.'
-                        ]],
-                    ];
+                } catch (\Throwable $exception) {
+                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: {$exception->getMessage()}";
+                    continue;
                 }
-
-                if ($fullText !== '') {
-                    return $fullText;
-                }
-            } catch (\Throwable $exception) {
-                $lastError = "{$model}: {$exception->getMessage()}";
-                continue;
             }
         }
 
@@ -1073,9 +1108,9 @@ class AiAdvisorController extends Controller
         $user = Auth::user();
         $userMessage = $request->message;
         $chatId = $request->chat_id;
-        $apiKey = env('GEMINI_API_KEY');
+        $apiKeys = $this->getGeminiApiKeys();
 
-        if (!$apiKey) {
+        if (empty($apiKeys)) {
             return response()->json(['status' => 'error', 'message' => 'مفتاح API غير موجود.'], 500);
         }
 
@@ -1135,7 +1170,7 @@ class AiAdvisorController extends Controller
         $contents = $this->buildConversationContext($chat, $systemPrompt);
 
         try {
-            $rawText = $this->callGeminiAPI($contents, $apiKey);
+            $rawText = $this->callGeminiAPI($contents, $apiKeys);
             $parsed = $this->parseAIResponse($rawText);
 
             $replyText = (string) ($parsed['reply'] ?? '');
@@ -1180,7 +1215,7 @@ class AiAdvisorController extends Controller
             // توليد عنوان ذكي لمحادثة جديدة (async-style بعد الرد)
             if ($isNewChat) {
                 if (self::ENABLE_SMART_TITLE) {
-                    $smartTitle = $this->generateSmartTitle($userMessage, $finalReply, $apiKey);
+                    $smartTitle = $this->generateSmartTitle($userMessage, $finalReply, $apiKeys[0]);
                     $chat->update(['title' => $smartTitle]);
                 } else {
                     $smartTitle = mb_substr($userMessage, 0, 35) . (mb_strlen($userMessage) > 35 ? '...' : '');
