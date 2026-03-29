@@ -201,7 +201,7 @@ class TreeController extends Controller
     }
 
     /**
-     * 🔥 الدالة الجديدة المخصصة لإضافة أو إزالة مادة واحدة من المحاكي فقط 🔥
+    * 🔥 الدالة الجديدة المخصصة لإضافة أو إزالة مادة واحدة من التسجيل التجريبي فقط 🔥
      * هذه الدالة يتم استدعاؤها من واجهة المحادثة مع الذكاء الاصطناعي (سنفور)
      */
     public function toggleSingleCart(Request $request)
@@ -224,15 +224,15 @@ class TreeController extends Controller
             ], 422);
         }
 
-        // التحقق مما إذا كانت المادة موجودة في المحاكي مسبقاً
+        // التحقق مما إذا كانت المادة موجودة في التسجيل التجريبي مسبقاً
         if ($user->cartCourses()->where('course_id', $courseId)->exists()) {
-            // إزالة المادة من المحاكي
+            // إزالة المادة من التسجيل التجريبي
             $user->cartCourses()->detach($courseId);
-            return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من المحاكي.']);
+            return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
         } else {
-            // إضافة المادة إلى المحاكي
+            // إضافة المادة إلى التسجيل التجريبي
             $user->cartCourses()->attach($courseId);
-            return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى المحاكي بنجاح.']);
+            return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى التسجيل التجريبي بنجاح.']);
         }
     }
 }

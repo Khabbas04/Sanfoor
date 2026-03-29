@@ -545,7 +545,7 @@ export default function Dashboard({
                                 </div>
                                 <div>
                                     <h4 className="text-[14px] font-[800] text-indigo-900 mb-0.5">نصيحة المرشد الذكي</h4>
-                                    <p className="text-[12px] text-indigo-700/55 leading-relaxed max-w-lg">المرشد الذكي الآن قادر على قراءة محاكيك وإضافة جداول كاملة لك بضغطة زر. تحدث معه الآن!</p>
+                                    <p className="text-[12px] text-indigo-700/55 leading-relaxed max-w-lg">المرشد الذكي الآن قادر على قراءة تسجيلك التجريبي وإضافة جداول كاملة لك بضغطة زر. تحدث معه الآن!</p>
                                 </div>
                             </div>
                             <Link href={route('ai.advisor')} className="bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-200 hover:border-indigo-600 px-6 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 shadow-sm active:scale-[0.96] whitespace-nowrap shrink-0 flex items-center gap-2">
@@ -631,7 +631,7 @@ export default function Dashboard({
                                             {smartPlanInsights ? <span className="text-[11px] font-black bg-amber-50 text-amber-700 px-3 py-1 rounded-full border border-amber-200">صعوبة متوسطة {Math.round(smartPlanInsights.avgDifficulty)}%</span> : null}
                                         </div>
                                         <button onClick={applySmartPlan} disabled={isApplyingSmartPlan} className="bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-[12px] font-black transition-colors">
-                                            {isApplyingSmartPlan ? 'جاري التطبيق...' : 'اعتماد الخطة في المحاكي'}
+                                            {isApplyingSmartPlan ? 'جاري التطبيق...' : 'اعتماد الخطة في التسجيل التجريبي'}
                                         </button>
                                     </div>
 
@@ -787,7 +787,7 @@ export default function Dashboard({
                             )}
                         </div>
 
-                        {/* 7. المحاكي المصغر (الجانب الأيسر) */}
+                        {/* 7. التسجيل التجريبي المصغر (الجانب الأيسر) */}
                         <div className="lg:col-span-4 space-y-7">
                             <div ref={cartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]" style={{ opacity: cartVis ? 1 : 0, transform: cartVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 200ms` }}>
                                 <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border-b border-amber-100/50 p-5 shrink-0">
@@ -796,7 +796,7 @@ export default function Dashboard({
                                             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
                                                 <span className="text-xl">🛒</span> خطة الفصل القادم
                                             </h3>
-                                            <p className="text-[10px] font-bold text-slate-500 mt-1">مواد المحاكي الخاصة بك</p>
+                                            <p className="text-[10px] font-bold text-slate-500 mt-1">مواد التسجيل التجريبي الخاصة بك</p>
                                         </div>
                                         <div className="bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm text-center">
                                             <span className="block text-[10px] font-black text-amber-500 uppercase">إجمالي الساعات</span>
@@ -819,7 +819,7 @@ export default function Dashboard({
                                     )) : (
                                         <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
                                             <span className="text-3xl mb-2">📭</span>
-                                            <p className="text-xs font-bold text-slate-500">المحاكي فارغ</p>
+                                            <p className="text-xs font-bold text-slate-500">التسجيل التجريبي فارغ</p>
                                         </div>
                                     )}
                                 </div>

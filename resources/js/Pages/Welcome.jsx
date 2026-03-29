@@ -360,8 +360,8 @@ export default function Welcome({ auth }) {
                                 },
                                 {
                                     icon: "🤖",
-                                    title: 'المحاكي الذكي',
-                                    desc: 'ضيف المواد للمحاكي وشوف العبء الدراسي، النظام رح ينبهك إذا اخترت مواد بتتعارض مع قوانين الخطة.',
+                                    title: 'التسجيل التجريبي الذكي',
+                                    desc: 'ضيف المواد للتسجيل التجريبي وشوف العبء الدراسي، النظام رح ينبهك إذا اخترت مواد بتتعارض مع قوانين الخطة.',
                                     gradient: 'from-cyan-500 to-teal-500',
                                     accentBg: 'bg-cyan-50',
                                     delay: 150,
@@ -573,7 +573,7 @@ export default function Welcome({ auth }) {
                                         <TreeNode x="104" y="185" delay={1.25} color="#334155" label="مغلقة 🔒" />
                                         <TreeNode x="164" y="185" delay={1.3} color="#334155" label="مغلقة 🔒" />
                                         <TreeNode x="284" y="185" delay={1.35} color="#334155" label="مغلقة 🔒" />
-                                        <TreeNode x="344" y="185" delay={1.4} color="#f59e0b" label="محاكي 🛒" />
+                                        <TreeNode x="344" y="185" delay={1.4} color="#f59e0b" label="تجريبي 🛒" />
                                         <TreeNode x="434" y="185" delay={1.45} color="#334155" label="مغلقة 🔒" />
                                     </>}
                                 </svg>
@@ -689,7 +689,7 @@ export default function Welcome({ auth }) {
                             {[
                                 { step: '01', title: 'سجّل حسابك', desc: 'اختار جامعتك وتخصصك. سنفور بيجهزلك كل المواد والمتطلبات تلقائياً بثوانِ.', gradient: 'from-indigo-500 to-indigo-600', glow: 'shadow-indigo-500/30' },
                                 { step: '02', title: 'حدد المواد المنجزة', desc: 'علّم على المواد اللي نجحت فيها. الشجرة بتتحدث فوراً وبتفتحلك المتاح.', gradient: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/30' },
-                                { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم المحاكي الذكي أو اسأل المرشد الآلي لترتيب جدولك صح.', gradient: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/30' },
+                                { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم التسجيل التجريبي الذكي أو اسأل المرشد الآلي لترتيب جدولك صح.', gradient: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/30' },
                             ].map((s, i) => (
                                 <div
                                     key={i}

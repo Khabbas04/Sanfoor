@@ -369,11 +369,11 @@ export default function Tree({
             insights.push({ icon: '🏁', title: 'مادة نهائية', desc: 'لا تفتح مواد أخرى — يمكن تأجيلها لآخر فصل بأمان.', color: 'slate', p: 10 });
 
         if (status === 'available' && course.prerequisites?.some(p => cartIds.includes(p.id)))
-            insights.push({ icon: '⚠️', title: 'تنبيه مهم!', desc: 'أحد متطلباتها موجود بالمحاكي — لا يُنصح بتسجيلهم بنفس الفصل.', color: 'rose', p: 95 });
+            insights.push({ icon: '⚠️', title: 'تنبيه مهم!', desc: 'أحد متطلباتها موجود بالتسجيل التجريبي — لا يُنصح بتسجيلهم بنفس الفصل.', color: 'rose', p: 95 });
 
         if (status === 'cart') {
             const cartHours = courses.filter(c => cartIds.includes(c.id)).reduce((s, c) => s + c.credit_hours, 0);
-            insights.push({ icon: '🛒', title: `في المحاكي (${cartHours} ساعة إجمالي)`, desc: cartHours > 18 ? '⚠️ تجاوزت الحد الأقصى!' : cartHours >= 15 ? 'عبء جيد ومتوازن.' : 'عبء خفيف — ممكن تضيف المزيد.', color: cartHours > 18 ? 'rose' : 'amber', p: 50 });
+            insights.push({ icon: '🛒', title: `في التسجيل التجريبي (${cartHours} ساعة إجمالي)`, desc: cartHours > 18 ? '⚠️ تجاوزت الحد الأقصى!' : cartHours >= 15 ? 'عبء جيد ومتوازن.' : 'عبء خفيف — ممكن تضيف المزيد.', color: cartHours > 18 ? 'rose' : 'amber', p: 50 });
         }
 
         return insights.sort((a, b) => b.p - a.p);
@@ -396,7 +396,7 @@ export default function Tree({
         return { availableCount, criticalCount };
     }, [courses, getStatus, getCourseDepth]);
 
-    // 🆕 تحليل صحة المحاكي
+    // 🆕 تحليل صحة التسجيل التجريبي
     const cartHealthAnalysis = useMemo(() => {
         if (cartIds.length === 0) return null;
         const cc = courses.filter(c => cartIds.includes(c.id));
@@ -447,7 +447,7 @@ export default function Tree({
 
             const themes = {
                 passed: { bg: 'background:linear-gradient(135deg,#059669,#10b981)', border: 'border:1.5px solid rgba(16,185,129,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'منجز', statusIcon: '✅' },
-                cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'محاكي', statusIcon: '🛒' },
+                cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'تجريبي', statusIcon: '🛒' },
                 available: { bg: 'background:linear-gradient(135deg,#4338ca,#6366f1)', border: 'border:1.5px solid rgba(99,102,241,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'متاح', statusIcon: '🔓' },
                 locked: { bg: 'background:#f8fafc', border: 'border:1.5px solid #cbd5e1', badgeBg: 'rgba(148,163,184,0.15)', textColor: '#64748b', statusLabel: 'مغلق', statusIcon: '🔒' },
             };
@@ -628,7 +628,7 @@ export default function Tree({
                 return;
             }
 
-            // لو مادة بالمحاكي تعتمد عليها — نحذر بس نسمح
+            // لو مادة بالتسجيل التجريبي تعتمد عليها — نحذر بس نسمح
             const dependentInCart = courses.filter(c =>
                 cartIds.includes(c.id) &&
                 c.prerequisites?.some(p => p.id === courseId)
@@ -638,7 +638,7 @@ export default function Tree({
                 const result = await Swal.fire({
                     icon: 'warning',
                     title: 'تنبيه!',
-                    html: `إلغاء هذه المادة سيحذف هذه المواد من المحاكي تلقائياً:<br/><br/><div style="text-align:right;font-size:13px;">${dependentInCart.map(c => `<span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;padding:2px 10px;border-radius:8px;margin:2px;font-weight:700;">🛒 ${c.name}</span>`).join('')}</div>`,
+                    html: `إلغاء هذه المادة سيحذف هذه المواد من التسجيل التجريبي تلقائياً:<br/><br/><div style="text-align:right;font-size:13px;">${dependentInCart.map(c => `<span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;padding:2px 10px;border-radius:8px;margin:2px;font-weight:700;">🛒 ${c.name}</span>`).join('')}</div>`,
                     showCancelButton: true,
                     confirmButtonText: 'نعم، ألغِ الكل',
                     cancelButtonText: 'تراجع',
@@ -647,7 +647,7 @@ export default function Tree({
 
                 if (!result.isConfirmed) return;
 
-                // حذف المواد المعتمدة من المحاكي
+                // حذف المواد المعتمدة من التسجيل التجريبي
                 const idsToRemove = dependentInCart.map(c => c.id);
                 const updatedCart = cartIds.filter(id => !idsToRemove.includes(id));
                 setCartIds(updatedCart);
@@ -690,7 +690,7 @@ export default function Tree({
         }
     };
 
-    // 🆕 FIX: فحص حد الساعات قبل الإضافة للمحاكي
+    // 🆕 FIX: فحص حد الساعات قبل الإضافة للتسجيل التجريبي
     const toggleCart = (course) => {
         let updatedCart;
         if (cartIds.includes(course.id)) {
@@ -724,7 +724,7 @@ export default function Tree({
             Swal.fire({
                 icon: 'error',
                 title: 'تجاوزت الحد الأقصى!',
-                html: `المحاكي حالياً <b>${currentCartHours} ساعة</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours} ساعات) ستتجاوز الحد الأقصى <b>18 ساعة</b>.<br/><br/>احذف مادة أولاً لتوفير مساحة.`,
+                html: `التسجيل التجريبي حالياً <b>${currentCartHours} ساعة</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours} ساعات) ستتجاوز الحد الأقصى <b>18 ساعة</b>.<br/><br/>احذف مادة أولاً لتوفير مساحة.`,
                 ...swalTheme
             });
             return;
@@ -1259,7 +1259,7 @@ export default function Tree({
                                                                     {p.name}
                                                                 </span>
                                                                 <span className="font-[800] text-[10px]">
-                                                                    {passedIds.includes(p.id) ? 'منجز' : cartIds.includes(p.id) ? 'بالمحاكي' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'متاح الآن!' : 'مقفل'}
+                                                                    {passedIds.includes(p.id) ? 'منجز' : cartIds.includes(p.id) ? 'بالتسجيل التجريبي' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'متاح الآن!' : 'مقفل'}
                                                                 </span>
                                                             </div>
                                                         ))}
@@ -1296,7 +1296,7 @@ export default function Tree({
                                                                                         <span className="text-[11px] font-[800] text-emerald-200">{step.name}</span>
                                                                                         <div className="flex items-center gap-1.5">
                                                                                             <span className="text-[9px] font-mono text-white/30">{step.code}</span>
-                                                                                            <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالمحاكي' : '🔓 متاح'}</span>
+                                                                                            <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالتسجيل التجريبي' : '🔓 متاح'}</span>
                                                                                         </div>
                                                                                     </div>
                                                                                     {step.status === 'available' && (
@@ -1307,7 +1307,7 @@ export default function Tree({
                                                                                             }}
                                                                                             className="mt-1.5 w-full bg-emerald-500/15 hover:bg-emerald-500/80 hover:text-white text-emerald-300 border border-emerald-400/20 py-1.5 rounded-lg text-[10px] font-[800] transition-all active:scale-95"
                                                                                         >
-                                                                                            🛒 أضف للمحاكي
+                                                                                            🛒 أضف للتسجيل التجريبي
                                                                                         </button>
                                                                                     )}
                                                                                 </div>
@@ -1365,13 +1365,13 @@ export default function Tree({
                                         )}
                                         {getStatus(selectedCourse) === 'available' && (
                                             <>
-                                                <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للمحاكي</button>
+                                                <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
                                                 <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-emerald-500/80 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                                             </>
                                         )}
                                         {(getStatus(selectedCourse) === 'passed' || getStatus(selectedCourse) === 'cart') && (
                                             <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                                {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من المحاكي'}
+                                                {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التسجيل التجريبي'}
                                             </button>
                                         )}
                                     </div>
@@ -1442,10 +1442,10 @@ export default function Tree({
 
                                 {workloadAnalysis && (<div className={`p-3.5 rounded-xl border font-bold text-[12px] leading-relaxed shadow-sm ${workloadAnalysis.cls}`}>{workloadAnalysis.msg}</div>)}
 
-                                {/* 🆕 مؤشر صحة المحاكي */}
+                                {/* 🆕 مؤشر صحة التسجيل التجريبي */}
                                 {cartHealthAnalysis && (
                                     <div className="bg-slate-50 border border-slate-200 p-4 rounded-[1.25rem] space-y-3">
-                                        <h4 className="font-[800] text-slate-700 text-[12px] flex items-center gap-2">📊 تحليل تركيبة المحاكي</h4>
+                                        <h4 className="font-[800] text-slate-700 text-[12px] flex items-center gap-2">📊 تحليل تركيبة التسجيل التجريبي</h4>
                                         <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
                                             {cartHealthAnalysis.compPct > 0 && <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${cartHealthAnalysis.compPct}%` }} />}
                                             {cartHealthAnalysis.elecPct > 0 && <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${cartHealthAnalysis.elecPct}%` }} />}
@@ -1534,7 +1534,7 @@ export default function Tree({
                                 <div className="mt-2 bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200/60 flex flex-col gap-2" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
                                     <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الحالات</p>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
-                                        {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في المحاكي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                        {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
                                             <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
                                         ))}
                                     </div>

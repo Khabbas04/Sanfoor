@@ -9,22 +9,22 @@ const translations = {
     ar: {
         pageTitle: 'إدارة الطلاب - Admin',
         heading: '👨‍🎓 قاعدة بيانات الطلاب',
-        subheading: 'إدارة السجلات الأكاديمية، تتبع المحاكي، ومعلومات النظام.',
+        subheading: 'إدارة السجلات الأكاديمية، تتبع التسجيل التجريبي، ومعلومات النظام.',
         searchPlaceholder: 'ابحث بالاسم أو البريد الإلكتروني...',
         listedStudents: 'طلاب معروضون حالياً',
-        cartCourses: 'مواد داخل المحاكيات',
+        cartCourses: 'مواد داخل التسجيلات التجريبية',
         avgGpa: 'متوسط المعدل (القائمة)',
         colStudent: 'الطالب',
         colMajor: 'التخصص',
         colGpa: 'المعدل',
         colHours: 'الساعات',
-        colCart: 'المحاكي',
+        colCart: 'التسجيل التجريبي',
         colAction: 'إجراء',
         details: 'التفاصيل',
         noStudents: 'لا يوجد طلاب مطابقين للبحث.',
         courses: 'مواد',
         tabPassed: '✅ المنجزة',
-        tabCart: '🛒 المحاكي',
+        tabCart: '🛒 التسجيل التجريبي',
         tabInfo: '💻 النظام',
         editTitle: 'تعديل بيانات الحساب',
         emailLabel: 'البريد الإلكتروني',
@@ -32,7 +32,7 @@ const translations = {
         selectMajor: 'اختر التخصص',
         saveChanges: 'حفظ التغييرات',
         noPassedCourses: 'لا يوجد مواد منجزة لهذا الطالب.',
-        emptyCart: 'المحاكي فارغ حالياً.',
+        emptyCart: 'التسجيل التجريبي فارغ حالياً.',
         infoCardTitle: 'تفاصيل الاتصال والأمان',
         ipLabel: 'رقم IP الأخير',
         regDate: 'تاريخ التسجيل',
@@ -41,7 +41,7 @@ const translations = {
         deleteAccount: 'حذف حساب الطالب',
         stats_gpa: 'المعدل',
         stats_hours: 'الساعات',
-        stats_cart: 'بالمحاكي',
+        stats_cart: 'بالتسجيل التجريبي',
         cancelEdit: 'إلغاء التعديل',
         editData: 'تعديل البيانات',
         gradeLabel: 'ناجح',
@@ -57,22 +57,22 @@ const translations = {
     en: {
         pageTitle: 'Manage Students - Admin',
         heading: '👨‍🎓 Student Database',
-        subheading: 'Manage academic records, simulator tracking, and system information.',
+        subheading: 'Manage academic records, trial-registration tracking, and system information.',
         searchPlaceholder: 'Search by name or email...',
         listedStudents: 'Currently Listed Students',
-        cartCourses: 'Courses in Simulators',
+        cartCourses: 'Courses in Trial Registrations',
         avgGpa: 'Avg GPA (List)',
         colStudent: 'Student',
         colMajor: 'Major',
         colGpa: 'GPA',
         colHours: 'Hours',
-        colCart: 'Simulator',
+        colCart: 'Trial Registration',
         colAction: 'Action',
         details: 'Details',
         noStudents: 'No students match the search.',
         courses: 'courses',
         tabPassed: '✅ Passed',
-        tabCart: '🛒 Simulator',
+        tabCart: '🛒 Trial Registration',
         tabInfo: '💻 System',
         editTitle: 'Edit Account Data',
         emailLabel: 'Email',
@@ -80,7 +80,7 @@ const translations = {
         selectMajor: 'Select Major',
         saveChanges: 'Save Changes',
         noPassedCourses: 'No passed courses for this student.',
-        emptyCart: 'The simulator is currently empty.',
+        emptyCart: 'The trial registration is currently empty.',
         infoCardTitle: 'Connection & Security Details',
         ipLabel: 'Last IP Address',
         regDate: 'Registration Date',
@@ -374,7 +374,7 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                         <p className="text-lg font-black text-emerald-400">{selectedStudent?.stats.total_passed_credits}</p>
                                     </div>
                                     <div className="bg-white/10 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-md">
-                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">بالمحاكي</p>
+                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">بالتسجيل التجريبي</p>
                                         <p className="text-lg font-black text-amber-400">{selectedStudent?.stats.cart_courses_count}</p>
                                     </div>
                                 </div>
@@ -453,7 +453,7 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                             </div>
                                         )}
 
-                                        {/* 2. مواد المحاكي */}
+                                        {/* 2. مواد التسجيل التجريبي */}
                                         {activeTab === 'cart' && (
                                             <div className="space-y-3">
                                                 {selectedStudent?.cart_courses?.length > 0 ? (

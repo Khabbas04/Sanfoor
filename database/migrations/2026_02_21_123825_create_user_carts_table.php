@@ -16,10 +16,10 @@ return new class extends Migration
             Schema::create('user_carts', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id')->constrained()->onDelete('cascade');
-                $table->foreignId('course_id')->constrained()->onDelete('cascade'); // ربط المادة بالمحاكي
+                $table->foreignId('course_id')->constrained()->onDelete('cascade'); // ربط المادة بالتسجيل التجريبي
                 $table->timestamps();
 
-                // 🔥 منع إضافة نفس المادة للمحاكي أكثر من مرة لنفس الطالب
+                // 🔥 منع إضافة نفس المادة للتسجيل التجريبي أكثر من مرة لنفس الطالب
                 $table->unique(['user_id', 'course_id']);
             });
         } else {

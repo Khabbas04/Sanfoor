@@ -143,7 +143,7 @@ class AiAdvisorController extends Controller
 
             if (!$canTake) continue;
 
-            // حتى لو بالمحاكي، نضيفها للـ map عشان الـ AI يعرفها
+            // حتى لو بالتسجيل التجريبي، نضيفها للـ map عشان الـ AI يعرفها
             $availableCoursesMap[$course->id] = $course->name;
 
             // ─── استخراج سنة المادة من الرقم الرابع في الرمز ───
@@ -172,7 +172,7 @@ class AiAdvisorController extends Controller
             // ─── بناء التاغات ───
             $tags = [];
             if ($unlocksCount > 0) $tags[] = "🔥 استراتيجية (تفتح {$unlocksCount} مواد)";
-            if ($inCart) $tags[] = "🛒 موجودة بالمحاكي حالياً";
+            if ($inCart) $tags[] = "🛒 موجودة بالتسجيل التجريبي حالياً";
 
             $tagString = !empty($tags) ? ' [' . implode(' | ', $tags) . ']' : '';
 
@@ -241,9 +241,9 @@ class AiAdvisorController extends Controller
         🎯 [RAG الإرشاد الطلابي]:
         - نية_السؤال: {$intent}
         - ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "
-        - ساعات_المحاكي_الحالية: " . ($cartData['hours'] ?? 0) . "
+        - ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "
         - حالة_الساعات: {$hoursState}
-        - عدد_مواد_المحاكي: {$cartCourseCount}
+        - عدد_مواد_التسجيل_التجريبي: {$cartCourseCount}
         - مواد_استراتيجية_مرشحة:
         " . (!empty($strategicLines) ? implode("\n", $strategicLines) : '- لا توجد مواد مرشحة حالياً');
     }
@@ -281,11 +281,11 @@ class AiAdvisorController extends Controller
             $progressText = "\n        - التقدم نحو التخرج: {$academicData['total_passed_hours']}/{$academicData['total_plan_hours']} ساعة ({$percent}%)";
         }
 
-        // تحليل العبء الحالي بالمحاكي
+        // تحليل العبء الحالي بالتسجيل التجريبي
         $cartWarning = '';
         if ($cartData['hours'] > $academicData['max_allowed_hours']) {
             $excess = $cartData['hours'] - $academicData['max_allowed_hours'];
-            $cartWarning = "\n        ⚠️ تنبيه: المحاكي يحتوي {$cartData['hours']} ساعة وهذا يتجاوز الحد المسموح بـ {$excess} ساعة!";
+            $cartWarning = "\n        ⚠️ تنبيه: التسجيل التجريبي يحتوي {$cartData['hours']} ساعة وهذا يتجاوز الحد المسموح بـ {$excess} ساعة!";
         }
 
         return "أنت 'سنفور'، مستشار أكاديمي ذكي وودود من جامعة الزرقاء، ومبعوث رسمي من فريق سنفور لخدمة الطلاب في الإرشاد الأكاديمي.
@@ -300,7 +300,7 @@ class AiAdvisorController extends Controller
         - حالة الإنذار: {$probationStatus}
         - الساعات المنجزة: {$academicData['total_passed_hours']} ساعة{$progressText}
         - المواد المنجزة: [{$academicData['passed_courses_names']}]
-        - المحاكي الحالي: [" . ($cartData['list'] ?: 'فارغ') . "] ({$cartData['hours']} ساعة){$cartWarning}
+        - التسجيل التجريبي الحالي: [" . ($cartData['list'] ?: 'فارغ') . "] ({$cartData['hours']} ساعة){$cartWarning}
 
         📚 [المواد المتاحة للتسجيل]:
         {$availableCourses['text']}
@@ -371,7 +371,7 @@ class AiAdvisorController extends Controller
         1. خاطب الطالب باسمه بأسلوب ودود ومشجع.
         2. كن مستشاراً مفصلاً — اشرح **لماذا** اخترت كل مادة (تفتح مواد، ترفع المعدل، خفيفة...)، واذكر درجة صعوبتها المحسوبة.
         3. إذا كان الطالب تحت الإنذار: ركز على مواد سهلة لرفع المعدل + حذّره بلطف من تسجيل أكثر من {$academicData['max_allowed_hours']} ساعة.
-        4. إذا تجاوز المحاكي الحد المسموح، نبّه الطالب فوراً واقترح مواد لحذفها.
+        4. إذا تجاوز التسجيل التجريبي الحد المسموح، نبّه الطالب فوراً واقترح مواد لحذفها.
         5. ركّز على المواد الاستراتيجية (🔥) لأنها تفتح مساراً أوسع.
         6. نسّق إجابتك بشكل جميل بالرموز التعبيرية (🚀🎯💡📊⚡) والخط العريض.
         7. **قاعدة حاسمة:** اكتب أسماء المواد بالضبط كما في القائمة عشان نظامنا يربطها بأزرار الإضافة.
@@ -416,10 +416,10 @@ class AiAdvisorController extends Controller
             \"current_cart_hours\": {$cartData['hours']}
         }
 
-        د) **مراجعة المحاكي** (عندما يطلب الطالب مراجعة جدوله):
+        د) **مراجعة التسجيل التجريبي** (عندما يطلب الطالب مراجعة جدوله):
         \"interactive_widget\": {
             \"type\": \"cart_review\",
-            \"title\": \"مراجعة المحاكي الحالي\",
+            \"title\": \"مراجعة التسجيل التجريبي الحالي\",
             \"courses\": [
                 { \"name\": \"اسم المادة\", \"code\": \"CS101\", \"credit_hours\": 3, \"difficulty\": 3, \"verdict\": \"keep\", \"reason\": \"مادة أساسية تفتح 3 مواد\" }
             ],
@@ -432,7 +432,7 @@ class AiAdvisorController extends Controller
         - إذا سأل الطالب \"اقترح لي مواد\" أو \"قارن بين مواد\" ← استخدم comparison
         - إذا سأل سؤال عام بدون تحديد أولوية ← استخدم poll أولاً
         - إذا سأل \"كم ساعة أسجل\" أو \"ساعدني أختار عدد الساعات\" ← استخدم hours_slider
-        - إذا سأل \"راجع المحاكي\" أو \"شو رأيك بجدولي\" أو \"العبء كبير\" ← استخدم cart_review
+        - إذا سأل \"راجع التسجيل التجريبي\" أو \"شو رأيك بجدولي\" أو \"العبء كبير\" ← استخدم cart_review
         - إذا السؤال لا يحتاج أداة تفاعلية ← لا تضف interactive_widget
 
         ⚠️ شكل الرد الإجباري (JSON صالح فقط، بدون markdown):
@@ -498,7 +498,7 @@ class AiAdvisorController extends Controller
     {
         if (!$widget || !isset($widget['type'])) return $widget;
 
-        // دمج كل المواد المعروفة (المتاحة + اللي بالمحاكي)
+        // دمج كل المواد المعروفة (المتاحة + اللي بالتسجيل التجريبي)
         $allCoursesMap = $availableCoursesMap + $cartCoursesMap;
 
         // دالة مساعدة: تبحث عن ID المادة من اسمها
@@ -981,7 +981,7 @@ class AiAdvisorController extends Controller
                 $summary = is_array($widget['summary'] ?? null) ? $widget['summary'] : [];
                 return [
                     'type' => 'cart_review',
-                    'title' => mb_substr(trim((string) ($widget['title'] ?? 'مراجعة المحاكي الحالي')), 0, 120, 'UTF-8'),
+                    'title' => mb_substr(trim((string) ($widget['title'] ?? 'مراجعة التسجيل التجريبي الحالي')), 0, 120, 'UTF-8'),
                     'courses' => $safeCourses,
                     'summary' => [
                         'total_hours' => max(0, (int) ($summary['total_hours'] ?? 0)),
@@ -1118,7 +1118,7 @@ class AiAdvisorController extends Controller
         if (!$this->checkRateLimit($user->id)) {
             return response()->json([
                 'status' => 'success',
-                'reply' => "⏳ **وصلت للحد الأقصى من الرسائل** (" . self::RATE_LIMIT_PER_HOUR . " رسالة/ساعة).\n\nحاول مرة أخرى بعد قليل. في هالوقت، تقدر تراجع المحاكي أو تتصفح المواد المتاحة. 📚",
+                'reply' => "⏳ **وصلت للحد الأقصى من الرسائل** (" . self::RATE_LIMIT_PER_HOUR . " رسالة/ساعة).\n\nحاول مرة أخرى بعد قليل. في هالوقت، تقدر تراجع التسجيل التجريبي أو تتصفح المواد المتاحة. 📚",
                 'suggested_courses' => [],
                 'courses_to_remove' => [],
                 'follow_up_suggestions' => [],
@@ -1147,7 +1147,7 @@ class AiAdvisorController extends Controller
         // ---- جلب البيانات ----
         $academicData = $this->getStudentAcademicData($user);
 
-        // بيانات المحاكي (دائماً fresh لأنها تتغير كثير)
+        // بيانات التسجيل التجريبي (دائماً fresh لأنها تتغير كثير)
         $user->load('cartCourses');
         $cartCourseIds = $user->cartCourses->pluck('id')->toArray();
         $cartCoursesMap = $user->cartCourses->pluck('name', 'id')->toArray();

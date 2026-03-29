@@ -59,7 +59,7 @@ export default function Demand({
                                 تحليلات سنفور الذكية
                             </h1>
                             <p className="text-slate-500 dark:text-slate-400 font-bold mt-3 mr-2 text-sm leading-relaxed">
-                                تتبع رغبات الطلاب في "المحاكي" لتوقع احتياجات الفصل القادم وفتح الشعب المناسبة.
+                                تتبع رغبات الطلاب في "التسجيل التجريبي" لتوقع احتياجات الفصل القادم وفتح الشعب المناسبة.
                             </p>
                         </div>
                         
@@ -171,7 +171,7 @@ export default function Demand({
                                     <span className="text-5xl font-black text-indigo-600 leading-none">{totalStudents}</span>
                                     <span className="text-sm font-bold text-slate-400">طالب فاعِل</span>
                                 </div>
-                                <p className="text-xs text-slate-400 mt-4 font-medium leading-relaxed">هذه البيانات مستمدة من 100% من محاكيات الطلاب الحالية في جامعة الزرقاء.</p>
+                                <p className="text-xs text-slate-400 mt-4 font-medium leading-relaxed">هذه البيانات مستمدة من 100% من التسجيلات التجريبية الحالية للطلاب في جامعة الزرقاء.</p>
                             </div>
                         </div>
                     </div>

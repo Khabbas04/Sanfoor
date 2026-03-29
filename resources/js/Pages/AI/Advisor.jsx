@@ -97,7 +97,7 @@ const ComparisonWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                                 // 🆕 تم تمرير الساعات هنا: item.credit_hours
                                 <button onClick={(e) => { e.stopPropagation(); onToggleCourse(item.id, item.name, item.credit_hours); }} disabled={loadingCourseId === item.id}
                                     className={`w-full py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${added ? 'bg-emerald-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200/30'}`}>
-                                    {added ? '✅ في المحاكي — اضغط للإزالة' : '➕ أضف للمحاكي'}
+                                    {added ? '✅ في التسجيل التجريبي — اضغط للإزالة' : '➕ أضف للتسجيل التجريبي'}
                                 </button>
                             )}
                         </div>
@@ -144,7 +144,7 @@ const HoursSliderWidget = ({ widget, onSubmit }) => {
                 <div className="text-center mb-4">
                     <span className="text-5xl font-black text-teal-700 tabular-nums">{val}</span>
                     <span className="text-base font-bold text-teal-500 mr-1">ساعة</span>
-                    {widget.current_cart_hours > 0 && <p className="text-[9px] text-slate-400 font-bold mt-1">المحاكي حالياً: {widget.current_cart_hours} ساعة</p>}
+                    {widget.current_cart_hours > 0 && <p className="text-[9px] text-slate-400 font-bold mt-1">التسجيل التجريبي حالياً: {widget.current_cart_hours} ساعة</p>}
                 </div>
                 <div className="relative mb-4">
                     <div className="w-full h-2.5 bg-teal-100 rounded-full"><div className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all" style={{ width: `${pct}%` }} /></div>
@@ -174,7 +174,7 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
     const getCourseState = (c) => {
         const inCart = !!addedCourses[c.id];
 
-        // 🛡️ القاعدة الذهبية: إذا المادة مو بالمحاكي → دائماً "مقترحة للإضافة"
+        // 🛡️ القاعدة الذهبية: إذا المادة مو بالتسجيل التجريبي → دائماً "مقترحة للإضافة"
         // حتى لو الـ AI أرسل verdict: 'remove' بالخطأ (هلوسة)
         if (!inCart) {
             return {
@@ -186,7 +186,7 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
             };
         }
 
-        // المادة موجودة بالمحاكي → نثق بـ verdict الـ AI
+        // المادة موجودة بالتسجيل التجريبي → نثق بـ verdict الـ AI
         if (c.verdict === 'remove') {
             return {
                 type: 'remove_from_cart',    // مادة سيئة، الـ AI يطلب حذفها
@@ -217,7 +217,7 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
 
     return (
         <div className="mt-4 pt-3 border-t border-slate-200/40 sfr-fade-up">
-            <p className="text-[10px] font-black text-slate-600 mb-3">📋 {widget.title || 'مراجعة المحاكي'}</p>
+            <p className="text-[10px] font-black text-slate-600 mb-3">📋 {widget.title || 'مراجعة التسجيل التجريبي'}</p>
             {s.recommendation && (
                 <div className="bg-gradient-to-l from-slate-50 to-indigo-50/30 rounded-xl p-3 mb-3 border border-slate-200/50 flex items-center justify-between transition-all">
                     <div className="flex gap-5">
@@ -253,21 +253,21 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${state.badge.bg}`}>{state.badge.text}</span>
 
-                                {/* 🛡️ المادة مو بالمحاكي → زر إضافة أزرق (بغض النظر عن verdict) */}
+                                {/* 🛡️ المادة مو بالتسجيل التجريبي → زر إضافة أزرق (بغض النظر عن verdict) */}
                                 {!inCart && (
                                     <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-indigo-200/30">
                                         {loadingCourseId === c.id ? '⏳' : '➕ إضافة'}
                                     </button>
                                 )}
 
-                                {/* المادة بالمحاكي + الـ AI يطلب حذفها → زر حذف أحمر تحذيري */}
+                                {/* المادة بالتسجيل التجريبي + الـ AI يطلب حذفها → زر حذف أحمر تحذيري */}
                                 {inCart && c.verdict === 'remove' && (
                                     <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all">
                                         {loadingCourseId === c.id ? '⏳' : '🗑️ احذفها'}
                                     </button>
                                 )}
 
-                                {/* المادة بالمحاكي + verdict مو remove → زر إزالة بسيط للتراجع */}
+                                {/* المادة بالتسجيل التجريبي + verdict مو remove → زر إزالة بسيط للتراجع */}
                                 {inCart && c.verdict !== 'remove' && (
                                     <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all border border-slate-200/60">
                                         {loadingCourseId === c.id ? '⏳' : '✖ إزالة'}
@@ -361,24 +361,24 @@ export default function Advisor() {
             suggestedActions = ['أريد خطة إنقاذ لرفع معدلي', 'اقترح مواد سهلة لرفع المعدل', 'كم ساعة أسجل وأنا بالإنذار؟'];
         } else if (progress >= 80) {
             personalMsg = `🎓 **أنت قريب من التخرج!** أنجزت **${progress}%** من خطتك (${hours}/${totalHours} ساعة).\nخليني أساعدك تنهي آخر المواد بأفضل طريقة.\n\n`;
-            suggestedActions = ['رتّب لي المواد المتبقية', 'كم فصل باقي على التخرج؟', 'راجع المحاكي وقيّمه'];
+            suggestedActions = ['رتّب لي المواد المتبقية', 'كم فصل باقي على التخرج؟', 'راجع التسجيل التجريبي وقيّمه'];
         } else if (cartHoursDb > 0) {
-            personalMsg = `📋 **المحاكي عندك فيه ${cartHoursDb} ساعة.** `;
+            personalMsg = `📋 **التسجيل التجريبي عندك فيه ${cartHoursDb} ساعة.** `;
             if (cartHoursDb > 18) {
                 personalMsg += `⚠️ هذا أكثر من الحد المسموح!\n\n`;
-                suggestedActions = ['العبء كبير، شو أحذف؟', 'راجع المحاكي وقيّمه', 'قارن لي أفضل المواد'];
+                suggestedActions = ['العبء كبير، شو أحذف؟', 'راجع التسجيل التجريبي وقيّمه', 'قارن لي أفضل المواد'];
             } else if (cartHoursDb < 12) {
                 personalMsg += `ممكن تضيف مواد ثانية — عندك مساحة.\n\n`;
-                suggestedActions = ['اقترح مواد أضيفها للمحاكي', 'قارن لي أفضل المواد', 'كم معدلي حالياً؟'];
+                suggestedActions = ['اقترح مواد أضيفها للتسجيل التجريبي', 'قارن لي أفضل المواد', 'كم معدلي حالياً؟'];
             } else {
                 personalMsg += `عبء متوازن! بس خليني أتأكد إنه مناسب.\n\n`;
-                suggestedActions = ['راجع المحاكي وقيّمه', 'هل الجدول مناسب لمعدلي؟', 'اقترح تعديلات على المحاكي'];
+                suggestedActions = ['راجع التسجيل التجريبي وقيّمه', 'هل الجدول مناسب لمعدلي؟', 'اقترح تعديلات على التسجيل التجريبي'];
             }
         } else if (gpa > 0 && gpa < 2.5) {
             personalMsg = `📊 معدلك **${gpa}** — في مجال للتحسين!\nخليني أساعدك تختار مواد ترفع معدلك.\n\n`;
             suggestedActions = ['أريد مواد سهلة لرفع معدلي', 'اقترح لي خطة متوازنة', 'كم ساعة أسجل هالفصل؟'];
         } else {
-            personalMsg = `أقدر أساعدك بـ:\n* 📊 تحليل معدلك وساعاتك\n* 🛒 اقتراح مواد وإضافتها بضغطة\n* ⚡ بناء أفضل خطة للفصل\n* 📋 مراجعة المحاكي وتخفيف العبء\n\n`;
+            personalMsg = `أقدر أساعدك بـ:\n* 📊 تحليل معدلك وساعاتك\n* 🛒 اقتراح مواد وإضافتها بضغطة\n* ⚡ بناء أفضل خطة للفصل\n* 📋 مراجعة التسجيل التجريبي وتخفيف العبء\n\n`;
             suggestedActions = ['اقترح لي مواد تفتح مواد أخرى', 'كم ساعة أسجل هالفصل؟', 'قارن لي أفضل المواد'];
         }
 
@@ -413,11 +413,11 @@ export default function Advisor() {
 
     const magicCommands = [
         { cmd: '/خطة', label: '📋 بناء خطة فصل', message: 'ابنِ لي خطة فصل كاملة بناءً على وضعي الأكاديمي', icon: '📋' },
-        { cmd: '/محاكي', label: '🛒 مراجعة المحاكي', message: 'راجع المحاكي الحالي وقيّمه واقترح تعديلات', icon: '🛒' },
+        { cmd: '/تجريبي', label: '🛒 مراجعة التسجيل التجريبي', message: 'راجع التسجيل التجريبي الحالي وقيّمه واقترح تعديلات', icon: '🛒' },
         { cmd: '/معدل', label: '📊 تحليل المعدل', message: 'كم معدلي التراكمي حالياً وكيف أرفعه؟', icon: '📊' },
         { cmd: '/مقارنة', label: '⚖️ مقارنة المواد', message: 'قارن لي أفضل المواد المتاحة للتسجيل', icon: '⚖️' },
         { cmd: '/ساعات', label: '⏱️ عدد الساعات', message: 'كم ساعة أسجل هالفصل؟', icon: '⏱️' },
-        { cmd: '/تخفيف', label: '😮‍💨 تخفيف العبء', message: 'حاسس العبء كبير، شو أحذف من المحاكي؟', icon: '😮‍💨' },
+        { cmd: '/تخفيف', label: '😮‍💨 تخفيف العبء', message: 'حاسس العبء كبير، شو أحذف من التسجيل التجريبي؟', icon: '😮‍💨' },
         { cmd: '/حرج', label: '🚨 المسار الحرج', message: 'شو المواد الحرجة اللي لازم أسجلها هالفصل؟', icon: '🚨' },
         { cmd: '/تخرج', label: '🎓 خطة التخرج', message: 'كم فصل باقي على تخرجي وشو المواد المتبقية؟', icon: '🎓' },
     ];
@@ -511,7 +511,7 @@ export default function Advisor() {
             if(r.data.status === 'added'){
                 setAdded(p=>({...p,[cid]:true}));
                 setCartHours(prev => prev + Number(chours)); // 🆕 إضافة الساعات
-                Swal.fire({icon:'success',title:'أضيفت! 🚀',text:`"${cn}" بالمحاكي.`,timer:1500,showConfirmButton:false,...swal});
+                Swal.fire({icon:'success',title:'أضيفت! 🚀',text:`"${cn}" بالتسجيل التجريبي.`,timer:1500,showConfirmButton:false,...swal});
             } else if(r.data.status === 'removed'){
                 setAdded(p=>({...p,[cid]:false}));
                 setCartHours(prev => Math.max(0, prev - Number(chours))); // 🆕 خصم الساعات
@@ -550,7 +550,7 @@ export default function Advisor() {
         { text: "قارن لي أفضل المواد المتاحة", icon: "📊", desc: "بطاقات مقارنة", color: "indigo" },
         { text: "شو أولويتي هالفصل؟", icon: "🗳️", desc: "استطلاع سريع", color: "violet" },
         { text: "كم ساعة أسجل هالفصل؟", icon: "⏱️", desc: "سلايدر الساعات", color: "teal" },
-        { text: "راجع المحاكي وقيّمه", icon: "📋", desc: "مراجعة تفاعلية", color: "slate" },
+        { text: "راجع التسجيل التجريبي وقيّمه", icon: "📋", desc: "مراجعة تفاعلية", color: "slate" },
     ];
 
     const grouped = useMemo(() => {
@@ -632,7 +632,7 @@ export default function Advisor() {
                         {st.progress_percent!=null && <div className="flex flex-col items-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">التخرج</p><Ring pct={st.progress_percent} size={32} s={3}/><p className="text-[9px] font-black text-slate-700 mt-0.5">{st.progress_percent}%</p></div>}
                     </div>
                     {/* 🆕 تحديث الساعات في Sidebar لتكون ديناميكية */}
-                    {addedCount>0 && <div className="mt-2 bg-emerald-50/80 rounded-xl p-2 flex items-center gap-2"><span className="text-sm">🛒</span><p className="text-[10px] font-black text-emerald-700">{addedCount} مادة بالمحاكي</p>{cartHours > 0 && <span className="mr-auto text-[9px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">{cartHours}س</span>}</div>}
+                    {addedCount>0 && <div className="mt-2 bg-emerald-50/80 rounded-xl p-2 flex items-center gap-2"><span className="text-sm">🛒</span><p className="text-[10px] font-black text-emerald-700">{addedCount} مادة بالتسجيل التجريبي</p>{cartHours > 0 && <span className="mr-auto text-[9px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">{cartHours}س</span>}</div>}
                 </div>
             )}
 

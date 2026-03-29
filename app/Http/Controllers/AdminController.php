@@ -455,8 +455,8 @@ class AdminController extends Controller
         $colleges = College::select('id', 'name')->get();
         $majors = Major::select('id', 'name', 'college_id')->get();
 
-        // 🔥 تعديل جوهري: حساب إجمالي الطلاب "النشطين" (الذين لديهم مواد في المحاكي) فقط
-        // هذا يمنع ظهور نسبة 0% إذا كان هناك طلاب مسجلين ولكن لم يستخدموا المحاكي بعد.
+        // 🔥 تعديل جوهري: حساب إجمالي الطلاب "النشطين" (الذين لديهم مواد في التسجيل التجريبي) فقط
+        // هذا يمنع ظهور نسبة 0% إذا كان هناك طلاب مسجلين ولكن لم يستخدموا التسجيل التجريبي بعد.
         $totalStudents = User::whereHas('cartCourses')->count();
 
         return Inertia::render('Admin/Reports/Demand', [

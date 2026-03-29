@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 class CartController extends Controller
 {
     /**
-     * تحديث المحاكي بالكامل للمستخدم.
+    * تحديث التسجيل التجريبي بالكامل للمستخدم.
      * تم التعديل ليدعم الاستجابة الصامتة لمنع ظهور رسالة الـ JSON البيضاء.
      */
     public function sync(Request $request)
@@ -71,9 +71,9 @@ class CartController extends Controller
          * نستخدم back() بدلاً من response()->json لكي تفهم Inertia الطلب ولا تظهر النافذة البيضاء.
          */
         if (!empty($blockedCourses)) {
-            return back()->with('warning', 'بعض المواد تحتاج إنهاء 90 ساعة قبل إضافتها للمحاكي.');
+            return back()->with('warning', 'بعض المواد تحتاج إنهاء 90 ساعة قبل إضافتها للتسجيل التجريبي.');
         }
 
-        return back()->with('success', 'تم تحديث المحاكي بنجاح');
+        return back()->with('success', 'تم تحديث التسجيل التجريبي بنجاح');
     }
 }
