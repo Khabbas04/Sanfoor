@@ -15,12 +15,13 @@ const swal = { confirmButtonColor: '#4338ca', customClass: { popup: 'rounded-3xl
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     const [txt, setTxt] = useState('');
     const idx = useRef(0), raf = useRef(null), done = useRef(false);
+    const safeContent = typeof content === 'string' ? content : String(content ?? '');
     useEffect(() => {
-        if (!isAnimating) { setTxt(content); done.current = true; return; }
+        if (!isAnimating) { setTxt(safeContent); done.current = true; return; }
 
         // Skip animation for very long outputs to keep UX snappy.
-        if ((content || '').length > 900) {
-            setTxt(content);
+        if (safeContent.length > 900) {
+            setTxt(safeContent);
             done.current = true;
             onComplete?.();
             return;
@@ -30,10 +31,10 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
         const go = () => {
             if (done.current) return;
             const i = idx.current;
-            if (i < content.length) {
-                const speed = content.length > 450 ? 24 : 14;
-                const n = Math.min(i + speed, content.length);
-                setTxt(content.slice(0, n));
+            if (i < safeContent.length) {
+                const speed = safeContent.length > 450 ? 24 : 14;
+                const n = Math.min(i + speed, safeContent.length);
+                setTxt(safeContent.slice(0, n));
                 idx.current = n;
                 if (n % 60 === 0) onScroll?.();
                 raf.current = requestAnimationFrame(go);
@@ -42,8 +43,8 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
         };
         raf.current = requestAnimationFrame(go);
         return () => { if (raf.current) cancelAnimationFrame(raf.current); };
-    }, [content, isAnimating]);
-    useEffect(() => { if (!isAnimating && !done.current) { setTxt(content); done.current = true; } }, [isAnimating, content]);
+    }, [safeContent, isAnimating]);
+    useEffect(() => { if (!isAnimating && !done.current) { setTxt(safeContent); done.current = true; } }, [isAnimating, safeContent]);
     return <ReactMarkdown>{txt}</ReactMarkdown>;
 };
 
@@ -439,7 +440,8 @@ export default function Advisor() {
             const r = await axios.get(route('ai.advisor.messages', id));
             setMsgs(r.data.map(m => { let c=m.content, sc=[], cr=[], fu=[], iw=null;
                 if (m.role==='ai') { try { const p=JSON.parse(m.content); if(p.reply){ c=p.reply; sc=p.suggested_courses||[]; cr=p.courses_to_remove||[]; fu=p.follow_up_suggestions||[]; iw=p.interactive_widget||null; }} catch{} }
-                return { id:m.id, role:m.role, content:c, suggested_courses:sc, courses_to_remove:cr, follow_up_suggestions:fu, interactive_widget:iw, isAnimating:false };
+                const safeText = typeof c === 'string' ? c : String(c ?? '');
+                return { id:m.id, role:m.role, content:safeText || 'ما وصلني رد واضح لهذه الرسالة.', suggested_courses:sc, courses_to_remove:cr, follow_up_suggestions:fu, interactive_widget:iw, isAnimating:false };
             }));
         } catch { setMsgs([{ id:'err', role:'ai', content:'خطأ بتحميل المحادثة.', isAnimating:false }]); }
         finally { setLoadingChat(false); setTimeout(scroll, 150); }
@@ -469,8 +471,11 @@ export default function Advisor() {
             const pl = { message:t }; if (activeId) pl.chat_id = activeId;
             const r = await axios.post(route('ai.advisor.chat'), pl, { signal: abortRef.current.signal });
             if (r.data.status === 'success') {
+                const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
+                    ? r.data.reply
+                    : 'ما وصلني رد واضح هذه المرة. حاول إعادة الصياغة بسؤال أقصر.';
                 setGenerating(true);
-                setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:r.data.reply, suggested_courses:r.data.suggested_courses||[], courses_to_remove:r.data.courses_to_remove||[], follow_up_suggestions:r.data.follow_up_suggestions||[], interactive_widget:r.data.interactive_widget||null, isAnimating:true }]);
+                setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:r.data.suggested_courses||[], courses_to_remove:r.data.courses_to_remove||[], follow_up_suggestions:r.data.follow_up_suggestions||[], interactive_widget:r.data.interactive_widget||null, isAnimating:true }]);
                 if (!activeId && r.data.chat_id) { setActiveId(r.data.chat_id); setChats(p => [{ id:r.data.chat_id, title:r.data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
                 if (r.data.chat_title && r.data.chat_id) setChats(p => p.map(c => c.id===r.data.chat_id ? {...c, title:r.data.chat_title} : c));
             } else { setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:'الخادم مشغول، حاول ثانية. 🔄', isAnimating:false }]); }
@@ -485,7 +490,13 @@ export default function Advisor() {
         if (!activeId || regenning || generating) return; setRegenning(true);
         setMsgs(p => { const c=[...p]; if(c.length>0&&c[c.length-1].role==='ai')c.pop(); return c; }); setTyping(true);
         try { const r=await axios.post(route('ai.advisor.regenerate'),{chat_id:activeId});
-            if(r.data.status==='success'){setGenerating(true);setMsgs(p=>[...p,{id:`r-${Date.now()}`,role:'ai',content:r.data.reply,suggested_courses:r.data.suggested_courses||[],courses_to_remove:r.data.courses_to_remove||[],follow_up_suggestions:r.data.follow_up_suggestions||[],interactive_widget:r.data.interactive_widget||null,isAnimating:true}]);}
+            if(r.data.status==='success'){
+                const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
+                    ? r.data.reply
+                    : 'ما وصلني رد واضح هذه المرة. جرّب إعادة السؤال.';
+                setGenerating(true);
+                setMsgs(p=>[...p,{id:`r-${Date.now()}`,role:'ai',content:safeReply,suggested_courses:r.data.suggested_courses||[],courses_to_remove:r.data.courses_to_remove||[],follow_up_suggestions:r.data.follow_up_suggestions||[],interactive_widget:r.data.interactive_widget||null,isAnimating:true}]);
+            }
         } catch{setMsgs(p=>[...p,{id:`e-${Date.now()}`,role:'ai',content:'فشلت إعادة التوليد.',isAnimating:false}]);}
         finally{setTyping(false);setRegenning(false);}
     },[activeId,regenning,generating]);
