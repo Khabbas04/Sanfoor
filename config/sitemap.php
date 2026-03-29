@@ -10,7 +10,7 @@ return [
     ],
 
     // Optional auth pages.
-    'include_auth_pages' => false,
+    'include_auth_pages' => true,
 
     // Auto-discover extra public GET routes (non-auth, non-admin).
     'include_discoverable_public_routes' => false,
