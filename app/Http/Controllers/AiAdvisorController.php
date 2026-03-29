@@ -38,7 +38,7 @@ class AiAdvisorController extends Controller
     private const ENABLE_SMART_TITLE = false;
 
     /** أقصى طول للنص النهائي المعروض للطالب */
-    private const MAX_REPLY_LENGTH = 5000;
+    private const MAX_REPLY_LENGTH = 12000;
 
     /** أقصى عدد أسئلة متابعة */
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
@@ -603,7 +603,7 @@ class AiAdvisorController extends Controller
             try {
                 $response = Http::withoutVerifying()
                     ->connectTimeout(8)
-                    ->timeout(50)
+                    ->timeout(110)
                     ->retry(2, 300)
                     ->withHeaders(['Content-Type' => 'application/json'])
                     ->post($url, [
@@ -611,7 +611,7 @@ class AiAdvisorController extends Controller
                         'generationConfig' => [
                             'responseMimeType' => 'application/json',
                             'temperature' => 0.35,
-                            'maxOutputTokens' => 1800,
+                            'maxOutputTokens' => 3200,
                         ],
                     ]);
 
@@ -1024,7 +1024,7 @@ class AiAdvisorController extends Controller
 
     public function chat(Request $request)
     {
-        set_time_limit(120);
+        set_time_limit(240);
 
         $request->validate([
             'message' => 'required|string|max:2000',
