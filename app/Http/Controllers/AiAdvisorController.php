@@ -37,8 +37,8 @@ class AiAdvisorController extends Controller
     /** تفعيل توليد عنوان ذكي عبر API (قد يزيد زمن الاستجابة) */
     private const ENABLE_SMART_TITLE = false;
 
-    /** أقصى طول للنص النهائي المعروض للطالب */
-    private const MAX_REPLY_LENGTH = 12000;
+    /** أقصى طول للنص النهائي المعروض للطالب (0 = بدون حد محلي) */
+    private const MAX_REPLY_LENGTH = 0;
 
     /** عدد محاولات تكملة الرد إذا توقف بسبب حد التوكن */
     private const MAX_CONTINUATION_PASSES = 2;
@@ -610,7 +610,7 @@ class AiAdvisorController extends Controller
                 for ($pass = 0; $pass <= self::MAX_CONTINUATION_PASSES; $pass++) {
                     $response = Http::withoutVerifying()
                         ->connectTimeout(8)
-                        ->timeout(180)
+                        ->timeout(0)
                         ->retry(2, 300)
                         ->withHeaders(['Content-Type' => 'application/json'])
                         ->post($url, [
@@ -618,7 +618,6 @@ class AiAdvisorController extends Controller
                             'generationConfig' => [
                                 'responseMimeType' => 'application/json',
                                 'temperature' => 0.35,
-                                'maxOutputTokens' => 4096,
                             ],
                         ]);
 
@@ -1064,7 +1063,7 @@ class AiAdvisorController extends Controller
 
     public function chat(Request $request)
     {
-        set_time_limit(420);
+        set_time_limit(0);
 
         $request->validate([
             'message' => 'required|string|max:2000',
