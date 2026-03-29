@@ -203,6 +203,49 @@ class AiAdvisorController extends Controller
     }
 
     /**
+     * بناء RAG مختصر موجه للإرشاد الأكاديمي حسب سؤال الطالب.
+     */
+    private function buildStudentAdvisingRagContext(array $academicData, array $cartData, array $availableCourses, string $userMessage): string
+    {
+        $normalizedQuestion = $this->normalizeArabic($userMessage);
+
+        $intent = 'عام';
+        if (preg_match('/(معدل|gpa|انذار|إنذار|رفع)/u', $normalizedQuestion)) {
+            $intent = 'رفع_المعدل';
+        } elseif (preg_match('/(تخرج|خطة|مسار|فتح|متطلبات)/u', $normalizedQuestion)) {
+            $intent = 'تسريع_التخرج';
+        } elseif (preg_match('/(تخفيف|ضغط|عبء|سهل|خفيف)/u', $normalizedQuestion)) {
+            $intent = 'تخفيف_العبء';
+        }
+
+        $availableDetails = array_values($availableCourses['details'] ?? []);
+        usort($availableDetails, function ($a, $b) {
+            return ($b['unlocks'] <=> $a['unlocks']) ?: ($a['prereq_count'] <=> $b['prereq_count']);
+        });
+
+        $topStrategic = array_slice($availableDetails, 0, 5);
+        $strategicLines = [];
+        foreach ($topStrategic as $course) {
+            $strategicLines[] = "- {$course['name']} | سنة {$course['course_year']} | {$course['credit_hours']}س | يفتح {$course['unlocks']} | متطلبات {$course['prereq_count']}";
+        }
+
+        $cartCourseCount = is_array($cartData['ids'] ?? null) ? count($cartData['ids']) : 0;
+        $hoursState = ($cartData['hours'] ?? 0) > ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL)
+            ? 'متجاوز_الحد'
+            : 'ضمن_الحد';
+
+        return "
+        🎯 [RAG الإرشاد الطلابي]:
+        - نية_السؤال: {$intent}
+        - ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "
+        - ساعات_المحاكي_الحالية: " . ($cartData['hours'] ?? 0) . "
+        - حالة_الساعات: {$hoursState}
+        - عدد_مواد_المحاكي: {$cartCourseCount}
+        - مواد_استراتيجية_مرشحة:
+        " . (!empty($strategicLines) ? implode("\n", $strategicLines) : '- لا توجد مواد مرشحة حالياً');
+    }
+
+    /**
      * بناء System Prompt الديناميكي مع خوارزمية الإرشاد الذكية
      * ──────────────────────────────────────────────────────────
      * التحسينات:
@@ -212,7 +255,7 @@ class AiAdvisorController extends Controller
      *  - قواعد حالة الإنذار الأكاديمي الصارمة
      *  - الشرح البشري بدلاً من نسخ الوصف
      */
-    private function buildSystemPrompt($user, $academicData, $cartData, $availableCourses)
+    private function buildSystemPrompt($user, $academicData, $cartData, $availableCourses, string $ragContext = '')
     {
         // ─── حساب السنة الدراسية الحالية للطالب ───
         // كل 33 ساعة = سنة دراسية واحدة
@@ -258,6 +301,8 @@ class AiAdvisorController extends Controller
 
         📚 [المواد المتاحة للتسجيل]:
         {$availableCourses['text']}
+
+        {$ragContext}
 
         ═══════════════════════════════════════════════════════
         🧮 [خوارزمية الصعوبة النسبية — Relative Difficulty Scoring]:
@@ -1044,7 +1089,8 @@ class AiAdvisorController extends Controller
         $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartCourseIds);
 
         // بناء البرومبت
-        $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses);
+        $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $userMessage);
+        $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext);
 
         // بناء سياق المحادثة
         $contents = $this->buildConversationContext($chat, $systemPrompt);
