@@ -17,6 +17,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
         name: '',
         code: '',
         credit_hours: 3,
+        minimum_passed_hours: '',
         type: 'compulsory', // الأنواع: compulsory, elective, supporting, university_req
         prerequisite_id: '',
         semester: 1, // هذا هو مستوى العقدة (Node Level)
@@ -96,7 +97,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         } else {
             post(route('admin.courses.store'), {
                 onSuccess: () => {
-                    reset('name', 'code', 'prerequisite_id', 'description');
+                    reset('name', 'code', 'prerequisite_id', 'description', 'minimum_passed_hours');
                     Swal.fire({ icon: 'success', title: 'تمت الإضافة', text: 'تم حفظ المادة بنجاح', timer: 1500, showConfirmButton: false });
                 }
             });
@@ -118,6 +119,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             name: course.name,
             code: course.code,
             credit_hours: course.credit_hours,
+            minimum_passed_hours: course.minimum_passed_hours ?? '',
             type: course.type,
             semester: course.semester || 1,
             prerequisite_id: course.prerequisites?.length > 0 ? course.prerequisites[0].id : '',
@@ -135,7 +137,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
 
     const cancelEdit = () => {
         setEditingCourse(null);
-        reset('id', 'name', 'code', 'prerequisite_id', 'semester', 'description');
+        reset('id', 'name', 'code', 'prerequisite_id', 'semester', 'description', 'minimum_passed_hours');
         clearErrors();
     };
 
@@ -382,6 +384,34 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                                 <span className="absolute left-3 top-2.5 text-[10px] font-black text-slate-400">ساعة</span>
                                             </div>
                                         </div>
+
+                                        <div className="space-y-2 rounded-xl border border-amber-100 bg-amber-50/50 p-3">
+                                            <label className="flex items-center justify-between gap-3 cursor-pointer">
+                                                <span className="text-[11px] font-bold text-amber-800">شرط ساعات قبل تنزيل المادة (اختياري)</span>
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                                    checked={data.minimum_passed_hours !== ''}
+                                                    onChange={e => setData('minimum_passed_hours', e.target.checked ? 90 : '')}
+                                                />
+                                            </label>
+
+                                            {data.minimum_passed_hours !== '' && (
+                                                <div>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max="200"
+                                                        className="rounded-xl border-amber-200 w-full text-sm font-black focus:ring-amber-500 focus:border-amber-500 text-center"
+                                                        value={data.minimum_passed_hours}
+                                                        onChange={e => setData('minimum_passed_hours', e.target.value)}
+                                                        placeholder="مثال: 90"
+                                                    />
+                                                    <p className="text-[10px] text-amber-700 font-bold mt-1">لن يستطيع الطالب تسجيلها قبل إكمال هذا العدد من الساعات.</p>
+                                                    {errors.minimum_passed_hours && <div className="text-rose-500 text-xs mt-1 font-bold">{errors.minimum_passed_hours}</div>}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2">
@@ -529,6 +559,9 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                                                     {course.type === 'supporting' ? '🔸 مادة مساندة | ' : course.type === 'university_req' ? '🌐 أونلاين | ' : ''}
                                                                     الفصل {course.semester || 1}
                                                                 </span>
+                                                                {course.minimum_passed_hours ? (
+                                                                    <span className="text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg">⏳ شرط {course.minimum_passed_hours} ساعة</span>
+                                                                ) : null}
                                                             </div>
                                                         </td>
                                                         <td className="p-5">

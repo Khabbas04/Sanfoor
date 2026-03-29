@@ -16,6 +16,7 @@ class Course extends Model
         'name',
         'code',
         'credit_hours',
+        'minimum_passed_hours',
         'type',
         'semester',
         'major_id',

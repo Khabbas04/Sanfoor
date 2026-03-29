@@ -105,7 +105,8 @@ export default function Tree({
     student_name = 'طالب',
     major_name = '',
     college_name = '',
-    passed_courses = []
+    passed_courses = [],
+    total_passed_hours = 0,
 }) {
 
     // Page-level state drives filtering, course selection, and AI planning behavior.
@@ -171,13 +172,37 @@ export default function Tree({
         return () => clearTimeout(timer);
     }, [cartIds]);
 
+    const totalPassedCredits = useMemo(() => {
+        const calculated = courses
+            .filter(c => passedIds.includes(c.id))
+            .reduce((acc, c) => acc + (c.credit_hours || 0), 0);
+
+        return calculated > 0 ? calculated : Number(total_passed_hours || 0);
+    }, [courses, passedIds, total_passed_hours]);
+
+    const isLockedByHours = useCallback((course) => {
+        const required = Number(course?.minimum_passed_hours || 0);
+
+        return required > 0 && totalPassedCredits < required;
+    }, [totalPassedCredits]);
+
+    const getHoursLockMessage = useCallback((course) => {
+        const required = Number(course?.minimum_passed_hours || 0);
+        if (required <= 0 || totalPassedCredits >= required) {
+            return null;
+        }
+
+        return `هذه المادة تتطلب إنهاء ${required} ساعة معتمدة. الساعات الحالية: ${totalPassedCredits}.`;
+    }, [totalPassedCredits]);
+
     const getStatus = useCallback((course) => {
         if (!course) return 'locked';
         if (passedIds.includes(course.id)) return 'passed';
         if (cartIds.includes(course.id)) return 'cart';
+        if (isLockedByHours(course)) return 'locked';
         if (!course.prerequisites || course.prerequisites.length === 0) return 'available';
         return course.prerequisites.every(p => passedIds.includes(p.id)) ? 'available' : 'locked';
-    }, [passedIds, cartIds]);
+    }, [passedIds, cartIds, isLockedByHours]);
 
     const getUnlocksDetailed = useCallback((courseId) => {
         return courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
@@ -319,6 +344,16 @@ export default function Tree({
         const unlocks = getUnlocksDetailed(course.id);
         const totalImpact = getTotalImpact(course.id);
 
+        if (isLockedByHours(course)) {
+            insights.push({
+                icon: '⏳',
+                title: `تحتاج ${course.minimum_passed_hours} ساعة قبل تسجيلها`,
+                desc: `أنجز ${course.minimum_passed_hours - totalPassedCredits} ساعة إضافية ثم ستفتح تلقائياً.`,
+                color: 'amber',
+                p: 98,
+            });
+        }
+
         if (totalImpact >= 5 && status !== 'passed')
             insights.push({ icon: '💥', title: `تأجيلها يؤثر على ${totalImpact} مادة!`, desc: 'سلسلة طويلة من المواد تعتمد عليها بشكل مباشر أو غير مباشر.', color: 'rose', p: 100 });
         else if (totalImpact >= 2 && status !== 'passed')
@@ -342,7 +377,7 @@ export default function Tree({
         }
 
         return insights.sort((a, b) => b.p - a.p);
-    }, [getStatus, getUnlocksDetailed, getTotalImpact, cartIds, courses]);
+    }, [getStatus, getUnlocksDetailed, getTotalImpact, cartIds, courses, isLockedByHours, totalPassedCredits]);
 
     // 🆕 اقتراح المادة التالية الأفضل
     const getNextBestCourse = useCallback(() => {
@@ -399,6 +434,7 @@ export default function Tree({
 
         courses.forEach((course) => {
             const status = getStatus(course);
+            const isHourLocked = status === 'locked' && isLockedByHours(course);
             const depth = getCourseDepth(course.id);
             const isCriticalPath = depth >= 2 && status !== 'passed';
             const unlocksCount = courses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
@@ -416,6 +452,8 @@ export default function Tree({
                 locked: { bg: 'background:#f8fafc', border: 'border:1.5px solid #cbd5e1', badgeBg: 'rgba(148,163,184,0.15)', textColor: '#64748b', statusLabel: 'مغلق', statusIcon: '🔒' },
             };
             const t = themes[status];
+            const statusIcon = isHourLocked ? '⏳' : t.statusIcon;
+            const statusLabel = isHourLocked ? `${course.minimum_passed_hours} ساعة` : t.statusLabel;
 
             let finalBorder = t.border;
             if (isElective || isUniversityReq) {
@@ -462,7 +500,7 @@ export default function Tree({
                     <div style="padding:8px 10px;display:flex;flex-direction:column;height:100%;justify-content:space-between;position:relative;z-index:1;">
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span style="font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:6px;background:${t.badgeBg};color:${t.textColor};backdrop-filter:blur(4px);display:flex;align-items:center;gap:3px;letter-spacing:0.3px;">
-                                ${t.statusIcon} ${t.statusLabel}
+                                ${statusIcon} ${statusLabel}
                                 ${hasDescription ? '<span style="margin-right:3px; font-size:10px; animation: pulse 2s infinite;" title="يوجد لمحة عن المادة">📝</span>' : ''}
                             </span>
                             <div style="display:flex; gap:3px;">
@@ -643,7 +681,12 @@ export default function Tree({
                 setLocalPassedCourses(prev => prev.filter(c => c.id !== courseId));
             }
         } catch (error) {
-            Swal.fire({ icon: 'error', title: 'خطأ!', text: error.response?.data?.message || 'حدث خطأ بالاتصال', ...swalTheme });
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ!',
+                text: error.response?.data?.msg || error.response?.data?.message || 'حدث خطأ بالاتصال',
+                ...swalTheme
+            });
         }
     };
 
@@ -659,6 +702,17 @@ export default function Tree({
                 return next;
             });
             syncCartWithDB(updatedCart);
+            return;
+        }
+
+        const requiredHours = Number(course?.minimum_passed_hours || 0);
+        if (requiredHours > 0 && totalPassedCredits < requiredHours) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'المادة مغلقة حالياً',
+                text: `تحتاج إنهاء ${requiredHours} ساعة معتمدة. الساعات الحالية: ${totalPassedCredits}.`,
+                ...swalTheme
+            });
             return;
         }
 
@@ -732,6 +786,7 @@ export default function Tree({
 
         let trulyAvailable = coursesWithDifficulty.filter(c => {
             if (passedIds.includes(c.id)) return false;
+            if (isLockedByHours(c)) return false;
             if (!c.prerequisites || c.prerequisites.length === 0) return true;
             return c.prerequisites.every(p => passedIds.includes(p.id));
         });
@@ -838,7 +893,6 @@ export default function Tree({
         }
     };
 
-    const totalPassedCredits = useMemo(() => courses.filter(c => passedIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, passedIds]);
     const totalCartCredits = useMemo(() => courses.filter(c => cartIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIds]);
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
 
@@ -906,7 +960,13 @@ export default function Tree({
         let currentSem = 1;
 
         while (remainingCourses.length > 0 && currentSem <= 12) {
+            const simulatedPassedHours = courses
+                .filter(c => simulatedPassed.has(c.id))
+                .reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
+
             let availableNow = remainingCourses.filter(c => {
+                const requiredHours = Number(c.minimum_passed_hours || 0);
+                if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
                 if (!c.prerequisites || c.prerequisites.length === 0) return true;
                 return c.prerequisites.every(p => simulatedPassed.has(p.id));
             });
@@ -1161,6 +1221,7 @@ export default function Tree({
 
                                     {/* Locked */}
                                     {getStatus(selectedCourse) === 'locked' && (() => {
+                                        const hoursLockMessage = getHoursLockMessage(selectedCourse);
                                         const pathSteps = getShortestPathToUnlock(selectedCourse.id);
                                         const availableSteps = pathSteps.filter(s => s.isAvailableNow);
                                         const futureSteps = pathSteps.filter(s => !s.isAvailableNow);
@@ -1170,6 +1231,16 @@ export default function Tree({
 
                                         return (
                                             <div className="space-y-4">
+                                                {hoursLockMessage && (
+                                                    <div className="bg-amber-500/15 border border-amber-400/30 p-3.5 rounded-xl flex gap-3 items-start backdrop-blur-sm">
+                                                        <span className="text-xl mt-0.5">⏳</span>
+                                                        <div>
+                                                            <h4 className="text-amber-200 font-[800] text-[13px]">شرط ساعات قبل التسجيل</h4>
+                                                            <p className="text-amber-300/80 text-[11px] font-bold mt-0.5 font-i">{hoursLockMessage}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {/* المتطلبات المباشرة (الأصلي محسّن) */}
                                                 <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
                                                     <div className="flex justify-between items-center mb-3">

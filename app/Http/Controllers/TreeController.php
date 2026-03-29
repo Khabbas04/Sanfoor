@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,7 @@ class TreeController extends Controller
                 'courses.name',
                 'courses.code',
                 'courses.credit_hours',
+                'courses.minimum_passed_hours',
                 'courses.type',
                 'courses.semester',
                 'courses.major_id',
@@ -67,6 +69,13 @@ class TreeController extends Controller
 
         $courses = $query->get();
 
+        $totalPassedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
+        $courses->transform(function (Course $course) {
+            $course->minimum_passed_hours = CourseEligibility::minimumPassedHoursForCourse($course);
+
+            return $course;
+        });
+
         // 5. جلب معرفات المواد التي أنجزها الطالب الحالي (لتلوين الشجرة)
         $passed_course_ids = DB::table('course_user')
             ->where('user_id', $user->id)
@@ -90,6 +99,7 @@ class TreeController extends Controller
             'passed_course_ids' => $passed_course_ids,
             'initial_cart_ids' => $cart_course_ids,
             'passed_courses' => $passedCourses, // إرسال البيانات المفصلة للواجهة هنا
+            'total_passed_hours' => $totalPassedHours,
 
             // إرسال بيانات الطالب للهيدر المخصص
             'student_name' => $user->name ?? 'طالب',
@@ -131,6 +141,19 @@ class TreeController extends Controller
             else {
                 // المادة غير موجودة -> نفحص المتطلبات قبل إضافتها
                 $course = Course::with('prerequisites')->find($courseId);
+
+                $passedHours = (int) DB::table('course_user')
+                    ->join('courses', 'courses.id', '=', 'course_user.course_id')
+                    ->where('course_user.user_id', $userId)
+                    ->sum('courses.credit_hours');
+
+                $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
+                if ($minimumPassedHours !== null && $passedHours < $minimumPassedHours) {
+                    return response()->json([
+                        'status' => 'error',
+                        'msg' => "هذه المادة تتطلب إنهاء {$minimumPassedHours} ساعة معتمدة. الساعات الحالية: {$passedHours}.",
+                    ], 422);
+                }
 
                 // جلب مصفوفة بأرقام المواد التي اجتازها الطالب
                 $passedIds = DB::table('course_user')
@@ -189,6 +212,17 @@ class TreeController extends Controller
 
         $user = Auth::user();
         $courseId = $request->course_id;
+        $course = Course::findOrFail($courseId);
+
+        $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
+        $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
+
+        if ($minimumPassedHours !== null && $passedHours < $minimumPassedHours) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "هذه المادة تتطلب إنهاء {$minimumPassedHours} ساعة معتمدة. الساعات الحالية: {$passedHours}.",
+            ], 422);
+        }
 
         // التحقق مما إذا كانت المادة موجودة في المحاكي مسبقاً
         if ($user->cartCourses()->where('course_id', $courseId)->exists()) {

@@ -490,8 +490,13 @@ export default function Advisor() {
                 setCartHours(prev => Math.max(0, prev - Number(chours))); // 🆕 خصم الساعات
                 Swal.fire({icon:'info',title:'أزيلت',text:`"${cn}" شُطبت.`,timer:1500,showConfirmButton:false,...swal});
             }
-        }catch{
-            Swal.fire({icon:'error',title:'خطأ',...swal});
+        }catch(error){
+            Swal.fire({
+                icon:'error',
+                title:'تعذر الإضافة',
+                text:error?.response?.data?.message || error?.response?.data?.msg || 'خطأ غير متوقع.',
+                ...swal
+            });
         }finally{
             setLoadId(null);
         }
