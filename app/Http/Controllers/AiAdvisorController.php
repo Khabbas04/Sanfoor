@@ -643,6 +643,20 @@ class AiAdvisorController extends Controller
             ];
         }
 
+        // أحياناً يجي الرد كسلسلة نصية تحتوي JSON كامل escaped.
+        if ((str_starts_with($clean, '"') && str_ends_with($clean, '"')) || (str_starts_with($clean, "'") && str_ends_with($clean, "'"))) {
+            $unwrapped = trim($clean, "\"'");
+            $unescaped = stripcslashes($unwrapped);
+            $decodedWrapped = json_decode($unescaped, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedWrapped) && isset($decodedWrapped['reply'])) {
+                return [
+                    'reply' => (string) ($decodedWrapped['reply'] ?? ''),
+                    'follow_up_suggestions' => $decodedWrapped['follow_up_suggestions'] ?? [],
+                    'interactive_widget' => $decodedWrapped['interactive_widget'] ?? null,
+                ];
+            }
+        }
+
         // fallback: استخراج reply بالـ regex
         if (preg_match('/"reply"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $clean, $matches)) {
             $reply = str_replace(['\\n', '\n'], "\n", $matches[1]);
@@ -650,16 +664,54 @@ class AiAdvisorController extends Controller
             return ['reply' => $reply, 'follow_up_suggestions' => [], 'interactive_widget' => null];
         }
 
+        // fallback عام: أي صيغة فيها مفتاح reply حتى لو JSON مش مكسور.
+        if (preg_match('/["\']?reply["\']?\s*:\s*(.+)$/isu', $clean, $matches)) {
+            $reply = $this->stripReplyEnvelope((string) $matches[1]);
+            if ($reply !== '') {
+                return ['reply' => $reply, 'follow_up_suggestions' => [], 'interactive_widget' => null];
+            }
+        }
+
         // آخر حل: رجّع النص الخام بعد تنظيف بسيط بدل تشويهه بحذف شامل للرموز.
-        $fallback = preg_replace('/^\s*\{+\s*/u', '', $clean);
-        $fallback = preg_replace('/\s*\}+\s*$/u', '', $fallback);
-        $fallback = trim($fallback);
+        $fallback = $this->stripReplyEnvelope($clean);
 
         if ($fallback === '') {
             $fallback = 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.';
         }
 
         return ['reply' => $fallback, 'follow_up_suggestions' => [], 'interactive_widget' => null];
+    }
+
+    /**
+     * إزالة تغليف JSON الجزئي من نص الرد (مثل "reply": "...", مع حقول لاحقة).
+     */
+    private function stripReplyEnvelope(string $text): string
+    {
+        $value = trim($text);
+
+        // إذا النص نفسه JSON object صالح وفيه reply، خذ القيمة مباشرة.
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
+            $reply = $decoded['reply'];
+            if (is_array($reply) || is_object($reply)) {
+                $reply = json_encode($reply, JSON_UNESCAPED_UNICODE);
+            }
+            return trim((string) ($reply ?? ''));
+        }
+
+        // شيل أي حقول JSON لاحقة مثل suggested_courses حتى ما تظهر للطالب.
+        $value = preg_replace('/,\s*["\']?(suggested_courses|courses_to_remove|follow_up_suggestions|interactive_widget)["\']?\s*:.*/isu', '', $value);
+
+        // شيل بداية reply: إذا موجودة.
+        if (preg_match('/^\s*["\']?reply["\']?\s*:\s*(.+)$/isu', $value, $matches)) {
+            $value = (string) $matches[1];
+        }
+
+        // إزالة أقواس JSON الخارجية فقط إن كانت تحيط النص بالكامل.
+        $value = preg_replace('/^\s*\{+\s*/u', '', $value);
+        $value = preg_replace('/\s*\}+\s*$/u', '', $value);
+
+        return trim($value, " \t\n\r\0\x0B\"'");
     }
 
     /**
@@ -678,6 +730,7 @@ class AiAdvisorController extends Controller
         $clean = strip_tags($clean);
 
         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $clean = $this->stripReplyEnvelope($clean);
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
         $clean = preg_replace('/[ \t]{2,}/', ' ', $clean);
 
