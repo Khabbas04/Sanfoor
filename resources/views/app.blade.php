@@ -29,7 +29,13 @@
 				'name' => 'Sanfoor',
 				'url' => "{$appUrl}/",
 				'logo' => "{$appUrl}/images/sanfoor.png",
+				'creator' => [
+					'@id' => "{$appUrl}/#creator",
+				],
 				'founder' => [
+					'@id' => "{$appUrl}/#creator",
+				],
+				'copyrightHolder' => [
 					'@id' => "{$appUrl}/#creator",
 				],
 			],
@@ -54,6 +60,9 @@
 					'@id' => "{$appUrl}/#website",
 				],
 				'author' => [
+					'@id' => "{$appUrl}/#creator",
+				],
+				'copyrightHolder' => [
 					'@id' => "{$appUrl}/#creator",
 				],
 			],
@@ -108,6 +117,10 @@ font-family:'Cairo',sans-serif;
 <body class="antialiased text-slate-900">
 
 @inertia
+
+<footer class="border-t border-slate-200 bg-white/80 py-3 text-center text-xs text-slate-600">
+Developed by <a href="{{ $creatorLinkedIn }}" class="font-semibold text-slate-800 hover:underline" rel="me noopener" target="_blank">{{ $creatorName }}</a>
+</footer>
 
 </body>
 </html>

@@ -19,9 +19,11 @@ class SitemapController extends Controller
 
         // Use a single timestamp fallback when a record has no updated_at value.
         $now = now();
+        $cacheKey = (string) config('sitemap.cache_key', 'seo:sitemap:xml:v4');
+        $cacheTtlMinutes = (int) config('sitemap.cache_ttl_minutes', 60);
 
         try {
-            $xml = Cache::remember('seo:sitemap:xml:v2', now()->addHour(), function () use ($baseUrl, $now) {
+            $xml = Cache::remember($cacheKey, now()->addMinutes($cacheTtlMinutes), function () use ($baseUrl, $now) {
                 return $this->buildSitemapXml($baseUrl, $now);
             });
         } catch (Throwable $exception) {
@@ -47,8 +49,15 @@ class SitemapController extends Controller
             $entries = [];
             $seen = [];
 
-            // Keep sitemap intentionally focused on the business-critical pages only.
             $this->addRequestedImportantPages($entries, $seen, $baseUrl, $now);
+
+            if ((bool) config('sitemap.include_auth_pages', false)) {
+                $this->addOptionalAuthPages($entries, $seen, $baseUrl, $now);
+            }
+
+            if ((bool) config('sitemap.include_discoverable_public_routes', false)) {
+                $this->addDiscoverablePublicRoutes($entries, $seen, $baseUrl, $now);
+            }
 
             usort($entries, function (array $a, array $b): int {
                 return strcmp($a['loc'], $b['loc']);
@@ -108,16 +117,44 @@ class SitemapController extends Controller
      */
     private function addRequestedImportantPages(array &$entries, array &$seen, string $baseUrl, $now): void
     {
-        $pages = [
-            ['path' => '/', 'priority' => '1.00', 'change' => 'daily'],
-            ['path' => '/about-us', 'priority' => '0.90', 'change' => 'weekly'],
-            ['path' => '/ai-advisor', 'priority' => '0.95', 'change' => 'daily'],
-            ['path' => '/tree', 'priority' => '0.90', 'change' => 'weekly'],
-            ['path' => '/campus-directory', 'priority' => '0.85', 'change' => 'monthly'],
-            ['path' => '/register', 'priority' => '0.80', 'change' => 'weekly'],
-        ];
+        $pages = config('sitemap.pages', []);
 
         foreach ($pages as $page) {
+            if (!is_array($page) || !isset($page['path'])) {
+                continue;
+            }
+
+            $path = (string) $page['path'];
+            $priority = (string) ($page['priority'] ?? '0.60');
+            $change = (string) ($page['change'] ?? 'monthly');
+
+            if (!$this->isGetPathAvailable($path)) {
+                continue;
+            }
+
+            $this->addEntry(
+                $entries,
+                $seen,
+                $baseUrl,
+                $path,
+                $now->toAtomString(),
+                $change,
+                $priority
+            );
+        }
+    }
+
+    /**
+     * Add optional auth entry points if enabled in config.
+     */
+    private function addOptionalAuthPages(array &$entries, array &$seen, string $baseUrl, $now): void
+    {
+        $authPages = [
+            ['path' => '/login', 'priority' => '0.50', 'change' => 'monthly'],
+            ['path' => '/register', 'priority' => '0.50', 'change' => 'monthly'],
+        ];
+
+        foreach ($authPages as $page) {
             if (!$this->isGetPathAvailable($page['path'])) {
                 continue;
             }
@@ -132,6 +169,64 @@ class SitemapController extends Controller
                 $page['priority']
             );
         }
+    }
+
+    /**
+     * Include extra public GET routes that are safe for crawlers.
+     */
+    private function addDiscoverablePublicRoutes(array &$entries, array &$seen, string $baseUrl, $now): void
+    {
+        foreach (RouteFacade::getRoutes() as $route) {
+            if (!in_array('GET', $route->methods(), true)) {
+                continue;
+            }
+
+            $path = '/' . ltrim($route->uri(), '/');
+
+            if ($path === '/sitemap.xml' || str_contains($path, '{')) {
+                continue;
+            }
+
+            if ($this->hasProtectedMiddleware($route->gatherMiddleware())) {
+                continue;
+            }
+
+            $changefreq = $path === '/' ? 'daily' : 'monthly';
+            $priority = $path === '/' ? '1.00' : '0.60';
+
+            $this->addEntry(
+                $entries,
+                $seen,
+                $baseUrl,
+                $path,
+                $now->toAtomString(),
+                $changefreq,
+                $priority
+            );
+        }
+    }
+
+    /**
+     * Exclude routes that require authentication or elevated privileges.
+     *
+     * @param array<int, string> $middleware
+     */
+    private function hasProtectedMiddleware(array $middleware): bool
+    {
+        foreach ($middleware as $name) {
+            $value = strtolower((string) $name);
+
+            if (
+                str_contains($value, 'auth')
+                || str_contains($value, 'verified')
+                || str_contains($value, 'admin')
+                || str_contains($value, 'owner')
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
