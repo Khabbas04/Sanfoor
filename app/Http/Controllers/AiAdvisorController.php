@@ -12,7 +12,6 @@ use App\Models\Chat;
 use App\Models\Message;
 use App\Models\Course;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class AiAdvisorController extends Controller
 {
@@ -37,6 +36,15 @@ class AiAdvisorController extends Controller
 
     /** تفعيل توليد عنوان ذكي عبر API (قد يزيد زمن الاستجابة) */
     private const ENABLE_SMART_TITLE = false;
+
+    /** أقصى طول للنص النهائي المعروض للطالب */
+    private const MAX_REPLY_LENGTH = 2400;
+
+    /** أقصى عدد أسئلة متابعة */
+    private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
+
+    /** أقصى عناصر للويدجت التفاعلي */
+    private const MAX_WIDGET_ITEMS = 8;
 
     // ==========================================
     // 🔧 أدوات مساعدة
@@ -535,32 +543,67 @@ class AiAdvisorController extends Controller
     private function callGeminiAPI($contents, $apiKey)
     {
         $baseUrl = "https://" . "generativelanguage.googleapis.com";
-        $model = env('GEMINI_MODEL', 'gemini-2.0-flash-lite');
-        $endpoint = "/v1beta/models/{$model}:generateContent?key=";
-        $url = $baseUrl . $endpoint . $apiKey;
+        $models = array_values(array_unique(array_filter([
+            env('GEMINI_MODEL'),
+            'gemini-2.0-flash-lite',
+            'gemini-2.5-flash',
+        ])));
 
-        $response = Http::withoutVerifying()
-            ->timeout(35)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post($url, [
-                'contents' => $contents,
-                'generationConfig' => [
-                    'responseMimeType' => 'application/json',
-                    'temperature' => 0.35,
-                    'maxOutputTokens' => 900,
-                ],
-            ]);
+        $lastError = 'Unknown Gemini error';
 
-        if (!$response->successful()) {
-            throw new \Exception("خطأ من Gemini API: HTTP {$response->status()}");
+        foreach ($models as $model) {
+            $endpoint = "/v1beta/models/{$model}:generateContent?key=";
+            $url = $baseUrl . $endpoint . $apiKey;
+
+            try {
+                $response = Http::withoutVerifying()
+                    ->connectTimeout(8)
+                    ->timeout(35)
+                    ->retry(2, 300)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post($url, [
+                        'contents' => $contents,
+                        'generationConfig' => [
+                            'responseMimeType' => 'application/json',
+                            'temperature' => 0.35,
+                            'maxOutputTokens' => 900,
+                        ],
+                    ]);
+
+                if (!$response->successful()) {
+                    $lastError = "{$model}: HTTP {$response->status()}";
+                    continue;
+                }
+
+                $data = $response->json();
+                if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
+                    $lastError = "{$model}: empty candidate text";
+                    continue;
+                }
+
+                return $data['candidates'][0]['content']['parts'][0]['text'];
+            } catch (\Throwable $exception) {
+                $lastError = "{$model}: {$exception->getMessage()}";
+                continue;
+            }
         }
 
-        $data = $response->json();
-        if (!isset($data['candidates'][0]['content']['parts'][0]['text'])) {
-            throw new \Exception("الذكاء الاصطناعي لم يُرجع نصاً.");
+        throw new \Exception("Gemini failed across models. {$lastError}");
+    }
+
+    /**
+     * محاولة استخراج أول JSON object صالح من النص الخام.
+     */
+    private function extractJsonObject(string $text): ?string
+    {
+        $start = strpos($text, '{');
+        $end = strrpos($text, '}');
+
+        if ($start === false || $end === false || $end <= $start) {
+            return null;
         }
 
-        return $data['candidates'][0]['content']['parts'][0]['text'];
+        return substr($text, $start, ($end - $start + 1));
     }
 
     /**
@@ -573,6 +616,13 @@ class AiAdvisorController extends Controller
         $clean = trim($clean);
 
         $parsed = json_decode($clean, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $jsonFragment = $this->extractJsonObject($clean);
+            if ($jsonFragment !== null) {
+                $parsed = json_decode($jsonFragment, true);
+            }
+        }
 
         if (json_last_error() === JSON_ERROR_NONE && isset($parsed['reply'])) {
             return [
@@ -612,8 +662,149 @@ class AiAdvisorController extends Controller
 
         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
+        $clean = preg_replace('/[ \t]{2,}/', ' ', $clean);
 
-        return trim((string) $clean);
+        $clean = trim((string) $clean);
+        if ($clean === '') {
+            return 'ما وصلني رد واضح هذه المرة. اكتب سؤالك بصيغة أقصر وأنا أجاوبك فوراً.';
+        }
+
+        if (mb_strlen($clean, 'UTF-8') > self::MAX_REPLY_LENGTH) {
+            $clean = mb_substr($clean, 0, self::MAX_REPLY_LENGTH, 'UTF-8') . "\n\n...";
+        }
+
+        return $clean;
+    }
+
+    /**
+     * تنقية أسئلة المتابعة القادمة من النموذج.
+     */
+    private function sanitizeFollowUpSuggestions($suggestions): array
+    {
+        if (!is_array($suggestions)) {
+            return [];
+        }
+
+        $clean = [];
+        foreach ($suggestions as $item) {
+            if (!is_string($item)) {
+                continue;
+            }
+
+            $value = trim(strip_tags($item));
+            if ($value === '') {
+                continue;
+            }
+
+            $clean[] = mb_substr($value, 0, 120, 'UTF-8');
+        }
+
+        return array_slice(array_values(array_unique($clean)), 0, self::MAX_FOLLOW_UP_SUGGESTIONS);
+    }
+
+    /**
+     * تنقية الودجت التفاعلي حتى لا يكسر الواجهة.
+     */
+    private function sanitizeInteractiveWidget($widget): ?array
+    {
+        if (!is_array($widget) || !isset($widget['type']) || !is_string($widget['type'])) {
+            return null;
+        }
+
+        $type = trim($widget['type']);
+        switch ($type) {
+            case 'comparison':
+                $items = is_array($widget['items'] ?? null) ? $widget['items'] : [];
+                $safeItems = [];
+                foreach (array_slice($items, 0, self::MAX_WIDGET_ITEMS) as $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+                    $safeItems[] = [
+                        'id' => $item['id'] ?? null,
+                        'name' => mb_substr(trim((string) ($item['name'] ?? '')), 0, 120, 'UTF-8'),
+                        'code' => mb_substr(trim((string) ($item['code'] ?? '')), 0, 40, 'UTF-8'),
+                        'credit_hours' => (int) ($item['credit_hours'] ?? 0),
+                        'difficulty' => (int) ($item['difficulty'] ?? 0),
+                        'unlocks' => (int) ($item['unlocks'] ?? 0),
+                        'gpa_impact' => mb_substr(trim((string) ($item['gpa_impact'] ?? '')), 0, 40, 'UTF-8'),
+                        'recommendation' => mb_substr(trim((string) ($item['recommendation'] ?? '')), 0, 120, 'UTF-8'),
+                    ];
+                }
+
+                return [
+                    'type' => 'comparison',
+                    'title' => mb_substr(trim((string) ($widget['title'] ?? 'مقارنة المواد المقترحة')), 0, 120, 'UTF-8'),
+                    'items' => $safeItems,
+                ];
+
+            case 'poll':
+                $options = is_array($widget['options'] ?? null) ? $widget['options'] : [];
+                $safeOptions = [];
+                foreach (array_slice($options, 0, 4) as $option) {
+                    if (!is_array($option)) {
+                        continue;
+                    }
+                    $safeOptions[] = [
+                        'label' => mb_substr(trim((string) ($option['label'] ?? '')), 0, 80, 'UTF-8'),
+                        'value' => mb_substr(trim((string) ($option['value'] ?? '')), 0, 40, 'UTF-8'),
+                    ];
+                }
+
+                return [
+                    'type' => 'poll',
+                    'question' => mb_substr(trim((string) ($widget['question'] ?? 'شو أولويتك هالفصل؟')), 0, 120, 'UTF-8'),
+                    'options' => $safeOptions,
+                ];
+
+            case 'hours_slider':
+                $min = max(1, (int) ($widget['min'] ?? 9));
+                $max = max($min, (int) ($widget['max'] ?? 18));
+                $default = (int) ($widget['default'] ?? min(15, $max));
+
+                return [
+                    'type' => 'hours_slider',
+                    'question' => mb_substr(trim((string) ($widget['question'] ?? 'كم ساعة حابب تسجل هالفصل؟')), 0, 120, 'UTF-8'),
+                    'min' => $min,
+                    'max' => $max,
+                    'default' => min(max($default, $min), $max),
+                    'current_cart_hours' => max(0, (int) ($widget['current_cart_hours'] ?? 0)),
+                ];
+
+            case 'cart_review':
+                $courses = is_array($widget['courses'] ?? null) ? $widget['courses'] : [];
+                $safeCourses = [];
+                foreach (array_slice($courses, 0, self::MAX_WIDGET_ITEMS) as $course) {
+                    if (!is_array($course)) {
+                        continue;
+                    }
+                    $safeCourses[] = [
+                        'id' => $course['id'] ?? null,
+                        'name' => mb_substr(trim((string) ($course['name'] ?? '')), 0, 120, 'UTF-8'),
+                        'code' => mb_substr(trim((string) ($course['code'] ?? '')), 0, 40, 'UTF-8'),
+                        'credit_hours' => (int) ($course['credit_hours'] ?? 0),
+                        'difficulty' => (int) ($course['difficulty'] ?? 0),
+                        'verdict' => mb_substr(trim((string) ($course['verdict'] ?? 'keep')), 0, 20, 'UTF-8'),
+                        'reason' => mb_substr(trim((string) ($course['reason'] ?? '')), 0, 200, 'UTF-8'),
+                    ];
+                }
+
+                $summary = is_array($widget['summary'] ?? null) ? $widget['summary'] : [];
+                return [
+                    'type' => 'cart_review',
+                    'title' => mb_substr(trim((string) ($widget['title'] ?? 'مراجعة المحاكي الحالي')), 0, 120, 'UTF-8'),
+                    'courses' => $safeCourses,
+                    'summary' => [
+                        'total_hours' => max(0, (int) ($summary['total_hours'] ?? 0)),
+                        'max_hours' => max(0, (int) ($summary['max_hours'] ?? self::MAX_HOURS_NORMAL)),
+                        'overall_difficulty' => mb_substr(trim((string) ($summary['overall_difficulty'] ?? 'متوسط')), 0, 40, 'UTF-8'),
+                        'recommendation' => mb_substr(trim((string) ($summary['recommendation'] ?? '')), 0, 200, 'UTF-8'),
+                    ],
+                ];
+
+            default:
+                return null;
+        }
     }
 
     /**
@@ -792,9 +983,9 @@ class AiAdvisorController extends Controller
             $rawText = $this->callGeminiAPI($contents, $apiKey);
             $parsed = $this->parseAIResponse($rawText);
 
-            $replyText = $parsed['reply'];
-            $followUpSuggestions = $parsed['follow_up_suggestions'];
-            $interactiveWidget = $parsed['interactive_widget'];
+            $replyText = (string) ($parsed['reply'] ?? '');
+            $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
+            $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
 
             // 🔧 ربط أسماء المواد في الـ Widget بالـ IDs الحقيقية من قاعدة البيانات
             $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableCourses['map'], $cartData['map']);
