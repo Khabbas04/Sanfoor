@@ -382,19 +382,9 @@ export default function MainLayout({ children }) {
                         </div>
                     </div>
 
-                    {/* 🔥 حقوق النشر مع حساب LinkedIn 🔥 */}
                     <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-6">
                         <p className="text-slate-500 text-[11px] font-bold tracking-wide">
-                            &copy; {new Date().getFullYear()} {lang === 'ar' ? 'سنفور' : 'Sanfoor'}. Developed by{' '}
-                            <a 
-                                href="https://www.linkedin.com/in/asem-alkhabbas-667471371/" 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-indigo-400 hover:text-indigo-300 transition-all duration-300 relative group inline-block"
-                            >
-                                Asem Alkhabbas
-                                <span className="absolute -bottom-0.5 left-0 w-0 h-[1.5px] bg-indigo-400 transition-all duration-300 group-hover:w-full"></span>
-                            </a>.
+                            &copy; {new Date().getFullYear()} {lang === 'ar' ? 'سنفور' : 'Sanfoor'}.
                         </p>
                     </div>
                 </div>

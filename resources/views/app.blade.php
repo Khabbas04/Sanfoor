@@ -118,8 +118,8 @@ font-family:'Cairo',sans-serif;
 
 @inertia
 
-<footer class="border-t border-slate-200 bg-white/80 py-3 text-center text-xs text-slate-600">
-Developed by <a href="{{ $creatorLinkedIn }}" class="font-semibold text-slate-800 hover:underline" rel="me noopener" target="_blank">{{ $creatorName }}</a>
+<footer class="border-t border-white/10 bg-[#050B14] px-4 py-4 text-center text-sm font-semibold text-slate-200 shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
+Developed by <a href="{{ $creatorLinkedIn }}" class="font-black text-indigo-400 transition hover:text-indigo-300 hover:underline" rel="me noopener" target="_blank">{{ $creatorName }}</a>
 </footer>
 
 </body>
