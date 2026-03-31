@@ -257,15 +257,6 @@ export default function Welcome({ auth }) {
                                 <span className="font-i tracking-wide">النظام الذكي الأول في الجامعات</span>
                             </div>
 
-                            <a
-                                href={creatorLinkedIn}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-[11px] font-black tracking-wide hover:bg-white/20 transition-colors"
-                            >
-                                <span>Created by</span>
-                                <span className="text-cyan-200">{creatorName}</span>
-                            </a>
                         </div>
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
@@ -291,9 +282,19 @@ export default function Welcome({ auth }) {
 
                         {/* Sub */}
                         <div className="h-rise-slow" style={{ animationDelay: '1.1s' }}>
-                            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-white mb-12 font-semibold leading-relaxed px-4 drop-shadow-[0_4px_14px_rgba(0,0,0,0.75)]">
+                            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-white mb-7 font-semibold leading-relaxed px-4 drop-shadow-[0_4px_14px_rgba(0,0,0,0.75)]">
                                 <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسم لك خريطة تخصصك، يفتح لك المواد المتاحة، ويخطط فصلك القادم بدقة.
                             </p>
+                            <a
+                                href={creatorLinkedIn}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-[11px] sm:text-xs font-black tracking-[0.18em] text-white/80 backdrop-blur-md transition-all duration-300 hover:border-cyan-300/40 hover:bg-white/15 hover:text-cyan-100"
+                            >
+                                <span className="text-white/55">CREATED BY</span>
+                                <span className="h-1 w-1 rounded-full bg-cyan-300"></span>
+                                <span className="text-cyan-200">{creatorName}</span>
+                            </a>
                         </div>
 
                         {/* CTA Buttons */}
