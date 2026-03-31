@@ -6,6 +6,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script>
+(() => {
+    const savedLang = localStorage.getItem('lang');
+    const lang = savedLang === 'en' ? 'en' : 'ar';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+})();
+</script>
+
 <title inertia>{{ config('app.name', 'Sanfoor') }}</title>
 
 @php

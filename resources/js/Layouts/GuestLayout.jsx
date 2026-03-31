@@ -1,8 +1,11 @@
 import { Link } from '@inertiajs/react';
+import { useLanguage } from '@/Contexts/LanguageContext';
 
 export default function GuestLayout({ children }) {
+    const { lang } = useLanguage();
+
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden selection:bg-indigo-100 selection:text-indigo-700" dir="rtl">
+        <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden selection:bg-indigo-100 selection:text-indigo-700" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
 
             {/* ── Page keyframes ── */}
             <style dangerouslySetInnerHTML={{ __html: `

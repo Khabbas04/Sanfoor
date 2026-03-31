@@ -1,6 +1,7 @@
 import { Link, Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useEffect, useRef, useState } from 'react';
+import { useLanguage } from '@/Contexts/LanguageContext';
 
 // Resolve the public site URL for canonical and social metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -55,6 +56,7 @@ function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
 
 export default function Welcome({ auth }) {
     const heroRef = useRef(null);
+    const { lang } = useLanguage();
 
     // Each observer controls the reveal timing of a different landing section.
     const [featRef, featIn] = useInView();
@@ -219,9 +221,36 @@ export default function Welcome({ auth }) {
                     border-bottom-left-radius: 50% 80px; 
                     border-bottom-right-radius: 50% 80px; 
                 }
+
+                @media (max-width: 768px), (prefers-reduced-motion: reduce) {
+                    html:focus-within { scroll-behavior: auto; }
+                    .hero-animate,
+                    .h-rise-slow,
+                    .chat-msg-1,
+                    .chat-msg-2,
+                    .tree-node-rect,
+                    .tree-edge,
+                    .animate-float,
+                    .animate-ping-large,
+                    .typing-dot {
+                        animation: none !important;
+                        opacity: 1 !important;
+                        transform: none !important;
+                    }
+
+                    .btn-shimmer::after {
+                        animation: none !important;
+                    }
+
+                    .card-lift,
+                    .route-card,
+                    .route-icon {
+                        transition-duration: 0.01ms !important;
+                    }
+                }
             ` }} />
 
-            <div className="bg-[#fafbff] text-slate-800 overflow-x-hidden" dir="rtl">
+            <div className="bg-[#fafbff] text-slate-800 overflow-x-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
 
                 {/* ════════════════════════════════════
                     1. HERO SECTION (Video & Curve)
@@ -239,8 +268,8 @@ export default function Welcome({ auth }) {
                     </div>
 
                     {/* Decorative Orbs */}
-                    <div className="absolute w-[420px] h-[420px] bg-indigo-500/20 blur-[100px] top-[-8%] right-[-8%] pointer-events-none z-0" />
-                    <div className="absolute w-[350px] h-[350px] bg-cyan-500/20 blur-[110px] bottom-[0%] left-[-6%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[420px] h-[420px] bg-indigo-500/20 blur-[100px] top-[-8%] right-[-8%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[350px] h-[350px] bg-cyan-500/20 blur-[110px] bottom-[0%] left-[-6%] pointer-events-none z-0" />
 
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
@@ -289,11 +318,12 @@ export default function Welcome({ auth }) {
                                 href={creatorLinkedIn}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-[11px] sm:text-xs font-black tracking-[0.18em] text-white/80 backdrop-blur-md transition-all duration-300 hover:border-cyan-300/40 hover:bg-white/15 hover:text-cyan-100"
+                                dir="ltr"
+                                className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-[11px] sm:text-xs font-black tracking-[0.12em] text-white/80 backdrop-blur-md transition-all duration-300 hover:border-cyan-300/40 hover:bg-white/15 hover:text-cyan-100"
                             >
-                                <span className="text-white/55">CREATED BY</span>
-                                <span className="h-1 w-1 rounded-full bg-cyan-300"></span>
                                 <span className="text-cyan-200">{creatorName}</span>
+                                <span className="h-1 w-1 rounded-full bg-cyan-300"></span>
+                                <span className="text-white/55">CREATED BY</span>
                             </a>
                         </div>
 
