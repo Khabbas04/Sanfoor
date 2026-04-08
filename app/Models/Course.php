@@ -20,6 +20,7 @@ class Course extends Model
         'type',
         'semester',
         'major_id',
+        'study_plan_version',
         'description',
     ];
 

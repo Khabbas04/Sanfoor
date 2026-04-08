@@ -121,9 +121,25 @@ class AiAdvisorController extends Controller
      *  - تمرير أول 150 حرف من وصف المادة (RAG) ليدرسه الـ AI
      *  - تمرير عدد المتطلبات السابقة ونوع المادة في النص
      */
-    private function getAvailableCourses($passedCourseIds, $cartCourseIds)
+    private function getAvailableCourses($passedCourseIds, $cartCourseIds, $user)
     {
+        $planVersion = (int) ($user->study_plan_version ?? 12);
+
         $unpassedCourses = Course::with(['prerequisites', 'children'])
+            ->where(function ($query) use ($user, $planVersion) {
+                if ($user->major_id) {
+                    $query->where(function ($majorScope) use ($user, $planVersion) {
+                        $majorScope->where('major_id', $user->major_id)
+                            ->where('study_plan_version', $planVersion);
+                    })->orWhere(function ($universityScope) use ($planVersion) {
+                        $universityScope->whereNull('major_id')
+                            ->where('study_plan_version', $planVersion);
+                    });
+                } else {
+                    $query->whereNull('major_id')
+                        ->where('study_plan_version', $planVersion);
+                }
+            })
             ->whereNotIn('id', $passedCourseIds)
             ->get();
 
@@ -1160,7 +1176,7 @@ class AiAdvisorController extends Controller
         ];
 
         // المواد المتاحة
-        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartCourseIds);
+        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartCourseIds, $user);
 
         // بناء البرومبت
         $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $userMessage);

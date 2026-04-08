@@ -63,6 +63,7 @@ class AdminStudentController extends Controller
                     'name' => $student->name,
                     'email' => $student->email,
                     'major_id' => $student->major_id,
+                    'study_plan_version' => (int) ($student->study_plan_version ?? 12),
                     'ip_address' => $student->ip_address ?? 'غير مسجل',
                     'last_login' => ($student->last_login_at instanceof \Carbon\Carbon) 
                         ? $student->last_login_at->diffForHumans() 
@@ -101,6 +102,7 @@ class AdminStudentController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $student->id,
             'major_id' => 'nullable|exists:majors,id',
+            'study_plan_version' => 'required|integer|in:11,12',
         ]);
 
         $student->update($data);

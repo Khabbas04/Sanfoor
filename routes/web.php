@@ -95,11 +95,17 @@ Route::get('/dashboard', function () {
 
     if ($user->major_id) {
         $plannerCoursesQuery->where(function ($query) use ($user) {
-            $query->where('major_id', $user->major_id)
-                ->orWhereNull('major_id');
+            $query->where(function ($majorScope) use ($user) {
+                $majorScope->where('major_id', $user->major_id)
+                    ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+            })->orWhere(function ($universityScope) use ($user) {
+                $universityScope->whereNull('major_id')
+                    ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+            });
         });
     } else {
-        $plannerCoursesQuery->whereNull('major_id');
+        $plannerCoursesQuery->whereNull('major_id')
+            ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
     }
 
     $plannerCourses = $plannerCoursesQuery->get();

@@ -29,6 +29,7 @@ const translations = {
         editTitle: 'تعديل بيانات الحساب',
         emailLabel: 'البريد الإلكتروني',
         majorLabel: 'التخصص',
+        planLabel: 'رقم الخطة',
         selectMajor: 'اختر التخصص',
         saveChanges: 'حفظ التغييرات',
         noPassedCourses: 'لا يوجد مواد منجزة لهذا الطالب.',
@@ -77,6 +78,7 @@ const translations = {
         editTitle: 'Edit Account Data',
         emailLabel: 'Email',
         majorLabel: 'Major',
+        planLabel: 'Plan Version',
         selectMajor: 'Select Major',
         saveChanges: 'Save Changes',
         noPassedCourses: 'No passed courses for this student.',
@@ -116,7 +118,7 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
     
     // 🔥 حالات التعديل الجديدة 🔥
     const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState({ name: '', email: '', major_id: '' });
+    const [editForm, setEditForm] = useState({ name: '', email: '', major_id: '', study_plan_version: '12' });
 
     const pageStats = useMemo(() => {
         const list = students?.data || [];
@@ -145,7 +147,8 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
         setEditForm({ 
             name: student.name, 
             email: student.email, 
-            major_id: student.major_id || '' 
+            major_id: student.major_id || '',
+            study_plan_version: String(student.study_plan_version || 12),
         });
         setIsEditing(false);
         setActiveTab('passed');
@@ -416,6 +419,18 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                                     {majors.map(m => (
                                                         <option key={m.id} value={m.id}>{m.name}</option>
                                                     ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className={`text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-400'} block mb-1`}>{t.planLabel}</label>
+                                                <select
+                                                    className={`w-full border rounded-xl font-bold p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-slate-200 text-slate-800'}`}
+                                                    value={editForm.study_plan_version}
+                                                    onChange={e => setEditForm({ ...editForm, study_plan_version: e.target.value })}
+                                                >
+                                                    <option value="11">الخطة 11</option>
+                                                    <option value="12">الخطة 12</option>
                                                 </select>
                                             </div>
                                         </div>

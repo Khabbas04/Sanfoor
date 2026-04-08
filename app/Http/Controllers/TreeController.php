@@ -21,6 +21,7 @@ class TreeController extends Controller
 
         // 2. إجبار النظام على أخذ تخصص الطالب حصراً لمنع تداخل البيانات
         $selectedMajorId = $user->major_id;
+        $selectedPlanVersion = (int) ($user->study_plan_version ?? 12);
 
         $courseStatsSubquery = DB::table('course_user')
             ->selectRaw('course_id')
@@ -44,6 +45,7 @@ class TreeController extends Controller
                 'courses.type',
                 'courses.semester',
                 'courses.major_id',
+                'courses.study_plan_version',
                 'courses.description',
             ])
             ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
@@ -55,16 +57,23 @@ class TreeController extends Controller
 
         // 4. الفلترة الصارمة حسب التخصص
         if ($selectedMajorId) {
-            $query->where(function ($q) use ($selectedMajorId) {
+            $query->where(function ($q) use ($selectedMajorId, $selectedPlanVersion) {
                 // جلب مواد تخصص الطالب فقط
-                $q->where('major_id', $selectedMajorId)
-                    // أو متطلبات الجامعة (التي لا تتبع لتخصص محدد)
-                    ->orWhereNull('major_id');
+                $q->where(function ($majorScope) use ($selectedMajorId, $selectedPlanVersion) {
+                    $majorScope->where('major_id', $selectedMajorId)
+                        ->where('study_plan_version', $selectedPlanVersion);
+                })
+                // أو متطلبات الجامعة (التي لا تتبع لتخصص محدد)
+                ->orWhere(function ($universityScope) use ($selectedPlanVersion) {
+                    $universityScope->whereNull('major_id')
+                        ->where('study_plan_version', $selectedPlanVersion);
+                });
             });
         }
         else {
             // في حال كان الطالب غير مربوط بتخصص، نعرض متطلبات الجامعة فقط
-            $query->whereNull('major_id');
+            $query->whereNull('major_id')
+                ->where('study_plan_version', $selectedPlanVersion);
         }
 
         $courses = $query->get();
@@ -123,6 +132,28 @@ class TreeController extends Controller
             $userId = Auth::id();
             $courseId = $request->course_id;
 
+            $user = Auth::user();
+
+            $course = Course::with('prerequisites')
+                ->where('id', $courseId)
+                ->where(function ($query) use ($user) {
+                    $query->where(function ($majorScope) use ($user) {
+                        $majorScope->where('major_id', $user->major_id)
+                            ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                    })->orWhere(function ($universityScope) use ($user) {
+                        $universityScope->whereNull('major_id')
+                            ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                    });
+                })
+                ->first();
+
+            if (!$course) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'هذه المادة ليست ضمن خطتك الحالية.',
+                ], 403);
+            }
+
             // 1. فحص التواجد مباشرة من الجدول الوسيط (أسرع وأضمن طريقة)
             $exists = DB::table('course_user')
                 ->where('user_id', $userId)
@@ -140,8 +171,6 @@ class TreeController extends Controller
             }
             else {
                 // المادة غير موجودة -> نفحص المتطلبات قبل إضافتها
-                $course = Course::with('prerequisites')->find($courseId);
-
                 $passedHours = (int) DB::table('course_user')
                     ->join('courses', 'courses.id', '=', 'course_user.course_id')
                     ->where('course_user.user_id', $userId)
@@ -212,7 +241,17 @@ class TreeController extends Controller
 
         $user = Auth::user();
         $courseId = $request->course_id;
-        $course = Course::findOrFail($courseId);
+        $course = Course::where('id', $courseId)
+            ->where(function ($query) use ($user) {
+                $query->where(function ($majorScope) use ($user) {
+                    $majorScope->where('major_id', $user->major_id)
+                        ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                })->orWhere(function ($universityScope) use ($user) {
+                    $universityScope->whereNull('major_id')
+                        ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                });
+            })
+            ->firstOrFail();
 
         $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
         $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);

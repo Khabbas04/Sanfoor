@@ -20,6 +20,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
         minimum_passed_hours: '',
         type: 'compulsory', // الأنواع: compulsory, elective, supporting, university_req
         prerequisite_id: '',
+        study_plan_version: '12',
         semester: 1, // هذا هو مستوى العقدة (Node Level)
         description: '', 
     });
@@ -28,6 +29,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
         csv_file: null,
         college_id: '',
         major_id: '',
+        study_plan_version: '12',
     });
 
     const { data: colData, setData: setColData, post: postCol, processing: colProc, reset: resetCol } = useForm({
@@ -79,9 +81,18 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
     }, [searchQuery, safeCourses, activeMajorFilter]);
 
     const availablePrerequisites = useMemo(() => {
-        if (!editingCourse) return safeCourses;
-        return safeCourses.filter(c => c.id !== editingCourse.id);
-    }, [safeCourses, editingCourse]);
+        const selectedMajor = data.major_id ? String(data.major_id) : null;
+        const selectedPlan = String(data.study_plan_version || '12');
+
+        return safeCourses.filter(c => {
+            if (editingCourse && c.id === editingCourse.id) return false;
+
+            const courseMajor = c.major_id ? String(c.major_id) : null;
+            const coursePlan = String(c.study_plan_version || '12');
+
+            return courseMajor === selectedMajor && coursePlan === selectedPlan;
+        });
+    }, [safeCourses, editingCourse, data.major_id, data.study_plan_version]);
 
     const handleManualSubmit = (e) => {
         e.preventDefault();
@@ -98,6 +109,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             post(route('admin.courses.store'), {
                 onSuccess: () => {
                     reset('name', 'code', 'prerequisite_id', 'description', 'minimum_passed_hours');
+                    setData('study_plan_version', '12');
                     Swal.fire({ icon: 'success', title: 'تمت الإضافة', text: 'تم حفظ المادة بنجاح', timer: 1500, showConfirmButton: false });
                 }
             });
@@ -121,6 +133,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             credit_hours: course.credit_hours,
             minimum_passed_hours: course.minimum_passed_hours ?? '',
             type: course.type,
+            study_plan_version: String(course.study_plan_version || 12),
             semester: course.semester || 1,
             prerequisite_id: course.prerequisites?.length > 0 ? course.prerequisites[0].id : '',
             description: course.description || '',
@@ -312,7 +325,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                 </h2>
                                 <p className="text-slate-400 font-bold text-sm mb-8">ارفع خطة القسم كاملة بملف إكسل ليقوم النظام ببناء الشجرة وربط المتطلبات تلقائياً.</p>
                                 
-                                <form onSubmit={handleImportSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-5 items-end bg-white/5 p-6 rounded-[1.5rem] border border-white/10 backdrop-blur-md">
+                                <form onSubmit={handleImportSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-5 items-end bg-white/5 p-6 rounded-[1.5rem] border border-white/10 backdrop-blur-md">
                                     <div>
                                         <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">1. حدد الكلية</label>
                                         <select className="w-full rounded-xl border-none bg-white/10 text-white font-bold p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 appearance-none" value={fileData.college_id} onChange={e => setFileData({ ...fileData, college_id: e.target.value, major_id: '' })}>
@@ -328,10 +341,17 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">3. ملف الخطة (CSV)</label>
+                                        <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">3. رقم الخطة</label>
+                                        <select className="w-full rounded-xl border-none bg-white/10 text-white font-bold p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 appearance-none" value={fileData.study_plan_version} onChange={e => setFileData('study_plan_version', e.target.value)} required>
+                                            <option value="11" className="text-slate-900">الخطة 11</option>
+                                            <option value="12" className="text-slate-900">الخطة 12</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">4. ملف الخطة (CSV)</label>
                                         <input type="file" onChange={e => setFileData('csv_file', e.target.files[0])} className="w-full bg-white/10 rounded-xl p-2.5 border border-transparent text-sm file:bg-indigo-600 file:text-white file:rounded-lg file:border-0 file:px-4 file:py-1.5 file:font-black cursor-pointer hover:bg-white/20 transition-colors" required />
                                     </div>
-                                    <button type="submit" disabled={fileProcessing || !fileData.major_id || !fileData.csv_file} className="bg-indigo-600 text-white h-[52px] rounded-xl font-black hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_20px_rgba(79,70,229,0.3)]">
+                                    <button type="submit" disabled={fileProcessing || !fileData.major_id || !fileData.csv_file || !fileData.study_plan_version} className="bg-indigo-600 text-white h-[52px] rounded-xl font-black hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_20px_rgba(79,70,229,0.3)]">
                                         بدء المعالجة
                                     </button>
                                 </form>
@@ -363,6 +383,11 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                             <option value="">-- متطلب جامعة عام (بدون تخصص) --</option>
                                             {filteredManualMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                         </select>
+                                        <select className="w-full rounded-xl border-slate-200 bg-slate-50 text-sm font-bold focus:ring-indigo-500 focus:border-indigo-500" value={data.study_plan_version} onChange={e => setData('study_plan_version', e.target.value)} required>
+                                            <option value="11">الخطة الشجرية 11</option>
+                                            <option value="12">الخطة الشجرية 12</option>
+                                        </select>
+                                        {errors.study_plan_version && <div className="text-rose-500 text-xs mt-1 font-bold">{errors.study_plan_version}</div>}
                                     </div>
 
                                     <div className="h-px bg-slate-100 w-full"></div>
@@ -559,6 +584,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                                                     {course.type === 'supporting' ? '🔸 مادة مساندة | ' : course.type === 'university_req' ? '🌐 أونلاين | ' : ''}
                                                                     الفصل {course.semester || 1}
                                                                 </span>
+                                                                <span className="text-[10px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg">الخطة {course.study_plan_version || 12}</span>
                                                                 {course.minimum_passed_hours ? (
                                                                     <span className="text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-lg">⏳ شرط {course.minimum_passed_hours} ساعة</span>
                                                                 ) : null}

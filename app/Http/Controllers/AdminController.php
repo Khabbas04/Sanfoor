@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -204,15 +205,39 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:255',
-            'code'            => 'required|string|unique:courses,code',
+            'code'            => [
+                'required',
+                'string',
+                Rule::unique('courses')->where(function ($query) use ($request) {
+                    $majorId = $request->input('major_id');
+
+                    $query->where('study_plan_version', (int) $request->input('study_plan_version'));
+
+                    if (empty($majorId)) {
+                        $query->whereNull('major_id');
+                    } else {
+                        $query->where('major_id', $majorId);
+                    }
+                }),
+            ],
             'credit_hours'    => 'required|integer',
             'minimum_passed_hours' => 'nullable|integer|min:1|max:200',
             'type'            => 'required|in:compulsory,elective,supporting,university_req',
-            'major_id'        => 'nullable|exists:majors,id', 
+            'major_id'        => 'nullable|exists:majors,id',
+            'study_plan_version' => 'required|integer|in:11,12',
             'semester'        => 'required|integer|min:1|max:12',
-            'prerequisite_id' => 'nullable|exists:courses,id', 
-            'description'     => 'nullable|string', 
+            'prerequisite_id' => 'nullable|exists:courses,id',
+            'description'     => 'nullable|string',
         ]);
+
+        if (!empty($validated['prerequisite_id'])) {
+            $prerequisite = Course::find($validated['prerequisite_id']);
+            if (!$prerequisite || $prerequisite->major_id != $validated['major_id'] || (int) $prerequisite->study_plan_version !== (int) $validated['study_plan_version']) {
+                return redirect()->back()->withErrors([
+                    'prerequisite_id' => 'المتطلب السابق يجب أن يكون من نفس التخصص ونفس رقم الخطة.',
+                ])->withInput();
+            }
+        }
 
         $course = Course::create([
             'name'         => $validated['name'],
@@ -221,8 +246,9 @@ class AdminController extends Controller
             'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
             'type'         => $validated['type'],
             'major_id'     => $validated['major_id'],
+            'study_plan_version' => $validated['study_plan_version'],
             'semester'     => $validated['semester'],
-            'description'  => $validated['description'], 
+            'description'  => $validated['description'],
         ]);
 
         if (!empty($validated['prerequisite_id'])) {
@@ -237,15 +263,45 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string',
-            'code'            => 'required|string|unique:courses,code,' . $course->id,
+            'code'            => [
+                'required',
+                'string',
+                Rule::unique('courses')->ignore($course->id)->where(function ($query) use ($request) {
+                    $majorId = $request->input('major_id');
+
+                    $query->where('study_plan_version', (int) $request->input('study_plan_version'));
+
+                    if (empty($majorId)) {
+                        $query->whereNull('major_id');
+                    } else {
+                        $query->where('major_id', $majorId);
+                    }
+                }),
+            ],
             'credit_hours'    => 'required|integer',
             'minimum_passed_hours' => 'nullable|integer|min:1|max:200',
             'type'            => 'required|in:compulsory,elective,supporting,university_req',
             'major_id'        => 'nullable|exists:majors,id',
+            'study_plan_version' => 'required|integer|in:11,12',
             'semester'        => 'required|integer|min:1|max:12',
             'prerequisite_id' => 'nullable|exists:courses,id',
-            'description'     => 'nullable|string', 
+            'description'     => 'nullable|string',
         ]);
+
+        if (!empty($validated['prerequisite_id']) && (int) $validated['prerequisite_id'] === (int) $course->id) {
+            return redirect()->back()->withErrors([
+                'prerequisite_id' => 'لا يمكن ربط المادة بنفسها كمتطلب.',
+            ])->withInput();
+        }
+
+        if (!empty($validated['prerequisite_id'])) {
+            $prerequisite = Course::find($validated['prerequisite_id']);
+            if (!$prerequisite || $prerequisite->major_id != $validated['major_id'] || (int) $prerequisite->study_plan_version !== (int) $validated['study_plan_version']) {
+                return redirect()->back()->withErrors([
+                    'prerequisite_id' => 'المتطلب السابق يجب أن يكون من نفس التخصص ونفس رقم الخطة.',
+                ])->withInput();
+            }
+        }
 
         $course->update([
             'name'         => $validated['name'],
@@ -254,8 +310,9 @@ class AdminController extends Controller
             'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
             'type'         => $validated['type'],
             'major_id'     => $validated['major_id'],
+            'study_plan_version' => $validated['study_plan_version'],
             'semester'     => $validated['semester'],
-            'description'  => $validated['description'], 
+            'description'  => $validated['description'],
         ]);
 
         if (!empty($validated['prerequisite_id'])) {
@@ -296,16 +353,17 @@ class AdminController extends Controller
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
             fputs($handle, "\xEF\xBB\xBF");
-            fputcsv($handle, ['Code', 'Name', 'Credits', 'Type', 'Major', 'Semester', 'Prerequisites', 'Description']);
+            fputcsv($handle, ['Code', 'Name', 'Credits', 'Type', 'Major', 'Plan Version', 'Semester', 'Prerequisites', 'Description']);
 
             $courses = Course::with(['major', 'prerequisites'])->get();
             foreach ($courses as $course) {
                 fputcsv($handle, [
                     $course->code, $course->name, $course->credit_hours, $course->type,
-                    $course->major ? $course->major->name : 'متطلب جامعة عام', 
-                    $course->semester, 
+                    $course->major ? $course->major->name : 'متطلب جامعة عام',
+                    $course->study_plan_version,
+                    $course->semester,
                     $course->prerequisites->pluck('code')->implode(', '),
-                    $course->description 
+                    $course->description
                 ]);
             }
             fclose($handle);
@@ -317,10 +375,12 @@ class AdminController extends Controller
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt|max:10240',
             'major_id' => 'required|exists:majors,id',
+            'study_plan_version' => 'required|integer|in:11,12',
         ]);
 
         $file = $request->file('csv_file');
         $selectedMajorId = $request->input('major_id');
+        $selectedPlanVersion = (int) $request->input('study_plan_version');
 
         if (($handle = fopen($file->getPathname(), 'r')) !== false) {
             
@@ -366,13 +426,18 @@ class AdminController extends Controller
                 }
 
                 $course = Course::updateOrCreate(
-                    ['code' => $code], 
+                    [
+                        'code' => $code,
+                        'major_id' => $selectedMajorId,
+                        'study_plan_version' => $selectedPlanVersion,
+                    ],
                     [
                         'name' => $name,
                         'credit_hours' => $credits,
-                        'semester' => 1, 
+                        'semester' => 1,
                         'type' => $type,
                         'major_id' => $selectedMajorId,
+                        'study_plan_version' => $selectedPlanVersion,
                     ]
                 );
 
@@ -396,7 +461,10 @@ class AdminController extends Controller
                 $pCodes = preg_split('/[\s,]+/', $cleanPrereq, -1, PREG_SPLIT_NO_EMPTY);
 
                 foreach ($pCodes as $pCode) {
-                    $pCourse = Course::where('code', trim($pCode))->first();
+                    $pCourse = Course::where('code', trim($pCode))
+                        ->where('major_id', $selectedMajorId)
+                        ->where('study_plan_version', $selectedPlanVersion)
+                        ->first();
                     if ($pCourse) {
                         $pIds[] = $pCourse->id;
                     }
@@ -427,7 +495,7 @@ class AdminController extends Controller
                 }
             }
 
-            $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة وإعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
+            $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة للتخصص {$selectedMajorId} بالخطة {$selectedPlanVersion} مع إعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
         }
 
         return redirect()->back()->with('success', "تم الاستيراد بنجاح! 🚀 تم بناء الأسهم والمستويات تلقائياً لـ $count مادة.");

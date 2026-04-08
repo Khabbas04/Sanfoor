@@ -43,6 +43,7 @@ class RegisteredUserController extends Controller
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'major_id' => 'required|exists:majors,id', // 🔥 إجبار الطالب على اختيار تخصص صحيح
+            'study_plan_version' => 'required|integer|in:11,12',
         ]);
 
         $user = User::create([
@@ -50,6 +51,7 @@ class RegisteredUserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'major_id' => $request->major_id, // 🔥 ربط الطالب بتخصصه في قاعدة البيانات
+            'study_plan_version' => $request->study_plan_version,
             'role' => 'student', // 🔥 إعطاء المستخدم صلاحية "طالب" كقيمة افتراضية
         ]);
 
