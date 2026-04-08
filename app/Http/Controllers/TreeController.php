@@ -94,7 +94,7 @@ class TreeController extends Controller
         // 6. جلب المواد المنجزة بالتفصيل (مع العلامة ورقم الفصل) لتبويب السجل الأكاديمي الجديد
         $passedCourses = $user->passedCourses()
             ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
-            ->withPivot('grade', 'studied_semester')
+            ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
             ->get();
 
         // 7. Fetch user's cart (simulator) from DB
@@ -124,10 +124,12 @@ class TreeController extends Controller
     public function toggle(Request $request)
     {
         try {
-            // 🔥 إضافة التحقق من صحة رقم الفصل المُرسل (إن وجد)
+            // دعم إدخال السنة + الفصل مع إبقاء التوافق مع الحقل القديم studied_semester.
             $request->validate([
                 'course_id' => 'required|exists:courses,id',
-                'studied_semester' => 'nullable|integer|min:1|max:12' 
+                'studied_year' => 'nullable|integer|min:1|max:6',
+                'studied_term' => 'nullable|integer|in:1,2,3',
+                'studied_semester' => 'nullable|integer|min:1|max:18'
             ]);
 
             $userId = Auth::id();
@@ -199,15 +201,33 @@ class TreeController extends Controller
                 }
 
                 if (empty($missingPrereqs)) {
-                    
-                    // 🔥 تحديد الفصل المُراد الحفظ بناءً عليه
-                    // إذا أرسل الطالب رقماً نستخدمه، وإلا نستخدم الفصل الافتراضي للمادة، وإلا نجعله 1
-                    $targetSemester = $request->studied_semester ?? $course->semester ?? 1;
+                    // المنطق الأساسي: إن وصلت سنة+فصل نحولهم إلى 1..12، وإلا نعتمد studied_semester.
+                    $studiedYear = $request->input('studied_year');
+                    $studiedTerm = $request->input('studied_term');
+
+                    if (!is_null($studiedYear) && !is_null($studiedTerm)) {
+                        $targetSemester = (($studiedYear - 1) * 3) + $studiedTerm;
+                    } else {
+                        // fallback للتوافق مع الإرسال القديم.
+                        $targetSemester = (int) ($request->studied_semester ?? $course->semester ?? 1);
+
+                        if (is_null($studiedYear) || is_null($studiedTerm)) {
+                            $legacySemester = max(1, min(12, $targetSemester));
+                            $studiedYear = (int) ceil($legacySemester / 2);
+                            $studiedTerm = $legacySemester % 2 === 0 ? 2 : 1;
+                        }
+                    }
+
+                    $targetSemester = max(1, min(18, (int) $targetSemester));
+                    $studiedYear = max(1, min(6, (int) $studiedYear));
+                    $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
 
                     DB::table('course_user')->insert([
                         'user_id' => $userId,
                         'course_id' => $courseId,
                         'studied_semester' => $targetSemester, // حفظ الفصل المُخصص هنا
+                        'studied_year' => $studiedYear,
+                        'studied_term' => $studiedTerm,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);

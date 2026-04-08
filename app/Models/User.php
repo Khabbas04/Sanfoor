@@ -92,7 +92,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'course_user',
             'user_id',
             'course_id'
-        )->withPivot('grade', 'studied_semester')->withTimestamps();
+        )->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')->withTimestamps();
     }
 
     /**

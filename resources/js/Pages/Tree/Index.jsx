@@ -119,6 +119,8 @@ export default function Tree({
     const [localPassedCourses, setLocalPassedCourses] = useState(passed_courses || []);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [targetSemester, setTargetSemester] = useState(1);
+    const [targetYear, setTargetYear] = useState(1);
+    const [targetTerm, setTargetTerm] = useState(1);
     const [activeTab, setActiveTab] = useState('details');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showAiSettings, setShowAiSettings] = useState(false);
@@ -133,6 +135,85 @@ export default function Tree({
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
 
     const isMobile = viewportWidth < 1024;
+
+    const semesterToYearTerm = useCallback((semesterValue) => {
+        const normalized = Math.min(18, Math.max(1, parseInt(semesterValue, 10) || 1));
+        return {
+            year: Math.ceil(normalized / 3),
+            term: ((normalized - 1) % 3) + 1,
+        };
+    }, []);
+
+    // Used to decode legacy plan-level semester numbering (1..12 regular terms only).
+    const legacyPlanSemesterToYearTerm = useCallback((semesterValue) => {
+        const normalized = Math.min(12, Math.max(1, parseInt(semesterValue, 10) || 1));
+        return {
+            year: Math.ceil(normalized / 2),
+            term: normalized % 2 === 0 ? 2 : 1,
+        };
+    }, []);
+
+    const yearTermToSemester = useCallback((yearValue, termValue) => {
+        const safeYear = Math.min(6, Math.max(1, parseInt(yearValue, 10) || 1));
+        const parsedTerm = parseInt(termValue, 10);
+        const safeTerm = [1, 2, 3].includes(parsedTerm) ? parsedTerm : 1;
+        return ((safeYear - 1) * 3) + safeTerm;
+    }, []);
+
+    const yearOptions = useMemo(() => ([
+        { value: 1, label: 'السنة الأولى' },
+        { value: 2, label: 'السنة الثانية' },
+        { value: 3, label: 'السنة الثالثة' },
+        { value: 4, label: 'السنة الرابعة' },
+        { value: 5, label: 'السنة الخامسة' },
+        { value: 6, label: 'السنة السادسة' },
+    ]), []);
+
+    const termOptions = useMemo(() => ([
+        { value: 1, label: 'الفصل الأول' },
+        { value: 2, label: 'الفصل الثاني' },
+        { value: 3, label: 'الفصل الصيفي' },
+    ]), []);
+
+    const suggestedStudySlot = useMemo(() => {
+        const passedArray = Array.isArray(localPassedCourses) ? localPassedCourses : [];
+
+        if (passedArray.length === 0) {
+            if (selectedCourse?.semester) {
+                return legacyPlanSemesterToYearTerm(selectedCourse.semester);
+            }
+
+            return { year: 1, term: 1 };
+        }
+
+        let maxYear = 1;
+        let maxTerm = 1;
+
+        passedArray.forEach((course) => {
+            const y = parseInt(course?.pivot?.studied_year, 10);
+            const t = parseInt(course?.pivot?.studied_term, 10);
+
+            if (y >= 1 && y <= 6 && [1, 2, 3].includes(t)) {
+                if (y > maxYear || (y === maxYear && t > maxTerm)) {
+                    maxYear = y;
+                    maxTerm = t;
+                }
+                return;
+            }
+
+            const fallback = legacyPlanSemesterToYearTerm(course?.pivot?.studied_semester || course?.semester || 1);
+            if (fallback.year > maxYear || (fallback.year === maxYear && fallback.term > maxTerm)) {
+                maxYear = fallback.year;
+                maxTerm = fallback.term;
+            }
+        });
+
+        if (maxTerm < 3) {
+            return { year: maxYear, term: maxTerm + 1 };
+        }
+
+        return { year: Math.min(6, maxYear + 1), term: 1 };
+    }, [localPassedCourses, selectedCourse, legacyPlanSemesterToYearTerm]);
     const nodeDimensions = useMemo(() => (
         isMobile
             ? { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 }
@@ -157,6 +238,12 @@ export default function Tree({
             setIsSidebarOpen(false);
         }
     }, [isMobile]);
+
+    useEffect(() => {
+        const next = semesterToYearTerm(targetSemester);
+        setTargetYear(next.year);
+        setTargetTerm(next.term);
+    }, [targetSemester, semesterToYearTerm]);
 
     const syncCartWithDB = useCallback((ids) => {
         router.post(route('cart.sync'), { course_ids: ids }, {
@@ -603,10 +690,36 @@ export default function Tree({
     const onNodeClick = useCallback((e, node) => {
         const course = courses.find(c => c.id === parseInt(node.id));
         setSelectedCourse(course);
-        if (course) setTargetSemester(course.semester || 1);
+        if (course) {
+            const next = legacyPlanSemesterToYearTerm(course.semester || 1);
+            setTargetYear(next.year);
+            setTargetTerm(next.term);
+            setTargetSemester(yearTermToSemester(next.year, next.term));
+        }
         setActiveTab('details');
         if (window.innerWidth < 1024) setIsSidebarOpen(true);
-    }, [courses]);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester]);
+
+    const handleTargetYearChange = (yearValue) => {
+        const year = parseInt(yearValue, 10) || 1;
+        setTargetYear(year);
+        setTargetSemester(yearTermToSemester(year, targetTerm));
+    };
+
+    const handleTargetTermChange = (termValue) => {
+        const parsed = parseInt(termValue, 10);
+        const term = [1, 2, 3].includes(parsed) ? parsed : 1;
+        setTargetTerm(term);
+        setTargetSemester(yearTermToSemester(targetYear, term));
+    };
+
+    const applySuggestedStudySlot = () => {
+        const year = suggestedStudySlot?.year || 1;
+        const term = suggestedStudySlot?.term || 1;
+        setTargetYear(year);
+        setTargetTerm(term);
+        setTargetSemester(yearTermToSemester(year, term));
+    };
 
     // 🆕 FIX: منع إلغاء مادة إذا مواد بعدها منجزة
     const togglePassed = async (courseId) => {
@@ -659,7 +772,9 @@ export default function Tree({
         try {
             const response = await axios.post(route('tree.toggle'), {
                 course_id: courseId,
-                studied_semester: targetSemester
+                studied_year: targetYear,
+                studied_term: targetTerm,
+                studied_semester: targetSemester,
             });
 
             if (response.data.status === 'added') {
@@ -672,7 +787,12 @@ export default function Tree({
                 if (addedCourse) {
                     setLocalPassedCourses(prev => [...prev, {
                         ...addedCourse,
-                        pivot: { grade: null, studied_semester: targetSemester }
+                        pivot: {
+                            grade: null,
+                            studied_semester: targetSemester,
+                            studied_year: targetYear,
+                            studied_term: targetTerm,
+                        }
                     }]);
                 }
                 setActiveTab('semesters');
@@ -900,23 +1020,52 @@ export default function Tree({
     const processedCourses = useMemo(() => {
         const coursesArray = Array.isArray(localPassedCourses) ? localPassedCourses : [];
         return coursesArray.map(c => {
-            let sem = 1;
-            if (c.pivot && c.pivot.studied_semester) sem = c.pivot.studied_semester;
-            else if (c.semester) sem = c.semester;
-            return { ...c, localSemester: parseInt(sem, 10) || 1 };
+            let year = c?.pivot?.studied_year;
+            let term = c?.pivot?.studied_term;
+
+            if (!year || !term) {
+                const sem = c?.pivot?.studied_semester || c?.semester || 1;
+                const legacy = legacyPlanSemesterToYearTerm(sem);
+                year = legacy.year;
+                term = legacy.term;
+            }
+
+            const safeYear = Math.min(6, Math.max(1, parseInt(year, 10) || 1));
+            const parsedTerm = parseInt(term, 10);
+            const safeTerm = [1, 2, 3].includes(parsedTerm) ? parsedTerm : 1;
+            const tabKey = `${safeYear}-${safeTerm}`;
+
+            return {
+                ...c,
+                localYear: safeYear,
+                localTerm: safeTerm,
+                tabKey,
+            };
         });
-    }, [localPassedCourses]);
+    }, [localPassedCourses, legacyPlanSemesterToYearTerm]);
 
     const semesterRecord = useMemo(() => {
         const grouped = {};
         processedCourses.forEach(course => {
-            const sem = course.localSemester;
-            if (!grouped[sem]) grouped[sem] = { courses: [], totalHours: 0 };
-            grouped[sem].courses.push(course);
-            grouped[sem].totalHours += course.credit_hours || 0;
+            const key = course.tabKey;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    year: course.localYear,
+                    term: course.localTerm,
+                    courses: [],
+                    totalHours: 0,
+                };
+            }
+            grouped[key].courses.push(course);
+            grouped[key].totalHours += course.credit_hours || 0;
         });
-        const sortedSemesters = Object.keys(grouped).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
-        return { grouped, sortedSemesters };
+        const sortedKeys = Object.keys(grouped).sort((a, b) => {
+            const aItem = grouped[a];
+            const bItem = grouped[b];
+            if (aItem.year !== bItem.year) return aItem.year - bItem.year;
+            return aItem.term - bItem.term;
+        });
+        return { grouped, sortedKeys };
     }, [processedCourses]);
 
     const [activeSemesterTab, setActiveSemesterTab] = useState('all');
@@ -924,7 +1073,7 @@ export default function Tree({
     const recordDisplayedCourses = useMemo(() => {
         if (!processedCourses || processedCourses.length === 0) return [];
         if (activeSemesterTab === 'all') return processedCourses;
-        return processedCourses.filter(c => c.localSemester === parseInt(activeSemesterTab, 10));
+        return processedCourses.filter(c => c.tabKey === activeSemesterTab);
     }, [processedCourses, activeSemesterTab]);
 
     const getBadgeColor = (grade) => {
@@ -1362,11 +1511,42 @@ export default function Tree({
                                     {/* Actions */}
                                     <div className="space-y-2.5 pt-1">
                                         {getStatus(selectedCourse) === 'available' && (
-                                            <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 flex justify-between items-center shadow-sm backdrop-blur-sm">
-                                                <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 أنجزت في الفصل:</span>
-                                                <select value={targetSemester} onChange={(e) => setTargetSemester(parseInt(e.target.value))} className="text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1 pl-2 pr-6 cursor-pointer shadow-sm outline-none">
-                                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (<option key={num} value={num} className="bg-slate-800 text-white">الفصل {num}</option>))}
-                                                </select>
+                                            <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
+                                                <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 تحديد الإنجاز حسب السنة والفصل:</span>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">السنة الدراسية</label>
+                                                        <select
+                                                            value={targetYear}
+                                                            onChange={(e) => handleTargetYearChange(e.target.value)}
+                                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                                        >
+                                                            {yearOptions.map(year => (
+                                                                <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">الفصل</label>
+                                                        <select
+                                                            value={targetTerm}
+                                                            onChange={(e) => handleTargetTermChange(e.target.value)}
+                                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                                        >
+                                                            {termOptions.map(term => (
+                                                                <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={applySuggestedStudySlot}
+                                                    className="w-full text-[11px] font-black text-emerald-900 bg-emerald-100/80 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 transition-colors"
+                                                >
+                                                    ✨ اختيار تلقائي: سنة {suggestedStudySlot.year} - {termOptions.find(t => t.value === suggestedStudySlot.term)?.label || 'الفصل الأول'}
+                                                </button>
+                                                <p className="text-[10px] font-bold text-emerald-100/70">سيتم الحفظ كسنة {targetYear} - {termOptions.find(t => t.value === targetTerm)?.label || 'الفصل الأول'}.</p>
                                             </div>
                                         )}
                                         {getStatus(selectedCourse) === 'available' && (
@@ -1501,7 +1681,15 @@ export default function Tree({
                                 </div>
                                 <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
                                     <button onClick={() => setActiveSemesterTab('all')} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === 'all' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>🌐 الكل ({passedIds.length})</button>
-                                    {semesterRecord.sortedSemesters.map(sem => (<button key={sem} onClick={() => setActiveSemesterTab(sem)} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === sem ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>الفصل {sem}</button>))}
+                                    {semesterRecord.sortedKeys.map(key => {
+                                        const item = semesterRecord.grouped[key];
+                                        const termLabel = item.term === 1 ? 'الأول' : item.term === 2 ? 'الثاني' : 'الصيفي';
+                                        return (
+                                            <button key={key} onClick={() => setActiveSemesterTab(key)} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === key ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
+                                                السنة {item.year} - {termLabel}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                                 <div className="space-y-2.5 pb-8">
                                     {recordDisplayedCourses.map((c, idx) => (
@@ -1510,7 +1698,12 @@ export default function Tree({
                                                 <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-100 shrink-0">{c.credit_hours}س</div>
                                                 <div className="min-w-0 truncate pr-2"><h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4><p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code}</p></div>
                                             </div>
-                                            <div className="shrink-0 flex flex-col items-end gap-1 pl-1"><span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{c.pivot?.grade ? `${c.pivot.grade}%` : 'ناجح'}</span></div>
+                                            <div className="shrink-0 flex flex-col items-end gap-1 pl-1">
+                                                <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{c.pivot?.grade ? `${c.pivot.grade}%` : 'ناجح'}</span>
+                                                <span className="px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                    سنة {c.localYear} - {c.localTerm === 1 ? 'الأول' : c.localTerm === 2 ? 'الثاني' : 'الصيفي'}
+                                                </span>
+                                            </div>
                                         </div>
                                     ))}
                                     {recordDisplayedCourses.length === 0 && (<div className="text-center py-10 opacity-60"><div className="text-3xl mb-2">📭</div><p className="text-[12px] font-bold text-slate-500">لا يوجد مواد مسجلة.</p></div>)}
