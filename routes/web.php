@@ -113,7 +113,7 @@ Route::get('/dashboard', function () {
     // Keep the payload focused on the fields rendered in the dashboard UI.
     $passedCourses = $user->passedCourses()
         ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
-        ->withPivot('grade', 'studied_semester')
+        ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
         ->get();
 
     return Inertia::render('Dashboard', [

@@ -122,12 +122,39 @@ export default function Dashboard({
     const onHeroLeave = useCallback(() => { setMx(0); setMy(0); }, []);
     const spring = 'cubic-bezier(0.16,1,0.3,1)';
 
+    const legacyPlanSemesterToYearTerm = useCallback((semesterValue) => {
+        const normalized = Math.min(12, Math.max(1, parseInt(semesterValue, 10) || 1));
+        return {
+            year: Math.ceil(normalized / 2),
+            term: normalized % 2 === 0 ? 2 : 1,
+        };
+    }, []);
+
+    const termLabel = useCallback((term) => {
+        if (term === 1) return 'الأول';
+        if (term === 2) return 'الثاني';
+        return 'الصيفي';
+    }, []);
+
     const processedCourses = useMemo(() => {
-        return passed_courses.map(c => ({
-            ...c,
-            localSemester: c.pivot?.studied_semester || c.semester || 1 
-        }));
-    }, [passed_courses]);
+        return passed_courses.map(c => {
+            let year = parseInt(c?.pivot?.studied_year, 10);
+            let term = parseInt(c?.pivot?.studied_term, 10);
+
+            if (!(year >= 1 && year <= 6 && [1, 2, 3].includes(term))) {
+                const fallback = legacyPlanSemesterToYearTerm(c?.pivot?.studied_semester || c?.semester || 1);
+                year = fallback.year;
+                term = fallback.term;
+            }
+
+            return {
+                ...c,
+                localYear: year,
+                localTerm: term,
+                recordKey: `${year}-${term}`,
+            };
+        });
+    }, [passed_courses, legacyPlanSemesterToYearTerm]);
 
     const cumulativeStats = useMemo(() => {
         let totalCredits = 0;
@@ -146,27 +173,46 @@ export default function Dashboard({
     const semesterStats = useMemo(() => {
         const stats = {};
         processedCourses.forEach(c => {
-            const sem = c.localSemester;
-            if (!stats[sem]) { stats[sem] = { totalCredits: 0, weightedSum: 0, courseCount: 0 }; }
-            stats[sem].courseCount++;
+            const key = c.recordKey;
+            if (!stats[key]) {
+                stats[key] = {
+                    year: c.localYear,
+                    term: c.localTerm,
+                    totalCredits: 0,
+                    weightedSum: 0,
+                    courseCount: 0,
+                };
+            }
+            stats[key].courseCount++;
             const grade = parseFloat(c.pivot?.grade);
             if (!isNaN(grade) && grade > 0) {
-                stats[sem].totalCredits += c.credit_hours;
-                stats[sem].weightedSum += (grade * c.credit_hours);
+                stats[key].totalCredits += c.credit_hours;
+                stats[key].weightedSum += (grade * c.credit_hours);
             }
         });
         const finalStats = {};
-        Object.keys(stats).forEach(sem => {
-            const data = stats[sem];
+        Object.keys(stats).forEach(key => {
+            const data = stats[key];
             const percentage = data.totalCredits > 0 ? (data.weightedSum / data.totalCredits) : 0;
             const gpa4 = data.totalCredits > 0 ? (percentage / 25).toFixed(2) : '0.00';
-            finalStats[sem] = { percentage: percentage.toFixed(1), gpa4, credits: data.totalCredits, count: data.courseCount };
+            finalStats[key] = {
+                ...data,
+                percentage: percentage.toFixed(1),
+                gpa4,
+                credits: data.totalCredits,
+                count: data.courseCount,
+            };
         });
         return finalStats;
     }, [processedCourses]);
 
     const recordSemesters = useMemo(() => {
-        return Object.keys(semesterStats).map(Number).sort((a, b) => a - b);
+        return Object.keys(semesterStats).sort((a, b) => {
+            const aItem = semesterStats[a];
+            const bItem = semesterStats[b];
+            if (aItem.year !== bItem.year) return aItem.year - bItem.year;
+            return aItem.term - bItem.term;
+        });
     }, [semesterStats]);
 
     const [recordActiveTab, setRecordActiveTab] = useState(recordSemesters.length > 0 ? recordSemesters[0] : 'all');
@@ -185,7 +231,7 @@ export default function Dashboard({
 
     const recordDisplayedCourses = useMemo(() => {
         if (recordActiveTab === 'all') return processedCourses;
-        return processedCourses.filter(c => c.localSemester === recordActiveTab);
+        return processedCourses.filter(c => c.recordKey === recordActiveTab);
     }, [processedCourses, recordActiveTab]);
 
     const getBadgeColor = (grade) => {
@@ -734,14 +780,14 @@ export default function Dashboard({
                                                 </div>
                                             </button>
 
-                                            {recordSemesters.map(sem => {
-                                                const stats = semesterStats[sem];
-                                                const isActive = recordActiveTab === sem;
+                                            {recordSemesters.map(recordKey => {
+                                                const stats = semesterStats[recordKey];
+                                                const isActive = recordActiveTab === recordKey;
                                                 return (
-                                                    <button key={sem} onClick={() => setRecordActiveTab(sem)} className={`group relative shrink-0 text-right transition-all duration-300 ${isActive ? 'transform scale-[1.02]' : 'hover:-translate-y-1'}`}>
+                                                    <button key={recordKey} onClick={() => setRecordActiveTab(recordKey)} className={`group relative shrink-0 text-right transition-all duration-300 ${isActive ? 'transform scale-[1.02]' : 'hover:-translate-y-1'}`}>
                                                         <div className={`p-4 rounded-2xl border-2 transition-all duration-300 w-44 h-full flex flex-col justify-between ${isActive ? 'bg-indigo-50 border-indigo-500 shadow-lg shadow-indigo-200' : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md'}`}>
                                                             <div className="flex justify-between items-start mb-3">
-                                                                <span className={`text-sm font-black ${isActive ? 'text-indigo-900' : 'text-slate-700'}`}>الفصل {sem}</span>
+                                                                <span className={`text-sm font-black ${isActive ? 'text-indigo-900' : 'text-slate-700'}`}>السنة {stats.year} - {termLabel(stats.term)}</span>
                                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${isActive ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-100 text-slate-500'}`}>{stats.count} مواد</span>
                                                             </div>
                                                             <div className="flex justify-between items-end">
@@ -767,6 +813,7 @@ export default function Dashboard({
                                                         <div>
                                                             <h4 className="text-sm font-black text-slate-800 group-hover:text-indigo-900 transition-colors line-clamp-1">{course.name}</h4>
                                                             <p className="text-[10px] font-bold text-slate-400 font-mono mt-0.5">{course.code}</p>
+                                                            <p className="text-[10px] font-bold text-indigo-500 mt-0.5">سنة {course.localYear} - {termLabel(course.localTerm)}</p>
                                                         </div>
                                                     </div>
                                                     <div className={`px-3 py-1.5 rounded-lg text-[11px] font-black border shadow-sm ${getBadgeColor(course.pivot?.grade)}`}>

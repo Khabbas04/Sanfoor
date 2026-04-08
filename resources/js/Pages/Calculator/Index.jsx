@@ -7,13 +7,63 @@ import Swal from 'sweetalert2';
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 export default function Calculator({ auth, initialCourses }) {
+    const legacyPlanSemesterToYearTerm = (semesterValue) => {
+        const normalized = Math.min(12, Math.max(1, parseInt(semesterValue, 10) || 1));
+        return {
+            year: Math.ceil(normalized / 2),
+            term: normalized % 2 === 0 ? 2 : 1,
+        };
+    };
+
+    const yearTermToSemester = (yearValue, termValue) => {
+        const year = Math.min(6, Math.max(1, parseInt(yearValue, 10) || 1));
+        const parsedTerm = parseInt(termValue, 10);
+        const term = [1, 2, 3].includes(parsedTerm) ? parsedTerm : 1;
+        return ((year - 1) * 3) + term;
+    };
+
+    const termLabel = (termValue) => {
+        if (termValue === 1) return 'الأول';
+        if (termValue === 2) return 'الثاني';
+        return 'الصيفي';
+    };
+
+    const yearOptions = [
+        { value: 1, label: 'السنة الأولى' },
+        { value: 2, label: 'السنة الثانية' },
+        { value: 3, label: 'السنة الثالثة' },
+        { value: 4, label: 'السنة الرابعة' },
+        { value: 5, label: 'السنة الخامسة' },
+        { value: 6, label: 'السنة السادسة' },
+    ];
+
+    const termOptions = [
+        { value: 1, label: 'الفصل الأول' },
+        { value: 2, label: 'الفصل الثاني' },
+        { value: 3, label: 'الفصل الصيفي' },
+    ];
+
     // 1. تهيئة المواد (بدون أي تعقيدات)
     const [courses, setCourses] = useState(() => {
         const coursesArray = Array.isArray(initialCourses) ? initialCourses : [];
-        return coursesArray.map(c => ({
-            ...c,
-            localSemester: parseInt(c.pivot?.studied_semester || c.semester || 1, 10) 
-        }));
+        return coursesArray.map(c => {
+            let year = parseInt(c?.pivot?.studied_year, 10);
+            let term = parseInt(c?.pivot?.studied_term, 10);
+
+            if (!(year >= 1 && year <= 6 && [1, 2, 3].includes(term))) {
+                const fallback = legacyPlanSemesterToYearTerm(c?.pivot?.studied_semester || c?.semester || 1);
+                year = fallback.year;
+                term = fallback.term;
+            }
+
+            return {
+                ...c,
+                localYear: year,
+                localTerm: term,
+                localSemester: yearTermToSemester(year, term),
+                recordKey: `${year}-${term}`,
+            };
+        });
     });
     
     const [loading, setLoading] = useState(false);
@@ -21,8 +71,13 @@ export default function Calculator({ auth, initialCourses }) {
 
     // 2. استخراج الفصول الفريدة
     const semesters = useMemo(() => {
-        const sems = new Set(courses.map(c => c.localSemester));
-        return Array.from(sems).sort((a, b) => a - b);
+        const sems = new Set(courses.map(c => c.recordKey));
+        return Array.from(sems).sort((a, b) => {
+            const [ay, at] = a.split('-').map(Number);
+            const [by, bt] = b.split('-').map(Number);
+            if (ay !== by) return ay - by;
+            return at - bt;
+        });
     }, [courses]);
 
     // 3. فلترة المواد المعروضة (حسب الفصل المختار)
@@ -30,7 +85,7 @@ export default function Calculator({ auth, initialCourses }) {
         if (!courses || courses.length === 0) return [];
         if (selectedSemester === 'all') return courses;
         
-        return courses.filter(c => c.localSemester === parseInt(selectedSemester, 10));
+        return courses.filter(c => c.recordKey === selectedSemester);
     }, [courses, selectedSemester]);
 
     // 4. تحديث العلامة (محلياً)
@@ -41,11 +96,22 @@ export default function Calculator({ auth, initialCourses }) {
     };
 
     // 5. تحديث الفصل الدراسي (محلياً)
-    const handleSemesterChange = (id, newSem) => {
-        const semNumber = parseInt(newSem, 10) || 1;
-        setCourses(prev => prev.map(c =>
-            c.id === id ? { ...c, localSemester: semNumber } : c
-        ));
+    const handleStudySlotChange = (id, field, value) => {
+        setCourses(prev => prev.map(c => {
+            if (c.id !== id) return c;
+
+            const nextYear = field === 'year' ? parseInt(value, 10) || 1 : c.localYear;
+            const parsedTerm = field === 'term' ? parseInt(value, 10) : c.localTerm;
+            const nextTerm = [1, 2, 3].includes(parsedTerm) ? parsedTerm : 1;
+
+            return {
+                ...c,
+                localYear: nextYear,
+                localTerm: nextTerm,
+                localSemester: yearTermToSemester(nextYear, nextTerm),
+                recordKey: `${nextYear}-${nextTerm}`,
+            };
+        }));
     };
 
     // 6. دوال الحساب الرياضية
@@ -89,7 +155,9 @@ export default function Calculator({ auth, initialCourses }) {
         courses.forEach(c => {
             coursesPayload[c.id] = {
                 grade: c.pivot?.grade !== undefined && c.pivot?.grade !== '' ? parseFloat(c.pivot.grade) : null,
-                semester: c.localSemester
+                year: c.localYear,
+                term: c.localTerm,
+                semester: c.localSemester,
             };
         });
 
@@ -164,7 +232,10 @@ export default function Calculator({ auth, initialCourses }) {
 
                                     <div className={`pt-6 border-t border-slate-800 text-center xl:text-right transition-all duration-500 ${selectedSemester !== 'all' ? 'opacity-100 h-auto' : 'opacity-30 grayscale'}`}>
                                         <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-2 flex items-center justify-center xl:justify-start gap-2">
-                                            <span>📊</span> معدل الفصل {selectedSemester !== 'all' ? `الـ ${selectedSemester}` : 'المحدد'}
+                                            <span>📊</span> معدل الفترة {selectedSemester !== 'all' ? (() => {
+                                                const [y, t] = String(selectedSemester).split('-').map(Number);
+                                                return `سنة ${y} - ${termLabel(t)}`;
+                                            })() : 'المحددة'}
                                         </p>
                                         <div className="flex items-baseline justify-center xl:justify-start gap-2">
                                             <h2 className={`text-4xl font-[900] drop-shadow-md tracking-tighter ${selectedSemester !== 'all' ? 'text-white' : 'text-slate-600'}`}>
@@ -218,7 +289,10 @@ export default function Calculator({ auth, initialCourses }) {
                                         onClick={() => setSelectedSemester(sem)}
                                         className={`px-6 py-3.5 rounded-xl font-black text-sm whitespace-nowrap transition-all ${selectedSemester === sem ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'text-slate-500 hover:bg-slate-50 border border-transparent hover:border-slate-200'}`}
                                     >
-                                        الفصل {sem}
+                                        {(() => {
+                                            const [y, t] = String(sem).split('-').map(Number);
+                                            return `السنة ${y} - ${termLabel(t)}`;
+                                        })()}
                                     </button>
                                 ))}
                             </div>
@@ -228,7 +302,10 @@ export default function Calculator({ auth, initialCourses }) {
                                 <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                                     <h3 className="font-black text-slate-800 text-lg flex items-center gap-3">
                                         <span className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-lg shadow-sm">📝</span>
-                                        {selectedSemester === 'all' ? 'جميع المواد المنجزة' : `مواد الفصل ${selectedSemester}`}
+                                        {selectedSemester === 'all' ? 'جميع المواد المنجزة' : (() => {
+                                            const [y, t] = String(selectedSemester).split('-').map(Number);
+                                            return `مواد السنة ${y} - ${termLabel(t)}`;
+                                        })()}
                                     </h3>
                                 </div>
                                 
@@ -250,19 +327,34 @@ export default function Calculator({ auth, initialCourses }) {
                                                         <span className="text-[10px] font-black text-slate-500 uppercase bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-sm">
                                                             {course.code}
                                                         </span>
-                                                        
+
                                                         <div className="relative flex items-center">
-                                                            <select 
-                                                                value={course.localSemester}
-                                                                onChange={(e) => handleSemesterChange(course.id, e.target.value)}
+                                                            <select
+                                                                value={course.localYear}
+                                                                onChange={(e) => handleStudySlotChange(course.id, 'year', e.target.value)}
                                                                 className="appearance-none bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold rounded-lg px-3 py-1 pr-7 hover:bg-indigo-100 transition-colors cursor-pointer focus:ring-2 focus:ring-indigo-500/20 outline-none"
                                                             >
-                                                                {[1,2,3,4,5,6,7,8,9,10,11,12].map(num => (
-                                                                    <option key={num} value={num} className="font-sans">درسـت في الفصل {num}</option>
+                                                                {yearOptions.map((year) => (
+                                                                    <option key={year.value} value={year.value} className="font-sans">{year.label}</option>
                                                                 ))}
                                                             </select>
                                                             <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
                                                                 <svg className="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="relative flex items-center">
+                                                            <select
+                                                                value={course.localTerm}
+                                                                onChange={(e) => handleStudySlotChange(course.id, 'term', e.target.value)}
+                                                                className="appearance-none bg-emerald-50 border border-emerald-100 text-emerald-700 text-[11px] font-bold rounded-lg px-3 py-1 pr-7 hover:bg-emerald-100 transition-colors cursor-pointer focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                                                            >
+                                                                {termOptions.map((term) => (
+                                                                    <option key={term.value} value={term.value} className="font-sans">{term.label}</option>
+                                                                ))}
+                                                            </select>
+                                                            <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
+                                                                <svg className="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
                                                             </div>
                                                         </div>
                                                     </div>
