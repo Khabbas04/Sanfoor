@@ -105,6 +105,7 @@ export default function Tree({
     student_name = 'طالب',
     major_name = '',
     college_name = '',
+    study_plan_version = 12,
     passed_courses = [],
     total_passed_hours = 0,
 }) {
@@ -1071,7 +1072,12 @@ export default function Tree({
                     <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-cyan-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-indigo-200/40 hidden sm:flex">🌳</div>
                     <div>
                         <h1 className="text-base sm:text-lg font-[900] text-slate-800 leading-tight">الخطة الشجرية التفاعلية</h1>
-                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 mt-0.5 font-i">{major_name && `${major_name} • `}{student_name}</p>
+                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 mt-0.5 font-i flex items-center gap-1.5">
+                            <span>{major_name && `${major_name} • `}{student_name}</span>
+                            <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
+                                خطة {study_plan_version}
+                            </span>
+                        </p>
                     </div>
                 </div>
 

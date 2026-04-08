@@ -114,6 +114,7 @@ class TreeController extends Controller
             'student_name' => $user->name ?? 'طالب',
             'major_name' => $user->major ? $user->major->name : 'غير محدد',
             'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
+            'study_plan_version' => (int) ($user->study_plan_version ?? 12),
         ]);
     }
 
