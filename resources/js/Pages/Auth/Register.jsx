@@ -170,24 +170,26 @@ export default function Register({ colleges, majors }) {
                             <InputError message={errors.major_id} className="mt-1.5" />
                         </div>
 
-                        <div>
-                            <div className="relative">
-                                <div className={iconContainerCls}>🧭</div>
-                                <select
-                                    value={data.study_plan_version}
-                                    onChange={e => setData('study_plan_version', e.target.value)}
-                                    className={selectCls}
-                                    required
-                                >
-                                    <option value="11">الخطة الشجرية 11</option>
-                                    <option value="12">الخطة الشجرية 12</option>
-                                </select>
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
-                                </span>
+                        {data.college_id && data.major_id && (
+                            <div>
+                                <div className="relative">
+                                    <div className={iconContainerCls}>🧭</div>
+                                    <select
+                                        value={data.study_plan_version}
+                                        onChange={e => setData('study_plan_version', e.target.value)}
+                                        className={selectCls}
+                                        required
+                                    >
+                                        <option value="11">الخطة الشجرية 11</option>
+                                        <option value="12">الخطة الشجرية 12</option>
+                                    </select>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" /></svg>
+                                    </span>
+                                </div>
+                                <InputError message={errors.study_plan_version} className="mt-1.5" />
                             </div>
-                            <InputError message={errors.study_plan_version} className="mt-1.5" />
-                        </div>
+                        )}
                     </div>
 
                     {/* ── Passwords ── */}
