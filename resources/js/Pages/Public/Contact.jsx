@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -28,6 +28,26 @@ const channels = [
 ];
 
 export default function Contact() {
+    const { auth, flash } = usePage().props;
+
+    const { data, setData, post, processing, errors, reset } = useForm({
+        name: auth?.user?.name || '',
+        email: auth?.user?.email || '',
+        phone: '',
+        subject: '',
+        message: '',
+        source_page: `${siteUrl}/contact-us`,
+    });
+
+    const submit = (e) => {
+        e.preventDefault();
+        post(route('public.contact.store'), {
+            onSuccess: () => {
+                reset('phone', 'subject', 'message');
+            },
+        });
+    };
+
     return (
         <MainLayout>
             <Head>
@@ -76,19 +96,103 @@ export default function Contact() {
                         ))}
                     </section>
 
-                    <section className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
-                        <h3 className="text-2xl font-black text-slate-900">هل لديك مشكلة تقنية داخل الحساب؟</h3>
+                    <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+                        <h3 className="text-2xl font-black text-slate-900">أرسل رسالة مباشرة للفريق</h3>
                         <p className="mt-2 text-slate-600 font-bold text-sm sm:text-base">
-                            استخدم نموذج الإبلاغ من داخل المنصة لأنه يرسل تفاصيل أدق للفريق التقني.
+                            املأ النموذج التالي وسيتم تسجيل رسالتك في النظام ومتابعتها من فريق سنفور.
                         </p>
-                        <div className="mt-5 flex flex-wrap gap-3">
-                            <Link href={route('login')} className="px-5 py-3 rounded-xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition-colors">
-                                تسجيل الدخول
-                            </Link>
-                            <Link href={route('support.issue.create')} className="px-5 py-3 rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50 font-black text-sm hover:bg-indigo-100 transition-colors">
-                                الإبلاغ عن مشكلة
-                            </Link>
-                        </div>
+
+                        {flash?.message && (
+                            <div className={`mt-5 rounded-xl border px-4 py-3 text-sm font-bold ${flash?.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
+                                {flash.message}
+                            </div>
+                        )}
+
+                        <form onSubmit={submit} className="mt-6 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-black text-slate-700 mb-2">الاسم</label>
+                                    <input
+                                        type="text"
+                                        value={data.name}
+                                        onChange={(e) => setData('name', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                        placeholder="اسمك الكامل"
+                                    />
+                                    {errors.name && <p className="mt-1 text-xs font-bold text-rose-600">{errors.name}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-black text-slate-700 mb-2">البريد الإلكتروني</label>
+                                    <input
+                                        type="email"
+                                        value={data.email}
+                                        onChange={(e) => setData('email', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                        placeholder="you@example.com"
+                                    />
+                                    {errors.email && <p className="mt-1 text-xs font-bold text-rose-600">{errors.email}</p>}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-black text-slate-700 mb-2">رقم الهاتف (اختياري)</label>
+                                    <input
+                                        type="text"
+                                        value={data.phone}
+                                        onChange={(e) => setData('phone', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                        placeholder="079xxxxxxx"
+                                    />
+                                    {errors.phone && <p className="mt-1 text-xs font-bold text-rose-600">{errors.phone}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-black text-slate-700 mb-2">الموضوع</label>
+                                    <input
+                                        type="text"
+                                        value={data.subject}
+                                        onChange={(e) => setData('subject', e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                        placeholder="عنوان مختصر للطلب"
+                                    />
+                                    {errors.subject && <p className="mt-1 text-xs font-bold text-rose-600">{errors.subject}</p>}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-black text-slate-700 mb-2">نص الرسالة</label>
+                                <textarea
+                                    rows={6}
+                                    value={data.message}
+                                    onChange={(e) => setData('message', e.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-y"
+                                    placeholder="اكتب تفاصيل طلبك هنا..."
+                                />
+                                {errors.message && <p className="mt-1 text-xs font-bold text-rose-600">{errors.message}</p>}
+                            </div>
+
+                            <div className="flex flex-wrap gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="px-5 py-3 rounded-xl bg-indigo-600 text-white font-black text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                >
+                                    {processing ? 'جاري الإرسال...' : 'إرسال الرسالة'}
+                                </button>
+
+                                {auth?.user ? (
+                                    <Link href={route('support.issue.create')} className="px-5 py-3 rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50 font-black text-sm hover:bg-indigo-100 transition-colors">
+                                        الإبلاغ عن مشكلة تقنية
+                                    </Link>
+                                ) : (
+                                    <Link href={route('login')} className="px-5 py-3 rounded-xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition-colors">
+                                        تسجيل الدخول
+                                    </Link>
+                                )}
+                            </div>
+                        </form>
                     </section>
                 </div>
             </div>

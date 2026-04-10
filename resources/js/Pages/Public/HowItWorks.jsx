@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -37,6 +37,8 @@ const steps = [
 ];
 
 export default function HowItWorks() {
+    const { auth } = usePage().props;
+
     return (
         <MainLayout>
             <Head>
@@ -85,15 +87,30 @@ export default function HowItWorks() {
                     <section className="mt-8 rounded-3xl border border-slate-200 bg-[#0d1327] text-white p-6 sm:p-9 text-center">
                         <h2 className="text-2xl sm:text-3xl font-black">جاهز تبدأ؟</h2>
                         <p className="mt-3 text-indigo-100 font-bold max-w-2xl mx-auto text-sm sm:text-base">
-                            أنشئ حسابك الآن وابدأ بتنظيم مسارك الدراسي من أول فصل حتى التخرج.
+                            {auth?.user
+                                ? 'حسابك جاهز. كمل تنظيم مسارك من أدوات سنفور مباشرة.'
+                                : 'أنشئ حسابك الآن وابدأ بتنظيم مسارك الدراسي من أول فصل حتى التخرج.'}
                         </p>
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                            <Link href={route('register')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
-                                إنشاء حساب جديد
-                            </Link>
-                            <Link href={route('login')} className="px-6 py-3 rounded-xl border border-white/25 text-white font-black text-sm hover:bg-white/10 transition-colors">
-                                تسجيل الدخول
-                            </Link>
+                            {auth?.user ? (
+                                <>
+                                    <Link href={route('dashboard')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
+                                        لوحة التحكم
+                                    </Link>
+                                    <Link href={route('tree.index')} className="px-6 py-3 rounded-xl border border-white/25 text-white font-black text-sm hover:bg-white/10 transition-colors">
+                                        المسار الشجري
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <Link href={route('register')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
+                                        إنشاء حساب جديد
+                                    </Link>
+                                    <Link href={route('login')} className="px-6 py-3 rounded-xl border border-white/25 text-white font-black text-sm hover:bg-white/10 transition-colors">
+                                        تسجيل الدخول
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </section>
                 </div>

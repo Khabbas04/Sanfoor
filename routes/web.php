@@ -10,6 +10,7 @@ use App\Http\Controllers\AiAdvisorController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use App\Http\Controllers\AdminCollegeController;
 use App\Models\Course;
@@ -67,6 +68,8 @@ Route::get('/faq', function () {
 Route::get('/contact-us', function () {
     return Inertia::render('Public/Contact');
 })->name('public.contact');
+
+Route::post('/contact-us', [ContactMessageController::class, 'store'])->name('public.contact.store');
 
 // Authenticated student dashboard.
 Route::get('/dashboard', function () {
