@@ -338,7 +338,7 @@ export default function MainLayout({ children }) {
                             <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 max-w-md">
                                 <p className="text-xs font-black text-indigo-200 mb-1">{t.supportCenter}</p>
                                 <p className="text-[12px] text-slate-300 font-bold leading-relaxed">{t.supportHint}</p>
-                                <Link href={auth.user ? route('support.issue.create') : route('public.contact')} className="mt-3 inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
+                                <Link href={route('support.issue.create')} className="mt-3 inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
                                     🛠️ {t.reportIssue}
                                 </Link>
                             </div>
