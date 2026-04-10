@@ -55,6 +55,19 @@ Route::get('/about-us', function () {
     return Inertia::render('Legal/About');
 })->name('legal.about');
 
+// Public information pages.
+Route::get('/how-it-works', function () {
+    return Inertia::render('Public/HowItWorks');
+})->name('public.how_it_works');
+
+Route::get('/faq', function () {
+    return Inertia::render('Public/Faq');
+})->name('public.faq');
+
+Route::get('/contact-us', function () {
+    return Inertia::render('Public/Contact');
+})->name('public.contact');
+
 // Authenticated student dashboard.
 Route::get('/dashboard', function () {
     $user = Auth::user();

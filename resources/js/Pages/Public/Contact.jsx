@@ -1,0 +1,97 @@
+import { Head, Link } from '@inertiajs/react';
+import MainLayout from '@/Layouts/MainLayout';
+
+const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
+const channels = [
+    {
+        title: 'البريد الإلكتروني',
+        value: 'noreply@sanfoor.me',
+        href: 'mailto:noreply@sanfoor.me',
+        note: 'للاستفسارات العامة، الشراكات، والمتابعة.',
+        icon: '✉️',
+    },
+    {
+        title: 'دعم فني داخل المنصة',
+        value: 'صفحة الإبلاغ عن مشكلة',
+        href: null,
+        note: 'إذا كنت مستخدمًا مسجلًا، استخدم نموذج البلاغ لسرعة المعالجة.',
+        icon: '🛠️',
+    },
+    {
+        title: 'ساعات الاستجابة',
+        value: 'عادة خلال 24-48 ساعة',
+        href: null,
+        note: 'قد تختلف المدة حسب ضغط الطلبات.',
+        icon: '⏱️',
+    },
+];
+
+export default function Contact() {
+    return (
+        <MainLayout>
+            <Head>
+                <title>تواصل معنا | سنفور</title>
+                <meta name="description" content="تواصل مع فريق سنفور للاستفسارات العامة، الدعم، أو الشراكات." />
+                <meta name="robots" content="index,follow" />
+                <link rel="canonical" href={`${siteUrl}/contact-us`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:title" content="تواصل معنا | سنفور" />
+                <meta property="og:description" content="قنوات التواصل الرسمية مع فريق سنفور." />
+                <meta property="og:url" content={`${siteUrl}/contact-us`} />
+                <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
+            </Head>
+
+            <div className="min-h-screen py-10 sm:py-14" dir="rtl">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <section className="relative overflow-hidden rounded-[2rem] bg-[#0b1224] text-white p-6 sm:p-10 border border-indigo-500/20 shadow-[0_30px_80px_rgba(2,6,23,0.45)]">
+                        <div className="absolute -top-16 -left-10 w-56 h-56 rounded-full blur-3xl bg-indigo-500/30" />
+                        <div className="absolute -bottom-16 -right-10 w-56 h-56 rounded-full blur-3xl bg-cyan-400/20" />
+
+                        <div className="relative z-10">
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-black">
+                                📬 Contact
+                            </span>
+                            <h1 className="mt-4 text-3xl sm:text-5xl font-black">تواصل معنا</h1>
+                            <p className="mt-3 text-indigo-100 font-bold text-sm sm:text-base max-w-3xl leading-relaxed">
+                                لأي استفسار عن سنفور أو طلب تعاون أو دعم عام، يمكنك التواصل عبر القنوات التالية.
+                            </p>
+                        </div>
+                    </section>
+
+                    <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {channels.map((channel) => (
+                            <article key={channel.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-2xl">{channel.icon}</div>
+                                <h2 className="mt-4 text-xl font-black text-slate-900">{channel.title}</h2>
+                                {channel.href ? (
+                                    <a href={channel.href} className="mt-2 inline-block text-indigo-700 font-black text-sm hover:text-indigo-800 transition-colors">
+                                        {channel.value}
+                                    </a>
+                                ) : (
+                                    <p className="mt-2 text-slate-800 font-black text-sm">{channel.value}</p>
+                                )}
+                                <p className="mt-2 text-slate-600 font-bold text-sm leading-relaxed">{channel.note}</p>
+                            </article>
+                        ))}
+                    </section>
+
+                    <section className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+                        <h3 className="text-2xl font-black text-slate-900">هل لديك مشكلة تقنية داخل الحساب؟</h3>
+                        <p className="mt-2 text-slate-600 font-bold text-sm sm:text-base">
+                            استخدم نموذج الإبلاغ من داخل المنصة لأنه يرسل تفاصيل أدق للفريق التقني.
+                        </p>
+                        <div className="mt-5 flex flex-wrap gap-3">
+                            <Link href={route('login')} className="px-5 py-3 rounded-xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition-colors">
+                                تسجيل الدخول
+                            </Link>
+                            <Link href={route('support.issue.create')} className="px-5 py-3 rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50 font-black text-sm hover:bg-indigo-100 transition-colors">
+                                الإبلاغ عن مشكلة
+                            </Link>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </MainLayout>
+    );
+}

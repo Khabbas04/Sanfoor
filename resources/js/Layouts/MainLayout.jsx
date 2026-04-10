@@ -58,6 +58,9 @@ export default function MainLayout({ children }) {
             quickLinks: 'روابط سريعة',
             legal: 'قانوني',
             about: 'من نحن',
+            howItWorks: 'كيف يعمل سنفور',
+            faq: 'الأسئلة الشائعة',
+            contact: 'تواصل معنا',
             reportIssue: 'الإبلاغ عن مشكلة',
             terms: 'شروط الاستخدام',
             privacy: 'سياسة الخصوصية',
@@ -80,6 +83,9 @@ export default function MainLayout({ children }) {
             quickLinks: 'Quick Links',
             legal: 'Legal',
             about: 'About Us',
+            howItWorks: 'How It Works',
+            faq: 'FAQ',
+            contact: 'Contact Us',
             reportIssue: 'Report an Issue',
             terms: 'Terms of Use',
             privacy: 'Privacy Policy',
@@ -343,6 +349,9 @@ export default function MainLayout({ children }) {
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.legal}</h4>
                             <ul className="space-y-3">
                                 <li><Link href={route('legal.about')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>✨</span> {t.about}</Link></li>
+                                <li><Link href={route('public.how_it_works')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🧭</span> {t.howItWorks}</Link></li>
+                                <li><Link href={route('public.faq')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>❓</span> {t.faq}</Link></li>
+                                <li><Link href={route('public.contact')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📬</span> {t.contact}</Link></li>
                                 <li><Link href={route('legal.terms')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>📜</span> {t.terms}</Link></li>
                                 <li><Link href={route('legal.privacy')} className="text-slate-400 hover:text-indigo-400 hover:translate-x-1 transition-all text-sm font-bold flex items-center gap-2"><span>🔐</span> {t.privacy}</Link></li>
                             </ul>
