@@ -137,17 +137,19 @@ export default function AiWidget({ user }) {
 
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`relative w-16 h-16 rounded-full overflow-hidden shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
+                    className={`relative w-16 h-16 rounded-full overflow-visible shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
                 >
-                    <img
-                        src="/images/aiwidget.png"
-                        alt="AI Widget"
-                        className={`w-full h-full object-contain transition-transform duration-300 ${isOpen ? 'rotate-0 scale-100' : 'group-hover:rotate-0 group-hover:scale-100'}`}
-                    />
+                    <span className="w-full h-full rounded-full overflow-hidden bg-white/90 border border-white/80">
+                        <img
+                            src="/images/aiwidget.png"
+                            alt="AI Widget"
+                            className={`w-full h-full object-cover transition-transform duration-300 ${isOpen ? 'scale-110' : 'scale-110 group-hover:scale-[1.14]'}`}
+                        />
+                    </span>
 
                     {/* 🟢 نقطة "نشط" */}
                     {!isOpen && (
-                        <span className="absolute top-[3px] right-[3px] w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300" />
+                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300 z-20" />
                     )}
                 </button>
             </div>
