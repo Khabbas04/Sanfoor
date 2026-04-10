@@ -60,7 +60,6 @@ export default function Welcome({ auth }) {
 
     // Each observer controls the reveal timing of a different landing section.
     const [featRef, featIn] = useInView();
-    const [pagesRef, pagesIn] = useInView();
     const [previewRef, previewIn] = useInView();
     const [aiRef, aiIn] = useInView(0.3);
     const [howRef, howIn] = useInView();
@@ -428,130 +427,7 @@ export default function Welcome({ auth }) {
                 </section>
 
                 {/* ════════════════════════════════════
-                    3. PAGES HUB
-                ════════════════════════════════════ */}
-                <section ref={pagesRef} className="py-20 sm:py-28 bg-slate-50 relative overflow-hidden border-y border-slate-200/70">
-                    <div className="absolute inset-0 dot-grid opacity-45 pointer-events-none" />
-
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                        <div className={`text-center mb-12 sm:mb-16 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${pagesIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white text-slate-700 text-xs font-bold mb-6 border border-slate-200 shadow-sm">
-                                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                                <span>استكشف صفحات سنفور</span>
-                            </div>
-                            <h2 className="text-3xl sm:text-4xl md:text-[3.15rem] font-black text-slate-900 mb-4 tracking-tight leading-[1.15]">
-                                كل صفحة مصممة <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">لهدف واضح</span>
-                            </h2>
-                            <p className="text-slate-500 font-medium max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-                                تنقل بسرعة بين الأدوات الأساسية: الشجرة، الحاسبة، الدليل، المرشد الذكي، والدعم الفني.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
-                            {[
-                                {
-                                    icon: '🏠',
-                                    title: 'الرئيسية',
-                                    desc: 'واجهة تعريفية سريعة بكل مزايا سنفور.',
-                                    href: '/',
-                                    action: 'أنت هنا الآن',
-                                    tag: 'عام',
-                                    locked: false,
-                                    gradient: 'from-slate-700 to-slate-900',
-                                },
-                                {
-                                    icon: '🌳',
-                                    title: 'المسار الشجري',
-                                    desc: 'خريطة تفاعلية توضح المواد المنجزة، المتاحة، والمقفلة.',
-                                    href: auth.user ? route('tree.index') : route('login'),
-                                    action: auth.user ? 'افتح الشجرة' : 'سجّل للدخول',
-                                    tag: auth.user ? 'طالب' : 'يتطلب حساب',
-                                    locked: !auth.user,
-                                    gradient: 'from-indigo-600 to-blue-600',
-                                },
-                                {
-                                    icon: '📈',
-                                    title: 'حاسبة التفوق',
-                                    desc: 'احسب معدلك المتوقع وخطط لتحسين الأداء الأكاديمي.',
-                                    href: auth.user ? route('calculator.index') : route('login'),
-                                    action: auth.user ? 'افتح الحاسبة' : 'سجّل للدخول',
-                                    tag: auth.user ? 'طالب' : 'يتطلب حساب',
-                                    locked: !auth.user,
-                                    gradient: 'from-emerald-500 to-teal-600',
-                                },
-                                {
-                                    icon: '🏢',
-                                    title: 'دليل المباني',
-                                    desc: 'مرجع سريع للوصول إلى مرافق الجامعة بسهولة.',
-                                    href: auth.user ? route('campus.directory') : route('login'),
-                                    action: auth.user ? 'افتح الدليل' : 'سجّل للدخول',
-                                    tag: auth.user ? 'طالب' : 'يتطلب حساب',
-                                    locked: !auth.user,
-                                    gradient: 'from-amber-500 to-orange-600',
-                                },
-                                {
-                                    icon: '🤖',
-                                    title: 'AI Sanfoor',
-                                    desc: 'مستشارك الذكي لترتيب تسجيلك حسب حالتك الدراسية.',
-                                    href: auth.user ? route('ai.advisor') : route('login'),
-                                    action: auth.user ? 'افتح المرشد' : 'سجّل للدخول',
-                                    tag: auth.user ? 'طالب' : 'يتطلب حساب',
-                                    locked: !auth.user,
-                                    gradient: 'from-violet-600 to-indigo-600',
-                                },
-                                {
-                                    icon: '🛟',
-                                    title: 'الدعم والإبلاغ',
-                                    desc: 'أرسل مشكلة أو ملاحظة لفريق سنفور بسهولة.',
-                                    href: auth.user ? route('support.issue.create') : route('login'),
-                                    action: auth.user ? 'أبلغ عن مشكلة' : 'سجّل للدخول',
-                                    tag: auth.user ? 'دعم فني' : 'يتطلب حساب',
-                                    locked: !auth.user,
-                                    gradient: 'from-cyan-500 to-sky-600',
-                                },
-                            ].map((page, i) => (
-                                <Link
-                                    key={page.title}
-                                    href={page.href}
-                                    className={`route-card group relative rounded-[1.8rem] border p-6 sm:p-7 bg-white overflow-hidden transition-all duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${pagesIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'} ${page.locked ? 'border-slate-200' : 'border-slate-200 hover:border-transparent'}`}
-                                    style={{ transitionDelay: `${i * 90 + 100}ms` }}
-                                >
-                                    <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${page.gradient}`} />
-                                    <div className={`absolute -top-16 -left-14 w-40 h-40 bg-gradient-to-br ${page.gradient} opacity-0 group-hover:opacity-15 blur-3xl transition-opacity duration-500`} />
-
-                                    <div className="relative z-10 flex items-start justify-between gap-4 mb-6">
-                                        <div className={`route-icon w-14 h-14 rounded-2xl bg-gradient-to-br ${page.gradient} text-white flex items-center justify-center text-2xl shadow-lg`}>
-                                            {page.icon}
-                                        </div>
-                                        <span className={`text-[11px] font-black px-3 py-1 rounded-full border ${page.locked ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'}`}>
-                                            {page.locked ? '🔒 ' : '✅ '}{page.tag}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="relative z-10 text-xl font-black text-slate-900 mb-2">{page.title}</h3>
-                                    <p className="relative z-10 text-slate-500 text-sm leading-relaxed mb-6">{page.desc}</p>
-
-                                    <div className="relative z-10 flex items-center justify-between">
-                                        <span className="text-sm font-black text-indigo-700 group-hover:text-indigo-900 transition-colors">{page.action}</span>
-                                        <span className="text-lg text-slate-400 group-hover:text-indigo-700 group-hover:-translate-x-1 transition-all">←</span>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-
-                        <div className={`mt-8 sm:mt-10 flex flex-wrap items-center justify-center gap-3 transition-all duration-700 ${pagesIn ? 'opacity-100' : 'opacity-0'}`}>
-                            <Link href={route('legal.terms')} className="px-4 py-2 rounded-full text-xs sm:text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
-                                شروط الاستخدام
-                            </Link>
-                            <Link href={route('legal.privacy')} className="px-4 py-2 rounded-full text-xs sm:text-sm font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors">
-                                سياسة الخصوصية
-                            </Link>
-                        </div>
-                    </div>
-                </section>
-
-                {/* ════════════════════════════════════
-                    4. TREE PREVIEW (Animated SVG)
+                    3. TREE PREVIEW (Animated SVG)
                 ════════════════════════════════════ */}
                 <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800">
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-5"></div>
