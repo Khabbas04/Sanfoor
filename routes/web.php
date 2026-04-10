@@ -138,6 +138,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/tree/toggle', [TreeController::class, 'toggle'])->name('tree.toggle');
 
     // Synchronize the simulation cart with the backend.
+        // 🔥 Global heartbeat for all authenticated users (keep session alive)
+        Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])->name('heartbeat');
+        Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])->name('browser_close');
     Route::post('/cart/sync', [CartController::class, 'sync'])->name('cart.sync');
 
     // Toggle a single course from either the tree view or AI advisor flows.
@@ -186,6 +189,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
+
+            // 🔥 Live online users polling and session management
+            Route::get('/api/online-users', [AdminController::class, 'getOnlineUsers'])->name('api.online_users');
+            Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])->name('api.heartbeat');
+            Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])->name('api.browser_close');
 
         // Student management endpoints.
         Route::get('/students', [AdminStudentController::class, 'index'])->name('students.index');

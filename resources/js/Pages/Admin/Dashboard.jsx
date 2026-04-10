@@ -4,8 +4,11 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
+import { useState, useEffect } from 'react';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
+
+import { useOnlinePolling } from '@/Hooks/useOnlinePolling';
 
 const translations = {
     ar: {
@@ -68,7 +71,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeLogs = Array.isArray(logs) ? logs : [];
 
     const safeStudentsCount = Number(safeStats.students_count || 0);
-    const safeOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
+    const { onlineUsers: liveOnlineUsers, stats: liveStats } = useOnlinePolling(Array.isArray(onlineUsers) ? onlineUsers : [], stats);
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
@@ -136,8 +139,18 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                     <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${liveStats.active_students_now}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${liveStats.active_admins_now}`} isDark={isDark} tLabel={t.statsTracker} />
                 </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                        <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${liveStats.active_students_now}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${liveStats.active_admins_now}`} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                    </div>
                 {/* Online Users Section */}
                 <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
                     <div className="flex items-center justify-between mb-6">
@@ -148,10 +161,11 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             {t.onlineUsers}
                         </h3>
                         <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{safeOnlineUsers.length} متصل</span>
+                            <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{liveOnlineUsers.length} متصل</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {safeOnlineUsers.length > 0 ? (
-                            safeOnlineUsers.map((user) => (
+                        {liveOnlineUsers.length > 0 ? (
+                            liveOnlineUsers.map((user) => (
                                 <div
                                     key={`${user.id}-${user.email}`}
                                     className={`p-4 border rounded-2xl transition-all ${
