@@ -39,6 +39,7 @@ export default function AdminLayout({ children }) {
             site: 'الموقع',
             pageTitles: {
                 'admin.dashboard': 'لوحة الإدارة المركزية',
+                'admin.settings': 'إعدادات الإدارة',
                 'admin.courses': 'إدارة الشجرة والمواد',
                 'admin.structure': 'إدارة الكليات والتخصصات',
                 'admin.logs': 'سجل عمليات الإدارة',
@@ -75,6 +76,7 @@ export default function AdminLayout({ children }) {
             site: 'Site',
             pageTitles: {
                 'admin.dashboard': 'Admin Control Center',
+                'admin.settings': 'Admin Settings',
                 'admin.courses': 'Tree & Courses',
                 'admin.structure': 'Colleges & Majors',
                 'admin.logs': 'Activity Log',
@@ -126,7 +128,7 @@ export default function AdminLayout({ children }) {
         ...(isOwner
             ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }]
             : []),
-        { icon: '⚙️', name: t.settings, route: '#', pattern: 'admin.settings.*' },
+        { icon: '⚙️', name: t.settings, route: 'admin.settings', pattern: 'admin.settings' },
     ];
 
     // Support pipe-separated route patterns so one item can cover multiple screens.

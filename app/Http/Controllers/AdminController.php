@@ -106,6 +106,48 @@ class AdminController extends Controller
     }
 
     /**
+     * صفحة إعدادات الإدارة: الأونلاين + روابط إدارة الأدمن
+     */
+    public function settings()
+    {
+        $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
+
+        $onlineUsers = DB::table('sessions as s')
+            ->join('users as u', 's.user_id', '=', 'u.id')
+            ->select('u.id', 'u.name', 'u.email', 'u.role', 's.last_activity')
+            ->whereNotNull('s.user_id')
+            ->where('s.last_activity', '>=', $thirtyMinutesAgo)
+            ->orderByDesc('s.last_activity')
+            ->get()
+            ->unique('id')
+            ->values()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'last_activity_ago' => \Carbon\Carbon::createFromTimestamp((int) $user->last_activity)->diffForHumans(),
+                ];
+            });
+
+        $activeStudentsNow = $onlineUsers->where('role', 'student')->count();
+        $activeAdminsNow = $onlineUsers->filter(function ($u) {
+            return strtolower((string) $u['role']) === 'admin';
+        })->count();
+
+        return Inertia::render('Admin/Settings', [
+            'stats' => [
+                'students_count' => User::where('role', 'student')->count(),
+                'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
+                'active_students_now' => $activeStudentsNow,
+                'active_admins_now' => $activeAdminsNow,
+            ],
+            'onlineUsers' => $onlineUsers,
+        ]);
+    }
+
+    /**
      * API: جلب المستخدمين النشطين (للـ polling في لوحة الإدارة)
      */
     public function getOnlineUsers()

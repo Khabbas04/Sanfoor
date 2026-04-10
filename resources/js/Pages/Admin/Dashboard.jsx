@@ -1,10 +1,8 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
-import { useOnlinePolling } from '@/Hooks/useOnlinePolling';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
@@ -28,8 +26,8 @@ const translations = {
         lastMoves: (n) => `آخر ${n} حركة`, noLogEntries: 'لا توجد حركات مسجلة حالياً.',
         statusOpen: 'مفتوح', statusInProgress: 'قيد المعالجة', statusResolved: 'محلول',
         majorCourses: 'مادة تخصص', statsTracker: 'Stats Tracker',
-        onlineUsers: 'المستخدمون الآن', noOnlineUsers: 'لا أحد متصل الآن',
-        admins: 'أدمن', student_role: 'طالب', admin_role: 'أدمن', activeAgo: 'قبل',
+        admins: 'أدمن',
+        openSettings: 'فتح الإعدادات',
     },
     en: {
         title: 'Admin Control Center', subtitle: 'Operational dashboard: stats, reports, log, and quick controls.',
@@ -50,8 +48,8 @@ const translations = {
         lastMoves: (n) => `Last ${n} entries`, noLogEntries: 'No activity recorded yet.',
         statusOpen: 'Open', statusInProgress: 'In Progress', statusResolved: 'Resolved',
         majorCourses: 'major courses', statsTracker: 'Stats',
-        onlineUsers: 'Online Users', noOnlineUsers: 'No users online',
-        admins: 'Admins', student_role: 'Student', admin_role: 'Admin', activeAgo: 'ago',
+        admins: 'Admins',
+        openSettings: 'Open Settings',
     },
 };
 
@@ -69,7 +67,6 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeLogs = Array.isArray(logs) ? logs : [];
 
     const safeStudentsCount = Number(safeStats.students_count || 0);
-    const { onlineUsers: liveOnlineUsers, stats: liveStats } = useOnlinePolling(Array.isArray(onlineUsers) ? onlineUsers : [], stats);
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
@@ -131,61 +128,13 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
                 {/* KPI Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${liveStats.active_students_now}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${liveStats.active_admins_now}`} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${safeStats.active_students_now || 0}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${safeStats.active_admins_now || 0}`} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
                 </div>
-                {/* Online Users Section */}
-                <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className={`text-xl font-black ${heading} flex items-center gap-3`}>
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-600">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            </span>
-                            {t.onlineUsers}
-                        </h3>
-                        <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{liveOnlineUsers.length} متصل</span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {liveOnlineUsers.length > 0 ? (
-                            liveOnlineUsers.map((user) => (
-                                <div
-                                    key={`${user.id}-${user.email}`}
-                                    className={`p-4 border rounded-2xl transition-all ${
-                                        isDark
-                                            ? 'bg-slate-800/50 border-slate-700 hover:border-emerald-500/50'
-                                            : 'bg-slate-50 border-slate-100 hover:border-emerald-300'
-                                    }`}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                            <span className={`text-lg flex-shrink-0 ${user.role === 'admin' ? '⚙️' : user.role === 'owner' ? '👑' : '👤'}`}></span>
-                                            <div className="min-w-0 flex-1">
-                                                <p className={`text-xs font-black truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{user.name}</p>
-                                                <p className={`text-[10px] font-bold truncate ${subtext}`}>{user.email}</p>
-                                            </div>
-                                        </div>
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 ml-2"></span>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-2 pt-3 border-t" style={{ borderColor: isDark ? '#334155' : '#e2e8f0' }}>
-                                        <span className={`text-[10px] font-black uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                            {user.role === 'admin' ? t.admin_role : user.role === 'owner' ? 'Owner' : t.student_role}
-                                        </span>
-                                        <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className={`col-span-full text-center py-12 px-4 rounded-xl ${isDark ? 'bg-slate-800/30' : 'bg-slate-50'}`}>
-                                <p className={`text-sm font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t.noOnlineUsers}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
                 {/* Reports + Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className={`lg:col-span-2 ${card} rounded-[2.5rem] p-8 shadow-sm`}>
@@ -211,21 +160,19 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                         </div>
                     </div>
 
-                    <div className={`${cardAlt} rounded-[2.5rem] p-8`}>
-                        <h3 className={`text-lg font-black ${heading} mb-6`}>{t.quickActions}</h3>
-                        <div className="space-y-4">
-                            <QuickLink title={t.studentReports} icon="🛠️" href={route('admin.issues.index')} isDark={isDark} />
-                            <QuickLink title={t.addCollege} icon="🏛️" href={route('admin.structure')} isDark={isDark} />
-                            <QuickLink title={t.updatePlan} icon="🌳" href={route('admin.courses')} isDark={isDark} />
-                            <QuickLink title={t.activityLog} icon="📜" href={route('admin.logs')} isDark={isDark} />
-                            <ClearCacheButton />
+                    <div className={`${cardAlt} rounded-[2.5rem] p-8 flex flex-col justify-between`}>
+                        <div>
+                            <h3 className={`text-lg font-black ${heading} mb-3`}>{t.quickActions}</h3>
+                            <p className={`text-sm font-bold ${subtext}`}>
+                                {lang === 'ar' ? 'تم نقل إعدادات الأونلاين وإدارة الأدمن إلى صفحة الإعدادات الجديدة.' : 'Online users and admin-management controls have moved to the new Settings page.'}
+                            </p>
                         </div>
-                        <div className="mt-8 p-6 bg-indigo-600 rounded-3xl text-white relative overflow-hidden group">
-                            <div className="absolute -right-4 -bottom-4 text-6xl opacity-10 group-hover:scale-125 transition-transform">🧠</div>
-                            <p className="text-[10px] font-black opacity-60 uppercase mb-1">AI Advisor Status</p>
-                            <h4 className="text-sm font-black mb-3">{t.aiStatus}</h4>
-                            <button className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-[10px] font-black transition-all">{t.configAlgo}</button>
-                        </div>
+                        <Link
+                            href={route('admin.settings')}
+                            className="mt-6 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-3 font-black text-sm transition-all"
+                        >
+                            ⚙️ {t.openSettings}
+                        </Link>
                     </div>
                 </div>
 

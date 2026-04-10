@@ -187,6 +187,7 @@ Route::middleware('auth')->group(function () {
     // Admin-only routes for dashboards, academic data, and staff operations.
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
 
