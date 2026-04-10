@@ -27,6 +27,8 @@ const translations = {
         lastMoves: (n) => `آخر ${n} حركة`, noLogEntries: 'لا توجد حركات مسجلة حالياً.',
         statusOpen: 'مفتوح', statusInProgress: 'قيد المعالجة', statusResolved: 'محلول',
         majorCourses: 'مادة تخصص', statsTracker: 'Stats Tracker',
+        onlineUsers: 'المستخدمون الآن', noOnlineUsers: 'لا أحد متصل الآن',
+        admins: 'أدمن', student_role: 'طالب', admin_role: 'أدمن', activeAgo: 'قبل',
     },
     en: {
         title: 'Admin Control Center', subtitle: 'Operational dashboard: stats, reports, log, and quick controls.',
@@ -47,10 +49,12 @@ const translations = {
         lastMoves: (n) => `Last ${n} entries`, noLogEntries: 'No activity recorded yet.',
         statusOpen: 'Open', statusInProgress: 'In Progress', statusResolved: 'Resolved',
         majorCourses: 'major courses', statsTracker: 'Stats',
+        onlineUsers: 'Online Users', noOnlineUsers: 'No users online',
+        admins: 'Admins', student_role: 'Student', admin_role: 'Admin', activeAgo: 'ago',
     },
 };
 
-export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [] }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -64,6 +68,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeLogs = Array.isArray(logs) ? logs : [];
 
     const safeStudentsCount = Number(safeStats.students_count || 0);
+    const safeOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
@@ -126,11 +131,59 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                 {/* KPI Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
                     <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${safeStats.active_students_now || 0}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="violet" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="emerald" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="rose" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.openReports} value={safeIssueSummary.open || 0} icon="🛠️" color="amber" trend={`${t.totalReports} ${safeIssueSummary.total || 0}`} link={route('admin.issues.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${safeStats.active_admins_now || 0}`} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                </div>
+
+                {/* Online Users Section */}
+                <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className={`text-xl font-black ${heading} flex items-center gap-3`}>
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-600">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            </span>
+                            {t.onlineUsers}
+                        </h3>
+                        <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{safeOnlineUsers.length} متصل</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {safeOnlineUsers.length > 0 ? (
+                            safeOnlineUsers.map((user) => (
+                                <div
+                                    key={`${user.id}-${user.email}`}
+                                    className={`p-4 border rounded-2xl transition-all ${
+                                        isDark
+                                            ? 'bg-slate-800/50 border-slate-700 hover:border-emerald-500/50'
+                                            : 'bg-slate-50 border-slate-100 hover:border-emerald-300'
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <span className={`text-lg flex-shrink-0 ${user.role === 'admin' ? '⚙️' : user.role === 'owner' ? '👑' : '👤'}`}></span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className={`text-xs font-black truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{user.name}</p>
+                                                <p className={`text-[10px] font-bold truncate ${subtext}`}>{user.email}</p>
+                                            </div>
+                                        </div>
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 ml-2"></span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 pt-3 border-t" style={{ borderColor: isDark ? '#334155' : '#e2e8f0' }}>
+                                        <span className={`text-[10px] font-black uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                            {user.role === 'admin' ? t.admin_role : user.role === 'owner' ? 'Owner' : t.student_role}
+                                        </span>
+                                        <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className={`col-span-full text-center py-12 px-4 rounded-xl ${isDark ? 'bg-slate-800/30' : 'bg-slate-50'}`}>
+                                <p className={`text-sm font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{t.noOnlineUsers}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Reports + Quick Actions */}

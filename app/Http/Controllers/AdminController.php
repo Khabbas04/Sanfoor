@@ -48,24 +48,50 @@ class AdminController extends Controller
             'total' => IssueReport::count(),
         ];
 
-        // 🔥 حساب الطلاب النشطين حالياً (آخر 30 دقيقة)
+        // 🔥 حساب النشطين حالياً (آخر 30 دقيقة)
         $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
-        $activeStudentsNow = DB::table('sessions')
+        
+        $activeStudentIds = DB::table('sessions')
             ->whereIn('user_id', User::where('role', 'student')->pluck('id'))
             ->where('last_activity', '>=', $thirtyMinutesAgo)
             ->distinct('user_id')
-            ->count('user_id');
+            ->pluck('user_id');
+        
+        $activeAdminIds = DB::table('sessions')
+            ->whereIn('user_id', User::whereRaw('LOWER(role) = ?', ['admin'])->pluck('id'))
+            ->where('last_activity', '>=', $thirtyMinutesAgo)
+            ->distinct('user_id')
+            ->pluck('user_id');
+
+        // 🔥 الحصول على قائمة المستخدمين النشطين مع تفاصيلهم
+        $onlineUsers = DB::table('sessions as s')
+            ->join('users as u', 's.user_id', '=', 'u.id')
+            ->select('u.id', 'u.name', 'u.email', 'u.role', 's.last_activity')
+            ->where('s.last_activity', '>=', $thirtyMinutesAgo)
+            ->orderByDesc('s.last_activity')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'last_activity_ago' => \Carbon\Carbon::createFromTimestamp($user->last_activity)->diffForHumans(),
+                ];
+            });
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
-                'active_students_now' => $activeStudentsNow,
+                'active_students_now' => $activeStudentIds->count(),
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
+                'active_admins_now' => $activeAdminIds->count(),
                 'owners_count' => User::whereRaw('LOWER(role) = ?', ['owner'])->count(),
                 'courses_count' => Course::count(),
                 'compulsory_count' => Course::where('type', 'compulsory')->count(),
                 'elective_count' => Course::where('type', 'elective')->count(),
             ],
+            'onlineUsers' => $onlineUsers,
             'platform' => [
                 'colleges_count' => College::count(),
                 'majors_count' => Major::count(),
