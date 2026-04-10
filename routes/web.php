@@ -12,6 +12,7 @@ use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
+use App\Http\Controllers\Admin\AdminContactMessageController;
 use App\Http\Controllers\AdminCollegeController;
 use App\Models\Course;
 use Illuminate\Foundation\Application;
@@ -260,6 +261,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/issues', [AdminIssueReportController::class, 'index'])->name('issues.index');
         Route::put('/issues/{issueReport}/status', [AdminIssueReportController::class, 'updateStatus'])->name('issues.update_status');
         Route::delete('/issues/{issueReport}', [AdminIssueReportController::class, 'destroy'])->name('issues.destroy');
+
+        // Public contact form submissions management in the admin panel.
+        Route::get('/contact-messages', [AdminContactMessageController::class, 'index'])->name('contact_messages.index');
+        Route::put('/contact-messages/{contactMessage}/status', [AdminContactMessageController::class, 'updateStatus'])->name('contact_messages.update_status');
+        Route::delete('/contact-messages/{contactMessage}', [AdminContactMessageController::class, 'destroy'])->name('contact_messages.destroy');
     });
 });
 

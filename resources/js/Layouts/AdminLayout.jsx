@@ -22,6 +22,7 @@ export default function AdminLayout({ children }) {
         ar: {
             dashboard: 'الإحصائيات العامة',
             issues: 'بلاغات الطلاب',
+            contactMessages: 'طلبات التواصل',
             demand: 'تحليل طلب المواد',
             courses: 'الشجرة والمواد',
             structure: 'الكليات والتخصصات',
@@ -45,6 +46,7 @@ export default function AdminLayout({ children }) {
                 'admin.logs': 'سجل عمليات الإدارة',
                 'admin.students.index': 'إدارة الطلاب',
                 'admin.issues.index': 'بلاغات الطلاب',
+                'admin.contact_messages.index': 'طلبات التواصل',
                 'admin.reports.demand': 'تحليل طلب المواد',
                 'admin.admins.index': 'إدارة الأدمنز',
                 'admin.colleges.index': 'بطاقات الكليات',
@@ -59,6 +61,7 @@ export default function AdminLayout({ children }) {
         en: {
             dashboard: 'General Stats',
             issues: 'Student Reports',
+            contactMessages: 'Contact Requests',
             demand: 'Course Demand',
             courses: 'Tree & Courses',
             structure: 'Colleges & Majors',
@@ -82,6 +85,7 @@ export default function AdminLayout({ children }) {
                 'admin.logs': 'Activity Log',
                 'admin.students.index': 'Manage Students',
                 'admin.issues.index': 'Student Reports',
+                'admin.contact_messages.index': 'Contact Requests',
                 'admin.reports.demand': 'Course Demand Analysis',
                 'admin.admins.index': 'Manage Admins',
                 'admin.colleges.index': 'College Cards',
@@ -118,6 +122,7 @@ export default function AdminLayout({ children }) {
     const menuItems = [
         { icon: '📊', name: t.dashboard, route: 'admin.dashboard', pattern: 'admin.dashboard' },
         { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*' },
+        { icon: '📩', name: t.contactMessages, route: 'admin.contact_messages.index', pattern: 'admin.contact_messages.*' },
         { icon: '🔥', name: t.demand, route: 'admin.reports.demand', pattern: 'admin.reports.*' },
         { icon: '📚', name: t.courses, route: 'admin.courses', pattern: 'admin.courses' },
         { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors' },
