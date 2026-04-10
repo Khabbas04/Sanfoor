@@ -125,7 +125,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
                 {/* KPI Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={t.activeNow} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${safeStats.active_students_now || 0}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="violet" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="emerald" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="rose" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />

@@ -48,9 +48,18 @@ class AdminController extends Controller
             'total' => IssueReport::count(),
         ];
 
+        // 🔥 حساب الطلاب النشطين حالياً (آخر 30 دقيقة)
+        $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
+        $activeStudentsNow = DB::table('sessions')
+            ->whereIn('user_id', User::where('role', 'student')->pluck('id'))
+            ->where('last_activity', '>=', $thirtyMinutesAgo)
+            ->distinct('user_id')
+            ->count('user_id');
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
+                'active_students_now' => $activeStudentsNow,
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
                 'owners_count' => User::whereRaw('LOWER(role) = ?', ['owner'])->count(),
                 'courses_count' => Course::count(),
