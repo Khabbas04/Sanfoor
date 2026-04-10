@@ -4,11 +4,9 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
-import { useState, useEffect } from 'react';
+import { useOnlinePolling } from '@/Hooks/useOnlinePolling';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
-
-import { useOnlinePolling } from '@/Hooks/useOnlinePolling';
 
 const translations = {
     ar: {
@@ -160,8 +158,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             </span>
                             {t.onlineUsers}
                         </h3>
-                        <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{safeOnlineUsers.length} متصل</span>
-                            <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{liveOnlineUsers.length} متصل</span>
+                        <span className={`text-xs font-black px-3 py-1 rounded-full ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{liveOnlineUsers.length} متصل</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {liveOnlineUsers.length > 0 ? (

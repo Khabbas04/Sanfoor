@@ -43,7 +43,7 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
     useEffect(() => {
         const sendHeartbeat = async () => {
             try {
-                await fetch(route('heartbeat'), {
+                await fetch(route('admin.api.heartbeat'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                 });
@@ -61,7 +61,7 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
     useEffect(() => {
         const handleBeforeUnload = () => {
             // Use sendBeacon to ensure request is sent even if page is being closed
-            const routePath = route('browser_close');
+            const routePath = route('admin.api.browser_close');
             navigator.sendBeacon(routePath, JSON.stringify({}));
         };
 
