@@ -9,15 +9,29 @@ import { useOnlinePolling } from '@/Hooks/useOnlinePolling';
 const translations = {
     ar: {
         title: 'إعدادات الإدارة',
-        subtitle: 'مساحة موحدة لإدارة المستخدمين الأونلاين وإجراءات إدارة الأدمن.',
-        tabOnline: 'الأشخاص الأونلاين',
-        tabAdmin: 'إدارة الأدمن',
-        onlineNow: 'متصل الآن',
+        subtitle: 'لوحة تحكم احترافية لإدارة الحالة المباشرة للمستخدمين وأدوات الإدارة.',
+        tabOnline: 'المستخدمون الأونلاين',
+        tabAdmin: 'أدوات الإدارة',
+        onlineNow: 'المتصلون الآن',
         activeStudents: 'طلاب نشطون',
         activeAdmins: 'أدمن نشط',
+        totalStudents: 'إجمالي الطلاب',
+        totalAdmins: 'إجمالي الأدمن',
         noOnlineUsers: 'لا يوجد مستخدمون متصلون حالياً.',
+        searchUsers: 'ابحث بالاسم أو البريد...',
+        allRoles: 'كل الأدوار',
+        roleOwner: 'مالك',
+        roleAdmin: 'أدمن',
+        roleStudent: 'طالب',
+        roleLabel: 'الدور',
+        lastActivity: 'آخر نشاط',
+        updatedNow: 'تحديث مباشر',
+        refresh: 'تحديث الآن',
+        statusLoading: 'جاري تحميل الحالة...',
+        statusError: 'تعذر تحديث بيانات الأونلاين حالياً.',
+        updatedAt: 'آخر تحديث',
         adminToolsTitle: 'أدوات إدارة النظام',
-        adminToolsDesc: 'كل أدوات التحكم الإدارية في مكان واحد بدل الداشبورد.',
+        adminToolsDesc: 'كل الإجراءات الإدارية مركزة هنا بدل الداشبورد.',
         manageAdmins: 'إدارة الأدمنز',
         manageStudents: 'إدارة الطلاب',
         reports: 'بلاغات الطلاب',
@@ -25,21 +39,33 @@ const translations = {
         courses: 'الشجرة والمواد',
         logs: 'سجل العمليات',
         demand: 'تحليل الطلب',
-        roleOwner: 'مالك',
-        roleAdmin: 'أدمن',
-        roleStudent: 'طالب',
+        viewPage: 'فتح الصفحة',
     },
     en: {
         title: 'Admin Settings',
-        subtitle: 'A unified space for online users and admin-management actions.',
+        subtitle: 'A professional control panel for live-user status and administrative tools.',
         tabOnline: 'Online Users',
-        tabAdmin: 'Admin Management',
+        tabAdmin: 'Admin Tools',
         onlineNow: 'Online Now',
         activeStudents: 'Active Students',
         activeAdmins: 'Active Admins',
+        totalStudents: 'Total Students',
+        totalAdmins: 'Total Admins',
         noOnlineUsers: 'No users are currently online.',
-        adminToolsTitle: 'Administration Tools',
-        adminToolsDesc: 'All admin controls in one place instead of Dashboard.',
+        searchUsers: 'Search by name or email...',
+        allRoles: 'All Roles',
+        roleOwner: 'Owner',
+        roleAdmin: 'Admin',
+        roleStudent: 'Student',
+        roleLabel: 'Role',
+        lastActivity: 'Last Activity',
+        updatedNow: 'Live',
+        refresh: 'Refresh Now',
+        statusLoading: 'Loading live status...',
+        statusError: 'Unable to refresh online data right now.',
+        updatedAt: 'Last updated',
+        adminToolsTitle: 'System Administration Tools',
+        adminToolsDesc: 'All admin actions are centralized here instead of Dashboard.',
         manageAdmins: 'Manage Admins',
         manageStudents: 'Manage Students',
         reports: 'Student Reports',
@@ -47,9 +73,7 @@ const translations = {
         courses: 'Tree & Courses',
         logs: 'Activity Log',
         demand: 'Demand Analysis',
-        roleOwner: 'Owner',
-        roleAdmin: 'Admin',
-        roleStudent: 'Student',
+        viewPage: 'Open Page',
     },
 };
 
@@ -60,6 +84,17 @@ function roleLabel(role, t) {
     return t.roleStudent;
 }
 
+function roleBadge(role, isDark) {
+    const normalized = String(role || '').toLowerCase();
+    if (normalized === 'owner') {
+        return isDark ? 'bg-amber-900/40 text-amber-300 border-amber-700/60' : 'bg-amber-100 text-amber-700 border-amber-200';
+    }
+    if (normalized === 'admin') {
+        return isDark ? 'bg-indigo-900/40 text-indigo-300 border-indigo-700/60' : 'bg-indigo-100 text-indigo-700 border-indigo-200';
+    }
+    return isDark ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/60' : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+}
+
 export default function Settings({ stats = {}, onlineUsers = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
@@ -68,14 +103,35 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
     const isOwner = String(auth?.user?.role || '').toLowerCase() === 'owner';
 
     const [activeTab, setActiveTab] = useState('online');
+    const [query, setQuery] = useState('');
+    const [roleFilter, setRoleFilter] = useState('all');
 
     const initialOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
-    const { onlineUsers: liveOnlineUsers, stats: liveStats } = useOnlinePolling(initialOnlineUsers, stats || {});
+    const {
+        onlineUsers: liveOnlineUsers,
+        stats: liveStats,
+        isLoading,
+        error,
+        lastUpdatedAt,
+        refreshNow,
+    } = useOnlinePolling(initialOnlineUsers, stats || {});
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const cardSoft = isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200';
     const heading = isDark ? 'text-slate-100' : 'text-slate-900';
     const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
+
+    const filteredOnlineUsers = useMemo(() => {
+        const text = query.trim().toLowerCase();
+        return liveOnlineUsers.filter((user) => {
+            const matchRole = roleFilter === 'all' ? true : String(user.role || '').toLowerCase() === roleFilter;
+            if (!matchRole) return false;
+            if (!text) return true;
+            const name = String(user.name || '').toLowerCase();
+            const email = String(user.email || '').toLowerCase();
+            return name.includes(text) || email.includes(text);
+        });
+    }, [liveOnlineUsers, query, roleFilter]);
 
     const adminActions = useMemo(() => {
         const actions = [
@@ -99,50 +155,115 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
             <Head title={`${t.title} | سنفور`} />
 
             <div className="space-y-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <div className={`${card} rounded-3xl p-6 sm:p-8 border`}>
-                    <h1 className={`text-2xl sm:text-3xl font-black ${heading}`}>{t.title}</h1>
-                    <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.subtitle}</p>
+                <section className={`${card} border rounded-3xl p-6 sm:p-8 relative overflow-hidden`}>
+                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-500/15 blur-3xl rounded-full pointer-events-none"></div>
+                    <div className="relative">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                            <div>
+                                <h1 className={`text-2xl sm:text-3xl font-black ${heading}`}>{t.title}</h1>
+                                <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.subtitle}</p>
+                            </div>
+                            <div className={`inline-flex items-center gap-2 text-xs font-black px-3 py-2 rounded-xl ${isDark ? 'bg-slate-900/70 text-emerald-300 border border-slate-700' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                {t.updatedNow}
+                            </div>
+                        </div>
 
-                    <div className="mt-5 inline-flex rounded-2xl p-1 bg-indigo-500/10 border border-indigo-500/20">
-                        <button
-                            onClick={() => setActiveTab('online')}
-                            className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'online' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-100/60'}`}
-                        >
-                            {t.tabOnline}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('admin')}
-                            className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'admin' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-100/60'}`}
-                        >
-                            {t.tabAdmin}
-                        </button>
+                        <div className="mt-6 inline-flex rounded-2xl p-1 bg-indigo-500/10 border border-indigo-500/20">
+                            <button
+                                onClick={() => setActiveTab('online')}
+                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'online' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-100/60'}`}
+                            >
+                                {t.tabOnline}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('admin')}
+                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'admin' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-100/60'}`}
+                            >
+                                {t.tabAdmin}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </section>
 
                 {activeTab === 'online' && (
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <section className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <Stat title={t.onlineNow} value={liveOnlineUsers.length} icon="🟢" isDark={isDark} />
                             <Stat title={t.activeStudents} value={liveStats.active_students_now || 0} icon="👨‍🎓" isDark={isDark} />
                             <Stat title={t.activeAdmins} value={liveStats.active_admins_now || 0} icon="⚙️" isDark={isDark} />
+                            <Stat title={t.totalStudents} value={stats?.students_count || 0} icon="📊" isDark={isDark} />
                         </div>
 
-                        <div className={`${card} rounded-3xl p-6 border`}>
+                        <div className={`${card} border rounded-3xl p-5 sm:p-6`}>
+                            <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between mb-4">
+                                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                                    <input
+                                        value={query}
+                                        onChange={(e) => setQuery(e.target.value)}
+                                        placeholder={t.searchUsers}
+                                        className={`w-full sm:w-72 rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                    />
+                                    <select
+                                        value={roleFilter}
+                                        onChange={(e) => setRoleFilter(e.target.value)}
+                                        className={`rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}
+                                    >
+                                        <option value="all">{t.allRoles}</option>
+                                        <option value="student">{t.roleStudent}</option>
+                                        <option value="admin">{t.roleAdmin}</option>
+                                        <option value="owner">{t.roleOwner}</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={refreshNow}
+                                        className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black px-3 py-2 transition-colors"
+                                    >
+                                        {t.refresh}
+                                    </button>
+                                    <span className={`text-[11px] font-bold ${subtext}`}>
+                                        {t.updatedAt}: {lastUpdatedAt ? lastUpdatedAt.toLocaleTimeString() : '--:--'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {isLoading && (
+                                <div className={`mb-4 rounded-xl px-4 py-3 text-sm font-black ${isDark ? 'bg-slate-900 text-slate-300 border border-slate-700' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                                    {t.statusLoading}
+                                </div>
+                            )}
+
+                            {Boolean(error) && (
+                                <div className={`mb-4 rounded-xl px-4 py-3 text-sm font-black ${isDark ? 'bg-rose-900/30 text-rose-300 border border-rose-800/60' : 'bg-rose-100 text-rose-700 border border-rose-200'}`}>
+                                    {t.statusError}
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {liveOnlineUsers.length > 0 ? (
-                                    liveOnlineUsers.map((user) => (
+                                {filteredOnlineUsers.length > 0 ? (
+                                    filteredOnlineUsers.map((user) => (
                                         <div
                                             key={`${user.id}-${user.email}`}
                                             className={`${cardSoft} border rounded-2xl p-4 transition-all hover:-translate-y-0.5`}
                                         >
-                                            <div className="flex items-center justify-between mb-3">
-                                                <span className={`text-xs font-black ${heading} truncate max-w-[80%]`}>{user.name}</span>
+                                            <div className="flex items-center justify-between mb-3 gap-2">
+                                                <span className={`text-sm font-black ${heading} truncate`}>{user.name}</span>
                                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
                                             </div>
                                             <p className={`text-[11px] font-bold ${subtext} truncate`}>{user.email}</p>
-                                            <div className="mt-3 pt-3 border-t border-slate-200/30 flex items-center justify-between">
-                                                <span className={`text-[10px] font-black uppercase ${subtext}`}>{roleLabel(user.role, t)}</span>
-                                                <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
+                                            <div className="mt-3 pt-3 border-t border-slate-200/30 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${subtext}`}>{t.roleLabel}</span>
+                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-full border ${roleBadge(user.role, isDark)}`}>
+                                                        {roleLabel(user.role, t)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${subtext}`}>{t.lastActivity}</span>
+                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     ))
@@ -153,11 +274,11 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </section>
                 )}
 
                 {activeTab === 'admin' && (
-                    <div className={`${card} rounded-3xl p-6 border`}>
+                    <section className={`${card} border rounded-3xl p-6`}>
                         <h2 className={`text-xl font-black ${heading}`}>{t.adminToolsTitle}</h2>
                         <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.adminToolsDesc}</p>
 
@@ -166,10 +287,13 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
                                 <Link
                                     key={action.href}
                                     href={action.href}
-                                    className={`${cardSoft} border rounded-2xl px-4 py-4 flex items-center justify-between hover:border-indigo-400 transition-all`}
+                                    className={`${cardSoft} border rounded-2xl p-4 flex items-center justify-between hover:border-indigo-400 transition-all group`}
                                 >
-                                    <span className={`text-sm font-black ${heading}`}>{action.title}</span>
-                                    <span className="text-lg">{action.icon}</span>
+                                    <div>
+                                        <p className={`text-sm font-black ${heading}`}>{action.title}</p>
+                                        <p className={`text-[11px] font-bold ${subtext} mt-1`}>{t.viewPage}</p>
+                                    </div>
+                                    <span className="text-2xl group-hover:scale-110 transition-transform">{action.icon}</span>
                                 </Link>
                             ))}
                         </div>
@@ -177,7 +301,7 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
                         <div className="mt-6">
                             <ClearCacheButton />
                         </div>
-                    </div>
+                    </section>
                 )}
             </div>
         </AdminLayout>

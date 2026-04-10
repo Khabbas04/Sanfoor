@@ -11,30 +11,52 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
         active_students_now: initialStats?.active_students_now || 0,
         active_admins_now: initialStats?.active_admins_now || 0,
     });
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+
+    const csrfToken = typeof document !== 'undefined'
+        ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        : null;
+
+    const fetchOnlineUsers = async () => {
+        try {
+            const response = await fetch(route('admin.api.online_users'), {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            setLiveOnlineUsers(data.online_users || []);
+            setLiveStats({
+                active_students_now: data.active_students_now || 0,
+                active_admins_now: data.active_admins_now || 0,
+            });
+            setLastUpdatedAt(new Date());
+            setError('');
+        } catch (err) {
+            setError(err?.message || 'Polling failed');
+            console.warn('Polling online users failed:', err?.message || err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     // 🔥 Polling for online users every 5 seconds
     useEffect(() => {
-        const pollOnlineUsers = async () => {
-            try {
-                const response = await fetch(route('admin.api.online_users'));
-                if (response.ok) {
-                    const data = await response.json();
-                    setLiveOnlineUsers(data.online_users || []);
-                    setLiveStats({
-                        active_students_now: data.active_students_now || 0,
-                        active_admins_now: data.active_admins_now || 0,
-                    });
-                }
-            } catch (err) {
-                console.warn('Polling online users failed:', err.message);
-            }
-        };
-
         // Initial poll
-        pollOnlineUsers();
+        fetchOnlineUsers();
 
         // Set up interval
-        const pollInterval = setInterval(pollOnlineUsers, 5000);
+        const pollInterval = setInterval(fetchOnlineUsers, 5000);
 
         return () => clearInterval(pollInterval);
     }, []);
@@ -45,10 +67,16 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
             try {
                 await fetch(route('admin.api.heartbeat'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                    },
+                    credentials: 'same-origin',
                 });
             } catch (err) {
-                console.warn('Heartbeat failed:', err.message);
+                console.warn('Heartbeat failed:', err?.message || err);
             }
         };
 
@@ -60,9 +88,12 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
     // 🔥 Handle browser close: notify backend when user closes tab/window
     useEffect(() => {
         const handleBeforeUnload = () => {
-            // Use sendBeacon to ensure request is sent even if page is being closed
             const routePath = route('admin.api.browser_close');
-            navigator.sendBeacon(routePath, JSON.stringify({}));
+            if (navigator.sendBeacon && csrfToken) {
+                const payload = new FormData();
+                payload.append('_token', csrfToken);
+                navigator.sendBeacon(routePath, payload);
+            }
         };
 
         window.addEventListener('beforeunload', handleBeforeUnload);
@@ -72,5 +103,9 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
     return {
         onlineUsers: liveOnlineUsers,
         stats: liveStats,
+        isLoading,
+        error,
+        lastUpdatedAt,
+        refreshNow: fetchOnlineUsers,
     };
 }
