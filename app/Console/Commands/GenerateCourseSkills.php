@@ -16,8 +16,7 @@ class GenerateCourseSkills extends Command
 
     public function handle()
     {
-        // استخدمت المفتاح المباشر كما أرسلته لتجاوز مشكلة الـ Cache مؤقتاً
-$apiKey = env('GEMINI_API_KEY');        
+        $apiKey = (string) config('services.gemini.key');
         if (!$apiKey) {
             $this->error('يرجى التأكد من وضع GEMINI_API_KEY في ملف .env');
             return;

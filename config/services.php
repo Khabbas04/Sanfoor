@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+    ],
+
+    'gemini' => [
+        'key' => env('GEMINI_API_KEY'),
+        'keys' => env('GEMINI_API_KEYS', ''),
+        'model' => env('GEMINI_MODEL'),
+    ],
+
 ];

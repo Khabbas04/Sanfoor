@@ -9,12 +9,12 @@ class BrevoMailer
     public static function send(string $to, string $subject, string $html): void
     {
         Http::withHeaders([
-            'api-key'      => env('BREVO_API_KEY'),
+        'api-key'      => config('services.brevo.key'),
             'Content-Type' => 'application/json',
         ])->post('https://api.brevo.com/v3/smtp/email', [
             'sender' => [
-                'email' => env('MAIL_FROM_ADDRESS'),
-                'name'  => env('MAIL_FROM_NAME'),
+          'email' => config('mail.from.address'),
+          'name'  => config('mail.from.name'),
             ],
             'to'          => [['email' => $to]],
             'subject'     => $subject,

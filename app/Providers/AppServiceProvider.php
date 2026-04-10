@@ -28,13 +28,13 @@ class AppServiceProvider extends ServiceProvider
         // Register a custom mail macro that sends messages through the Brevo API.
         Mail::macro('brevo', function ($to, $subject, $html) {
             return Http::withHeaders([
-                'api-key' => env('BREVO_API_KEY'),
+                'api-key' => config('services.brevo.key'),
                 'Content-Type' => 'application/json',
             ])->post('https://api.brevo.com/v3/smtp/email', [
                 // Define the sender shown in outgoing transactional emails.
                 'sender' => [
-                    'email' => env('MAIL_FROM_ADDRESS'),
-                    'name' => env('MAIL_FROM_NAME'),
+                    'email' => config('mail.from.address'),
+                    'name' => config('mail.from.name'),
                 ],
 
                 // Brevo expects the recipients as an array of destination objects.

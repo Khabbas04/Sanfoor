@@ -612,7 +612,7 @@ class AiAdvisorController extends Controller
     {
         $keys = [];
 
-        $keysCsv = (string) env('GEMINI_API_KEYS', '');
+        $keysCsv = (string) config('services.gemini.keys', '');
         if (trim($keysCsv) !== '') {
             foreach (explode(',', $keysCsv) as $key) {
                 $value = trim((string) $key);
@@ -622,7 +622,7 @@ class AiAdvisorController extends Controller
             }
         }
 
-        $single = trim((string) env('GEMINI_API_KEY', ''));
+        $single = trim((string) config('services.gemini.key', ''));
         if ($single !== '') {
             $keys[] = $single;
         }
@@ -637,7 +637,7 @@ class AiAdvisorController extends Controller
     {
         $baseUrl = "https://" . "generativelanguage.googleapis.com";
         $models = array_values(array_unique(array_filter([
-            env('GEMINI_MODEL'),
+            config('services.gemini.model'),
             'gemini-2.0-flash-lite',
             'gemini-2.5-flash',
         ])));

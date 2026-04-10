@@ -45,7 +45,7 @@ class ContactMessageController extends Controller
     private function notifySupport(ContactMessage $contact): void
     {
         $receiver = (string) (config('mail.support_address') ?: config('mail.from.address'));
-        $apiKey = (string) env('BREVO_API_KEY', '');
+        $apiKey = (string) config('services.brevo.key', '');
 
         if ($receiver === '' || $apiKey === '') {
             return;
