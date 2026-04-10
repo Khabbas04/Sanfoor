@@ -131,24 +131,13 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
                 {/* KPI Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${safeStats.active_students_now || 0}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${safeStats.active_admins_now || 0}`} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${liveStats.active_students_now}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${liveStats.active_admins_now}`} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
                     <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${liveStats.active_students_now}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${liveStats.active_admins_now}`} isDark={isDark} tLabel={t.statsTracker} />
                 </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                        <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${liveStats.active_students_now}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${liveStats.active_admins_now}`} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
-                        <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
-                    </div>
                 {/* Online Users Section */}
                 <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
                     <div className="flex items-center justify-between mb-6">

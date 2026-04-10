@@ -106,6 +106,73 @@ class AdminController extends Controller
     }
 
     /**
+     * API: جلب المستخدمين النشطين (للـ polling في لوحة الإدارة)
+     */
+    public function getOnlineUsers()
+    {
+        $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
+
+        $onlineUsers = DB::table('sessions as s')
+            ->join('users as u', 's.user_id', '=', 'u.id')
+            ->select('u.id', 'u.name', 'u.email', 'u.role', 's.last_activity')
+            ->whereNotNull('s.user_id')
+            ->where('s.last_activity', '>=', $thirtyMinutesAgo)
+            ->orderByDesc('s.last_activity')
+            ->get()
+            ->unique('id')
+            ->values()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'last_activity_ago' => \Carbon\Carbon::createFromTimestamp((int) $user->last_activity)->diffForHumans(),
+                ];
+            });
+
+        $activeStudentsNow = $onlineUsers->where('role', 'student')->count();
+        $activeAdminsNow = $onlineUsers->filter(function ($u) {
+            return strtolower((string) $u['role']) === 'admin';
+        })->count();
+
+        return response()->json([
+            'online_users' => $onlineUsers,
+            'active_students_now' => $activeStudentsNow,
+            'active_admins_now' => $activeAdminsNow,
+            'total_online' => $onlineUsers->count(),
+        ]);
+    }
+
+    /**
+     * API: تحديث last_activity للمستخدم الحالي
+     */
+    public function updateLastActivity()
+    {
+        if (Auth::check()) {
+            DB::table('sessions')
+                ->where('user_id', Auth::id())
+                ->update(['last_activity' => now()->timestamp]);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * API: تسجيل إغلاق التبويب/النافذة
+     */
+    public function handleBrowserClose()
+    {
+        if (Auth::check()) {
+            DB::table('sessions')
+                ->where('user_id', Auth::id())
+                ->delete();
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
      * عرض قائمة المواد - مع إرسال الهيكلة الأكاديمية كاملة للفلترة
      */
     public function index()
