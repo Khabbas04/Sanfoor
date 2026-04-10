@@ -79,8 +79,10 @@ export default function AiWidget({ user }) {
                         <div className="p-4 bg-gradient-to-l from-indigo-600 to-violet-600 text-white flex justify-between items-center shadow-lg relative overflow-hidden">
                             <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '12px 12px' }} />
                             <div className="flex items-center gap-2.5 relative z-10">
-                                <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-full overflow-hidden shadow-inner">
-                                    <img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" />
+                                <div className="w-10 h-10 rounded-full bg-white/15 border border-white/25 p-1 shadow-inner">
+                                    <div className="w-full h-full rounded-full bg-white/90 overflow-hidden flex items-center justify-center">
+                                        <img src="/images/aiwidget.png" alt="AI Widget" className="w-[78%] h-[78%] object-contain" />
+                                    </div>
                                 </div>
                                 <div>
                                     <span className="font-black text-sm block leading-tight">مساعد سنفور الذكي</span>
@@ -132,22 +134,24 @@ export default function AiWidget({ user }) {
             <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-[100]">
                 {/* 🔵 حلقة النبض الخلفية (Ping Ring) */}
                 {!isOpen && (
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
+                    <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
                 )}
 
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`relative w-14 h-14 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center overflow-hidden transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
+                    className={`relative w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
                 >
-                    <img
-                        src="/images/aiwidget.png"
-                        alt="AI Widget"
-                        className={`w-full h-full object-cover transition-transform duration-300 ${isOpen ? 'rotate-90 scale-75' : 'group-hover:rotate-12 group-hover:scale-110'}`}
-                    />
+                    <span className="w-[86%] h-[86%] rounded-full bg-white/95 border border-white/70 overflow-hidden flex items-center justify-center shadow-inner">
+                        <img
+                            src="/images/aiwidget.png"
+                            alt="AI Widget"
+                            className={`w-[76%] h-[76%] object-contain transition-transform duration-300 ${isOpen ? 'rotate-6 scale-95' : 'group-hover:rotate-6 group-hover:scale-105'}`}
+                        />
+                    </span>
 
                     {/* 🟢 نقطة "نشط" */}
                     {!isOpen && (
-                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300" />
+                        <span className="absolute top-[3px] right-[3px] w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300" />
                     )}
                 </button>
             </div>
