@@ -611,7 +611,7 @@ export default function Tree({
 
             initialNodes.push({
                 id: course.id.toString(),
-                position: stableLayoutPositions.get(course.id.toString()) || { x: 0, y: 0 },
+                position: { x: 0, y: 0 },
                 style: { padding: 0, border: 'none', background: 'transparent', width: nodeWidth, height: nodeHeight },
                 data: {
                     label: <div dangerouslySetInnerHTML={{ __html: nodeHtml }} />,
@@ -655,8 +655,8 @@ export default function Tree({
             }
         });
 
-        return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, stableLayoutPositions]);
+        return { initialNodes: getLayoutedElements(initialNodes, initialEdges, 'TB', nodeDimensions), initialEdges };
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -1102,35 +1102,6 @@ export default function Tree({
         if (totalCartCredits < 12) return { msg: '🐌 عبء منخفض. توقع تأخر بالتخرج.', cls: 'bg-slate-50 text-slate-600 border-slate-200' };
         return { msg: `✨ جدول متوازن ومثالي بمتوسط صعوبة ${avgDifficulty.toFixed(1)}%.`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     }, [cartIds, coursesWithDifficulty, totalCartCredits, schedulePace]);
-
-    const stableLayoutPositions = useMemo(() => {
-        if (!Array.isArray(courses) || courses.length === 0) return new Map();
-
-        const layoutNodes = courses.map((course) => ({
-            id: course.id.toString(),
-            position: { x: 0, y: 0 },
-            data: {
-                semester: parseInt(course.semester) || 1,
-                code: course.code || '',
-            },
-        }));
-
-        const layoutEdges = [];
-        courses.forEach((course) => {
-            course.prerequisites?.forEach((prereq) => {
-                layoutEdges.push({
-                    id: `layout-${prereq.id}-${course.id}`,
-                    source: prereq.id.toString(),
-                    target: course.id.toString(),
-                });
-            });
-        });
-
-        return new Map(
-            getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
-                .map((node) => [node.id, node.position])
-        );
-    }, [courses, nodeDimensions]);
 
     const render4YearPlan = () => {
         let simulatedPassed = new Set(passedIds);
