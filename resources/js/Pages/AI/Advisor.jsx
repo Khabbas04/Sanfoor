@@ -349,6 +349,7 @@ export default function Advisor() {
         const totalHours = st?.total_plan_hours || 132;
         const progress = st?.progress_percent || 0;
         const cartHoursDb = st?.cart_hours || 0;
+        const hasAcademicRecords = hours > 0;
         const isProbation = st?.is_probation || false;
 
         let greeting = `مرحباً **${name}**! 👋\n\nأنا **سنفور**، مرشدك الأكاديمي الذكي.\n\n`;
@@ -356,8 +357,11 @@ export default function Advisor() {
         let suggestedActions = [];
 
         // تحليل حالة الطالب
-        if (isProbation) {
-            personalMsg = `⚠️ **تنبيه:** معدلك حالياً **${gpa}** وأنت تحت الإنذار الأكاديمي.\nلا تقلق — خليني أساعدك تبني خطة إنقاذ لرفع معدلك!\n\n`;
+        if (!hasAcademicRecords) {
+            personalMsg = `✅ **وضعك طبيعي حالياً.** ما عندك مواد منجزة بعد، لذلك ما في معدل فعلي ولا إنذار.\nابدأ بإضافة أول موادك وأنا بساعدك تخطط بشكل صحيح.\n\n`;
+            suggestedActions = ['اقترح لي أول مواد مناسبة', 'كم ساعة أسجل هالفصل؟', 'رتّب لي خطة بداية بسيطة'];
+        } else if (isProbation) {
+            personalMsg = `⚠️ **تنبيه:** معدلك حالياً **${gpa}%** وأنت تحت الإنذار الأكاديمي.\nلا تقلق — خليني أساعدك تبني خطة إنقاذ لرفع معدلك!\n\n`;
             suggestedActions = ['أريد خطة إنقاذ لرفع معدلي', 'اقترح مواد سهلة لرفع المعدل', 'كم ساعة أسجل وأنا بالإنذار؟'];
         } else if (progress >= 80) {
             personalMsg = `🎓 **أنت قريب من التخرج!** أنجزت **${progress}%** من خطتك (${hours}/${totalHours} ساعة).\nخليني أساعدك تنهي آخر المواد بأفضل طريقة.\n\n`;
@@ -374,8 +378,8 @@ export default function Advisor() {
                 personalMsg += `عبء متوازن! بس خليني أتأكد إنه مناسب.\n\n`;
                 suggestedActions = ['راجع التسجيل التجريبي وقيّمه', 'هل الجدول مناسب لمعدلي؟', 'اقترح تعديلات على التسجيل التجريبي'];
             }
-        } else if (gpa > 0 && gpa < 2.5) {
-            personalMsg = `📊 معدلك **${gpa}** — في مجال للتحسين!\nخليني أساعدك تختار مواد ترفع معدلك.\n\n`;
+        } else if (gpa > 0 && gpa < 60) {
+            personalMsg = `📊 معدلك **${gpa}%** — في مجال للتحسين!\nخليني أساعدك تختار مواد ترفع معدل الفصل الجاي.\n\n`;
             suggestedActions = ['أريد مواد سهلة لرفع معدلي', 'اقترح لي خطة متوازنة', 'كم ساعة أسجل هالفصل؟'];
         } else {
             personalMsg = `أقدر أساعدك بـ:\n* 📊 تحليل معدلك وساعاتك\n* 🛒 اقتراح مواد وإضافتها بضغطة\n* ⚡ بناء أفضل خطة للفصل\n* 📋 مراجعة التسجيل التجريبي وتخفيف العبء\n\n`;
@@ -627,7 +631,7 @@ export default function Advisor() {
                         <div className="min-w-0"><p className="font-black text-[13px] text-slate-800 truncate">{st.name}</p><p className="text-[9px] text-slate-400 font-bold">{st.major||'—'}</p></div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                        {st.gpa && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل</p><p className="text-[15px] font-black text-indigo-700">{st.gpa}</p>{st.is_probation&&<span className="text-[6px] bg-red-100 text-red-600 px-1 rounded font-black">إنذار</span>}</div>}
+                        {st.gpa != null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل %</p><p className="text-[15px] font-black text-indigo-700">{st.has_academic_records ? `${st.gpa}%` : 'لا يوجد بعد'}</p>{st.is_probation&&<span className="text-[6px] bg-red-100 text-red-600 px-1 rounded font-black">إنذار</span>}</div>}
                         {st.hours_completed!=null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">منجزة</p><p className="text-[15px] font-black text-violet-700">{st.hours_completed}</p>{st.total_plan_hours&&<p className="text-[7px] text-slate-400">/{st.total_plan_hours}</p>}</div>}
                         {st.progress_percent!=null && <div className="flex flex-col items-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">التخرج</p><Ring pct={st.progress_percent} size={32} s={3}/><p className="text-[9px] font-black text-slate-700 mt-0.5">{st.progress_percent}%</p></div>}
                     </div>

@@ -49,6 +49,7 @@ export default function Dashboard({
     passed_hours = 0,
     total_hours = 132,
     gpa = "0.00",
+    has_academic_records = false,
     passed_courses = [],
     cart_courses = [],
     ai_skills = [],
@@ -75,26 +76,28 @@ export default function Dashboard({
 
     const standing = useMemo(() => {
         const n = parseFloat(gpa);
-        if (isNaN(n) || n === 0) return { label: 'غير محدد بعد', cls: 'text-slate-500 bg-slate-50 border-slate-200', icon: '⏳' };
-        if (n >= 3.6) return { label: 'امتياز مع مرتبة الشرف', cls: 'text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200', icon: '🏆' };
-        if (n >= 3.0) return { label: 'جيد جداً', cls: 'text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200', icon: '✨' };
-        if (n >= 2.5) return { label: 'جيد', cls: 'text-blue-700 bg-blue-50 border-blue-200', icon: '👍' };
-        if (n >= 2.0) return { label: 'مقبول', cls: 'text-indigo-700 bg-indigo-50 border-indigo-200', icon: '🎯' };
-        return { label: 'تحت الملاحظة', cls: 'text-rose-700 bg-rose-50 border-rose-200', icon: '⚠️' };
-    }, [gpa]);
+        if (passed_hours === 0 || !has_academic_records) return { label: 'لا توجد مواد منجزة بعد', cls: 'text-slate-500 bg-slate-50 border-slate-200', icon: '✅' };
+        if (isNaN(n)) return { label: 'غير محدد بعد', cls: 'text-slate-500 bg-slate-50 border-slate-200', icon: '⏳' };
+        if (n >= 90) return { label: 'امتياز مع مرتبة الشرف', cls: 'text-amber-700 bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200', icon: '🏆' };
+        if (n >= 75) return { label: 'جيد جداً', cls: 'text-emerald-700 bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200', icon: '✨' };
+        if (n >= 62.5) return { label: 'جيد', cls: 'text-blue-700 bg-blue-50 border-blue-200', icon: '👍' };
+        if (n >= 50) return { label: 'مقبول', cls: 'text-indigo-700 bg-indigo-50 border-indigo-200', icon: '🎯' };
+        return { label: 'بحاجة لتحسين', cls: 'text-rose-700 bg-rose-50 border-rose-200', icon: '⚠️' };
+    }, [gpa, has_academic_records, passed_hours]);
 
     const remaining = total_hours - passed_hours;
     const circumference = 2 * Math.PI * 38;
 
     const motivation = useMemo(() => {
         const n = parseFloat(gpa);
-        if (isNaN(n) || n === 0) return 'ابدأ رحلتك الأكاديمية وأدخل علاماتك!';
-        if (n >= 3.6) return 'أداء استثنائي! حافظ على هذا المستوى المتميز 🌟';
-        if (n >= 3.0) return 'مستوى ممتاز! بقيت خطوة واحدة للقمة 🚀';
-        if (n >= 2.5) return 'في الطريق الصحيح! ركّز أكثر وستصل 💪';
-        if (n >= 2.0) return 'لا تستسلم! كل فصل فرصة جديدة للتحسن 🎯';
+        if (passed_hours === 0 || !has_academic_records) return 'ابدأ رحلتك الأكاديمية، فالوضع طبيعي طالما لم تُنجز مواد بعد.';
+        if (isNaN(n) || n === 0) return 'لم تتوفر بيانات كافية بعد.';
+        if (n >= 90) return 'أداء استثنائي! حافظ على هذا المستوى المتميز 🌟';
+        if (n >= 75) return 'مستوى ممتاز! بقيت خطوة واحدة للقمة 🚀';
+        if (n >= 62.5) return 'في الطريق الصحيح! ركّز أكثر وستصل 💪';
+        if (n >= 50) return 'لا تستسلم! كل فصل فرصة جديدة للتحسن 🎯';
         return 'استعن بالمرشد الذكي لوضع خطة تحسين فورية ⚡';
-    }, [gpa]);
+    }, [gpa, has_academic_records, passed_hours]);
 
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
@@ -552,9 +555,9 @@ export default function Dashboard({
                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-50 to-transparent rounded-bl-[3rem] -z-0 transition-transform group-hover:scale-[3] duration-[800ms] ease-out" />
                             <div className="relative z-10 flex justify-between items-start">
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">المعدل التراكمي (GPA)</p>
-                                    <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none"><AnimatedCounter target={gpa} decimals={2} duration={1800} /><span className="text-sm font-bold text-slate-300 mr-1">/ 4.00</span></h3>
-                                    <div className="mt-3 w-full bg-slate-100 h-[5px] rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-indigo-400 to-indigo-500 rounded-full" style={{ width: metricsVis ? `${Math.min((parseFloat(gpa) / 4) * 100, 100)}%` : '0%', transition: `width 2000ms ${spring} 450ms` }} /></div>
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">المعدل المئوي (%)</p>
+                                    <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none"><AnimatedCounter target={gpa} decimals={2} duration={1800} /><span className="text-sm font-bold text-slate-300 mr-1">%</span></h3>
+                                    <div className="mt-3 w-full bg-slate-100 h-[5px] rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-indigo-400 to-indigo-500 rounded-full" style={{ width: metricsVis ? `${Math.min(parseFloat(gpa) || 0, 100)}%` : '0%', transition: `width 2000ms ${spring} 450ms` }} /></div>
                                 </div>
                                 <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl border border-indigo-100 shrink-0">🎯</div>
                             </div>

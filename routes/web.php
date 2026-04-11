@@ -136,7 +136,8 @@ Route::get('/dashboard', function () {
     return Inertia::render('Dashboard', [
         'passed_hours' => (int) $passedHours,
         'total_hours' => 132,
-        'gpa' => $gpaData['gpa4'] ?? '0.00',
+        'gpa' => isset($gpaData['percentage']) ? number_format((float) $gpaData['percentage'], 2) : '0.00',
+        'has_academic_records' => !empty($gpaData['has_records']),
         'passed_courses' => $passedCourses,
         'cart_courses' => $user->cartCourses,
         'ai_skills' => $user->getSkillsFromPassedCourses(),

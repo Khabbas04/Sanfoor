@@ -148,7 +148,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $coursesWithGrades = $this->passedCourses()->whereNotNull('course_user.grade')->get();
 
         if ($coursesWithGrades->isEmpty()) {
-            return ['percentage' => 0, 'gpa4' => '0.00'];
+            return ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
         }
 
         $totalCredits = 0;
@@ -161,7 +161,7 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($totalCredits == 0) {
-            return ['percentage' => 0, 'gpa4' => '0.00'];
+            return ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
         }
 
         $percentage = $weightedSum / $totalCredits;
@@ -170,6 +170,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'percentage' => round($percentage, 2),
             'gpa4' => $gpa4,
+            'completed_hours' => (int) $totalCredits,
+            'has_records' => true,
         ];
     }
 

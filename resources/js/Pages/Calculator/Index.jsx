@@ -226,7 +226,7 @@ export default function Calculator({ auth, initialCourses }) {
                                             <span className="text-2xl text-indigo-400 font-bold">%</span>
                                         </div>
                                         <p className="text-slate-400 font-bold text-sm mt-2">
-                                            يعادل <span className="text-amber-400 font-black">{cumulativeStats.gpa4}</span> من 4.0
+                                            هذا هو المعدل المئوي المعتمد حاليًا
                                         </p>
                                     </div>
 

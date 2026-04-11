@@ -75,7 +75,8 @@ class AiAdvisorController extends Controller
 
         $majorName = $user->major ? $user->major->name : 'تخصص عام';
         $gpaData = $user->calculateGPA();
-        $isProbation = (isset($gpaData['percentage']) && (float)$gpaData['percentage'] < 60);
+        $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
+        $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float)$gpaData['percentage'] < 60;
         $passedCourseIds = $user->passedCourses->pluck('id')->toArray();
         $totalPassedHours = $user->passedCourses->sum('credit_hours');
 
@@ -89,6 +90,7 @@ class AiAdvisorController extends Controller
             'major_name' => $majorName,
             'gpa_data' => $gpaData,
             'is_probation' => $isProbation,
+            'has_academic_records' => $hasAcademicRecords,
             'passed_course_ids' => $passedCourseIds,
             'passed_courses_names' => $user->passedCourses->pluck('name')->implode('، '),
             'total_passed_hours' => $totalPassedHours,
@@ -1075,13 +1077,14 @@ class AiAdvisorController extends Controller
             }
         }
 
-        $isProbation = (isset($gpaData['percentage']) && (float)$gpaData['percentage'] < 60);
+        $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
+        $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float)$gpaData['percentage'] < 60;
 
         return Inertia::render('AI/Advisor', [
             'studentStats' => [
                 'name' => $user->name ?? 'طالب',
                 'major' => $majorName,
-                'gpa' => $gpaData['gpa4'] ?? null,
+                'gpa' => isset($gpaData['percentage']) ? number_format((float) $gpaData['percentage'], 2) : null,
                 'gpa_percentage' => $gpaData['percentage'] ?? null,
                 'hours_completed' => $totalPassedHours,
                 'total_plan_hours' => $totalPlanHours,
@@ -1089,6 +1092,7 @@ class AiAdvisorController extends Controller
                 'cart_hours' => $cartHours,
                 'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
                 'is_probation' => $isProbation,
+                'has_academic_records' => $hasAcademicRecords,
             ],
             'chats' => $chats,
             'initialCartIds' => $initialCartIds,
