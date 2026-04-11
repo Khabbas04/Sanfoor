@@ -262,6 +262,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/issues/{issueReport}/status', [AdminIssueReportController::class, 'updateStatus'])->name('issues.update_status');
         Route::delete('/issues/{issueReport}', [AdminIssueReportController::class, 'destroy'])->name('issues.destroy');
 
+        // Tree layout management for admin drag-and-drop positioning.
+        Route::post('/tree/positions', [TreeController::class, 'updatePosition'])->name('tree.positions');
+
         // Public contact form submissions management in the admin panel.
         Route::get('/contact-messages', [AdminContactMessageController::class, 'index'])->name('contact_messages.index');
         Route::put('/contact-messages/{contactMessage}/status', [AdminContactMessageController::class, 'updateStatus'])->name('contact_messages.update_status');

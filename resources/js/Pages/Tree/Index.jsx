@@ -3,7 +3,7 @@ import ReactFlow, { Controls, Background, MarkerType, useNodesState, useEdgesSta
 import dagre from 'dagre';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
@@ -112,8 +112,11 @@ export default function Tree({
 
     // Page-level state drives filtering, course selection, and AI planning behavior.
 
+    const { props } = usePage();
     const { lang } = useLanguage();
     const { isDark } = useTheme();
+    const authUser = props?.auth?.user;
+    const canEditTreePositions = Boolean(authUser?.is_admin_or_owner);
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
     const [cartIds, setCartIds] = useState(initial_cart_ids || []);
     const [localPassedCourses, setLocalPassedCourses] = useState(passed_courses || []);
@@ -133,6 +136,9 @@ export default function Tree({
     const [legendOpen, setLegendOpen] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const [positionEditMode, setPositionEditMode] = useState(false);
+    const [nodePositions, setNodePositions] = useState({});
+    const [savingPositionId, setSavingPositionId] = useState(null);
 
     const isMobile = viewportWidth < 1024;
 
@@ -225,6 +231,105 @@ export default function Tree({
             ? { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 }
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile]);
+
+    const layoutSeedPositions = useMemo(() => {
+        if (!Array.isArray(courses) || courses.length === 0) {
+            return new Map();
+        }
+
+        const layoutNodes = courses.map((course) => ({
+            id: course.id.toString(),
+            position: { x: 0, y: 0 },
+            data: {
+                semester: parseInt(course.semester) || 1,
+                code: course.code || '',
+            },
+        }));
+
+        const layoutEdges = [];
+        courses.forEach((course) => {
+            course.prerequisites?.forEach((prereq) => {
+                layoutEdges.push({
+                    id: `layout-${prereq.id}-${course.id}`,
+                    source: prereq.id.toString(),
+                    target: course.id.toString(),
+                });
+            });
+        });
+
+        return new Map(
+            getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
+                .map((node) => [node.id, node.position])
+        );
+    }, [courses, nodeDimensions]);
+
+    useEffect(() => {
+        if (!Array.isArray(courses) || courses.length === 0) return;
+
+        const currentIds = new Set(courses.map((course) => course.id.toString()));
+
+        setNodePositions((prev) => {
+            const next = { ...prev };
+
+            courses.forEach((course) => {
+                const courseId = course.id.toString();
+                if (next[courseId]) return;
+
+                if (course.tree_position_x !== null && course.tree_position_x !== undefined && course.tree_position_y !== null && course.tree_position_y !== undefined) {
+                    next[courseId] = {
+                        x: Number(course.tree_position_x),
+                        y: Number(course.tree_position_y),
+                    };
+                    return;
+                }
+
+                const seeded = layoutSeedPositions.get(courseId);
+                if (seeded) {
+                    next[courseId] = seeded;
+                }
+            });
+
+            Object.keys(next).forEach((courseId) => {
+                if (!currentIds.has(courseId)) {
+                    delete next[courseId];
+                }
+            });
+
+            return next;
+        });
+    }, [courses, layoutSeedPositions]);
+
+    const saveNodePosition = useCallback(async (courseId, position) => {
+        if (!canEditTreePositions) return;
+
+        const normalizedPosition = {
+            x: Number(position?.x) || 0,
+            y: Number(position?.y) || 0,
+        };
+
+        setNodePositions((prev) => ({
+            ...prev,
+            [courseId.toString()]: normalizedPosition,
+        }));
+
+        try {
+            setSavingPositionId(courseId.toString());
+            await axios.post(route('admin.tree.positions'), {
+                course_id: courseId,
+                position_x: normalizedPosition.x,
+                position_y: normalizedPosition.y,
+            });
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'تعذر حفظ المكان',
+                text: error.response?.data?.message || 'حدث خطأ أثناء حفظ موضع المادة.',
+                ...swalTheme
+            });
+        } finally {
+            setSavingPositionId(null);
+        }
+    }, [canEditTreePositions]);
 
     useEffect(() => {
         const onResize = () => setViewportWidth(window.innerWidth);
@@ -609,16 +714,18 @@ export default function Tree({
                 </div>
             `;
 
+            const storedPosition = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
+
             initialNodes.push({
                 id: course.id.toString(),
-                position: { x: 0, y: 0 },
+                position: storedPosition,
                 style: { padding: 0, border: 'none', background: 'transparent', width: nodeWidth, height: nodeHeight },
                 data: {
                     label: <div dangerouslySetInnerHTML={{ __html: nodeHtml }} />,
                     semester: parseInt(course.semester) || 1,
                     code: course.code || ''
                 },
-                draggable: false,
+                draggable: canEditTreePositions && positionEditMode,
                 connectable: false,
             });
 
@@ -655,8 +762,8 @@ export default function Tree({
             }
         });
 
-        return { initialNodes: getLayoutedElements(initialNodes, initialEdges, 'TB', nodeDimensions), initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile]);
+        return { initialNodes, initialEdges };
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -699,6 +806,11 @@ export default function Tree({
         setActiveTab('details');
         if (window.innerWidth < 1024) setIsSidebarOpen(true);
     }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester]);
+
+    const onNodeDragStop = useCallback((event, node) => {
+        if (!canEditTreePositions || !positionEditMode) return;
+        saveNodePosition(node.id, node.position);
+    }, [canEditTreePositions, positionEditMode, saveNodePosition]);
 
     const handleTargetYearChange = (yearValue) => {
         const year = parseInt(yearValue, 10) || 1;
@@ -1722,6 +1834,14 @@ export default function Tree({
                             {[{ id: 'none', label: '🌐 الخطة كاملة', active: 'bg-white text-slate-900 shadow-sm' }, { id: 'available', label: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }, { id: 'critical', label: '🚨 المسار الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' }].map(f => (
                                 <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{f.label}</button>
                             ))}
+                            {canEditTreePositions && (
+                                <button
+                                    onClick={() => setPositionEditMode((prev) => !prev)}
+                                    className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 ${positionEditMode ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]' : 'bg-white text-slate-900 shadow-sm'}`}
+                                >
+                                    {positionEditMode ? '💾 وضع الترتيب مفعّل' : '🖱️ تعديل أماكن المواد'}
+                                </button>
+                            )}
                         </div>
 
                         {/* 🎨 دليل الألوان — قابل للطي */}
@@ -1748,7 +1868,7 @@ export default function Tree({
                             )}
                         </div>
 
-                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView fitViewOptions={{ padding: flowView.fitPadding, minZoom: flowView.minZoom, maxZoom: flowView.maxZoom }} minZoom={flowView.minZoom} maxZoom={flowView.maxZoom} translateExtent={translateExtent} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} selectionOnDrag={false} panOnDrag={true} panOnScroll={false} zoomOnPinch={true} zoomOnScroll={!isMobile} zoomOnDoubleClick={!isMobile} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
+                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onNodeDragStop={onNodeDragStop} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView fitViewOptions={{ padding: flowView.fitPadding, minZoom: flowView.minZoom, maxZoom: flowView.maxZoom }} minZoom={flowView.minZoom} maxZoom={flowView.maxZoom} translateExtent={translateExtent} nodesDraggable={canEditTreePositions && positionEditMode} nodesConnectable={false} elementsSelectable={true} selectionOnDrag={false} panOnDrag={true} panOnScroll={false} zoomOnPinch={true} zoomOnScroll={!isMobile} zoomOnDoubleClick={!isMobile} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
                             <Controls position="bottom-left" className={`hidden md:block border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
                             <Background
                                 color={isDark ? '#334155' : '#cbd5e1'}
@@ -1756,6 +1876,13 @@ export default function Tree({
                                 gap={28} size={1.2} variant="dots" opacity={0.6}
                             />
                         </ReactFlow>
+
+                        {canEditTreePositions && positionEditMode && (
+                            <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
+                                <span>🖱️ اسحب المواد لمواضعها ثم اتركها للحفظ</span>
+                                {savingPositionId && <span className="text-emerald-300">• حفظ...</span>}
+                            </div>
+                        )}
 
                         {isMobile && (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-slate-900/85 text-white/80 text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md pointer-events-none">

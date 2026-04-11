@@ -19,6 +19,8 @@ class Course extends Model
         'minimum_passed_hours',
         'type',
         'semester',
+        'tree_position_x',
+        'tree_position_y',
         'major_id',
         'study_plan_version',
         'description',

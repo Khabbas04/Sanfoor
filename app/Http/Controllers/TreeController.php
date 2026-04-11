@@ -44,6 +44,8 @@ class TreeController extends Controller
                 'courses.minimum_passed_hours',
                 'courses.type',
                 'courses.semester',
+                'courses.tree_position_x',
+                'courses.tree_position_y',
                 'courses.major_id',
                 'courses.study_plan_version',
                 'courses.description',
@@ -115,6 +117,35 @@ class TreeController extends Controller
             'major_name' => $user->major ? $user->major->name : 'غير محدد',
             'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
             'study_plan_version' => (int) ($user->study_plan_version ?? 12),
+        ]);
+    }
+
+    /**
+     * حفظ موضع المادة على الشجرة بعد السحب.
+     */
+    public function updatePosition(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->isAdminOrOwner(), 403);
+
+        $data = $request->validate([
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'position_x' => ['required', 'numeric'],
+            'position_y' => ['required', 'numeric'],
+        ]);
+
+        Course::where('id', $data['course_id'])->update([
+            'tree_position_x' => $data['position_x'],
+            'tree_position_y' => $data['position_y'],
+        ]);
+
+        return response()->json([
+            'status' => 'saved',
+            'course_id' => (int) $data['course_id'],
+            'position' => [
+                'x' => (float) $data['position_x'],
+                'y' => (float) $data['position_y'],
+            ],
         ]);
     }
 
