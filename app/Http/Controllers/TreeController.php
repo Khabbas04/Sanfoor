@@ -22,6 +22,13 @@ class TreeController extends Controller
         // 2. إجبار النظام على أخذ تخصص الطالب حصراً لمنع تداخل البيانات
         $selectedMajorId = $user->major_id;
         $selectedPlanVersion = (int) ($user->study_plan_version ?? 12);
+        $layoutMajorId = (int) ($selectedMajorId ?? 0);
+
+        $layoutPositions = DB::table('tree_course_positions')
+            ->where('major_id', $layoutMajorId)
+            ->where('study_plan_version', $selectedPlanVersion)
+            ->get()
+            ->keyBy('course_id');
 
         $courseStatsSubquery = DB::table('course_user')
             ->selectRaw('course_id')
@@ -79,6 +86,13 @@ class TreeController extends Controller
         }
 
         $courses = $query->get();
+        $courses->transform(function (Course $course) use ($layoutPositions) {
+            $position = $layoutPositions->get($course->id);
+            $course->tree_position_x = $position ? (float) $position->position_x : null;
+            $course->tree_position_y = $position ? (float) $position->position_y : null;
+
+            return $course;
+        });
 
         $totalPassedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
         $courses->transform(function (Course $course) {
@@ -128,20 +142,36 @@ class TreeController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
 
+        $layoutMajorId = (int) ($user->major_id ?? 0);
+        $layoutPlanVersion = (int) ($user->study_plan_version ?? 12);
+
         $data = $request->validate([
             'course_id' => ['required', 'integer', 'exists:courses,id'],
             'position_x' => ['required', 'numeric'],
             'position_y' => ['required', 'numeric'],
         ]);
 
-        Course::where('id', $data['course_id'])->update([
-            'tree_position_x' => $data['position_x'],
-            'tree_position_y' => $data['position_y'],
-        ]);
+        DB::table('tree_course_positions')->updateOrInsert(
+            [
+                'course_id' => $data['course_id'],
+                'major_id' => $layoutMajorId,
+                'study_plan_version' => $layoutPlanVersion,
+            ],
+            [
+                'position_x' => $data['position_x'],
+                'position_y' => $data['position_y'],
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
 
         return response()->json([
             'status' => 'saved',
             'course_id' => (int) $data['course_id'],
+            'scope' => [
+                'major_id' => $layoutMajorId,
+                'study_plan_version' => $layoutPlanVersion,
+            ],
             'position' => [
                 'x' => (float) $data['position_x'],
                 'y' => (float) $data['position_y'],
