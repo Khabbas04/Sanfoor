@@ -11,6 +11,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use App\Http\Controllers\Admin\AdminContactMessageController;
 use App\Http\Controllers\AdminCollegeController;
@@ -42,6 +43,11 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
+});
+
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/microsoft', [MicrosoftAuthController::class, 'redirectToMicrosoft'])->name('auth.microsoft.redirect');
+    Route::get('/auth/microsoft/callback', [MicrosoftAuthController::class, 'handleMicrosoftCallback'])->name('auth.microsoft.callback');
 });
 
 // Public legal pages.

@@ -4,8 +4,11 @@ namespace App\Providers;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Azure\AzureExtendSocialite;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register Microsoft Azure as a Socialite provider driver.
+        Event::listen(SocialiteWasCalled::class, AzureExtendSocialite::class.'@handle');
+
         // Prefetch Vite chunks to improve perceived frontend performance.
         Vite::prefetch(concurrency: 3);
 
