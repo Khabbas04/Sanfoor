@@ -9,9 +9,12 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
+use Throwable;
 
 class ProfileController extends Controller
 {
@@ -20,11 +23,28 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $colleges = collect();
+        $majors = collect();
+
+        try {
+            if (Schema::hasTable('colleges')) {
+                $colleges = College::query()->select('id', 'name')->orderBy('name')->get();
+            }
+
+            if (Schema::hasTable('majors')) {
+                $majors = Major::query()->select('id', 'college_id', 'name')->orderBy('name')->get();
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Failed loading profile academic lists', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
-            'colleges' => College::query()->select('id', 'name')->orderBy('name')->get(),
-            'majors' => Major::query()->select('id', 'college_id', 'name')->orderBy('name')->get(),
+            'colleges' => $colleges,
+            'majors' => $majors,
         ]);
     }
 
@@ -33,15 +53,40 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $validated = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        $fillablePayload = [
+            'name' => $validated['name'] ?? $user->name,
+            'email' => $validated['email'] ?? $user->email,
+        ];
+
+        if (Schema::hasColumn('users', 'major_id') && array_key_exists('major_id', $validated)) {
+            $fillablePayload['major_id'] = $validated['major_id'];
         }
 
-        $request->user()->save();
+        if (Schema::hasColumn('users', 'study_plan_version') && array_key_exists('study_plan_version', $validated)) {
+            $fillablePayload['study_plan_version'] = $validated['study_plan_version'];
+        }
 
-        return Redirect::route('profile.edit');
+        $user->fill($fillablePayload);
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        try {
+            $user->save();
+        } catch (Throwable $exception) {
+            Log::error('Profile update failed', [
+                'user_id' => $user->id,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return Redirect::route('profile.edit')->with('status', 'تعذر حفظ التعديلات حالياً. حاول مرة أخرى.');
+        }
+
+        return Redirect::route('profile.edit')->with('status', 'تم حفظ التعديلات بنجاح.');
     }
 
     /**
