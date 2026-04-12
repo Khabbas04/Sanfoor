@@ -4,19 +4,36 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { useMemo } from 'react';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
     status,
+    colleges = [],
+    majors = [],
     className = '',
 }) {
     const user = usePage().props.auth.user;
+
+    const initialCollegeId = String(
+        user?.major?.college_id
+        ?? majors.find((major) => String(major.id) === String(user.major_id))?.college_id
+        ?? ''
+    );
 
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             name: user.name,
             email: user.email,
+            college_id: initialCollegeId,
+            major_id: user.major_id ? String(user.major_id) : '',
+            study_plan_version: String(user.study_plan_version ?? 12),
         });
+
+    const filteredMajors = useMemo(
+        () => majors.filter((major) => String(major.college_id) === String(data.college_id)),
+        [majors, data.college_id]
+    );
 
     const submit = (e) => {
         e.preventDefault();
@@ -67,6 +84,63 @@ export default function UpdateProfileInformation({
                     />
 
                     <InputError className="mt-2" message={errors.email} />
+                </div>
+
+                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-4">
+                    <p className="text-sm font-black text-indigo-900">البيانات الأكاديمية</p>
+
+                    <div>
+                        <InputLabel htmlFor="college_id" value="الكلية" />
+                        <div className="relative mt-1">
+                            <select
+                                id="college_id"
+                                value={data.college_id}
+                                onChange={(e) => setData({ ...data, college_id: e.target.value, major_id: '' })}
+                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
+                            >
+                                <option value="">اختر الكلية</option>
+                                {colleges.map((college) => (
+                                    <option key={college.id} value={college.id}>{college.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <InputError className="mt-2" message={errors.college_id} />
+                    </div>
+
+                    <div>
+                        <InputLabel htmlFor="major_id" value="التخصص" />
+                        <div className="relative mt-1">
+                            <select
+                                id="major_id"
+                                value={data.major_id}
+                                onChange={(e) => setData('major_id', e.target.value)}
+                                disabled={!data.college_id}
+                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all disabled:bg-slate-100"
+                            >
+                                <option value="">{data.college_id ? 'اختر التخصص' : 'اختر الكلية أولاً'}</option>
+                                {filteredMajors.map((major) => (
+                                    <option key={major.id} value={major.id}>{major.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <InputError className="mt-2" message={errors.major_id} />
+                    </div>
+
+                    <div>
+                        <InputLabel htmlFor="study_plan_version" value="الخطة الدراسية" />
+                        <div className="relative mt-1">
+                            <select
+                                id="study_plan_version"
+                                value={data.study_plan_version}
+                                onChange={(e) => setData('study_plan_version', e.target.value)}
+                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
+                            >
+                                <option value="11">الخطة 11</option>
+                                <option value="12">الخطة 12</option>
+                            </select>
+                        </div>
+                        <InputError className="mt-2" message={errors.study_plan_version} />
+                    </div>
                 </div>
 
                 {mustVerifyEmail && user.email_verified_at === null && (

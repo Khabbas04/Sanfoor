@@ -17,23 +17,32 @@ class MicrosoftAuthController extends Controller
 {
     public function redirectToMicrosoft()
     {
-        return Socialite::driver('azure')->redirect();
+        return Socialite::driver('azure')
+            ->scopes(['openid', 'profile', 'email', 'User.Read'])
+            ->redirect();
     }
 
     public function handleMicrosoftCallback(Request $request)
     {
         try {
             $microsoftUser = Socialite::driver('azure')->stateless()->user();
+            $microsoftId = filled($microsoftUser->getId()) ? (string) $microsoftUser->getId() : null;
 
-            $email = strtolower((string) (
+            $email = strtolower(trim((string) (
                 $microsoftUser->getEmail()
                 ?? data_get($microsoftUser->user, 'mail')
                 ?? data_get($microsoftUser->user, 'userPrincipalName')
                 ?? data_get($microsoftUser->user, 'preferred_username')
-            ));
+            )));
 
-            if ($email === '' || !Str::endsWith($email, 'zu.edu.jo')) {
-                return redirect('/')->with('error', 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo');
+            $isZuDomain = (bool) preg_match('/@([a-z0-9-]+\.)*zu\.edu\.jo$/i', $email);
+
+            if ($email === '' || !$isZuDomain) {
+                return redirect()->route('login')->with([
+                    'message' => 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo',
+                    'type' => 'error',
+                    'status' => 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo',
+                ]);
             }
 
             $profileName = trim(implode(' ', array_filter([
@@ -49,34 +58,106 @@ class MicrosoftAuthController extends Controller
                 Str::before($email, '@'),
             ])->first(fn ($value) => filled($value));
 
-            $user = User::firstOrNew(['email' => $email]);
+            $columns = array_flip(Schema::getColumnListing('users'));
 
-            $user->name = $name;
-            $user->email_verified_at = now();
-            $user->last_login_at = now();
+            $knownEmails = collect([
+                $email,
+                strtolower((string) data_get($microsoftUser->user, 'userPrincipalName')),
+                strtolower((string) data_get($microsoftUser->user, 'preferred_username')),
+            ])->filter()->unique()->values();
 
-            if (Schema::hasColumn('users', 'microsoft_id')) {
-                $user->microsoft_id = (string) $microsoftUser->getId();
+            $user = null;
+
+            if (isset($columns['microsoft_id']) && filled($microsoftId)) {
+                $user = User::query()->where('microsoft_id', $microsoftId)->first();
             }
 
-            if (!$user->exists) {
+            if (!$user) {
+                foreach ($knownEmails as $knownEmail) {
+                    $candidate = User::query()
+                        ->whereRaw('LOWER(email) = ?', [strtolower($knownEmail)])
+                        ->first();
+
+                    if ($candidate) {
+                        $user = $candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (!$user) {
+                $username = strtolower(Str::before($email, '@'));
+
+                if (filled($username)) {
+                    $user = User::query()
+                        ->whereRaw('LOWER(email) LIKE ?', [$username.'@%zu.edu.jo'])
+                        ->orderByDesc('last_login_at')
+                        ->first();
+                }
+            }
+
+            if (!$user) {
+                $user = new User();
+                $user->email = $email;
+            }
+
+            if (isset($columns['name'])) {
+                $user->name = $name;
+            }
+
+            if (isset($columns['email_verified_at'])) {
+                $user->email_verified_at = now();
+            }
+
+            if (isset($columns['last_login_at'])) {
+                $user->last_login_at = now();
+            }
+
+            if (isset($columns['ip_address'])) {
+                $user->ip_address = $request->ip();
+            }
+
+            if (isset($columns['microsoft_id']) && filled($microsoftId)) {
+                $user->microsoft_id = $microsoftId;
+            }
+
+            if (!$user->exists && isset($columns['password'])) {
                 $user->password = Hash::make(Str::random(64));
-                $user->role = $user->role ?: 'student';
+            }
+
+            if (!$user->exists && isset($columns['role']) && blank($user->role)) {
+                $user->role = 'student';
+            }
+
+            if (!$user->exists && isset($columns['study_plan_version']) && blank($user->study_plan_version)) {
+                $user->study_plan_version = 12;
             }
 
             $user->save();
 
-            Auth::login($user, true);
+            Auth::guard('web')->login($user, true);
             $request->session()->regenerate();
+
+            if (blank($user->major_id)) {
+                return redirect()->route('profile.edit')->with([
+                    'status' => 'أكمل بياناتك الأكاديمية (الكلية والتخصص والخطة) لإظهار الخطة والمعدل والساعات.',
+                ]);
+            }
 
             return redirect()->route('dashboard');
         } catch (Throwable $exception) {
             Log::error('Microsoft login callback failed', [
                 'message' => $exception->getMessage(),
                 'exception' => $exception::class,
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
             ]);
 
-            return redirect()->route('login')->with('error', 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.');
+            return redirect()->route('login')->with([
+                'message' => 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.',
+                'type' => 'error',
+                'status' => 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.',
+            ]);
         }
     }
 }

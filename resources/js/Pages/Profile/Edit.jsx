@@ -4,7 +4,7 @@ import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 import { Head } from '@inertiajs/react';
 
-export default function Edit({ auth, mustVerifyEmail, status }) {
+export default function Edit({ auth, mustVerifyEmail, status, colleges, majors }) {
     return (
         <MainLayout user={auth.user}>
             <Head title="حسابي الشخصي - جامعة سنفور" />
@@ -20,6 +20,12 @@ export default function Edit({ auth, mustVerifyEmail, status }) {
                         <p className="text-slate-500 mt-2 font-medium text-sm md:text-base pr-2">
                             تحكم في بياناتك الشخصية، كلمة المرور، وإعدادات الأمان الخاصة بك بكل سهولة.
                         </p>
+
+                        {status && status !== 'verification-link-sent' && (
+                            <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-900">
+                                {status}
+                            </div>
+                        )}
                     </div>
 
                     {/* كرت المعلومات الشخصية */}
@@ -27,6 +33,8 @@ export default function Edit({ auth, mustVerifyEmail, status }) {
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
+                            colleges={colleges}
+                            majors={majors}
                             className="max-w-xl"
                         />
                     </div>
