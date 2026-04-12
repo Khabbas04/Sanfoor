@@ -5,6 +5,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Symfony\Component\DomCrawler\Crawler;
 use Throwable;
@@ -21,12 +22,15 @@ class UniversityScraperService
     /** @var array<int, string> */
     private array $coursesPaths;
 
+    private bool $debugMode = false;
+
     private bool $authenticated = false;
 
     public function __construct(?Client $client = null)
     {
         $baseUrl = rtrim((string) config('services.zu_portal.base_url', 'https://eservices.zu.edu.jo'), '/').'/';
         $verifyOption = $this->resolveSslVerifyOption();
+        $this->debugMode = (bool) config('services.zu_portal.debug', false);
 
         $this->loginPath = (string) config('services.zu_portal.login_path', '/StudentPortal2/Login/loginPage');
         $this->profilePaths = $this->normalizePaths((array) config('services.zu_portal.profile_paths', [
@@ -161,20 +165,50 @@ class UniversityScraperService
         ]);
 
         $crawler = new Crawler($html, $url);
+        $pageText = $this->cleanText(strip_tags($html));
 
         $name = $this->extractFieldByLabels($crawler, ['اسم الطالب', 'الاسم', 'Student Name', 'Name'])
-            ?? $this->extractFromSelectors($crawler, ['#studentName', '.student-name', '.name']);
+            ?? $this->extractFromSelectors($crawler, ['#studentName', '.student-name', '.name'])
+            ?? $this->extractFieldByInlineLabel($crawler, ['اسم الطالب', 'Student Name', 'Name'])
+            ?? $this->extractFromTextPatterns($pageText, [
+                '/(?:اسم\s*الطالب(?:\s*الرباعي)?|Student\s*Name)\s*[:：\-]?\s*([^\|]{2,120})/iu',
+            ]);
 
         $major = $this->extractFieldByLabels($crawler, ['التخصص', 'Major'])
-            ?? $this->extractFromSelectors($crawler, ['#major', '.student-major', '.major']);
+            ?? $this->extractFromSelectors($crawler, ['#major', '.student-major', '.major'])
+            ?? $this->extractFieldByInlineLabel($crawler, ['التخصص', 'البرنامج', 'Major', 'Program'])
+            ?? $this->extractFromTextPatterns($pageText, [
+                '/(?:التخصص|البرنامج|Major|Program)\s*[:：\-]?\s*([^\|]{2,120})/iu',
+            ]);
 
         $gpaRaw = $this->extractFieldByLabels($crawler, ['المعدل التراكمي', 'المعدل', 'GPA', 'CGPA'])
-            ?? $this->extractFromSelectors($crawler, ['#gpa', '.student-gpa', '.gpa']);
+            ?? $this->extractFromSelectors($crawler, ['#gpa', '.student-gpa', '.gpa'])
+            ?? $this->extractFieldByInlineLabel($crawler, ['المعدل التراكمي', 'المعدل', 'GPA', 'CGPA'])
+            ?? $this->extractFromTextPatterns($pageText, [
+                '/(?:المعدل\s*التراكمي|المعدل\s*العام|المعدل|GPA|CGPA)\s*[:：\-]?\s*([0-9٠-٩\.,٫،]{1,8})/iu',
+            ]);
+
+        $name = $this->sanitizeExtractedField($name, 80);
+        $major = $this->sanitizeExtractedField($major, 120);
+        $gpaRaw = $this->sanitizeExtractedField($gpaRaw, 24);
+
+        $gpa = $this->parseNumber($gpaRaw);
+        if ($gpa !== null && $gpa > 100) {
+            $gpa = null;
+        }
+
+        $this->logDebug('profile_extracted', [
+            'source_url' => $url,
+            'name' => $name,
+            'major' => $major,
+            'gpa_raw' => $gpaRaw,
+            'gpa' => $gpa,
+        ]);
 
         return [
             'name' => $name,
             'major' => $major,
-            'gpa' => $this->parseNumber($gpaRaw),
+            'gpa' => $gpa,
             'gpa_raw' => $gpaRaw,
         ];
     }
@@ -222,17 +256,18 @@ class UniversityScraperService
                 continue;
             }
 
-            $nameIndex = $headerMap['name'] ?? 0;
-            $gradeIndex = $headerMap['grade'] ?? max(0, $cells->count() - 2);
-            $creditsIndex = $headerMap['credits'] ?? max(0, $cells->count() - 1);
-
-            $courseName = $this->cleanText($cells->eq(min($nameIndex, $cells->count() - 1))->text(''));
-            if ($courseName === '') {
+            $rowText = $this->cleanText($rowCrawler->text(''));
+            if ($this->isSummaryText($rowText)) {
                 continue;
             }
 
-            $gradeRaw = $this->cleanText($cells->eq(min($gradeIndex, $cells->count() - 1))->text(''));
-            $creditsRaw = $this->cleanText($cells->eq(min($creditsIndex, $cells->count() - 1))->text(''));
+            $courseName = $this->extractCourseNameFromRow($cells, $headerMap);
+            if (!$this->isLikelyCourseName($courseName)) {
+                continue;
+            }
+
+            $gradeRaw = $this->extractLikelyGradeRaw($cells, $headerMap);
+            $creditsRaw = $this->extractLikelyCreditsRaw($cells, $headerMap);
 
             $courses[] = [
                 'course_name' => $courseName,
@@ -241,6 +276,12 @@ class UniversityScraperService
                 'credits' => $this->parseNumber($creditsRaw),
             ];
         }
+
+        $this->logDebug('courses_extracted', [
+            'headers' => $headerMap,
+            'count' => count($courses),
+            'sample' => array_slice($courses, 0, 5),
+        ]);
 
         return $courses;
     }
@@ -252,6 +293,10 @@ class UniversityScraperService
      */
     private function fetchFromCandidates(array $paths, array $keywords = []): array
     {
+        $bestHtml = null;
+        $bestUrl = null;
+        $bestScore = -1;
+
         $lastHtml = null;
         $lastUrl = null;
 
@@ -261,24 +306,39 @@ class UniversityScraperService
             try {
                 $html = $this->requestBody($path);
                 $text = mb_strtolower($this->cleanText(strip_tags($html)));
-                $matchesKeywords = empty($keywords);
+                $score = 0;
 
                 foreach ($keywords as $keyword) {
                     if (str_contains($text, mb_strtolower($keyword))) {
-                        $matchesKeywords = true;
-                        break;
+                        $score++;
                     }
                 }
 
                 $lastHtml = $html;
                 $lastUrl = $absolute;
 
-                if ($matchesKeywords) {
-                    return [$html, $absolute];
+                if (empty($keywords)) {
+                    $score = max($score, 1);
                 }
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestHtml = $html;
+                    $bestUrl = $absolute;
+                }
+
+                $this->logDebug('candidate_page_checked', [
+                    'path' => $path,
+                    'absolute' => $absolute,
+                    'score' => $score,
+                ]);
             } catch (Throwable) {
                 continue;
             }
+        }
+
+        if ($bestHtml !== null && $bestUrl !== null && $bestScore > 0) {
+            return [$bestHtml, $bestUrl];
         }
 
         if ($lastHtml !== null && $lastUrl !== null) {
@@ -354,6 +414,9 @@ class UniversityScraperService
 
     private function detectCoursesTable(Crawler $crawler): ?Crawler
     {
+        $bestTable = null;
+        $bestScore = -1;
+
         foreach ($crawler->filter('table') as $tableNode) {
             $table = new Crawler($tableNode);
             $headers = $table->filter('th');
@@ -363,16 +426,44 @@ class UniversityScraperService
                 $headerText = mb_strtolower($this->cleanText(implode(' ', $headers->each(
                     fn (Crawler $th) => $th->text('')
                 ))));
+            } elseif ($table->filter('tr')->count()) {
+                $headerText = mb_strtolower($this->cleanText($table->filter('tr')->first()->text('')));
             }
 
-            if (
-                str_contains($headerText, 'المادة')
-                || str_contains($headerText, 'علامة')
-                || str_contains($headerText, 'grade')
-                || str_contains($headerText, 'credit')
-            ) {
-                return $table;
+            $score = 0;
+            if ($this->containsAny($headerText, ['المادة', 'المساق', 'المقرر', 'course', 'subject'])) {
+                $score += 4;
             }
+            if ($this->containsAny($headerText, ['علامة', 'درجة', 'تقدير', 'grade', 'mark'])) {
+                $score += 3;
+            }
+            if ($this->containsAny($headerText, ['ساع', 'معتمدة', 'credit', 'hour'])) {
+                $score += 3;
+            }
+            if ($this->containsAny($headerText, ['خطة', 'plan'])) {
+                $score += 1;
+            }
+
+            if ($table->filter('tr')->count() >= 3) {
+                $score += 1;
+            }
+            if ($table->filter('td')->count() >= 10) {
+                $score += 1;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestTable = $table;
+            }
+
+            $this->logDebug('courses_table_scored', [
+                'score' => $score,
+                'header_text' => $headerText,
+            ]);
+        }
+
+        if ($bestTable && $bestScore > 0) {
+            return $bestTable;
         }
 
         if ($crawler->filter('table')->count()) {
@@ -383,7 +474,7 @@ class UniversityScraperService
     }
 
     /**
-     * @return array{name:?int,grade:?int,credits:?int}
+        * @return array{name:?int,code:?int,grade:?int,credits:?int}
      */
     private function resolveHeaderMap(Crawler $table): array
     {
@@ -394,6 +485,7 @@ class UniversityScraperService
 
         $map = [
             'name' => null,
+            'code' => null,
             'grade' => null,
             'credits' => null,
         ];
@@ -401,15 +493,52 @@ class UniversityScraperService
         foreach ($headers as $index => $header) {
             $text = mb_strtolower($this->cleanText($header->textContent ?? ''));
 
-            if ($map['name'] === null && (str_contains($text, 'المادة') || str_contains($text, 'course'))) {
+            if ($map['name'] === null && $this->containsAny($text, [
+                'المادة',
+                'اسم المادة',
+                'المساق',
+                'اسم المساق',
+                'المقرر',
+                'course',
+                'course name',
+                'subject',
+            ])) {
                 $map['name'] = $index;
             }
 
-            if ($map['grade'] === null && (str_contains($text, 'علامة') || str_contains($text, 'grade') || str_contains($text, 'mark'))) {
+            if ($map['code'] === null && $this->containsAny($text, [
+                'الرمز',
+                'رمز',
+                'كود',
+                'رقم المادة',
+                'course code',
+                'code',
+            ])) {
+                $map['code'] = $index;
+            }
+
+            if ($map['grade'] === null && $this->containsAny($text, [
+                'علامة',
+                'العلامة',
+                'درجة',
+                'الدرجة',
+                'تقدير',
+                'grade',
+                'mark',
+                'result',
+            ])) {
                 $map['grade'] = $index;
             }
 
-            if ($map['credits'] === null && (str_contains($text, 'ساع') || str_contains($text, 'credit') || str_contains($text, 'hour'))) {
+            if ($map['credits'] === null && $this->containsAny($text, [
+                'ساع',
+                'عدد الساعات',
+                'معتمدة',
+                'credit',
+                'hours',
+                'hour',
+                'cr',
+            ])) {
                 $map['credits'] = $index;
             }
         }
@@ -464,6 +593,238 @@ class UniversityScraperService
         return null;
     }
 
+    /**
+     * @param array<int, string> $needles
+     */
+    private function containsAny(string $haystack, array $needles): bool
+    {
+        $normalizedHaystack = mb_strtolower($haystack);
+
+        foreach ($needles as $needle) {
+            if (str_contains($normalizedHaystack, mb_strtolower($needle))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<int, string> $labels
+     */
+    private function extractFieldByInlineLabel(Crawler $crawler, array $labels): ?string
+    {
+        foreach ($labels as $label) {
+            $literal = $this->toXpathLiteral($label);
+            $nodes = $crawler->filterXPath("//*[self::li or self::div or self::span or self::p or self::td or self::th][contains(normalize-space(.), {$literal})]");
+
+            foreach ($nodes as $node) {
+                $text = $this->cleanText($node->textContent ?? '');
+                if ($text === '' || mb_strlen($text) > 180) {
+                    continue;
+                }
+
+                $value = $this->extractValueAfterLabel($text, $label);
+                if ($value !== null && $value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractValueAfterLabel(string $text, string $label): ?string
+    {
+        $escapedLabel = preg_quote($label, '/');
+
+        if (preg_match('/'.$escapedLabel.'\s*[:：\-]\s*(.+)$/iu', $text, $matches)) {
+            $value = $this->cleanText($matches[1] ?? '');
+            return $value !== '' ? $value : null;
+        }
+
+        if (preg_match('/'.$escapedLabel.'\s+(.+)$/iu', $text, $matches)) {
+            $value = $this->cleanText($matches[1] ?? '');
+            return $value !== '' ? $value : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<int, string> $patterns
+     */
+    private function extractFromTextPatterns(string $text, array $patterns): ?string
+    {
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                $value = $this->cleanText($matches[1] ?? '');
+                if ($value !== '') {
+                    return $value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{name:?int,code:?int,grade:?int,credits:?int} $headerMap
+     */
+    private function extractCourseNameFromRow(Crawler $cells, array $headerMap): string
+    {
+        $texts = [];
+
+        for ($i = 0; $i < $cells->count(); $i++) {
+            $texts[$i] = $this->cleanText($cells->eq($i)->text(''));
+        }
+
+        $preferredIndices = [];
+        if (($headerMap['name'] ?? null) !== null) {
+            $preferredIndices[] = (int) $headerMap['name'];
+        }
+        if (($headerMap['code'] ?? null) !== null) {
+            $preferredIndices[] = (int) $headerMap['code'];
+        }
+
+        foreach ($preferredIndices as $index) {
+            if (!array_key_exists($index, $texts)) {
+                continue;
+            }
+
+            if ($this->isLikelyCourseName($texts[$index])) {
+                return $texts[$index];
+            }
+        }
+
+        $candidates = array_values(array_filter($texts, fn (string $text) => $this->isLikelyCourseName($text)));
+        if (!empty($candidates)) {
+            usort($candidates, fn (string $a, string $b) => mb_strlen($b) <=> mb_strlen($a));
+            return $candidates[0];
+        }
+
+        foreach ($texts as $text) {
+            if ($text !== '' && !$this->isSummaryText($text)) {
+                return $text;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array{name:?int,code:?int,grade:?int,credits:?int} $headerMap
+     */
+    private function extractLikelyGradeRaw(Crawler $cells, array $headerMap): string
+    {
+        if (($headerMap['grade'] ?? null) !== null) {
+            $index = min((int) $headerMap['grade'], $cells->count() - 1);
+            $value = $this->cleanText($cells->eq($index)->text(''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        for ($i = 0; $i < $cells->count(); $i++) {
+            $value = $this->cleanText($cells->eq($i)->text(''));
+            if ($this->looksLikeGradeToken($value)) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array{name:?int,code:?int,grade:?int,credits:?int} $headerMap
+     */
+    private function extractLikelyCreditsRaw(Crawler $cells, array $headerMap): string
+    {
+        if (($headerMap['credits'] ?? null) !== null) {
+            $index = min((int) $headerMap['credits'], $cells->count() - 1);
+            $value = $this->cleanText($cells->eq($index)->text(''));
+            $number = $this->parseNumber($value);
+            if ($value !== '' && $number !== null && $number >= 0 && $number <= 25) {
+                return $value;
+            }
+        }
+
+        for ($i = 0; $i < $cells->count(); $i++) {
+            $value = $this->cleanText($cells->eq($i)->text(''));
+            $number = $this->parseNumber($value);
+
+            if ($number !== null && $number >= 0 && $number <= 25 && !$this->looksLikeGradeToken($value)) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function isLikelyCourseName(string $value): bool
+    {
+        $text = $this->cleanText($value);
+        if ($text === '' || mb_strlen($text) < 2) {
+            return false;
+        }
+
+        if ($this->isSummaryText($text) || $this->looksLikeGradeToken($text)) {
+            return false;
+        }
+
+        if (preg_match('/^[0-9٠-٩\.,٫،\s]+$/u', $text)) {
+            return false;
+        }
+
+        if (preg_match('/^[A-Za-z0-9\-\/]+$/', $text) && mb_strlen($text) <= 12) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function isSummaryText(string $value): bool
+    {
+        return $this->containsAny($value, [
+            'المجموع',
+            'الاجمالي',
+            'الإجمالي',
+            'الساعات المجتازة',
+            'المعدل',
+            'gpa',
+            'cgpa',
+            'total',
+            'summary',
+        ]);
+    }
+
+    private function looksLikeGradeToken(string $value): bool
+    {
+        $text = mb_strtolower($this->cleanText($value));
+        if ($text === '') {
+            return false;
+        }
+
+        if (preg_match('/^(?:a\+?|b\+?|c\+?|d\+?|f|p|np|pass|fail|ناجح|راسب|مقبول|جيد|جيد جدا|ممتاز)$/iu', $text)) {
+            return true;
+        }
+
+        $number = $this->parseNumber($text);
+        return $number !== null && $number >= 0 && $number <= 100;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function logDebug(string $event, array $context = []): void
+    {
+        if (!$this->debugMode) {
+            return;
+        }
+
+        Log::info('ZU portal scraper: '.$event, $context);
+    }
+
     private function cleanText(?string $text): string
     {
         if ($text === null) {
@@ -474,6 +835,24 @@ class UniversityScraperService
         $decoded = str_replace(["\u{00A0}", "\u{200F}", "\u{200E}"], ' ', $decoded);
 
         return trim(preg_replace('/\s+/u', ' ', $decoded) ?? '');
+    }
+
+    private function sanitizeExtractedField(?string $value, int $maxLength): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $clean = $this->cleanText($value);
+        if ($clean === '') {
+            return null;
+        }
+
+        if (mb_strlen($clean) > $maxLength) {
+            $clean = mb_substr($clean, 0, $maxLength);
+        }
+
+        return $clean;
     }
 
     private function parseNumber(?string $text): ?float

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 class PortalSyncController extends Controller
@@ -35,12 +36,43 @@ class PortalSyncController extends Controller
             $studentData = $scraper->getStudentData();
             $courses = $scraper->getCourses();
 
+            $hasProfileData = filled($studentData['name'] ?? null)
+                || filled($studentData['major'] ?? null)
+                || (($studentData['gpa'] ?? null) !== null);
+
+            if (!$hasProfileData && count($courses) === 0) {
+                throw new RuntimeException('تم تسجيل الدخول إلى البوابة، لكن تعذر قراءة بيانات الطالب والمواد. غالباً شكل الصفحة تغيّر ويحتاج تحديث parser.');
+            }
+
+            if ((bool) config('services.zu_portal.debug', false)) {
+                Log::info('Portal sync extraction summary', [
+                    'user_id' => $user->id,
+                    'student' => $studentData,
+                    'courses_count' => count($courses),
+                    'courses_sample' => array_slice($courses, 0, 5),
+                ]);
+            }
+
             DB::transaction(function () use ($user, $validated, $studentData, $courses): void {
                 $this->syncUserAcademicProfile($user, $validated['student_id'], $studentData, $courses);
                 $this->syncPassedCourses($user, $courses);
             });
 
             $message = 'تمت مزامنة بيانات بوابة الجامعة بنجاح.';
+            $missingParts = [];
+            if (blank($studentData['major'] ?? null)) {
+                $missingParts[] = 'التخصص';
+            }
+            if (($studentData['gpa'] ?? null) === null) {
+                $missingParts[] = 'المعدل';
+            }
+            if (count($courses) === 0) {
+                $missingParts[] = 'المواد';
+            }
+
+            if (!empty($missingParts)) {
+                $message .= ' (ملاحظة: لم يتم العثور على '.implode(' و', $missingParts).' في الصفحة الحالية.)';
+            }
 
             if ($request->expectsJson()) {
                 return response()->json([
