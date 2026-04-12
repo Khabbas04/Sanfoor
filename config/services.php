@@ -60,7 +60,15 @@ return [
         'debug' => filter_var(env('ZU_PORTAL_DEBUG', false), FILTER_VALIDATE_BOOL),
         'profile_paths' => array_filter(array_map('trim', explode(',', env(
             'ZU_PORTAL_PROFILE_PATHS',
-            '/StudentPortal2/Home/UniversityDegree,/StudentPortal2/Home/HomePage,/StudentPortal2/Student/Profile,/StudentPortal2/StudentPortal/profile,/StudentPortal2/Student/Main/profile'
+            '/StudentPortal2/Home/HomePage,/StudentPortal2/Home/UniversityDegree,/StudentPortal2/Student/Profile,/StudentPortal2/StudentPortal/profile,/StudentPortal2/Student/Main/profile'
+        )))),
+        'marks_paths' => array_filter(array_map('trim', explode(',', env(
+            'ZU_PORTAL_MARKS_PATHS',
+            '/StudentPortal2/Marks/marks'
+        )))),
+        'schedule_paths' => array_filter(array_map('trim', explode(',', env(
+            'ZU_PORTAL_SCHEDULE_PATHS',
+            '/StudentPortal2/Home/stSchedule'
         )))),
         'courses_paths' => array_filter(array_map('trim', explode(',', env(
             'ZU_PORTAL_COURSES_PATHS',

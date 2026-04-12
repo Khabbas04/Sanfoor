@@ -22,6 +22,12 @@ class UniversityScraperService
     /** @var array<int, string> */
     private array $coursesPaths;
 
+    /** @var array<int, string> */
+    private array $marksPaths;
+
+    /** @var array<int, string> */
+    private array $schedulePaths;
+
     private bool $debugMode = false;
 
     private bool $authenticated = false;
@@ -34,11 +40,17 @@ class UniversityScraperService
 
         $this->loginPath = (string) config('services.zu_portal.login_path', '/StudentPortal2/Login/loginPage');
         $this->profilePaths = $this->normalizePaths((array) config('services.zu_portal.profile_paths', [
-            '/StudentPortal2/Home/UniversityDegree',
             '/StudentPortal2/Home/HomePage',
+            '/StudentPortal2/Home/UniversityDegree',
             '/StudentPortal2/Student/Profile',
             '/StudentPortal2/StudentPortal/profile',
             '/StudentPortal2/Student/Main/profile',
+        ]));
+        $this->marksPaths = $this->normalizePaths((array) config('services.zu_portal.marks_paths', [
+            '/StudentPortal2/Marks/marks',
+        ]));
+        $this->schedulePaths = $this->normalizePaths((array) config('services.zu_portal.schedule_paths', [
+            '/StudentPortal2/Home/stSchedule',
         ]));
         $this->coursesPaths = $this->normalizePaths((array) config('services.zu_portal.courses_paths', [
             '/StudentPortal2/Plans/studentPlan',
@@ -216,22 +228,157 @@ class UniversityScraperService
     /**
      * Scrape passed courses table from the portal.
      *
-     * @return array<int, array{course_name:string, grade:?float, grade_raw:?string, credits:?float}>
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
      */
-    public function getCourses(): array
+    public function getCourses(?string $academicYear = null, ?string $academicTerm = null): array
     {
         $this->ensureAuthenticated();
 
-        [$html, $url] = $this->fetchFromCandidates($this->coursesPaths, [
-            'المواد',
-            'الخطة',
-            'الخطة الدراسية',
-            'الساعات',
-            'العلامة',
-            'Course',
-            'Plan',
+        $normalizedYear = $this->cleanText($academicYear ?? '');
+        $normalizedTerm = $this->normalizeAcademicTerm($academicTerm);
+
+        $marksCourses = $this->extractCoursesFromCandidates(
+            $this->marksPaths,
+            ['العلامة', 'الدرجة', 'Marks', 'Grade', 'Result', 'المساق', 'المادة'],
+            $normalizedYear,
+            $normalizedTerm
+        );
+
+        $planCourses = $this->extractCoursesFromCandidates(
+            $this->coursesPaths,
+            ['المواد', 'الخطة', 'الخطة الدراسية', 'الساعات', 'Course', 'Plan'],
+            $normalizedYear,
+            $normalizedTerm
+        );
+
+        $scheduleCourses = $this->extractCoursesFromCandidates(
+            $this->schedulePaths,
+            ['الجدول', 'الشعبة', 'المساق', 'Schedule', 'Section', 'Time'],
+            $normalizedYear,
+            $normalizedTerm
+        );
+
+        $merged = $this->mergeCourses($marksCourses, $planCourses, $scheduleCourses);
+
+        $this->logDebug('courses_merged', [
+            'academic_year' => $normalizedYear,
+            'academic_term' => $normalizedTerm,
+            'marks_count' => count($marksCourses),
+            'plan_count' => count($planCourses),
+            'schedule_count' => count($scheduleCourses),
+            'final_count' => count($merged),
+            'sample' => array_slice($merged, 0, 8),
         ]);
 
+        return $merged;
+    }
+
+    /**
+     * @param array<int, string> $paths
+     * @param array<int, string> $keywords
+     * @return array{0:string,1:string}
+     */
+    private function fetchFromCandidates(
+        array $paths,
+        array $keywords = [],
+        ?string $academicYear = null,
+        ?string $academicTerm = null
+    ): array
+    {
+        $bestHtml = null;
+        $bestUrl = null;
+        $bestScore = -1;
+
+        $lastHtml = null;
+        $lastUrl = null;
+
+        foreach ($paths as $path) {
+            $absolute = $this->toAbsoluteUrl($path);
+
+            try {
+                $html = $this->requestBody($path);
+
+                if (filled($academicYear) || filled($academicTerm)) {
+                    $html = $this->applyAcademicSelection($html, $absolute, $academicYear, $academicTerm);
+                }
+
+                $text = mb_strtolower($this->cleanText(strip_tags($html)));
+                $score = 0;
+
+                foreach ($keywords as $keyword) {
+                    if (str_contains($text, mb_strtolower($keyword))) {
+                        $score++;
+                    }
+                }
+
+                $lastHtml = $html;
+                $lastUrl = $absolute;
+
+                if (empty($keywords)) {
+                    $score = max($score, 1);
+                }
+
+                $score += $this->scoreAcademicContext($text, $academicYear, $academicTerm);
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestHtml = $html;
+                    $bestUrl = $absolute;
+                }
+
+                $this->logDebug('candidate_page_checked', [
+                    'path' => $path,
+                    'absolute' => $absolute,
+                    'score' => $score,
+                    'academic_year' => $academicYear,
+                    'academic_term' => $academicTerm,
+                ]);
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        if ($bestHtml !== null && $bestUrl !== null && $bestScore > 0) {
+            return [$bestHtml, $bestUrl];
+        }
+
+        if ($lastHtml !== null && $lastUrl !== null) {
+            return [$lastHtml, $lastUrl];
+        }
+
+        throw new RuntimeException('Unable to locate the target portal page after login.');
+    }
+
+    /**
+     * @param array<int, string> $paths
+     * @param array<int, string> $keywords
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
+     */
+    private function extractCoursesFromCandidates(
+        array $paths,
+        array $keywords,
+        ?string $academicYear,
+        ?string $academicTerm
+    ): array {
+        try {
+            [$html, $url] = $this->fetchFromCandidates($paths, $keywords, $academicYear, $academicTerm);
+
+            return $this->extractCoursesFromHtml($html, $url);
+        } catch (Throwable $exception) {
+            $this->logDebug('courses_source_failed', [
+                'paths' => $paths,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
+     */
+    private function extractCoursesFromHtml(string $html, string $url): array
+    {
         $crawler = new Crawler($html, $url);
         $table = $this->detectCoursesTable($crawler);
 
@@ -266,11 +413,13 @@ class UniversityScraperService
                 continue;
             }
 
+            $courseCode = $this->extractLikelyCodeRaw($cells, $headerMap);
             $gradeRaw = $this->extractLikelyGradeRaw($cells, $headerMap);
             $creditsRaw = $this->extractLikelyCreditsRaw($cells, $headerMap);
 
             $courses[] = [
                 'course_name' => $courseName,
+                'course_code' => $courseCode !== '' ? $courseCode : null,
                 'grade' => $this->parseNumber($gradeRaw),
                 'grade_raw' => $gradeRaw !== '' ? $gradeRaw : null,
                 'credits' => $this->parseNumber($creditsRaw),
@@ -278,74 +427,402 @@ class UniversityScraperService
         }
 
         $this->logDebug('courses_extracted', [
+            'url' => $url,
             'headers' => $headerMap,
             'count' => count($courses),
-            'sample' => array_slice($courses, 0, 5),
+            'sample' => array_slice($courses, 0, 6),
         ]);
 
         return $courses;
     }
 
     /**
-     * @param array<int, string> $paths
-     * @param array<int, string> $keywords
-     * @return array{0:string,1:string}
+     * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}> ...$courseSets
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
      */
-    private function fetchFromCandidates(array $paths, array $keywords = []): array
+    private function mergeCourses(array ...$courseSets): array
     {
-        $bestHtml = null;
-        $bestUrl = null;
-        $bestScore = -1;
+        $merged = [];
 
-        $lastHtml = null;
-        $lastUrl = null;
-
-        foreach ($paths as $path) {
-            $absolute = $this->toAbsoluteUrl($path);
-
-            try {
-                $html = $this->requestBody($path);
-                $text = mb_strtolower($this->cleanText(strip_tags($html)));
-                $score = 0;
-
-                foreach ($keywords as $keyword) {
-                    if (str_contains($text, mb_strtolower($keyword))) {
-                        $score++;
-                    }
+        foreach ($courseSets as $courseSet) {
+            foreach ($courseSet as $course) {
+                $key = $this->courseIdentityKey($course);
+                if ($key === null) {
+                    continue;
                 }
 
-                $lastHtml = $html;
-                $lastUrl = $absolute;
-
-                if (empty($keywords)) {
-                    $score = max($score, 1);
+                if (!isset($merged[$key])) {
+                    $merged[$key] = $course;
+                    continue;
                 }
 
-                if ($score > $bestScore) {
-                    $bestScore = $score;
-                    $bestHtml = $html;
-                    $bestUrl = $absolute;
+                $current = $merged[$key];
+
+                if (blank($current['course_code'] ?? null) && filled($course['course_code'] ?? null)) {
+                    $current['course_code'] = $course['course_code'];
                 }
 
-                $this->logDebug('candidate_page_checked', [
-                    'path' => $path,
-                    'absolute' => $absolute,
-                    'score' => $score,
-                ]);
-            } catch (Throwable) {
-                continue;
+                if (($current['grade'] ?? null) === null && ($course['grade'] ?? null) !== null) {
+                    $current['grade'] = $course['grade'];
+                    $current['grade_raw'] = $course['grade_raw'] ?? null;
+                }
+
+                if (($current['credits'] ?? null) === null && ($course['credits'] ?? null) !== null) {
+                    $current['credits'] = $course['credits'];
+                }
+
+                if (mb_strlen((string) ($course['course_name'] ?? '')) > mb_strlen((string) ($current['course_name'] ?? ''))) {
+                    $current['course_name'] = (string) $course['course_name'];
+                }
+
+                $merged[$key] = $current;
             }
         }
 
-        if ($bestHtml !== null && $bestUrl !== null && $bestScore > 0) {
-            return [$bestHtml, $bestUrl];
+        return array_values($merged);
+    }
+
+    /**
+     * @param array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float} $course
+     */
+    private function courseIdentityKey(array $course): ?string
+    {
+        $normalizedCode = $this->normalizeCourseCode($course['course_code'] ?? null);
+        if ($normalizedCode !== '') {
+            return 'code:'.$normalizedCode;
         }
 
-        if ($lastHtml !== null && $lastUrl !== null) {
-            return [$lastHtml, $lastUrl];
+        $normalizedName = $this->normalizeCourseNameKey((string) ($course['course_name'] ?? ''));
+        if ($normalizedName !== '') {
+            return 'name:'.$normalizedName;
         }
 
-        throw new RuntimeException('Unable to locate the target portal page after login.');
+        return null;
+    }
+
+    private function normalizeCourseCode(?string $value): string
+    {
+        $clean = $this->toWesternDigits($this->cleanText($value));
+        if ($clean === '') {
+            return '';
+        }
+
+        $clean = mb_strtoupper($clean);
+        $clean = preg_replace('/[^A-Z0-9]/', '', $clean) ?? '';
+
+        return $clean;
+    }
+
+    private function normalizeCourseNameKey(string $value): string
+    {
+        $clean = mb_strtolower($this->cleanText($value));
+        if ($clean === '') {
+            return '';
+        }
+
+        $clean = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $clean) ?? '';
+        $clean = preg_replace('/\s+/u', ' ', $clean) ?? '';
+
+        return trim($clean);
+    }
+
+    private function normalizeAcademicTerm(?string $term): string
+    {
+        $clean = mb_strtolower($this->cleanText($term));
+        if ($clean === '') {
+            return '';
+        }
+
+        $numeric = $this->parseNumber($clean);
+        if ($numeric !== null && in_array((int) round($numeric), [1, 2, 3], true)) {
+            return (string) (int) round($numeric);
+        }
+
+        if ($this->containsAny($clean, ['اول', 'الأول', 'first', '1st'])) {
+            return '1';
+        }
+        if ($this->containsAny($clean, ['ثاني', 'الثاني', 'second', '2nd'])) {
+            return '2';
+        }
+        if ($this->containsAny($clean, ['صيف', 'summer', 'third', '3rd'])) {
+            return '3';
+        }
+
+        return $clean;
+    }
+
+    private function scoreAcademicContext(string $pageText, ?string $academicYear, ?string $academicTerm): int
+    {
+        $score = 0;
+
+        $normalizedText = mb_strtolower($this->toWesternDigits($pageText));
+
+        $year = $this->cleanText($academicYear);
+        if ($year !== '') {
+            $yearDigits = preg_replace('/\D+/', '', $this->toWesternDigits($year)) ?? '';
+            $textDigits = preg_replace('/\D+/', '', $normalizedText) ?? '';
+
+            if ($yearDigits !== '' && str_contains($textDigits, $yearDigits)) {
+                $score += 2;
+            } elseif (str_contains($normalizedText, mb_strtolower($year))) {
+                $score += 1;
+            }
+        }
+
+        $term = $this->normalizeAcademicTerm($academicTerm);
+        if ($term !== '' && $this->matchesAcademicTermInText($normalizedText, $term)) {
+            $score += 2;
+        }
+
+        return $score;
+    }
+
+    private function matchesAcademicTermInText(string $pageText, string $term): bool
+    {
+        $tokens = $this->academicTermTokens($term);
+
+        foreach ($tokens as $token) {
+            if ($this->containsToken($pageText, mb_strtolower($token))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function academicTermTokens(string $term): array
+    {
+        return match ($term) {
+            '1' => ['1', '01', 'اول', 'الأول', 'الفصل الاول', 'first', '1st'],
+            '2' => ['2', '02', 'ثاني', 'الثاني', 'الفصل الثاني', 'second', '2nd'],
+            '3' => ['3', '03', 'صيفي', 'فصل صيفي', 'summer', 'third', '3rd'],
+            default => [$term],
+        };
+    }
+
+    private function applyAcademicSelection(
+        string $html,
+        string $pageUrl,
+        ?string $academicYear,
+        ?string $academicTerm
+    ): string {
+        $year = $this->cleanText($academicYear);
+        $term = $this->normalizeAcademicTerm($academicTerm);
+
+        if ($year === '' && $term === '') {
+            return $html;
+        }
+
+        try {
+            $crawler = new Crawler($html, $pageUrl);
+
+            foreach ($crawler->filter('form') as $formNode) {
+                $form = new Crawler($formNode, $pageUrl);
+                $selection = $this->buildAcademicSelectionPayload($form, $year, $term);
+
+                if (!($selection['has_filters'] ?? false)) {
+                    continue;
+                }
+
+                $fields = (array) ($selection['fields'] ?? []);
+                $actionRaw = trim((string) ($form->attr('action') ?? $pageUrl));
+                $actionUrl = $this->resolveUrl($actionRaw, $pageUrl);
+                $method = strtoupper(trim((string) ($form->attr('method') ?? 'GET')));
+
+                $options = [
+                    'headers' => [
+                        'Referer' => $pageUrl,
+                        'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    ],
+                ];
+
+                if ($method === 'GET') {
+                    $options['query'] = $fields;
+                    $response = $this->client->get($actionUrl, $options);
+                } else {
+                    $options['form_params'] = $fields;
+                    $response = $this->client->post($actionUrl, $options);
+                }
+
+                $status = $response->getStatusCode();
+                if ($status >= 200 && $status < 400) {
+                    $filteredHtml = (string) $response->getBody();
+                    $this->logDebug('academic_selection_applied', [
+                        'page' => $pageUrl,
+                        'action' => $actionUrl,
+                        'method' => $method,
+                        'status' => $status,
+                        'year_field' => $selection['year_field'] ?? null,
+                        'term_field' => $selection['term_field'] ?? null,
+                    ]);
+
+                    return $filteredHtml;
+                }
+            }
+        } catch (Throwable $exception) {
+            $this->logDebug('academic_selection_failed', [
+                'page' => $pageUrl,
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
+        return $html;
+    }
+
+    /**
+     * @return array{has_filters:bool,fields:array<string,string>,year_field:?string,term_field:?string}
+     */
+    private function buildAcademicSelectionPayload(Crawler $form, string $year, string $term): array
+    {
+        $fields = [];
+
+        foreach ($form->filter('input[type="hidden"][name]') as $input) {
+            $name = trim((string) ($input->getAttribute('name') ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $fields[$name] = (string) ($input->getAttribute('value') ?? '');
+        }
+
+        $fieldNames = [];
+        foreach ($form->filter('[name]') as $node) {
+            $name = trim((string) ($node->getAttribute('name') ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $fieldNames[$name] = $name;
+        }
+
+        $yearField = $this->findAcademicFieldName(array_values($fieldNames), 'year');
+        $termField = $this->findAcademicFieldName(array_values($fieldNames), 'term');
+
+        $hasFilters = false;
+
+        if ($yearField !== null && $year !== '') {
+            $fields[$yearField] = $this->resolveFormValueFromSelect($form, $yearField, $year, 'year');
+            $hasFilters = true;
+        }
+
+        if ($termField !== null && $term !== '') {
+            $fields[$termField] = $this->resolveFormValueFromSelect($form, $termField, $term, 'term');
+            $hasFilters = true;
+        }
+
+        return [
+            'has_filters' => $hasFilters,
+            'fields' => $fields,
+            'year_field' => $yearField,
+            'term_field' => $termField,
+        ];
+    }
+
+    /**
+     * @param array<int, string> $fieldNames
+     */
+    private function findAcademicFieldName(array $fieldNames, string $target): ?string
+    {
+        $keywords = $target === 'year'
+            ? ['year', 'academic', 'studyyear', 'study_year', 'year_id', 'ac_year', 'selectedyear']
+            : ['term', 'semester', 'sem', 'term_id', 'semester_id', 'studyterm', 'study_term', 'selectedterm'];
+
+        foreach ($fieldNames as $fieldName) {
+            $normalized = mb_strtolower($fieldName);
+
+            if (
+                str_contains($normalized, 'password')
+                || str_contains($normalized, 'username')
+                || str_contains($normalized, 'token')
+            ) {
+                continue;
+            }
+
+            foreach ($keywords as $keyword) {
+                if (str_contains($normalized, $keyword)) {
+                    return $fieldName;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveFormValueFromSelect(
+        Crawler $form,
+        string $fieldName,
+        string $requested,
+        string $type
+    ): string {
+        $literal = $this->toXpathLiteral($fieldName);
+        $select = $form->filterXPath("//select[@name={$literal}]");
+
+        if (!$select->count()) {
+            return $requested;
+        }
+
+        $requestedNormalized = $this->cleanText($requested);
+
+        foreach ($select->first()->filter('option') as $option) {
+            $value = $this->cleanText($option->getAttribute('value') ?? '');
+            $text = $this->cleanText($option->textContent ?? '');
+
+            if ($type === 'year' && $this->matchesOptionForYear($requestedNormalized, $value, $text)) {
+                return $value !== '' ? $value : $text;
+            }
+
+            if ($type === 'term' && $this->matchesOptionForTerm($requestedNormalized, $value, $text)) {
+                return $value !== '' ? $value : $text;
+            }
+        }
+
+        return $requested;
+    }
+
+    private function matchesOptionForYear(string $requested, string $value, string $text): bool
+    {
+        $requestedDigits = preg_replace('/\D+/', '', $this->toWesternDigits($requested)) ?? '';
+        $valueDigits = preg_replace('/\D+/', '', $this->toWesternDigits($value)) ?? '';
+        $textDigits = preg_replace('/\D+/', '', $this->toWesternDigits($text)) ?? '';
+
+        if ($requestedDigits !== '') {
+            if ($valueDigits === $requestedDigits || $textDigits === $requestedDigits) {
+                return true;
+            }
+
+            if ($textDigits !== '' && str_contains($textDigits, $requestedDigits)) {
+                return true;
+            }
+        }
+
+        return mb_strtolower($requested) === mb_strtolower($value)
+            || mb_strtolower($requested) === mb_strtolower($text);
+    }
+
+    private function matchesOptionForTerm(string $requested, string $value, string $text): bool
+    {
+        $normalizedRequested = $this->normalizeAcademicTerm($requested);
+        $tokens = $this->academicTermTokens($normalizedRequested);
+
+        $valueLower = mb_strtolower($this->toWesternDigits($value));
+        $textLower = mb_strtolower($this->toWesternDigits($text));
+
+        foreach ($tokens as $token) {
+            $normalizedToken = mb_strtolower($this->toWesternDigits($token));
+
+            if ($normalizedToken !== '' && (
+                $valueLower === $normalizedToken
+                || $textLower === $normalizedToken
+                || $this->containsToken($textLower, $normalizedToken)
+            )) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function requestBody(string $url): string
@@ -609,6 +1086,19 @@ class UniversityScraperService
         return false;
     }
 
+    private function containsToken(string $text, string $token): bool
+    {
+        if ($token === '') {
+            return false;
+        }
+
+        if ((bool) preg_match('/^\d+$/', $token)) {
+            return (bool) preg_match('/(^|\D)'.preg_quote($token, '/').'(\D|$)/', $text);
+        }
+
+        return str_contains($text, $token);
+    }
+
     /**
      * @param array<int, string> $labels
      */
@@ -706,6 +1196,29 @@ class UniversityScraperService
         foreach ($texts as $text) {
             if ($text !== '' && !$this->isSummaryText($text)) {
                 return $text;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array{name:?int,code:?int,grade:?int,credits:?int} $headerMap
+     */
+    private function extractLikelyCodeRaw(Crawler $cells, array $headerMap): string
+    {
+        if (($headerMap['code'] ?? null) !== null) {
+            $index = min((int) $headerMap['code'], $cells->count() - 1);
+            $value = $this->cleanText($cells->eq($index)->text(''));
+            if ($this->looksLikeCourseCodeToken($value)) {
+                return $value;
+            }
+        }
+
+        for ($i = 0; $i < $cells->count(); $i++) {
+            $value = $this->cleanText($cells->eq($i)->text(''));
+            if ($this->looksLikeCourseCodeToken($value)) {
+                return $value;
             }
         }
 
@@ -813,6 +1326,20 @@ class UniversityScraperService
         return $number !== null && $number >= 0 && $number <= 100;
     }
 
+    private function looksLikeCourseCodeToken(string $value): bool
+    {
+        $text = $this->toWesternDigits($this->cleanText($value));
+        if ($text === '' || mb_strlen($text) > 24) {
+            return false;
+        }
+
+        if (preg_match('/^[A-Za-z]{1,6}[\-\/ ]?\d{3,}$/', $text)) {
+            return true;
+        }
+
+        return (bool) preg_match('/^\d{5,}$/', preg_replace('/\D+/', '', $text) ?? '');
+    }
+
     /**
      * @param array<string, mixed> $context
      */
@@ -835,6 +1362,22 @@ class UniversityScraperService
         $decoded = str_replace(["\u{00A0}", "\u{200F}", "\u{200E}"], ' ', $decoded);
 
         return trim(preg_replace('/\s+/u', ' ', $decoded) ?? '');
+    }
+
+    private function toWesternDigits(string $value): string
+    {
+        return strtr($value, [
+            '٠' => '0',
+            '١' => '1',
+            '٢' => '2',
+            '٣' => '3',
+            '٤' => '4',
+            '٥' => '5',
+            '٦' => '6',
+            '٧' => '7',
+            '٨' => '8',
+            '٩' => '9',
+        ]);
     }
 
     private function sanitizeExtractedField(?string $value, int $maxLength): ?string

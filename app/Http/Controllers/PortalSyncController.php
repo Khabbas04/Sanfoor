@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
 
@@ -23,6 +22,8 @@ class PortalSyncController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string', 'max:255'],
+            'academic_year' => ['required', 'string', 'max:30'],
+            'academic_term' => ['required', 'string', 'max:30'],
         ]);
 
         /** @var User|null $user */
@@ -34,7 +35,10 @@ class PortalSyncController extends Controller
         try {
             $scraper->login($validated['student_id'], $validated['password']);
             $studentData = $scraper->getStudentData();
-            $courses = $scraper->getCourses();
+            $courses = $scraper->getCourses(
+                (string) $validated['academic_year'],
+                (string) $validated['academic_term']
+            );
 
             $hasProfileData = filled($studentData['name'] ?? null)
                 || filled($studentData['major'] ?? null)
@@ -53,9 +57,16 @@ class PortalSyncController extends Controller
                 ]);
             }
 
-            DB::transaction(function () use ($user, $validated, $studentData, $courses): void {
+            $syncStats = ['matched' => 0, 'skipped' => 0];
+
+            DB::transaction(function () use ($user, $validated, $studentData, $courses, &$syncStats): void {
                 $this->syncUserAcademicProfile($user, $validated['student_id'], $studentData, $courses);
-                $this->syncPassedCourses($user, $courses);
+                $syncStats = $this->syncPassedCourses(
+                    $user,
+                    $courses,
+                    (string) $validated['academic_year'],
+                    (string) $validated['academic_term']
+                );
             });
 
             $message = 'تمت مزامنة بيانات بوابة الجامعة بنجاح.';
@@ -79,7 +90,14 @@ class PortalSyncController extends Controller
                     'message' => $message,
                     'student' => $studentData,
                     'courses_synced' => count($courses),
+                    'courses_matched' => $syncStats['matched'],
+                    'courses_skipped' => $syncStats['skipped'],
                 ]);
+            }
+
+            $message .= ' تم تعليم '.$syncStats['matched'].' مادة كمنجزة من مواد الشجرة.';
+            if ($syncStats['skipped'] > 0) {
+                $message .= ' وتجاهل '.$syncStats['skipped'].' مادة لأنها غير موجودة في الشجرة الحالية.';
             }
 
             return redirect()->route('profile.edit')->with('status', $message);
@@ -105,7 +123,7 @@ class PortalSyncController extends Controller
 
     /**
      * @param array{name:?string, major:?string, gpa:?float, gpa_raw:?string} $studentData
-     * @param array<int, array{course_name:string, grade:?float, grade_raw:?string, credits:?float}> $courses
+        * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}> $courses
      */
     private function syncUserAcademicProfile(User $user, string $studentId, array $studentData, array $courses): void
     {
@@ -172,19 +190,59 @@ class PortalSyncController extends Controller
     }
 
     /**
-     * @param array<int, array{course_name:string, grade:?float, grade_raw:?string, credits:?float}> $courses
+     * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}> $courses
+     * @return array{matched:int, skipped:int}
      */
-    private function syncPassedCourses(User $user, array $courses): void
+    private function syncPassedCourses(User $user, array $courses, string $academicYear, string $academicTerm): array
     {
         if (!Schema::hasTable('courses') || !Schema::hasTable('course_user')) {
-            return;
+            return ['matched' => 0, 'skipped' => count($courses)];
         }
 
-        $courseColumns = array_flip(Schema::getColumnListing('courses'));
         $pivotColumns = array_flip(Schema::getColumnListing('course_user'));
 
         $majorId = $user->major_id;
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
+        $studiedYear = $this->normalizeStudiedYear($academicYear);
+        $studiedTerm = $this->normalizeStudiedTerm($academicTerm);
+
+        $treeCourses = Course::query()
+            ->select('id', 'code', 'name', 'major_id', 'study_plan_version')
+            ->where(function ($query) use ($majorId, $studyPlanVersion) {
+                if ($majorId) {
+                    $query->where(function ($majorScope) use ($majorId, $studyPlanVersion) {
+                        $majorScope->where('major_id', $majorId)
+                            ->where('study_plan_version', $studyPlanVersion);
+                    })->orWhere(function ($universityScope) use ($studyPlanVersion) {
+                        $universityScope->whereNull('major_id')
+                            ->where('study_plan_version', $studyPlanVersion);
+                    });
+
+                    return;
+                }
+
+                $query->whereNull('major_id')
+                    ->where('study_plan_version', $studyPlanVersion);
+            })
+            ->get();
+
+        $coursesByCode = [];
+        $coursesByName = [];
+
+        foreach ($treeCourses as $treeCourse) {
+            $codeKey = $this->normalizeCourseCode((string) ($treeCourse->code ?? ''));
+            if ($codeKey !== '') {
+                $coursesByCode[$codeKey] = $treeCourse;
+            }
+
+            $nameKey = $this->normalizeCourseName((string) ($treeCourse->name ?? ''));
+            if ($nameKey !== '' && !isset($coursesByName[$nameKey])) {
+                $coursesByName[$nameKey] = $treeCourse;
+            }
+        }
+
+        $matched = 0;
+        $skipped = 0;
 
         foreach ($courses as $courseData) {
             $courseName = trim((string) ($courseData['course_name'] ?? ''));
@@ -192,45 +250,40 @@ class PortalSyncController extends Controller
                 continue;
             }
 
-            $credits = max(0, (int) round((float) ($courseData['credits'] ?? 0)));
-            $courseCode = $this->buildCourseCode($courseName, $majorId, $studyPlanVersion);
+            $course = null;
 
-            $lookup = ['code' => $courseCode];
-            if (isset($courseColumns['major_id'])) {
-                $lookup['major_id'] = $majorId;
-            }
-            if (isset($courseColumns['study_plan_version'])) {
-                $lookup['study_plan_version'] = $studyPlanVersion;
+            $incomingCode = $this->normalizeCourseCode((string) ($courseData['course_code'] ?? ''));
+            if ($incomingCode !== '' && isset($coursesByCode[$incomingCode])) {
+                $course = $coursesByCode[$incomingCode];
             }
 
-            $create = [
-                'name' => $courseName,
-                'credit_hours' => $credits,
-            ];
-
-            if (isset($courseColumns['type'])) {
-                $create['type'] = 'compulsory';
-            }
-            if (isset($courseColumns['semester'])) {
-                $create['semester'] = null;
-            }
-            if (isset($courseColumns['minimum_passed_hours'])) {
-                $create['minimum_passed_hours'] = 0;
+            if (!$course) {
+                $incomingNameKey = $this->normalizeCourseName($courseName);
+                if ($incomingNameKey !== '' && isset($coursesByName[$incomingNameKey])) {
+                    $course = $coursesByName[$incomingNameKey];
+                }
             }
 
-            $course = Course::query()->firstOrCreate($lookup, $create);
+            if (!$course) {
+                $incomingNameKey = $this->normalizeCourseName($courseName);
 
-            $updates = [];
-            if (isset($courseColumns['name']) && $course->name !== $courseName) {
-                $updates['name'] = $courseName;
-            }
-            if (isset($courseColumns['credit_hours']) && (int) $course->credit_hours !== $credits) {
-                $updates['credit_hours'] = $credits;
+                foreach ($coursesByName as $existingNameKey => $existingCourse) {
+                    if (
+                        $incomingNameKey !== ''
+                        && (
+                            str_contains($existingNameKey, $incomingNameKey)
+                            || str_contains($incomingNameKey, $existingNameKey)
+                        )
+                    ) {
+                        $course = $existingCourse;
+                        break;
+                    }
+                }
             }
 
-            if (!empty($updates)) {
-                $course->fill($updates);
-                $course->save();
+            if (!$course) {
+                $skipped++;
+                continue;
             }
 
             $pivotData = [];
@@ -238,33 +291,96 @@ class PortalSyncController extends Controller
                 $pivotData['grade'] = $courseData['grade'];
             }
             if (isset($pivotColumns['studied_semester'])) {
-                $pivotData['studied_semester'] = null;
+                $pivotData['studied_semester'] = $studiedTerm;
             }
             if (isset($pivotColumns['studied_year'])) {
-                $pivotData['studied_year'] = null;
+                $pivotData['studied_year'] = $studiedYear;
             }
             if (isset($pivotColumns['studied_term'])) {
-                $pivotData['studied_term'] = null;
+                $pivotData['studied_term'] = $studiedTerm;
             }
 
             $user->passedCourses()->syncWithoutDetaching([
                 $course->id => $pivotData,
             ]);
+
+            $matched++;
         }
+
+        return [
+            'matched' => $matched,
+            'skipped' => $skipped,
+        ];
     }
 
-    private function buildCourseCode(string $courseName, $majorId, int $studyPlanVersion): string
+    private function normalizeCourseCode(string $value): string
     {
-        $asciiName = Str::ascii($courseName);
-        $slug = Str::upper(Str::slug($asciiName, '_'));
+        $clean = strtoupper($this->toWesternDigits(trim($value)));
 
-        if ($slug === '') {
-            $slug = 'COURSE';
+        return preg_replace('/[^A-Z0-9]/', '', $clean) ?? '';
+    }
+
+    private function normalizeCourseName(string $value): string
+    {
+        $clean = mb_strtolower(trim($value));
+        $clean = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $clean) ?? '';
+        $clean = preg_replace('/\s+/u', ' ', $clean) ?? '';
+
+        return trim($clean);
+    }
+
+    private function normalizeStudiedYear(string $academicYear): ?int
+    {
+        $digits = preg_replace('/\D+/', '', $this->toWesternDigits($academicYear)) ?? '';
+        if ($digits === '') {
+            return null;
         }
 
-        $slug = substr($slug, 0, 16);
-        $hash = substr(md5($courseName.'|'.(string) $majorId.'|'.$studyPlanVersion), 0, 8);
+        $number = (int) $digits;
+        if ($number <= 255) {
+            return $number;
+        }
 
-        return 'ZU_'.$slug.'_'.$hash;
+        return (int) substr($digits, -2);
+    }
+
+    private function normalizeStudiedTerm(string $academicTerm): ?int
+    {
+        $normalized = mb_strtolower(trim($academicTerm));
+
+        if (in_array($normalized, ['1', '01', 'first', '1st', 'الاول', 'الأول'], true)) {
+            return 1;
+        }
+
+        if (in_array($normalized, ['2', '02', 'second', '2nd', 'الثاني', 'ثاني'], true)) {
+            return 2;
+        }
+
+        if (in_array($normalized, ['3', '03', 'summer', '3rd', 'صيفي', 'الثالث'], true)) {
+            return 3;
+        }
+
+        $digits = preg_replace('/\D+/', '', $this->toWesternDigits($academicTerm)) ?? '';
+        if ($digits !== '' && in_array((int) $digits, [1, 2, 3], true)) {
+            return (int) $digits;
+        }
+
+        return null;
+    }
+
+    private function toWesternDigits(string $value): string
+    {
+        return strtr($value, [
+            '٠' => '0',
+            '١' => '1',
+            '٢' => '2',
+            '٣' => '3',
+            '٤' => '4',
+            '٥' => '5',
+            '٦' => '6',
+            '٧' => '7',
+            '٨' => '8',
+            '٩' => '9',
+        ]);
     }
 }
