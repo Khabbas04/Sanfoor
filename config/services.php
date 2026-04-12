@@ -55,6 +55,8 @@ return [
     'zu_portal' => [
         'base_url' => env('ZU_PORTAL_BASE_URL', 'https://eservices.zu.edu.jo'),
         'login_path' => env('ZU_PORTAL_LOGIN_PATH', '/StudentPortal2/Login/loginPage'),
+        'verify_ssl' => filter_var(env('ZU_PORTAL_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
+        'ca_bundle' => env('ZU_PORTAL_CA_BUNDLE'),
         'profile_paths' => array_filter(array_map('trim', explode(',', env(
             'ZU_PORTAL_PROFILE_PATHS',
             '/StudentPortal2/Home/UniversityDegree,/StudentPortal2/Home/HomePage,/StudentPortal2/Student/Profile,/StudentPortal2/StudentPortal/profile,/StudentPortal2/Student/Main/profile'

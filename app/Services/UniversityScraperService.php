@@ -26,6 +26,7 @@ class UniversityScraperService
     public function __construct(?Client $client = null)
     {
         $baseUrl = rtrim((string) config('services.zu_portal.base_url', 'https://eservices.zu.edu.jo'), '/').'/';
+        $verifyOption = $this->resolveSslVerifyOption();
 
         $this->loginPath = (string) config('services.zu_portal.login_path', '/StudentPortal2/Login/loginPage');
         $this->profilePaths = $this->normalizePaths((array) config('services.zu_portal.profile_paths', [
@@ -45,6 +46,7 @@ class UniversityScraperService
         $this->client = $client ?? new Client([
             'base_uri' => $baseUrl,
             'cookies' => true,
+            'verify' => $verifyOption,
             'http_errors' => false,
             'allow_redirects' => [
                 'max' => 5,
@@ -58,6 +60,22 @@ class UniversityScraperService
                 'Accept-Language' => 'ar,en-US;q=0.9,en;q=0.8',
             ],
         ]);
+    }
+
+    /**
+     * Resolve SSL verification strategy for portal requests.
+     *
+     * @return bool|string
+     */
+    private function resolveSslVerifyOption(): bool|string
+    {
+        $caBundle = trim((string) config('services.zu_portal.ca_bundle', ''));
+
+        if ($caBundle !== '') {
+            return $caBundle;
+        }
+
+        return (bool) config('services.zu_portal.verify_ssl', true);
     }
 
     /**
