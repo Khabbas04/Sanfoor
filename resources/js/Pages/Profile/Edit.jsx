@@ -27,6 +27,17 @@ export default function Edit({ auth, mustVerifyEmail, status, colleges, majors }
                                 {status}
                             </div>
                         )}
+
+                        {!auth.user.portal_synced_at && (
+                            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
+                                يفضّل البدء من "مزامنة بوابة الجامعة" لسحب بياناتك الأكاديمية تلقائياً قبل التعديل اليدوي.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* كرت مزامنة البوابة */}
+                    <div className="p-8 bg-white shadow-sm border border-slate-200/60 rounded-[2rem] hover:shadow-md transition-shadow duration-300">
+                        <SyncPortalForm className="max-w-xl" />
                     </div>
 
                     {/* كرت المعلومات الشخصية */}
@@ -38,11 +49,6 @@ export default function Edit({ auth, mustVerifyEmail, status, colleges, majors }
                             majors={majors}
                             className="max-w-xl"
                         />
-                    </div>
-
-                    {/* كرت مزامنة البوابة */}
-                    <div className="p-8 bg-white shadow-sm border border-slate-200/60 rounded-[2rem] hover:shadow-md transition-shadow duration-300">
-                        <SyncPortalForm className="max-w-xl" />
                     </div>
 
                     {/* كرت كلمة المرور */}

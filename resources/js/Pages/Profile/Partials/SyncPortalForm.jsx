@@ -6,9 +6,10 @@ import { useForm, usePage } from '@inertiajs/react';
 
 export default function SyncPortalForm({ className = '' }) {
     const user = usePage().props.auth.user;
+    const inferredStudentId = String(user?.email || '').split('@')[0] || '';
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        student_id: user.portal_student_id || '',
+        student_id: user.portal_student_id || inferredStudentId,
         password: '',
     });
 
@@ -31,6 +32,12 @@ export default function SyncPortalForm({ className = '' }) {
                 <p className="mt-2 text-sm text-slate-500 font-medium font-cairo">
                     أدخل الرقم الجامعي وكلمة المرور لمزامنة التخصص والمعدل والمواد المقطوعة من بوابة جامعة الزرقاء.
                 </p>
+
+                {!user.portal_synced_at && (
+                    <p className="mt-2 text-xs font-bold text-amber-700 font-cairo">
+                        تم تعبئة الرقم الجامعي تلقائياً من بريد Microsoft إن توفر، أدخل كلمة المرور فقط ثم اضغط مزامنة.
+                    </p>
+                )}
             </header>
 
             <form onSubmit={submit} className="mt-6 space-y-5">
