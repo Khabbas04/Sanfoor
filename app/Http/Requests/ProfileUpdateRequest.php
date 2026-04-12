@@ -16,6 +16,8 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        $isStudent = strtolower((string) ($this->user()?->role ?? '')) === 'student';
+
         $hasMajorsTable = Schema::hasTable('majors');
         $hasCollegesTable = Schema::hasTable('colleges');
         $hasMajorColumn = Schema::hasColumn('users', 'major_id');
@@ -34,17 +36,17 @@ class ProfileUpdateRequest extends FormRequest
         ];
 
         if ($hasCollegesTable) {
-            $rules['college_id'] = ['nullable', 'exists:colleges,id'];
+            $rules['college_id'] = [$isStudent ? 'required' : 'nullable', 'exists:colleges,id'];
         }
 
         if ($hasMajorColumn) {
-            $majorRules = ['nullable'];
+            $majorRules = [$isStudent ? 'required' : 'nullable'];
             $majorRules[] = $hasMajorsTable ? 'exists:majors,id' : 'integer';
             $rules['major_id'] = $majorRules;
         }
 
         if ($hasPlanColumn) {
-            $rules['study_plan_version'] = ['nullable', 'integer', 'in:11,12'];
+            $rules['study_plan_version'] = [$isStudent ? 'required' : 'nullable', 'integer', 'in:11,12'];
         }
 
         return $rules;

@@ -57,7 +57,6 @@ class MicrosoftAuthController extends Controller
                 data_get($microsoftUser->user, 'name'),
                 Str::before($email, '@'),
             ])->first(fn ($value) => filled($value));
-            $portalStudentId = trim((string) Str::before($email, '@'));
 
             $columns = array_flip(Schema::getColumnListing('users'));
 
@@ -122,10 +121,6 @@ class MicrosoftAuthController extends Controller
                 $user->microsoft_id = $microsoftId;
             }
 
-            if (isset($columns['portal_student_id']) && blank($user->portal_student_id) && filled($portalStudentId)) {
-                $user->portal_student_id = $portalStudentId;
-            }
-
             if (!$user->exists && isset($columns['password'])) {
                 $user->password = Hash::make(Str::random(64));
             }
@@ -145,7 +140,7 @@ class MicrosoftAuthController extends Controller
 
             if (blank($user->major_id)) {
                 return redirect()->route('profile.edit')->with([
-                    'status' => 'تم تسجيل الدخول بنجاح. جرب أولاً "مزامنة بوابة الجامعة" (أدخل كلمة مرور البوابة) لسحب التخصص والمعدل والمواد تلقائيًا من كل السنوات والفصول.',
+                    'status' => 'تم تسجيل الدخول بنجاح. يرجى إكمال الكلية والتخصص والخطة الدراسية من صفحة الملف الشخصي.',
                 ]);
             }
 
