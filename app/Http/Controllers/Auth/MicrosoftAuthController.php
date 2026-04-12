@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -28,34 +29,47 @@ class MicrosoftAuthController extends Controller
                 $microsoftUser->getEmail()
                 ?? data_get($microsoftUser->user, 'mail')
                 ?? data_get($microsoftUser->user, 'userPrincipalName')
+                ?? data_get($microsoftUser->user, 'preferred_username')
             ));
 
             if ($email === '' || !Str::endsWith($email, 'zu.edu.jo')) {
                 return redirect('/')->with('error', 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo');
             }
 
-            $name = $microsoftUser->getName()
-                ?? data_get($microsoftUser->user, 'displayName')
-                ?? Str::before($email, '@');
+            $profileName = trim(implode(' ', array_filter([
+                data_get($microsoftUser->user, 'givenName'),
+                data_get($microsoftUser->user, 'surname'),
+            ])));
 
-            $userData = [
-                'name' => $name,
-                'email_verified_at' => now(),
-            ];
+            $name = collect([
+                $microsoftUser->getName(),
+                data_get($microsoftUser->user, 'displayName'),
+                $profileName,
+                data_get($microsoftUser->user, 'name'),
+                Str::before($email, '@'),
+            ])->first(fn ($value) => filled($value));
+
+            $user = User::firstOrNew(['email' => $email]);
+
+            $user->name = $name;
+            $user->email_verified_at = now();
+            $user->last_login_at = now();
 
             if (Schema::hasColumn('users', 'microsoft_id')) {
-                $userData['microsoft_id'] = (string) $microsoftUser->getId();
+                $user->microsoft_id = (string) $microsoftUser->getId();
             }
 
-            $user = User::updateOrCreate(
-                ['email' => $email],
-                $userData
-            );
+            if (!$user->exists) {
+                $user->password = Hash::make(Str::random(64));
+                $user->role = $user->role ?: 'student';
+            }
+
+            $user->save();
 
             Auth::login($user, true);
             $request->session()->regenerate();
 
-            return redirect()->intended(route('dashboard'));
+            return redirect()->route('dashboard');
         } catch (Throwable $exception) {
             Log::error('Microsoft login callback failed', [
                 'message' => $exception->getMessage(),
