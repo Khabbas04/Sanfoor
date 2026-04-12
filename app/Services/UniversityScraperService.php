@@ -69,13 +69,18 @@ class UniversityScraperService
      */
     private function resolveSslVerifyOption(): bool|string
     {
+        $verifySsl = (bool) config('services.zu_portal.verify_ssl', true);
+        if (!$verifySsl) {
+            return false;
+        }
+
         $caBundle = trim((string) config('services.zu_portal.ca_bundle', ''));
 
-        if ($caBundle !== '') {
+        if ($caBundle !== '' && is_file($caBundle) && is_readable($caBundle)) {
             return $caBundle;
         }
 
-        return (bool) config('services.zu_portal.verify_ssl', true);
+        return true;
     }
 
     /**
