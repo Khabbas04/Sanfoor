@@ -22,6 +22,38 @@ class MicrosoftAuthController extends Controller
     {
         try {
             $microsoftUser = Socialite::driver('azure')->stateless()->user();
+
+            $email = strtolower((string) (
+                $microsoftUser->getEmail()
+                ?? data_get($microsoftUser->user, 'mail')
+                ?? data_get($microsoftUser->user, 'userPrincipalName')
+            ));
+
+            if ($email === '' || !Str::endsWith($email, 'zu.edu.jo')) {
+                return redirect('/')->with('error', 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo');
+            }
+
+            $name = $microsoftUser->getName()
+                ?? data_get($microsoftUser->user, 'displayName')
+                ?? Str::before($email, '@');
+
+            $userData = [
+                'name' => $name,
+                'email_verified_at' => now(),
+            ];
+
+            if (Schema::hasColumn('users', 'microsoft_id')) {
+                $userData['microsoft_id'] = (string) $microsoftUser->getId();
+            }
+
+            $user = User::updateOrCreate(
+                ['email' => $email],
+                $userData
+            );
+
+            Auth::login($user, true);
+
+            return redirect()->intended(route('dashboard'));
         } catch (Throwable $exception) {
             Log::error('Microsoft login callback failed', [
                 'message' => $exception->getMessage(),
@@ -30,37 +62,5 @@ class MicrosoftAuthController extends Controller
 
             return redirect('/')->with('error', 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.');
         }
-
-        $email = strtolower((string) (
-            $microsoftUser->getEmail()
-            ?? data_get($microsoftUser->user, 'mail')
-            ?? data_get($microsoftUser->user, 'userPrincipalName')
-        ));
-
-        if ($email === '' || !Str::endsWith($email, 'zu.edu.jo')) {
-            return redirect('/')->with('error', 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo');
-        }
-
-        $name = $microsoftUser->getName()
-            ?? data_get($microsoftUser->user, 'displayName')
-            ?? Str::before($email, '@');
-
-        $userData = [
-            'name' => $name,
-            'email_verified_at' => now(),
-        ];
-
-        if (Schema::hasColumn('users', 'microsoft_id')) {
-            $userData['microsoft_id'] = (string) $microsoftUser->getId();
-        }
-
-        $user = User::updateOrCreate(
-            ['email' => $email],
-            $userData
-        );
-
-        Auth::login($user, true);
-
-        return redirect()->intended(route('dashboard'));
     }
 }
