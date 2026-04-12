@@ -25,6 +25,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'microsoft_id',
         'role',
         'major_id',
         'study_plan_version',
