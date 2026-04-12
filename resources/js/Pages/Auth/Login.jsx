@@ -160,8 +160,32 @@ export default function Login({ status, canResetPassword }) {
                         </button>
                     </div>
 
+                    <div className="pt-3" style={stagger(5)}>
+                        <div className="relative my-2">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-slate-200" />
+                            </div>
+                            <div className="relative flex justify-center text-[11px] font-bold text-slate-400">
+                                <span className="bg-white px-3">أو</span>
+                            </div>
+                        </div>
+
+                        <a
+                            href={route('auth.microsoft.redirect')}
+                            className="w-full mt-3 border-2 border-slate-200 hover:border-sky-400 bg-white hover:bg-sky-50 text-slate-700 py-3.5 rounded-xl font-black text-[13px] transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-3"
+                        >
+                            <svg className="w-5 h-5" viewBox="0 0 23 23" aria-hidden="true">
+                                <path fill="#f35325" d="M1 1h10v10H1z" />
+                                <path fill="#81bc06" d="M12 1h10v10H12z" />
+                                <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                                <path fill="#ffba08" d="M12 12h10v10H12z" />
+                            </svg>
+                            متابعة باستخدام Microsoft
+                        </a>
+                    </div>
+
                     {/* ── Register Link ── */}
-                    <div className="text-center pt-6 border-t border-slate-100" style={stagger(5)}>
+                    <div className="text-center pt-6 border-t border-slate-100" style={stagger(6)}>
                         <p className="text-[13px] font-bold text-slate-500">
                             لا تملك حساباً بعد؟{' '}
                             <Link
