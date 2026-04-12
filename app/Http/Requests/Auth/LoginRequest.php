@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,18 @@ class LoginRequest extends FormRequest
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+
+            $email = strtolower(trim((string) $this->input('email')));
+            $microsoftLinkedUser = User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->whereNotNull('microsoft_id')
+                ->first();
+
+            if ($microsoftLinkedUser) {
+                throw ValidationException::withMessages([
+                    'email' => 'هذا الحساب مرتبط بـ Microsoft. استخدم زر "متابعة باستخدام Microsoft" للدخول.',
+                ]);
+            }
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),

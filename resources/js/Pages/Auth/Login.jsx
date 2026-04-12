@@ -182,6 +182,10 @@ export default function Login({ status, canResetPassword }) {
                             </svg>
                             متابعة باستخدام Microsoft
                         </a>
+
+                        <p className="mt-2 text-[11px] font-bold text-slate-400 text-center">
+                            إذا حسابك مربوط بـ Microsoft، لازم تسجّل الدخول من زر Microsoft وليس بكلمة مرور محلية.
+                        </p>
                     </div>
 
                     {/* ── Register Link ── */}

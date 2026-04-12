@@ -14,6 +14,8 @@ export default function UpdateProfileInformation({
     className = '',
 }) {
     const user = usePage().props.auth.user;
+    const isStudent = String(user?.role ?? '').toLowerCase() === 'student';
+    const academicFieldsLocked = isStudent && Boolean(user?.major_id);
 
     const initialCollegeId = String(
         user?.major?.college_id
@@ -89,6 +91,12 @@ export default function UpdateProfileInformation({
                 <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 space-y-4">
                     <p className="text-sm font-black text-indigo-900">البيانات الأكاديمية</p>
 
+                    {academicFieldsLocked && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-bold text-amber-800">
+                            تم قفل الكلية والتخصص والخطة الدراسية بعد الحفظ الأول لحماية دقة البيانات.
+                        </div>
+                    )}
+
                     <div>
                         <InputLabel htmlFor="college_id" value="الكلية" />
                         <div className="relative mt-1">
@@ -96,7 +104,8 @@ export default function UpdateProfileInformation({
                                 id="college_id"
                                 value={data.college_id}
                                 onChange={(e) => setData((prev) => ({ ...prev, college_id: e.target.value, major_id: '' }))}
-                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
+                                disabled={academicFieldsLocked}
+                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                             >
                                 <option value="">اختر الكلية</option>
                                 {colleges.map((college) => (
@@ -114,8 +123,8 @@ export default function UpdateProfileInformation({
                                 id="major_id"
                                 value={data.major_id}
                                 onChange={(e) => setData('major_id', e.target.value)}
-                                disabled={!data.college_id}
-                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all disabled:bg-slate-100"
+                                disabled={academicFieldsLocked || !data.college_id}
+                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                             >
                                 <option value="">{data.college_id ? 'اختر التخصص' : 'اختر الكلية أولاً'}</option>
                                 {filteredMajors.map((major) => (
@@ -133,7 +142,8 @@ export default function UpdateProfileInformation({
                                 id="study_plan_version"
                                 value={data.study_plan_version}
                                 onChange={(e) => setData('study_plan_version', e.target.value)}
-                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
+                                disabled={academicFieldsLocked}
+                                className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
                             >
                                 <option value="11">الخطة 11</option>
                                 <option value="12">الخطة 12</option>

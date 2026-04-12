@@ -55,6 +55,8 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
+        $isStudent = strtolower((string) ($user->role ?? '')) === 'student';
+        $isAcademicLockedForStudent = $isStudent && filled($user->major_id);
 
         $hasMajorColumn = Schema::hasColumn('users', 'major_id');
         $hasPlanColumn = Schema::hasColumn('users', 'study_plan_version');
@@ -66,11 +68,19 @@ class ProfileController extends Controller
         ];
 
         if ($hasMajorColumn && array_key_exists('major_id', $validated)) {
-            $updatePayload['major_id'] = filled($validated['major_id']) ? (int) $validated['major_id'] : null;
+            if ($isAcademicLockedForStudent) {
+                $updatePayload['major_id'] = (int) $user->major_id;
+            } else {
+                $updatePayload['major_id'] = filled($validated['major_id']) ? (int) $validated['major_id'] : null;
+            }
         }
 
         if ($hasPlanColumn && array_key_exists('study_plan_version', $validated)) {
-            $updatePayload['study_plan_version'] = filled($validated['study_plan_version']) ? (int) $validated['study_plan_version'] : null;
+            if ($isAcademicLockedForStudent && filled($user->study_plan_version)) {
+                $updatePayload['study_plan_version'] = (int) $user->study_plan_version;
+            } else {
+                $updatePayload['study_plan_version'] = filled($validated['study_plan_version']) ? (int) $validated['study_plan_version'] : null;
+            }
         }
 
         if (

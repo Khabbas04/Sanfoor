@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Major;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Schema;
@@ -16,12 +17,28 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $isStudent = strtolower((string) ($this->user()?->role ?? '')) === 'student';
+        $user = $this->user();
+        $isStudent = strtolower((string) ($user?->role ?? '')) === 'student';
 
         $hasMajorsTable = Schema::hasTable('majors');
         $hasCollegesTable = Schema::hasTable('colleges');
         $hasMajorColumn = Schema::hasColumn('users', 'major_id');
         $hasPlanColumn = Schema::hasColumn('users', 'study_plan_version');
+
+        // Once a student sets a major, academic identity fields become immutable.
+        $lockedMajorId = $isStudent && filled($user?->major_id)
+            ? (int) $user->major_id
+            : null;
+
+        $lockedCollegeId = null;
+        if ($lockedMajorId && $hasMajorsTable) {
+            $collegeId = Major::query()->whereKey($lockedMajorId)->value('college_id');
+            $lockedCollegeId = filled($collegeId) ? (int) $collegeId : null;
+        }
+
+        $lockedStudyPlan = $isStudent && filled($user?->study_plan_version)
+            ? (int) $user->study_plan_version
+            : null;
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -36,19 +53,41 @@ class ProfileUpdateRequest extends FormRequest
         ];
 
         if ($hasCollegesTable) {
-            $rules['college_id'] = [$isStudent ? 'required' : 'nullable', 'exists:colleges,id'];
+            if ($lockedCollegeId) {
+                $rules['college_id'] = ['required', 'in:'.$lockedCollegeId];
+            } else {
+                $rules['college_id'] = [$isStudent ? 'required' : 'nullable', 'exists:colleges,id'];
+            }
         }
 
         if ($hasMajorColumn) {
-            $majorRules = [$isStudent ? 'required' : 'nullable'];
-            $majorRules[] = $hasMajorsTable ? 'exists:majors,id' : 'integer';
+            if ($lockedMajorId) {
+                $majorRules = ['required', 'in:'.$lockedMajorId];
+            } else {
+                $majorRules = [$isStudent ? 'required' : 'nullable'];
+                $majorRules[] = $hasMajorsTable ? 'exists:majors,id' : 'integer';
+            }
+
             $rules['major_id'] = $majorRules;
         }
 
         if ($hasPlanColumn) {
-            $rules['study_plan_version'] = [$isStudent ? 'required' : 'nullable', 'integer', 'in:11,12'];
+            if ($lockedMajorId && $lockedStudyPlan) {
+                $rules['study_plan_version'] = ['required', 'integer', 'in:'.$lockedStudyPlan];
+            } else {
+                $rules['study_plan_version'] = [$isStudent ? 'required' : 'nullable', 'integer', 'in:11,12'];
+            }
         }
 
         return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'college_id.in' => 'لا يمكن تغيير الكلية بعد حفظ بياناتك الأكاديمية.',
+            'major_id.in' => 'لا يمكن تغيير التخصص بعد حفظ بياناتك الأكاديمية.',
+            'study_plan_version.in' => 'لا يمكن تغيير الخطة الدراسية بعد حفظ بياناتك الأكاديمية.',
+        ];
     }
 }
