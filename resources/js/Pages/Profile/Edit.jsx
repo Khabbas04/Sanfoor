@@ -1,5 +1,6 @@
 import MainLayout from '@/Layouts/MainLayout';
 import DeleteUserForm from './Partials/DeleteUserForm';
+import SyncPortalForm from './Partials/SyncPortalForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 import { Head } from '@inertiajs/react';
@@ -37,6 +38,11 @@ export default function Edit({ auth, mustVerifyEmail, status, colleges, majors }
                             majors={majors}
                             className="max-w-xl"
                         />
+                    </div>
+
+                    {/* كرت مزامنة البوابة */}
+                    <div className="p-8 bg-white shadow-sm border border-slate-200/60 rounded-[2rem] hover:shadow-md transition-shadow duration-300">
+                        <SyncPortalForm className="max-w-xl" />
                     </div>
 
                     {/* كرت كلمة المرور */}

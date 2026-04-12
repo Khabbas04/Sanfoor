@@ -52,4 +52,17 @@ return [
         'tenant' => env('MICROSOFT_TENANT_ID', 'common'),
     ],
 
+    'zu_portal' => [
+        'base_url' => env('ZU_PORTAL_BASE_URL', 'https://eservices.zu.edu.jo'),
+        'login_path' => env('ZU_PORTAL_LOGIN_PATH', '/StudentPortal2/Login/loginPage'),
+        'profile_paths' => array_filter(array_map('trim', explode(',', env(
+            'ZU_PORTAL_PROFILE_PATHS',
+            '/StudentPortal2/Home/UniversityDegree,/StudentPortal2/Home/HomePage,/StudentPortal2/Student/Profile,/StudentPortal2/StudentPortal/profile,/StudentPortal2/Student/Main/profile'
+        )))),
+        'courses_paths' => array_filter(array_map('trim', explode(',', env(
+            'ZU_PORTAL_COURSES_PATHS',
+            '/StudentPortal2/Plans/studentPlan,/StudentPortal2/Student/StudyPlan,/StudentPortal2/Student/Courses,/StudentPortal2/Student/Main/plan'
+        )))),
+    ],
+
 ];

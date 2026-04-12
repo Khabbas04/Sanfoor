@@ -26,6 +26,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'microsoft_id',
+        'portal_student_id',
+        'portal_major_name',
+        'portal_gpa',
+        'portal_passed_hours',
+        'portal_synced_at',
         'role',
         'major_id',
         'study_plan_version',
@@ -47,6 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'portal_gpa' => 'decimal:2',
+            'portal_synced_at' => 'datetime',
         ];
     }
 

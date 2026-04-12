@@ -11,6 +11,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\ContactMessageController;
+use App\Http\Controllers\PortalSyncController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use App\Http\Controllers\Admin\AdminContactMessageController;
@@ -153,6 +154,9 @@ Route::get('/dashboard', function () {
 
 // Student-only application features.
 Route::middleware('auth')->group(function () {
+    // Sync academic data from Zarqa University student portal.
+    Route::post('/portal/sync', [PortalSyncController::class, 'sync'])->name('portal.sync');
+
     // Student support and issue reporting.
     Route::get('/support/report-issue', [IssueReportController::class, 'create'])->name('support.issue.create');
     Route::post('/support/report-issue', [IssueReportController::class, 'store'])->name('support.issue.store');
