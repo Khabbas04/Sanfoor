@@ -8,6 +8,7 @@ import AiWidget from '@/Pages/AI/AiWidget';
 export default function MainLayout({ children }) {
     const page = usePage();
     const { auth } = page.props;
+    const isAdvisorRoute = route().current('ai.advisor');
 
     // Normalize role flags once so the layout can render the correct user actions.
     const role = (auth?.user?.role || '').toLowerCase().trim();
@@ -40,6 +41,16 @@ export default function MainLayout({ children }) {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Prevent background scroll when the mobile drawer is open.
+    useEffect(() => {
+        if (mobileOpen) {
+            document.body.style.overflow = 'hidden';
+            return () => { document.body.style.overflow = ''; };
+        }
+
+        document.body.style.overflow = '';
+    }, [mobileOpen]);
 
     // Shared translations used by navigation labels and the footer.
     const translations = {
@@ -147,7 +158,7 @@ export default function MainLayout({ children }) {
 
             {/* Shared floating navbar used across the public-facing experience. */}
             <div className="fixed top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
-                <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[76px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
+                <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[72px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
                         {/* Logo Section */}
@@ -312,12 +323,12 @@ export default function MainLayout({ children }) {
             </div>
 
             {/* Routed page content is rendered inside the shared layout shell. */}
-            <main className="flex-1 flex flex-col w-full relative z-10 pt-22 sm:pt-28 animate-fade-in-up">
+            <main className="flex-1 flex flex-col w-full relative z-10 pt-20 sm:pt-28 animate-fade-in-up">
                 {children}
             </main>
 
             {/* The floating AI assistant is available only for signed-in users. */}
-            {auth.user && <AiWidget user={auth.user} />}
+            {auth.user && !isAdvisorRoute && <AiWidget user={auth.user} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>

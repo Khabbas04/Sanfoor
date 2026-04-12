@@ -136,11 +136,15 @@ export default function Tree({
     const [legendOpen, setLegendOpen] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 720);
+    const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
     const [positionEditMode, setPositionEditMode] = useState(false);
     const [nodePositions, setNodePositions] = useState({});
     const [savingPositionId, setSavingPositionId] = useState(null);
 
     const isMobile = viewportWidth < 1024;
+    const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
+    const showRotateHint = isPortraitMobile && !dismissedRotateHint;
 
     const semesterToYearTerm = useCallback((semesterValue) => {
         const normalized = Math.min(18, Math.max(1, parseInt(semesterValue, 10) || 1));
@@ -332,11 +336,20 @@ export default function Tree({
     }, [canEditTreePositions]);
 
     useEffect(() => {
-        const onResize = () => setViewportWidth(window.innerWidth);
+        const onResize = () => {
+            setViewportWidth(window.innerWidth);
+            setViewportHeight(window.innerHeight);
+        };
         onResize();
         window.addEventListener('resize', onResize);
         return () => window.removeEventListener('resize', onResize);
     }, []);
+
+    useEffect(() => {
+        if (!isPortraitMobile) {
+            setDismissedRotateHint(false);
+        }
+    }, [isPortraitMobile]);
 
     useEffect(() => {
         if (!isMobile) {
@@ -1830,16 +1843,36 @@ export default function Tree({
                 <div className={`flex-1 relative h-full bg-slate-100/50 ${isMobile ? 'p-1.5' : 'p-2 md:p-4'} w-full`} dir="ltr">
                     <div className="w-full h-full bg-white/60 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-[inset_0_2px_12px_rgba(0,0,0,0.04)] relative overflow-hidden backdrop-blur-sm">
 
-                        <div className={`absolute ${isMobile ? 'top-2' : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex flex-wrap justify-center gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 max-w-[95%]`}>
-                            {[{ id: 'none', label: '🌐 الخطة كاملة', active: 'bg-white text-slate-900 shadow-sm' }, { id: 'available', label: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }, { id: 'critical', label: '🚨 المسار الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' }].map(f => (
-                                <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{f.label}</button>
+                        {showRotateHint && (
+                            <div className="absolute top-2 right-2 left-2 z-30" dir="rtl">
+                                <div className="bg-amber-50/95 border border-amber-200 text-amber-800 rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm flex items-center gap-2.5">
+                                    <span className="text-base shrink-0">🔄</span>
+                                    <p className="text-[10px] font-black leading-snug flex-1">لرؤية الشجرة بشكل أوضح، لف الشاشة للوضع الأفقي.</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDismissedRotateHint(true)}
+                                        className="shrink-0 text-[10px] font-black px-2 py-1 rounded-md bg-white border border-amber-200 text-amber-700"
+                                    >
+                                        إخفاء
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? 'top-2' : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? 'w-[calc(100%-0.75rem)] overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
+                            {[
+                                { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
+                                { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' },
+                                { id: 'critical', label: '🚨 المسار الحرج', mobileLabel: '🚨 الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' }
+                            ].map(f => (
+                                <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                             ))}
                             {canEditTreePositions && (
                                 <button
                                     onClick={() => setPositionEditMode((prev) => !prev)}
-                                    className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 ${positionEditMode ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]' : 'bg-white text-slate-900 shadow-sm'}`}
+                                    className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${positionEditMode ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]' : 'bg-white text-slate-900 shadow-sm'}`}
                                 >
-                                    {positionEditMode ? '💾 وضع الترتيب مفعّل' : '🖱️ تعديل أماكن المواد'}
+                                    {positionEditMode ? '💾 وضع الترتيب مفعّل' : (isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد')}
                                 </button>
                             )}
                         </div>

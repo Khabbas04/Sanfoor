@@ -71,10 +71,10 @@ export default function AiWidget({ user }) {
             {/* 🗨️ نافذة الشات — الزاوية السفلية اليمنى */}
             {isOpen && (
                 <div
-                    className="fixed right-4 sm:right-8 bottom-24 sm:bottom-28 z-[100] ai-chat-in font-sans"
+                    className="fixed right-2 sm:right-8 bottom-20 sm:bottom-28 z-[100] ai-chat-in font-sans"
                     dir="rtl"
                 >
-                    <div className="w-[350px] sm:w-[380px] h-[500px] bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden">
+                    <div className="w-[calc(100vw-1rem)] max-w-[380px] h-[70dvh] max-h-[520px] min-h-[360px] bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden">
                         {/* Header */}
                         <div className="p-4 bg-gradient-to-l from-indigo-600 to-violet-600 text-white flex justify-between items-center shadow-lg relative overflow-hidden">
                             <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '12px 12px' }} />
@@ -129,7 +129,7 @@ export default function AiWidget({ user }) {
             )}
 
             {/* 🔘 زر التشغيل العائم — الزاوية السفلية اليمنى */}
-            <div className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-[100]">
+            <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 sm:bottom-8 sm:right-8 z-[100]">
                 {/* 🔵 حلقة النبض الخلفية (Ping Ring) */}
                 {!isOpen && (
                     <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
@@ -137,7 +137,7 @@ export default function AiWidget({ user }) {
 
                 <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className={`relative w-16 h-16 rounded-full overflow-visible shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
+                    className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-visible shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
                 >
                     <span className="w-full h-full rounded-full overflow-hidden bg-white/90 border border-white/80">
                         <img

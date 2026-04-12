@@ -407,6 +407,7 @@ export default function Advisor() {
     const [loadingChat, setLoadingChat] = useState(false);
     const [sidebar, setSidebar] = useState(false);
     const [regenning, setRegenning] = useState(false);
+    const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
 
     // 🆕 State الساعات الديناميكية
     const [cartHours, setCartHours] = useState(st?.cart_hours || 0);
@@ -431,8 +432,16 @@ export default function Advisor() {
     const [loadId, setLoadId] = useState(null);
 
     const chatRef = useRef(null), inputRef = useRef(null), abortRef = useRef(null);
+    const isMobileViewport = viewportWidth < 1024;
     const scroll = useCallback(() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' }); }, []);
     useEffect(() => { const t = setTimeout(scroll, 60); return () => clearTimeout(t); }, [msgs, typing]);
+
+    useEffect(() => {
+        const onResize = () => setViewportWidth(window.innerWidth);
+        onResize();
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     const finish = useCallback(() => { setGenerating(false); setMsgs(p => p.map((m, i) => i === p.length - 1 && m.role === 'ai' && m.isAnimating ? { ...m, isAnimating: false } : m)); setTimeout(scroll, 100); }, [scroll]);
     const newChat = useCallback(() => { setActiveId(null); setMsgs([welcome]); setInput(''); setGenerating(false); setTyping(false); setSidebar(false); setTimeout(() => inputRef.current?.focus(), 100); }, [welcome]);
@@ -607,13 +616,13 @@ export default function Advisor() {
             .sfr-action-btn:hover { background: #f1f5f9; }
         ` }} />
 
-        <div className="py-2.5 md:py-5 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
+        <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
         <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
         {/* === Mobile === */}
-        <div className="lg:hidden flex items-center gap-2">
-            <button onClick={()=>setSidebar(true)} className="p-2.5 bg-white rounded-xl border border-slate-200/50 shadow-sm active:scale-95"><svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-            <button onClick={newChat} className="flex-1 bg-indigo-700 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97]">✨ جديدة</button>
+        <div className="lg:hidden sticky top-2 z-30 flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
+            <button onClick={()=>setSidebar(true)} className="flex items-center gap-1.5 p-2.5 bg-white rounded-xl border border-slate-200/70 shadow-sm active:scale-95 text-[11px] font-black text-slate-600"><svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>المحادثات</button>
+            <button onClick={newChat} className="flex-1 bg-indigo-700 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97]">✨ محادثة جديدة</button>
         </div>
         {sidebar&&<div className="lg:hidden fixed inset-0 z-50 flex"><div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={()=>setSidebar(false)}/><div className="relative w-[80%] max-w-[280px] bg-white h-full shadow-2xl overflow-y-auto p-4 space-y-3 sfr-scrollbar"><div className="flex items-center justify-between"><h3 className="font-black text-slate-700 text-[13px]">📂 المحادثات</h3><button onClick={()=>setSidebar(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">✕</button></div>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[11px] py-8">📭 فارغ</p>}</div></div>}
 
@@ -655,7 +664,7 @@ export default function Advisor() {
         </div>
 
         {/* === Chat === */}
-        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col h-[calc(100vh-80px)] lg:h-[calc(100vh-64px)] min-h-[460px] overflow-hidden relative">
+        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col h-[calc(100dvh-150px)] sm:h-[calc(100dvh-140px)] lg:h-[calc(100vh-64px)] min-h-[420px] overflow-hidden relative">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3">
@@ -668,16 +677,21 @@ export default function Advisor() {
                         <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':'bg-emerald-400'} animate-pulse`}/>{typing?'يحلل سؤالك...':generating?'يكتب الرد...':'جاهز لمساعدتك'}</p>
                     </div>
                 </div>
-                {st&&<div className="hidden md:flex items-center gap-2">
-                    {st.gpa&&<div className="bg-slate-50 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-indigo-700">{st.gpa}</p></div>}
-                    {st.progress_percent!=null&&<div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100"><Ring pct={st.progress_percent} size={24} s={2.5}/><span className="text-[10px] font-black text-slate-700">{st.progress_percent}%</span></div>}
-                    {/* 🆕 تحديث الساعات في Header لتكون ديناميكية */}
-                    {addedCount>0&&<div className="bg-emerald-50 rounded-lg px-2.5 py-1.5 border border-emerald-100"><span className="text-[10px] font-black text-emerald-700">🛒 {addedCount} مواد • {cartHours}س</span></div>}
-                </div>}
+                <div className="flex items-center gap-2">
+                    {isMobileViewport && (
+                        <button onClick={newChat} className="md:hidden bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-lg text-[10px] font-black active:scale-95 transition-all">✨ جديدة</button>
+                    )}
+                    {st&&<div className="hidden md:flex items-center gap-2">
+                        {st.gpa&&<div className="bg-slate-50 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-indigo-700">{st.gpa}</p></div>}
+                        {st.progress_percent!=null&&<div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100"><Ring pct={st.progress_percent} size={24} s={2.5}/><span className="text-[10px] font-black text-slate-700">{st.progress_percent}%</span></div>}
+                        {/* 🆕 تحديث الساعات في Header لتكون ديناميكية */}
+                        {addedCount>0&&<div className="bg-emerald-50 rounded-lg px-2.5 py-1.5 border border-emerald-100"><span className="text-[10px] font-black text-emerald-700">🛒 {addedCount} مواد • {cartHours}س</span></div>}
+                    </div>}
+                </div>
             </div>
 
             {/* Messages */}
-            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 space-y-3 bg-[#fafbfc] sfr-scrollbar">
+            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-[#fafbfc] sfr-scrollbar">
                 {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-indigo-400"><div className="w-7 h-7 border-[3px] border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                 <div className="space-y-3">
                     {msgs.map(m=><Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id===lastAi} onRegen={regen} onFb={fb} onFollow={send}/>)}
@@ -688,7 +702,7 @@ export default function Advisor() {
             {generating&&<div className="absolute bottom-[80px] left-1/2 -translate-x-1/2 z-30 sfr-fade-up"><button onClick={stop} className="bg-slate-900 hover:bg-red-600 text-white px-4 py-1.5 rounded-full text-[9px] font-black shadow-xl flex items-center gap-1.5 transition-all active:scale-95"><span className="w-1.5 h-1.5 bg-white rounded-sm"/>إيقاف</button></div>}
 
             {/* Input */}
-            <div className="bg-white border-t border-slate-100/70 z-20">
+            <div className="bg-white border-t border-slate-100/70 z-20 pb-[env(safe-area-inset-bottom)]">
                 {/* 🆕 قائمة الأوامر السحرية (تظهر عند كتابة /) */}
                 {showCommandMenu && (
                     <div className="px-3 py-2 border-b border-indigo-100/50 bg-gradient-to-b from-indigo-50/50 to-white max-h-[240px] overflow-y-auto">
