@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -20,8 +21,13 @@ class MicrosoftAuthController extends Controller
     public function handleMicrosoftCallback()
     {
         try {
-            $microsoftUser = Socialite::driver('azure')->user();
+            $microsoftUser = Socialite::driver('azure')->stateless()->user();
         } catch (Throwable $exception) {
+            Log::error('Microsoft login callback failed', [
+                'message' => $exception->getMessage(),
+                'exception' => $exception::class,
+            ]);
+
             return redirect('/')->with('error', 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.');
         }
 
