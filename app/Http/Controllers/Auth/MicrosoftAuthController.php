@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -137,6 +138,27 @@ class MicrosoftAuthController extends Controller
 
             Auth::guard('web')->login($user, true);
             $request->session()->regenerate();
+
+            // Keep Microsoft logins visible in the same admin login feed.
+            try {
+                AdminLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'USER_LOGIN',
+                    'details' => sprintf(
+                        'User login via Microsoft: %s (%s) | role: %s | ip: %s',
+                        $user->name,
+                        $user->email,
+                        $user->role,
+                        $request->ip()
+                    ),
+                    'ip_address' => $request->ip(),
+                ]);
+            } catch (Throwable $logException) {
+                Log::warning('Failed to write USER_LOGIN admin log for Microsoft login', [
+                    'user_id' => $user->id,
+                    'error' => $logException->getMessage(),
+                ]);
+            }
 
             if (blank($user->major_id)) {
                 return redirect()->route('profile.edit')->with([
