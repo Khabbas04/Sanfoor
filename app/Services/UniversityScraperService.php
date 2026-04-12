@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\CookieJarInterface;
 use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Support\Facades\Log;
+use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Symfony\Component\DomCrawler\Crawler;
 use Throwable;
@@ -13,6 +16,10 @@ use Throwable;
 class UniversityScraperService
 {
     private Client $client;
+
+    private CookieJarInterface $cookieJar;
+
+    private string $baseUrl;
 
     private string $loginPath;
 
@@ -30,13 +37,20 @@ class UniversityScraperService
 
     private bool $debugMode = false;
 
+    private bool $sslFallbackOnError = true;
+
+    private bool $customClientProvided = false;
+
     private bool $authenticated = false;
 
     public function __construct(?Client $client = null)
     {
-        $baseUrl = rtrim((string) config('services.zu_portal.base_url', 'https://eservices.zu.edu.jo'), '/').'/';
+        $this->baseUrl = rtrim((string) config('services.zu_portal.base_url', 'https://eservices.zu.edu.jo'), '/').'/';
         $verifyOption = $this->resolveSslVerifyOption();
         $this->debugMode = (bool) config('services.zu_portal.debug', false);
+        $this->sslFallbackOnError = (bool) config('services.zu_portal.ssl_fallback_on_error', true);
+        $this->customClientProvided = $client !== null;
+        $this->cookieJar = new CookieJar();
 
         $this->loginPath = (string) config('services.zu_portal.login_path', '/StudentPortal2/Login/loginPage');
         $this->profilePaths = $this->normalizePaths((array) config('services.zu_portal.profile_paths', [
@@ -59,9 +73,17 @@ class UniversityScraperService
             '/StudentPortal2/Student/Main/plan',
         ]));
 
-        $this->client = $client ?? new Client([
-            'base_uri' => $baseUrl,
-            'cookies' => true,
+        $this->client = $client ?? $this->buildHttpClient($verifyOption);
+    }
+
+    /**
+     * @param bool|string $verifyOption
+     */
+    private function buildHttpClient(bool|string $verifyOption): Client
+    {
+        return new Client([
+            'base_uri' => $this->baseUrl,
+            'cookies' => $this->cookieJar,
             'verify' => $verifyOption,
             'http_errors' => false,
             'allow_redirects' => [
@@ -76,6 +98,42 @@ class UniversityScraperService
                 'Accept-Language' => 'ar,en-US;q=0.9,en;q=0.8',
             ],
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function sendRequest(string $method, string $url, array $options = []): ResponseInterface
+    {
+        try {
+            return $this->client->request($method, $url, $options);
+        } catch (Throwable $exception) {
+            if (!$this->shouldRetryWithoutSslVerification($exception)) {
+                throw $exception;
+            }
+
+            Log::warning('ZU portal SSL verification failed, retrying without SSL verification.', [
+                'url' => $url,
+                'message' => $exception->getMessage(),
+            ]);
+
+            $this->client = $this->buildHttpClient(false);
+
+            return $this->client->request($method, $url, $options);
+        }
+    }
+
+    private function shouldRetryWithoutSslVerification(Throwable $exception): bool
+    {
+        if (!$this->sslFallbackOnError || $this->customClientProvided) {
+            return false;
+        }
+
+        $message = mb_strtolower($exception->getMessage());
+
+        return str_contains($message, 'curl error 60')
+            || str_contains($message, 'ssl certificate problem')
+            || str_contains($message, 'unable to get local issuer certificate');
     }
 
     /**
@@ -142,7 +200,7 @@ class UniversityScraperService
                 $payload[$name] = (string) ($input->getAttribute('value') ?? '');
             }
 
-            $response = $this->client->post($actionUrl, [
+            $response = $this->sendRequest('POST', $actionUrl, [
                 'form_params' => $payload,
                 'headers' => [
                     'Referer' => $loginPageUrl,
@@ -226,15 +284,56 @@ class UniversityScraperService
     }
 
     /**
-     * Scrape passed courses table from the portal.
+     * Scrape passed courses from portal pages.
      *
-     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
+     * If no academic year/term are provided, all available year+term combinations
+     * are discovered from portal filters and synchronized automatically.
+     *
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}>
      */
     public function getCourses(?string $academicYear = null, ?string $academicTerm = null): array
     {
         $this->ensureAuthenticated();
 
         $normalizedYear = $this->cleanText($academicYear ?? '');
+        $normalizedTerm = $this->normalizeAcademicTerm($academicTerm);
+
+        if ($normalizedYear === '' && $normalizedTerm === '') {
+            $selections = $this->discoverAcademicSelections();
+
+            if (empty($selections)) {
+                return $this->collectCoursesForSelection('', '');
+            }
+
+            $allSelectionsCourses = [];
+
+            foreach ($selections as $selection) {
+                $allSelectionsCourses[] = $this->collectCoursesForSelection(
+                    (string) ($selection['year'] ?? ''),
+                    (string) ($selection['term'] ?? '')
+                );
+            }
+
+            $mergedAll = $this->mergeCourses(...$allSelectionsCourses);
+
+            $this->logDebug('courses_all_terms_synced', [
+                'selections_count' => count($selections),
+                'final_count' => count($mergedAll),
+                'selections' => $selections,
+            ]);
+
+            return $mergedAll;
+        }
+
+        return $this->collectCoursesForSelection($normalizedYear, $normalizedTerm);
+    }
+
+    /**
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}>
+     */
+    private function collectCoursesForSelection(string $academicYear, string $academicTerm): array
+    {
+        $normalizedYear = $this->cleanText($academicYear);
         $normalizedTerm = $this->normalizeAcademicTerm($academicTerm);
 
         $marksCourses = $this->extractCoursesFromCandidates(
@@ -363,7 +462,7 @@ class UniversityScraperService
         try {
             [$html, $url] = $this->fetchFromCandidates($paths, $keywords, $academicYear, $academicTerm);
 
-            return $this->extractCoursesFromHtml($html, $url);
+            return $this->extractCoursesFromHtml($html, $url, $academicYear, $academicTerm);
         } catch (Throwable $exception) {
             $this->logDebug('courses_source_failed', [
                 'paths' => $paths,
@@ -375,9 +474,14 @@ class UniversityScraperService
     }
 
     /**
-     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
+     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}>
      */
-    private function extractCoursesFromHtml(string $html, string $url): array
+    private function extractCoursesFromHtml(
+        string $html,
+        string $url,
+        ?string $academicYear,
+        ?string $academicTerm
+    ): array
     {
         $crawler = new Crawler($html, $url);
         $table = $this->detectCoursesTable($crawler);
@@ -392,6 +496,9 @@ class UniversityScraperService
         if (!$rows->count()) {
             $rows = $table->filter('tr');
         }
+
+        $studiedYear = $this->normalizeAcademicYearForStorage($academicYear);
+        $studiedTerm = $this->normalizeAcademicTermForStorage($academicTerm);
 
         $courses = [];
 
@@ -423,6 +530,8 @@ class UniversityScraperService
                 'grade' => $this->parseNumber($gradeRaw),
                 'grade_raw' => $gradeRaw !== '' ? $gradeRaw : null,
                 'credits' => $this->parseNumber($creditsRaw),
+                'studied_year' => $studiedYear,
+                'studied_term' => $studiedTerm,
             ];
         }
 
@@ -437,8 +546,8 @@ class UniversityScraperService
     }
 
     /**
-     * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}> ...$courseSets
-     * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}>
+    * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}> ...$courseSets
+    * @return array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}>
      */
     private function mergeCourses(array ...$courseSets): array
     {
@@ -465,10 +574,27 @@ class UniversityScraperService
                 if (($current['grade'] ?? null) === null && ($course['grade'] ?? null) !== null) {
                     $current['grade'] = $course['grade'];
                     $current['grade_raw'] = $course['grade_raw'] ?? null;
+                    $current['studied_year'] = $course['studied_year'] ?? ($current['studied_year'] ?? null);
+                    $current['studied_term'] = $course['studied_term'] ?? ($current['studied_term'] ?? null);
+                } elseif (($current['grade'] ?? null) !== null && ($course['grade'] ?? null) !== null) {
+                    if ((float) $course['grade'] > (float) $current['grade']) {
+                        $current['grade'] = $course['grade'];
+                        $current['grade_raw'] = $course['grade_raw'] ?? null;
+                        $current['studied_year'] = $course['studied_year'] ?? ($current['studied_year'] ?? null);
+                        $current['studied_term'] = $course['studied_term'] ?? ($current['studied_term'] ?? null);
+                    }
                 }
 
                 if (($current['credits'] ?? null) === null && ($course['credits'] ?? null) !== null) {
                     $current['credits'] = $course['credits'];
+                }
+
+                if (($current['studied_year'] ?? null) === null && ($course['studied_year'] ?? null) !== null) {
+                    $current['studied_year'] = $course['studied_year'];
+                }
+
+                if (($current['studied_term'] ?? null) === null && ($course['studied_term'] ?? null) !== null) {
+                    $current['studied_term'] = $course['studied_term'];
                 }
 
                 if (mb_strlen((string) ($course['course_name'] ?? '')) > mb_strlen((string) ($current['course_name'] ?? ''))) {
@@ -549,6 +675,166 @@ class UniversityScraperService
         }
 
         return $clean;
+    }
+
+    /**
+     * @return array<int, array{year:string, term:string}>
+     */
+    private function discoverAcademicSelections(): array
+    {
+        $paths = array_values(array_unique(array_merge(
+            $this->marksPaths,
+            $this->schedulePaths,
+            $this->coursesPaths
+        )));
+
+        $selections = [];
+
+        foreach ($paths as $path) {
+            try {
+                $html = $this->requestBody($path);
+                $pageUrl = $this->toAbsoluteUrl($path);
+                $crawler = new Crawler($html, $pageUrl);
+
+                foreach ($crawler->filter('form') as $formNode) {
+                    $form = new Crawler($formNode, $pageUrl);
+
+                    $fieldNames = [];
+                    foreach ($form->filter('[name]') as $node) {
+                        $name = trim((string) ($node->getAttribute('name') ?? ''));
+                        if ($name !== '') {
+                            $fieldNames[$name] = $name;
+                        }
+                    }
+
+                    $yearField = $this->findAcademicFieldName(array_values($fieldNames), 'year');
+                    $termField = $this->findAcademicFieldName(array_values($fieldNames), 'term');
+
+                    if ($yearField === null || $termField === null) {
+                        continue;
+                    }
+
+                    $yearOptions = $this->extractAcademicSelectOptions($form, $yearField, 'year');
+                    $termOptions = $this->extractAcademicSelectOptions($form, $termField, 'term');
+
+                    if (empty($yearOptions) || empty($termOptions)) {
+                        continue;
+                    }
+
+                    foreach ($yearOptions as $yearOption) {
+                        foreach ($termOptions as $termOption) {
+                            $key = $this->normalizeAcademicSelectionKey($yearOption).'|'.$this->normalizeAcademicTerm($termOption);
+
+                            if (isset($selections[$key])) {
+                                continue;
+                            }
+
+                            $selections[$key] = [
+                                'year' => $yearOption,
+                                'term' => $this->normalizeAcademicTerm($termOption),
+                            ];
+                        }
+                    }
+                }
+            } catch (Throwable $exception) {
+                $this->logDebug('discover_academic_selections_failed', [
+                    'path' => $path,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        return array_values($selections);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function extractAcademicSelectOptions(Crawler $form, string $fieldName, string $type): array
+    {
+        $literal = $this->toXpathLiteral($fieldName);
+        $select = $form->filterXPath("//select[@name={$literal}]");
+
+        if (!$select->count()) {
+            return [];
+        }
+
+        $options = [];
+
+        foreach ($select->first()->filter('option') as $optionNode) {
+            $value = $this->cleanText((string) ($optionNode->getAttribute('value') ?? ''));
+            $text = $this->cleanText((string) ($optionNode->textContent ?? ''));
+
+            $combined = mb_strtolower($value.' '.$text);
+            if ($combined === '') {
+                continue;
+            }
+
+            if ($this->containsAny($combined, ['اختر', 'choose', 'select', 'all', 'الكل', '--'])) {
+                continue;
+            }
+
+            if ($type === 'year') {
+                $candidate = $value !== '' ? $value : $text;
+                $digits = preg_replace('/\D+/', '', $this->toWesternDigits($candidate)) ?? '';
+
+                if ($candidate === '' || $digits === '') {
+                    continue;
+                }
+
+                $options[$candidate] = $candidate;
+                continue;
+            }
+
+            $candidateTerm = $this->normalizeAcademicTerm($value !== '' ? $value : $text);
+            if ($candidateTerm === '' || !in_array($candidateTerm, ['1', '2', '3'], true)) {
+                continue;
+            }
+
+            $options[$candidateTerm] = $candidateTerm;
+        }
+
+        return array_values($options);
+    }
+
+    private function normalizeAcademicSelectionKey(string $year): string
+    {
+        $digits = preg_replace('/\D+/', '', $this->toWesternDigits($year)) ?? '';
+
+        return $digits !== '' ? $digits : mb_strtolower($this->cleanText($year));
+    }
+
+    private function normalizeAcademicYearForStorage(?string $academicYear): ?int
+    {
+        $yearText = $this->cleanText($academicYear);
+        if ($yearText === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $this->toWesternDigits($yearText)) ?? '';
+        if ($digits === '') {
+            return null;
+        }
+
+        $year = (int) $digits;
+
+        if ($year <= 255) {
+            return $year;
+        }
+
+        return (int) substr($digits, -2);
+    }
+
+    private function normalizeAcademicTermForStorage(?string $academicTerm): ?int
+    {
+        $term = $this->normalizeAcademicTerm($academicTerm);
+        if ($term === '') {
+            return null;
+        }
+
+        $numeric = (int) $term;
+
+        return in_array($numeric, [1, 2, 3], true) ? $numeric : null;
     }
 
     private function scoreAcademicContext(string $pageText, ?string $academicYear, ?string $academicTerm): int
@@ -641,10 +927,10 @@ class UniversityScraperService
 
                 if ($method === 'GET') {
                     $options['query'] = $fields;
-                    $response = $this->client->get($actionUrl, $options);
+                    $response = $this->sendRequest('GET', $actionUrl, $options);
                 } else {
                     $options['form_params'] = $fields;
-                    $response = $this->client->post($actionUrl, $options);
+                    $response = $this->sendRequest('POST', $actionUrl, $options);
                 }
 
                 $status = $response->getStatusCode();
@@ -827,7 +1113,7 @@ class UniversityScraperService
 
     private function requestBody(string $url): string
     {
-        $response = $this->client->get($url);
+        $response = $this->sendRequest('GET', $url);
         $status = $response->getStatusCode();
 
         if ($status < 200 || $status >= 400) {

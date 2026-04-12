@@ -56,6 +56,7 @@ return [
         'base_url' => env('ZU_PORTAL_BASE_URL', 'https://eservices.zu.edu.jo'),
         'login_path' => env('ZU_PORTAL_LOGIN_PATH', '/StudentPortal2/Login/loginPage'),
         'verify_ssl' => filter_var(env('ZU_PORTAL_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
+        'ssl_fallback_on_error' => filter_var(env('ZU_PORTAL_SSL_FALLBACK_ON_ERROR', true), FILTER_VALIDATE_BOOL),
         'ca_bundle' => env('ZU_PORTAL_CA_BUNDLE'),
         'debug' => filter_var(env('ZU_PORTAL_DEBUG', false), FILTER_VALIDATE_BOOL),
         'profile_paths' => array_filter(array_map('trim', explode(',', env(

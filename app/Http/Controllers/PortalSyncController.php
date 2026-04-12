@@ -22,8 +22,6 @@ class PortalSyncController extends Controller
         $validated = $request->validate([
             'student_id' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string', 'max:255'],
-            'academic_year' => ['required', 'string', 'max:30'],
-            'academic_term' => ['required', 'string', 'max:30'],
         ]);
 
         /** @var User|null $user */
@@ -35,10 +33,7 @@ class PortalSyncController extends Controller
         try {
             $scraper->login($validated['student_id'], $validated['password']);
             $studentData = $scraper->getStudentData();
-            $courses = $scraper->getCourses(
-                (string) $validated['academic_year'],
-                (string) $validated['academic_term']
-            );
+            $courses = $scraper->getCourses();
 
             $hasProfileData = filled($studentData['name'] ?? null)
                 || filled($studentData['major'] ?? null)
@@ -61,12 +56,7 @@ class PortalSyncController extends Controller
 
             DB::transaction(function () use ($user, $validated, $studentData, $courses, &$syncStats): void {
                 $this->syncUserAcademicProfile($user, $validated['student_id'], $studentData, $courses);
-                $syncStats = $this->syncPassedCourses(
-                    $user,
-                    $courses,
-                    (string) $validated['academic_year'],
-                    (string) $validated['academic_term']
-                );
+                $syncStats = $this->syncPassedCourses($user, $courses);
             });
 
             $message = 'تمت مزامنة بيانات بوابة الجامعة بنجاح.';
@@ -123,7 +113,7 @@ class PortalSyncController extends Controller
 
     /**
      * @param array{name:?string, major:?string, gpa:?float, gpa_raw:?string} $studentData
-        * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}> $courses
+      * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}> $courses
      */
     private function syncUserAcademicProfile(User $user, string $studentId, array $studentData, array $courses): void
     {
@@ -190,10 +180,10 @@ class PortalSyncController extends Controller
     }
 
     /**
-     * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float}> $courses
+    * @param array<int, array{course_name:string, course_code:?string, grade:?float, grade_raw:?string, credits:?float, studied_year:?int, studied_term:?int}> $courses
      * @return array{matched:int, skipped:int}
      */
-    private function syncPassedCourses(User $user, array $courses, string $academicYear, string $academicTerm): array
+    private function syncPassedCourses(User $user, array $courses): array
     {
         if (!Schema::hasTable('courses') || !Schema::hasTable('course_user')) {
             return ['matched' => 0, 'skipped' => count($courses)];
@@ -203,8 +193,6 @@ class PortalSyncController extends Controller
 
         $majorId = $user->major_id;
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
-        $studiedYear = $this->normalizeStudiedYear($academicYear);
-        $studiedTerm = $this->normalizeStudiedTerm($academicTerm);
 
         $treeCourses = Course::query()
             ->select('id', 'code', 'name', 'major_id', 'study_plan_version')
@@ -285,6 +273,9 @@ class PortalSyncController extends Controller
                 $skipped++;
                 continue;
             }
+
+            $studiedYear = $this->normalizeStudiedYear((string) ($courseData['studied_year'] ?? ''));
+            $studiedTerm = $this->normalizeStudiedTerm((string) ($courseData['studied_term'] ?? ''));
 
             $pivotData = [];
             if (isset($pivotColumns['grade'])) {

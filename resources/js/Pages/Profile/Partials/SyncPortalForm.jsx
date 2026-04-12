@@ -11,8 +11,6 @@ export default function SyncPortalForm({ className = '' }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         student_id: user.portal_student_id || inferredStudentId,
         password: '',
-        academic_year: '',
-        academic_term: '1',
     });
 
     const submit = (e) => {
@@ -37,7 +35,7 @@ export default function SyncPortalForm({ className = '' }) {
 
                 {!user.portal_synced_at && (
                     <p className="mt-2 text-xs font-bold text-amber-700 font-cairo">
-                        تم تعبئة الرقم الجامعي تلقائياً من بريد Microsoft إن توفر. اختر السنة والفصل المطلوبين ثم اضغط مزامنة.
+                        تم تعبئة الرقم الجامعي تلقائياً من بريد Microsoft إن توفر. اضغط مزامنة وسيتم جلب البيانات من البوابة لكل السنوات والفصول تلقائياً.
                     </p>
                 )}
             </header>
@@ -73,39 +71,6 @@ export default function SyncPortalForm({ className = '' }) {
 
                     <InputError className="mt-2" message={errors.password} />
                     <InputError className="mt-2" message={errors.portal_sync} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="portal_academic_year" value="السنة الدراسية (كما تظهر في البوابة)" />
-
-                    <TextInput
-                        id="portal_academic_year"
-                        className="mt-1 block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
-                        value={data.academic_year}
-                        onChange={(e) => setData('academic_year', e.target.value)}
-                        placeholder="مثال: 2024/2025 أو 4"
-                        required
-                    />
-
-                    <InputError className="mt-2" message={errors.academic_year} />
-                </div>
-
-                <div>
-                    <InputLabel htmlFor="portal_academic_term" value="الفصل" />
-
-                    <select
-                        id="portal_academic_term"
-                        value={data.academic_term}
-                        onChange={(e) => setData('academic_term', e.target.value)}
-                        className="mt-1 block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
-                        required
-                    >
-                        <option value="1">الأول</option>
-                        <option value="2">الثاني</option>
-                        <option value="3">الصيفي</option>
-                    </select>
-
-                    <InputError className="mt-2" message={errors.academic_term} />
                 </div>
 
                 <div className="flex items-center gap-4 pt-2 border-t border-slate-100 mt-6 pt-6">
