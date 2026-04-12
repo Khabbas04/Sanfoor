@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -18,7 +19,7 @@ class MicrosoftAuthController extends Controller
         return Socialite::driver('azure')->redirect();
     }
 
-    public function handleMicrosoftCallback()
+    public function handleMicrosoftCallback(Request $request)
     {
         try {
             $microsoftUser = Socialite::driver('azure')->stateless()->user();
@@ -52,6 +53,7 @@ class MicrosoftAuthController extends Controller
             );
 
             Auth::login($user, true);
+            $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'));
         } catch (Throwable $exception) {
@@ -60,7 +62,7 @@ class MicrosoftAuthController extends Controller
                 'exception' => $exception::class,
             ]);
 
-            return redirect('/')->with('error', 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.');
+            return redirect()->route('login')->with('error', 'فشل تسجيل الدخول عبر مايكروسوفت. حاول مرة أخرى.');
         }
     }
 }
