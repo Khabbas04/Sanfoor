@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
@@ -38,13 +39,18 @@ class MicrosoftAuthController extends Controller
             ?? data_get($microsoftUser->user, 'displayName')
             ?? Str::before($email, '@');
 
+        $userData = [
+            'name' => $name,
+            'email_verified_at' => now(),
+        ];
+
+        if (Schema::hasColumn('users', 'microsoft_id')) {
+            $userData['microsoft_id'] = (string) $microsoftUser->getId();
+        }
+
         $user = User::updateOrCreate(
             ['email' => $email],
-            [
-                'name' => $name,
-                'microsoft_id' => (string) $microsoftUser->getId(),
-                'email_verified_at' => now(),
-            ]
+            $userData
         );
 
         Auth::login($user, true);
