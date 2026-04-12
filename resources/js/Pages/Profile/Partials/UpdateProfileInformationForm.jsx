@@ -95,7 +95,7 @@ export default function UpdateProfileInformation({
                             <select
                                 id="college_id"
                                 value={data.college_id}
-                                onChange={(e) => setData({ ...data, college_id: e.target.value, major_id: '' })}
+                                onChange={(e) => setData((prev) => ({ ...prev, college_id: e.target.value, major_id: '' }))}
                                 className="block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
                             >
                                 <option value="">اختر الكلية</option>

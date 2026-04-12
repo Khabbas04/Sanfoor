@@ -56,32 +56,75 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        $fillablePayload = [
-            'name' => $validated['name'] ?? $user->name,
-            'email' => $validated['email'] ?? $user->email,
+        $hasMajorColumn = Schema::hasColumn('users', 'major_id');
+        $hasPlanColumn = Schema::hasColumn('users', 'study_plan_version');
+        $hasEmailVerifiedAt = Schema::hasColumn('users', 'email_verified_at');
+
+        $updatePayload = [
+            'name' => trim((string) ($validated['name'] ?? $user->name)),
+            'email' => strtolower(trim((string) ($validated['email'] ?? $user->email))),
         ];
 
-        if (Schema::hasColumn('users', 'major_id') && array_key_exists('major_id', $validated)) {
-            $fillablePayload['major_id'] = $validated['major_id'];
+        if ($hasMajorColumn && array_key_exists('major_id', $validated)) {
+            $updatePayload['major_id'] = filled($validated['major_id']) ? (int) $validated['major_id'] : null;
         }
 
-        if (Schema::hasColumn('users', 'study_plan_version') && array_key_exists('study_plan_version', $validated)) {
-            $fillablePayload['study_plan_version'] = $validated['study_plan_version'];
+        if ($hasPlanColumn && array_key_exists('study_plan_version', $validated)) {
+            $updatePayload['study_plan_version'] = filled($validated['study_plan_version']) ? (int) $validated['study_plan_version'] : null;
         }
 
-        $user->fill($fillablePayload);
+        if (
+            $hasMajorColumn
+            && Schema::hasTable('majors')
+            && filled($updatePayload['major_id'] ?? null)
+            && filled($validated['college_id'] ?? null)
+        ) {
+            $majorBelongsToCollege = Major::query()
+                ->whereKey((int) $updatePayload['major_id'])
+                ->where('college_id', (int) $validated['college_id'])
+                ->exists();
 
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
+            if (!$majorBelongsToCollege) {
+                return Redirect::route('profile.edit')
+                    ->withErrors(['major_id' => 'التخصص المختار لا يتبع الكلية المحددة.'])
+                    ->with('status', 'تحقق من اختيار الكلية والتخصص.');
+            }
+        }
+
+        $emailChanged = strtolower((string) $user->email) !== ($updatePayload['email'] ?? '');
+
+        if ($emailChanged && $hasEmailVerifiedAt) {
+            $updatePayload['email_verified_at'] = null;
         }
 
         try {
-            $user->save();
+            $user->newQuery()->whereKey($user->id)->update($updatePayload);
         } catch (Throwable $exception) {
             Log::error('Profile update failed', [
                 'user_id' => $user->id,
                 'message' => $exception->getMessage(),
+                'payload' => $updatePayload,
             ]);
+
+            try {
+                $basicPayload = [
+                    'name' => $updatePayload['name'],
+                    'email' => $updatePayload['email'],
+                ];
+
+                if (array_key_exists('email_verified_at', $updatePayload)) {
+                    $basicPayload['email_verified_at'] = $updatePayload['email_verified_at'];
+                }
+
+                $user->newQuery()->whereKey($user->id)->update($basicPayload);
+
+                return Redirect::route('profile.edit')->with('status', 'تم حفظ الاسم والبريد فقط. تعذر حفظ البيانات الأكاديمية حالياً.');
+            } catch (Throwable $fallbackException) {
+                Log::error('Profile update fallback failed', [
+                    'user_id' => $user->id,
+                    'message' => $fallbackException->getMessage(),
+                ]);
+            }
 
             return Redirect::route('profile.edit')->with('status', 'تعذر حفظ التعديلات حالياً. حاول مرة أخرى.');
         }
