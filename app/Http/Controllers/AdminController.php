@@ -545,6 +545,32 @@ class AdminController extends Controller
         return trim((string) $header, '_');
     }
 
+    private function normalizeCsvText(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (function_exists('mb_detect_encoding') && function_exists('mb_convert_encoding')) {
+            $detected = mb_detect_encoding($value, ['UTF-8', 'Windows-1256', 'ISO-8859-1', 'Windows-1252'], true);
+            if ($detected && $detected !== 'UTF-8') {
+                $value = mb_convert_encoding($value, 'UTF-8', $detected);
+            }
+        }
+
+        if (function_exists('mb_check_encoding') && !mb_check_encoding($value, 'UTF-8')) {
+            if (function_exists('iconv')) {
+                $converted = @iconv('Windows-1256', 'UTF-8//IGNORE', $value);
+                if ($converted !== false) {
+                    $value = $converted;
+                }
+            }
+        }
+
+        return trim($value);
+    }
+
     private function findCsvHeaderIndex(array $normalizedHeaders, array $aliases): int
     {
         $aliases = array_map(fn ($alias) => $this->normalizeCsvHeader($alias), $aliases);
@@ -588,7 +614,7 @@ class AdminController extends Controller
             return '';
         }
 
-        return trim((string) $row[$index]);
+        return $this->normalizeCsvText((string) $row[$index]);
     }
 
     private function parseCsvInteger(string $value, ?int $default = null, ?int $min = null, ?int $max = null): ?int
@@ -709,16 +735,16 @@ class AdminController extends Controller
 
                     $normalizedRows[] = [
                         'line' => (int) ($idx + 1),
-                        'code' => $this->cleanCourseCode((string) ($row['code'] ?? '')),
-                        'name' => trim((string) ($row['name'] ?? '')),
+                        'code' => $this->cleanCourseCode($this->normalizeCsvText((string) ($row['code'] ?? ''))),
+                        'name' => $this->normalizeCsvText((string) ($row['name'] ?? '')),
                         'credit_hours' => $this->parseCsvInteger((string) ($row['credit_hours'] ?? ''), 3, 0, 12) ?? 3,
-                        'raw_type' => trim((string) ($row['type'] ?? '')),
-                        'raw_category' => trim((string) ($row['category'] ?? '')),
-                        'raw_delivery_mode' => trim((string) ($row['delivery_mode'] ?? '')),
-                        'mapped_type' => trim((string) ($row['mappedType'] ?? '')),
-                        'prerequisites' => trim((string) ($row['prerequisites'] ?? '')),
+                        'raw_type' => $this->normalizeCsvText((string) ($row['type'] ?? '')),
+                        'raw_category' => $this->normalizeCsvText((string) ($row['category'] ?? '')),
+                        'raw_delivery_mode' => $this->normalizeCsvText((string) ($row['delivery_mode'] ?? '')),
+                        'mapped_type' => $this->normalizeCsvText((string) ($row['mappedType'] ?? '')),
+                        'prerequisites' => $this->normalizeCsvText((string) ($row['prerequisites'] ?? '')),
                         'semester' => $this->parseCsvInteger((string) ($row['semester'] ?? ''), 1, 1, 12) ?? 1,
-                        'description' => trim((string) ($row['description'] ?? '')),
+                        'description' => $this->normalizeCsvText((string) ($row['description'] ?? '')),
                         'minimum_passed_hours' => $this->parseCsvInteger((string) ($row['minimum_passed_hours'] ?? ''), null, 1, 200),
                     ];
                 }
