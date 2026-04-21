@@ -618,7 +618,17 @@ class AdminController extends Controller
     private function mapImportedCourseType(string $rawType, string $rawCategory, string $rawDeliveryMode): string
     {
         $normalize = function (string $value): string {
-            return mb_strtolower(trim($value), 'UTF-8');
+            $value = trim($value);
+
+            if (function_exists('mb_strtolower')) {
+                try {
+                    return mb_strtolower($value, 'UTF-8');
+                } catch (\Throwable $e) {
+                    return strtolower($value);
+                }
+            }
+
+            return strtolower($value);
         };
 
         $type = $normalize($rawType);
