@@ -514,6 +514,137 @@ class AdminController extends Controller
         }, $fileName);
     }
 
+    private function normalizeCsvHeader(?string $header): string
+    {
+        $header = (string) $header;
+        $header = preg_replace('/^\xEF\xBB\xBF/', '', $header);
+        $header = trim($header);
+        $header = mb_strtolower($header, 'UTF-8');
+        $header = preg_replace('/[\s\-\.\/\\]+/u', '_', $header);
+        $header = preg_replace('/[^\p{L}\p{N}_]+/u', '', $header);
+        $header = preg_replace('/_+/u', '_', $header);
+
+        return trim((string) $header, '_');
+    }
+
+    private function findCsvHeaderIndex(array $normalizedHeaders, array $aliases): int
+    {
+        $aliases = array_map(fn ($alias) => $this->normalizeCsvHeader($alias), $aliases);
+
+        foreach ($normalizedHeaders as $idx => $header) {
+            foreach ($aliases as $alias) {
+                if ($alias === '') {
+                    continue;
+                }
+
+                if ($header === $alias || str_contains($header, $alias)) {
+                    return $idx;
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    private function detectCsvColumns(array $headers): array
+    {
+        $normalizedHeaders = array_map(fn ($h) => $this->normalizeCsvHeader((string) $h), $headers);
+
+        return [
+            'code' => $this->findCsvHeaderIndex($normalizedHeaders, ['course_code', 'course_id', 'code', 'رمز_المادة', 'رمز']),
+            'name' => $this->findCsvHeaderIndex($normalizedHeaders, ['course_name', 'course_na', 'name', 'اسم_المادة', 'اسم']),
+            'credit_hours' => $this->findCsvHeaderIndex($normalizedHeaders, ['credit_hours', 'credits', 'credit', 'hours', 'عدد_الساعات', 'الساعات']),
+            'type' => $this->findCsvHeaderIndex($normalizedHeaders, ['type', 'group_title', 'group_ti', 'course_type', 'نوع']),
+            'category' => $this->findCsvHeaderIndex($normalizedHeaders, ['category', 'classification', 'class', 'track', 'الفئة', 'التصنيف', 'مسار']),
+            'delivery_mode' => $this->findCsvHeaderIndex($normalizedHeaders, ['delivery_mode', 'delivery', 'mode', 'teaching_mode', 'study_mode', 'طريقة_التدريس', 'نمط_التدريس']),
+            'prerequisites' => $this->findCsvHeaderIndex($normalizedHeaders, ['prerequisites', 'prerequisite', 'prereq', 'pre_req', 'prerequisite_codes', 'المتطلبات_السابقة', 'المتطلبات', 'متطلب_سابق']),
+            'semester' => $this->findCsvHeaderIndex($normalizedHeaders, ['semester', 'level', 'term', 'study_level', 'الفصل', 'المستوى']),
+            'description' => $this->findCsvHeaderIndex($normalizedHeaders, ['description', 'desc', 'notes', 'note', 'وصف', 'ملاحظات']),
+            'minimum_passed_hours' => $this->findCsvHeaderIndex($normalizedHeaders, ['minimum_passed_hours', 'min_passed_hours', 'minimum_hours', 'hours_required', 'شرط_الساعات', 'الساعات_المجتازة_المطلوبة']),
+        ];
+    }
+
+    private function getCsvCell(array $row, int $index): string
+    {
+        if ($index < 0 || !array_key_exists($index, $row)) {
+            return '';
+        }
+
+        return trim((string) $row[$index]);
+    }
+
+    private function parseCsvInteger(string $value, ?int $default = null, ?int $min = null, ?int $max = null): ?int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return $default;
+        }
+
+        if (preg_match('/-?\d+/', $value, $matches) !== 1) {
+            return $default;
+        }
+
+        $parsed = (int) $matches[0];
+
+        if ($min !== null && $parsed < $min) {
+            return $default;
+        }
+
+        if ($max !== null && $parsed > $max) {
+            return $default;
+        }
+
+        return $parsed;
+    }
+
+    private function mapImportedCourseType(string $rawType, string $rawCategory, string $rawDeliveryMode): string
+    {
+        $normalize = function (string $value): string {
+            return mb_strtolower(trim($value), 'UTF-8');
+        };
+
+        $type = $normalize($rawType);
+        $category = $normalize($rawCategory);
+        $deliveryMode = $normalize($rawDeliveryMode);
+        $combined = trim($type . ' ' . $category);
+
+        $containsAny = function (string $haystack, array $needles): bool {
+            foreach ($needles as $needle) {
+                if ($needle !== '' && str_contains($haystack, $needle)) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        if ($containsAny($combined, ['اختياري', 'elective', 'optional'])) {
+            return 'elective';
+        }
+
+        if ($containsAny($combined, ['مساند', 'supporting'])) {
+            return 'supporting';
+        }
+
+        if ($containsAny($combined, ['جامعة', 'جامعي', 'university', 'general_requirement', 'gen_ed'])) {
+            return 'university_req';
+        }
+
+        if (
+            $containsAny($deliveryMode, ['الكترون', 'إلكترون', 'online', 'e-learning', 'distance']) &&
+            $containsAny($combined, ['متطلب', 'requirement', 'req', 'اجباري', 'إجباري', 'mandatory', 'required'])
+        ) {
+            return 'university_req';
+        }
+
+        return 'compulsory';
+    }
+
+    private function cleanCourseCode(string $rawCode): string
+    {
+        return trim($rawCode, " \t\n\r\0\x0B\"'");
+    }
+
     public function import(Request $request)
     {
         $request->validate([
@@ -525,122 +656,146 @@ class AdminController extends Controller
         $file = $request->file('csv_file');
         $selectedMajorId = $request->input('major_id');
         $selectedPlanVersion = (int) $request->input('study_plan_version');
+        $count = 0;
+        $importedCourseIds = [];
+        $prerequisitesMap = [];
 
-        if (($handle = fopen($file->getPathname(), 'r')) !== false) {
-            
-            $headers = fgetcsv($handle);
-            $headers[0] = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $headers[0]); 
-            $headers = array_map('trim', $headers);
-            $headers = array_map('strtolower', $headers);
+        if (($handle = fopen($file->getPathname(), 'r')) === false) {
+            return redirect()->back()->with('error', 'تعذر قراءة ملف CSV. تأكد من إعادة التصدير بصيغة CSV UTF-8.');
+        }
 
-            $idxCode = -1; $idxName = -1; $idxCredits = -1; $idxGroup = -1; $idxPrereq = -1;
-            foreach ($headers as $i => $h) {
-                if (str_contains($h, 'course_id') || str_contains($h, 'code')) $idxCode = $i;
-                if (str_contains($h, 'course_na') || str_contains($h, 'name')) $idxName = $i;
-                if (str_contains($h, 'credit')) $idxCredits = $i;
-                if (str_contains($h, 'group_ti') || str_contains($h, 'type')) $idxGroup = $i;
-                if (str_contains($h, 'prereq')) $idxPrereq = $i;
-            }
-
-            if ($idxCode === -1 || $idxName === -1) {
-                fclose($handle);
-                return redirect()->back()->with('error', 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!');
-            }
-
-            $prerequisitesMap = []; 
-            $count = 0;
-            $importedCourseIds = []; 
-
-            while (($row = fgetcsv($handle)) !== false) {
-                if (!isset($row[$idxCode]) || trim($row[$idxCode]) === '') continue;
-
-                $code    = trim($row[$idxCode]);
-                $name    = trim($row[$idxName]);
-                $credits = ($idxCredits !== -1 && isset($row[$idxCredits])) ? (int) trim($row[$idxCredits]) : 3;
-                
-                $groupTitle = ($idxGroup !== -1 && isset($row[$idxGroup])) ? trim($row[$idxGroup]) : '';
-                
-                $type = 'compulsory';
-                if (str_contains($groupTitle, 'اختياري') || str_contains(strtolower($groupTitle), 'elective')) {
-                    $type = 'elective';
-                } elseif (str_contains($groupTitle, 'مساند') || str_contains(strtolower($groupTitle), 'support')) {
-                    $type = 'supporting';
-                } elseif (str_contains($groupTitle, 'جامعة') || str_contains(strtolower($groupTitle), 'university')) {
-                    $type = 'university_req';
-                }
-
-                $course = Course::updateOrCreate(
-                    [
-                        'code' => $code,
-                        'major_id' => $selectedMajorId,
-                        'study_plan_version' => $selectedPlanVersion,
-                    ],
-                    [
-                        'name' => $name,
-                        'credit_hours' => $credits,
-                        'semester' => 1,
-                        'type' => $type,
-                        'major_id' => $selectedMajorId,
-                        'study_plan_version' => $selectedPlanVersion,
-                    ]
-                );
-
-                $importedCourseIds[] = $course->id;
-
-                if ($idxPrereq !== -1 && isset($row[$idxPrereq]) && trim($row[$idxPrereq]) !== '') {
-                    $prereqRaw = trim($row[$idxPrereq]);
-                    if (strtoupper($prereqRaw) !== 'NULL' && $prereqRaw !== '0' && $prereqRaw !== '-') {
-                        $prerequisitesMap[$course->id] = $prereqRaw;
-                    }
-                }
-                $count++;
-            }
+        $headers = fgetcsv($handle);
+        if ($headers === false || count($headers) === 0) {
             fclose($handle);
+            return redirect()->back()->with('error', 'الملف لا يحتوي على ترويسة أعمدة صالحة.');
+        }
 
-            foreach ($prerequisitesMap as $courseId => $prereqString) {
-                $course = Course::find($courseId);
-                $pIds = [];
+        $columnIndexes = $this->detectCsvColumns($headers);
+        if ($columnIndexes['code'] === -1 || $columnIndexes['name'] === -1) {
+            fclose($handle);
+            return redirect()->back()->with('error', 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!');
+        }
 
-                $cleanPrereq = str_replace(['"', "'", '[', ']', '(', ')', '،'], ',', $prereqString);
-                $pCodes = preg_split('/[\s,]+/', $cleanPrereq, -1, PREG_SPLIT_NO_EMPTY);
+        while (($row = fgetcsv($handle)) !== false) {
+            $code = $this->cleanCourseCode($this->getCsvCell($row, $columnIndexes['code']));
+            $name = $this->getCsvCell($row, $columnIndexes['name']);
 
-                foreach ($pCodes as $pCode) {
-                    $pCourse = Course::where('code', trim($pCode))
-                        ->where('major_id', $selectedMajorId)
-                        ->where('study_plan_version', $selectedPlanVersion)
-                        ->first();
-                    if ($pCourse) {
-                        $pIds[] = $pCourse->id;
-                    }
-                }
+            if ($code === '' && $name === '') {
+                continue;
+            }
 
-                if (!empty($pIds)) {
-                    $course->prerequisites()->sync($pIds);
+            if ($code === '' || $name === '') {
+                continue;
+            }
+
+            $credits = $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['credit_hours']), 3, 0, 12) ?? 3;
+            $rawType = $this->getCsvCell($row, $columnIndexes['type']);
+            $rawCategory = $this->getCsvCell($row, $columnIndexes['category']);
+            $rawDeliveryMode = $this->getCsvCell($row, $columnIndexes['delivery_mode']);
+            $type = $this->mapImportedCourseType($rawType, $rawCategory, $rawDeliveryMode);
+            $semester = $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['semester']), 1, 1, 12) ?? 1;
+            $description = $this->getCsvCell($row, $columnIndexes['description']);
+            $minimumPassedHours = $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['minimum_passed_hours']), null, 1, 200);
+
+            $updatePayload = [
+                'name' => $name,
+                'credit_hours' => $credits,
+                'semester' => $semester,
+                'type' => $type,
+                'major_id' => $selectedMajorId,
+                'study_plan_version' => $selectedPlanVersion,
+            ];
+
+            if ($columnIndexes['description'] !== -1) {
+                $updatePayload['description'] = $description !== '' ? $description : null;
+            }
+
+            if ($columnIndexes['minimum_passed_hours'] !== -1) {
+                $updatePayload['minimum_passed_hours'] = $minimumPassedHours;
+            }
+
+            $course = Course::updateOrCreate(
+                [
+                    'code' => $code,
+                    'major_id' => $selectedMajorId,
+                    'study_plan_version' => $selectedPlanVersion,
+                ],
+                $updatePayload
+            );
+
+            $importedCourseIds[] = $course->id;
+
+            $prereqRaw = $this->getCsvCell($row, $columnIndexes['prerequisites']);
+            if ($prereqRaw !== '') {
+                $prereqUpper = strtoupper($prereqRaw);
+                if ($prereqUpper !== 'NULL' && $prereqRaw !== '0' && $prereqRaw !== '-' && $prereqRaw !== '—') {
+                    $prerequisitesMap[$course->id] = $prereqRaw;
                 }
             }
 
+            $count++;
+        }
+        fclose($handle);
+
+        foreach ($prerequisitesMap as $courseId => $prereqString) {
+            $course = Course::find($courseId);
+            if (!$course) {
+                continue;
+            }
+
+            $pIds = [];
+            $cleanPrereq = str_replace(['"', "'", '[', ']', '(', ')', '،', ';', '|', '/'], ',', $prereqString);
+            $pCodes = preg_split('/[\s,]+/', $cleanPrereq, -1, PREG_SPLIT_NO_EMPTY);
+
+            foreach ($pCodes as $pCode) {
+                $cleanCode = $this->cleanCourseCode(trim($pCode));
+                if ($cleanCode === '') {
+                    continue;
+                }
+
+                $pCourse = Course::where('code', $cleanCode)
+                    ->where('major_id', $selectedMajorId)
+                    ->where('study_plan_version', $selectedPlanVersion)
+                    ->first();
+
+                if ($pCourse) {
+                    $pIds[] = $pCourse->id;
+                }
+            }
+
+            if (!empty($pIds)) {
+                $course->prerequisites()->sync($pIds);
+            }
+        }
+
+        if (!empty($importedCourseIds)) {
             $allCourses = Course::whereIn('id', $importedCourseIds)->with('prerequisites')->get();
             $changed = true;
-            
-            while($changed) {
+
+            while ($changed) {
                 $changed = false;
-                foreach($allCourses as $c) {
+                foreach ($allCourses as $c) {
                     $maxPrereqLvl = 0;
-                    foreach($c->prerequisites as $p) {
+                    foreach ($c->prerequisites as $p) {
                         if ($p->semester > $maxPrereqLvl) {
                             $maxPrereqLvl = $p->semester;
                         }
                     }
+
                     if ($maxPrereqLvl > 0 && $maxPrereqLvl + 1 > $c->semester) {
                         $c->semester = $maxPrereqLvl + 1;
                         $c->save();
-                        $changed = true; 
+                        $changed = true;
                     }
                 }
             }
-
-            $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة للتخصص {$selectedMajorId} بالخطة {$selectedPlanVersion} مع إعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
         }
+
+        if ($count === 0) {
+            return redirect()->back()->with('error', 'لم يتم العثور على صفوف قابلة للاستيراد (تأكد من وجود code و name بكل صف).');
+        }
+
+        $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة للتخصص {$selectedMajorId} بالخطة {$selectedPlanVersion} مع إعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
 
         return redirect()->back()->with('success', "تم الاستيراد بنجاح! 🚀 تم بناء الأسهم والمستويات تلقائياً لـ $count مادة.");
     }
