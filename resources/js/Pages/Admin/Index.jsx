@@ -436,6 +436,14 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         }
 
         setShowImportPreview(true);
+
+        setTimeout(() => {
+            const previewSection = document.getElementById('csv-import-preview-panel');
+            if (previewSection) {
+                const y = previewSection.getBoundingClientRect().top + window.scrollY - 110;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }, 30);
     };
 
     const confirmImportSubmit = () => {
@@ -1001,111 +1009,109 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 )}
 
                 {showImportPreview && csvPreview && (
-                    <div className="fixed inset-0 z-[120] bg-slate-950/70 backdrop-blur-sm p-4 md:p-8 flex items-center justify-center">
-                        <div className="w-full max-w-6xl max-h-[90vh] overflow-hidden bg-white rounded-[2rem] border border-slate-200 shadow-2xl flex flex-col" dir="rtl">
-                            <div className="px-6 md:px-8 py-5 border-b border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-900">معاينة البيانات قبل الإرسال</h3>
-                                    <p className="text-xs text-slate-500 font-bold mt-1">الملف: {csvPreview.fileName}</p>
+                    <div id="csv-import-preview-panel" className="mt-6 bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden animate-fade-in-up">
+                        <div className="px-6 md:px-8 py-5 border-b border-slate-100 bg-slate-50 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-900">معاينة البيانات قبل الإرسال</h3>
+                                <p className="text-xs text-slate-500 font-bold mt-1">الملف: {csvPreview.fileName}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs font-black">
+                                <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">صفوف: {csvPreview.totalRows}</span>
+                                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">صالحة: {csvPreview.validRows}</span>
+                                <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700">مراجعة: {csvPreview.rowsWithWarnings}</span>
+                            </div>
+                        </div>
+
+                        <div className="p-6 md:p-8 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <p className="text-[11px] uppercase tracking-widest text-slate-500 font-black mb-3">ربط الأعمدة المكتشف</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold">
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">code: <span className="text-indigo-700">{csvPreview.mappedHeaders.code || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">name: <span className="text-indigo-700">{csvPreview.mappedHeaders.name || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">credit_hours: <span className="text-indigo-700">{csvPreview.mappedHeaders.credit_hours || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">prerequisites: <span className="text-indigo-700">{csvPreview.mappedHeaders.prerequisites || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">type: <span className="text-indigo-700">{csvPreview.mappedHeaders.type || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">category: <span className="text-indigo-700">{csvPreview.mappedHeaders.category || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">delivery_mode: <span className="text-indigo-700">{csvPreview.mappedHeaders.delivery_mode || 'غير موجود'}</span></div>
+                                        <div className="bg-white rounded-lg border border-slate-200 p-2">semester: <span className="text-indigo-700">{csvPreview.mappedHeaders.semester || 'غير موجود'}</span></div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs font-black">
-                                    <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">صفوف: {csvPreview.totalRows}</span>
-                                    <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">صالحة: {csvPreview.validRows}</span>
-                                    <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700">مراجعة: {csvPreview.rowsWithWarnings}</span>
+
+                                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                    <p className="text-[11px] uppercase tracking-widest text-slate-500 font-black">فحوصات سريعة قبل الإرسال</p>
+                                    {csvPreview.missingRequiredColumns.length > 0 ? (
+                                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
+                                            الأعمدة الإلزامية المفقودة: {csvPreview.missingRequiredColumns.join(' - ')}
+                                        </div>
+                                    ) : (
+                                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
+                                            تم اكتشاف الأعمدة الإلزامية بنجاح.
+                                        </div>
+                                    )}
+
+                                    {csvPreview.parseErrors.length > 0 && (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-700 space-y-1">
+                                            <div>تم رصد ملاحظات أثناء التحليل:</div>
+                                            {csvPreview.parseErrors.slice(0, 3).map((error, idx) => (
+                                                <div key={idx}>• {error}</div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="text-xs text-slate-500 font-bold">
+                                        سيتم إرسال الصفوف الصالحة فقط (التي تحتوي رمز مادة واسم مادة).
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="p-6 md:p-8 overflow-y-auto space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-black mb-3">ربط الأعمدة المكتشف</p>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-bold">
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">code: <span className="text-indigo-700">{csvPreview.mappedHeaders.code || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">name: <span className="text-indigo-700">{csvPreview.mappedHeaders.name || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">credit_hours: <span className="text-indigo-700">{csvPreview.mappedHeaders.credit_hours || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">prerequisites: <span className="text-indigo-700">{csvPreview.mappedHeaders.prerequisites || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">type: <span className="text-indigo-700">{csvPreview.mappedHeaders.type || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">category: <span className="text-indigo-700">{csvPreview.mappedHeaders.category || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">delivery_mode: <span className="text-indigo-700">{csvPreview.mappedHeaders.delivery_mode || 'غير موجود'}</span></div>
-                                            <div className="bg-white rounded-lg border border-slate-200 p-2">semester: <span className="text-indigo-700">{csvPreview.mappedHeaders.semester || 'غير موجود'}</span></div>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-                                        <p className="text-[11px] uppercase tracking-widest text-slate-500 font-black">فحوصات سريعة قبل الإرسال</p>
-                                        {csvPreview.missingRequiredColumns.length > 0 ? (
-                                            <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-bold text-rose-700">
-                                                الأعمدة الإلزامية المفقودة: {csvPreview.missingRequiredColumns.join(' - ')}
-                                            </div>
-                                        ) : (
-                                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">
-                                                تم اكتشاف الأعمدة الإلزامية بنجاح.
-                                            </div>
-                                        )}
-
-                                        {csvPreview.parseErrors.length > 0 && (
-                                            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-700 space-y-1">
-                                                <div>تم رصد ملاحظات أثناء التحليل:</div>
-                                                {csvPreview.parseErrors.slice(0, 3).map((error, idx) => (
-                                                    <div key={idx}>• {error}</div>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <div className="text-xs text-slate-500 font-bold">
-                                            سيتم إرسال الصفوف الصالحة فقط (التي تحتوي رمز مادة واسم مادة).
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 text-sm font-black text-slate-700">عينة من البيانات ({csvPreview.sampleRows.length} صف)</div>
-                                    <div className="overflow-auto max-h-[42vh]">
-                                        <table className="w-full text-right text-xs whitespace-nowrap">
-                                            <thead className="bg-white border-b border-slate-100 text-slate-500 font-black">
-                                                <tr>
-                                                    <th className="px-3 py-2">#</th>
-                                                    <th className="px-3 py-2">code</th>
-                                                    <th className="px-3 py-2">name</th>
-                                                    <th className="px-3 py-2">credit_hours</th>
-                                                    <th className="px-3 py-2">type المفسر</th>
-                                                    <th className="px-3 py-2">prerequisites</th>
-                                                    <th className="px-3 py-2">ملاحظات</th>
+                            <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 text-sm font-black text-slate-700">عينة من البيانات ({csvPreview.sampleRows.length} صف)</div>
+                                <div className="overflow-auto max-h-[42vh]">
+                                    <table className="w-full text-right text-xs whitespace-nowrap">
+                                        <thead className="bg-white border-b border-slate-100 text-slate-500 font-black">
+                                            <tr>
+                                                <th className="px-3 py-2">#</th>
+                                                <th className="px-3 py-2">code</th>
+                                                <th className="px-3 py-2">name</th>
+                                                <th className="px-3 py-2">credit_hours</th>
+                                                <th className="px-3 py-2">type المفسر</th>
+                                                <th className="px-3 py-2">prerequisites</th>
+                                                <th className="px-3 py-2">ملاحظات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {csvPreview.sampleRows.map((row) => (
+                                                <tr key={row.lineNumber} className={row.warnings.length > 0 ? 'bg-amber-50/50' : 'bg-white'}>
+                                                    <td className="px-3 py-2 font-black text-slate-500">{row.lineNumber}</td>
+                                                    <td className="px-3 py-2 font-mono text-slate-700">{row.code || '-'}</td>
+                                                    <td className="px-3 py-2 font-bold text-slate-800">{row.name || '-'}</td>
+                                                    <td className="px-3 py-2 font-black text-slate-700">{row.creditHours ?? 3}</td>
+                                                    <td className="px-3 py-2 font-bold text-indigo-700">{COURSE_TYPE_LABELS[row.mappedType] || row.mappedType}</td>
+                                                    <td className="px-3 py-2 text-slate-600">{row.prerequisites || '-'}</td>
+                                                    <td className="px-3 py-2 text-rose-600 font-bold">{row.warnings.length > 0 ? row.warnings.join(' | ') : 'OK'}</td>
                                                 </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {csvPreview.sampleRows.map((row) => (
-                                                    <tr key={row.lineNumber} className={row.warnings.length > 0 ? 'bg-amber-50/50' : 'bg-white'}>
-                                                        <td className="px-3 py-2 font-black text-slate-500">{row.lineNumber}</td>
-                                                        <td className="px-3 py-2 font-mono text-slate-700">{row.code || '-'}</td>
-                                                        <td className="px-3 py-2 font-bold text-slate-800">{row.name || '-'}</td>
-                                                        <td className="px-3 py-2 font-black text-slate-700">{row.creditHours ?? 3}</td>
-                                                        <td className="px-3 py-2 font-bold text-indigo-700">{COURSE_TYPE_LABELS[row.mappedType] || row.mappedType}</td>
-                                                        <td className="px-3 py-2 text-slate-600">{row.prerequisites || '-'}</td>
-                                                        <td className="px-3 py-2 text-rose-600 font-bold">{row.warnings.length > 0 ? row.warnings.join(' | ') : 'OK'}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="px-6 md:px-8 py-4 border-t border-slate-100 bg-white flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-                                <p className="text-xs font-bold text-slate-500">لن يتم الإرسال قبل الضغط على زر التأكيد.</p>
-                                <div className="flex gap-2">
-                                    <button type="button" onClick={() => setShowImportPreview(false)} className="px-4 h-10 rounded-xl border border-slate-300 text-slate-700 font-black text-xs hover:bg-slate-50 transition-colors">
-                                        رجوع للتعديل
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={confirmImportSubmit}
-                                        disabled={fileProcessing || !csvPreview.requiredColumnsFound || csvPreview.validRows === 0}
-                                        className="px-5 h-10 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-500 transition-colors disabled:opacity-50"
-                                    >
-                                        {fileProcessing ? 'جاري الإرسال...' : 'تأكيد إرسال البيانات'}
-                                    </button>
-                                </div>
+                        <div className="px-6 md:px-8 py-4 border-t border-slate-100 bg-white flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+                            <p className="text-xs font-bold text-slate-500">لن يتم الإرسال قبل الضغط على زر التأكيد.</p>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setShowImportPreview(false)} className="px-4 h-10 rounded-xl border border-slate-300 text-slate-700 font-black text-xs hover:bg-slate-50 transition-colors">
+                                    إخفاء المعاينة
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmImportSubmit}
+                                    disabled={fileProcessing || !csvPreview.requiredColumnsFound || csvPreview.validRows === 0}
+                                    className="px-5 h-10 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-500 transition-colors disabled:opacity-50"
+                                >
+                                    {fileProcessing ? 'جاري الإرسال...' : 'تأكيد إرسال البيانات'}
+                                </button>
                             </div>
                         </div>
                     </div>
