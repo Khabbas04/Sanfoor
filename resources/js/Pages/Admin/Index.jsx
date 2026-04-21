@@ -147,23 +147,21 @@ const buildCsvPreview = (file) => {
                         validRows += 1;
                     }
 
-                    if (sampleRows.length < 15) {
-                        sampleRows.push({
-                            lineNumber: index + 2,
-                            code,
-                            name,
-                            creditHours,
-                            mappedType,
-                            rawType,
-                            rawCategory,
-                            rawDeliveryMode,
-                            prerequisites: cleanCsvCell(mappedHeaders.prerequisites ? row[mappedHeaders.prerequisites] : ''),
-                            semester: parseCsvInteger(mappedHeaders.semester ? row[mappedHeaders.semester] : '', 1, 1, 12),
-                            description: cleanCsvCell(mappedHeaders.description ? row[mappedHeaders.description] : ''),
-                            minimumPassedHours: parseCsvInteger(mappedHeaders.minimum_passed_hours ? row[mappedHeaders.minimum_passed_hours] : '', null, 1, 200),
-                            warnings: rowWarnings,
-                        });
-                    }
+                    sampleRows.push({
+                        lineNumber: index + 2,
+                        code,
+                        name,
+                        creditHours,
+                        mappedType,
+                        rawType,
+                        rawCategory,
+                        rawDeliveryMode,
+                        prerequisites: cleanCsvCell(mappedHeaders.prerequisites ? row[mappedHeaders.prerequisites] : ''),
+                        semester: parseCsvInteger(mappedHeaders.semester ? row[mappedHeaders.semester] : '', 1, 1, 12),
+                        description: cleanCsvCell(mappedHeaders.description ? row[mappedHeaders.description] : ''),
+                        minimumPassedHours: parseCsvInteger(mappedHeaders.minimum_passed_hours ? row[mappedHeaders.minimum_passed_hours] : '', null, 1, 200),
+                        warnings: rowWarnings,
+                    });
                 });
 
                 const missingRequiredColumns = [];
@@ -199,6 +197,8 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
     const [csvPreview, setCsvPreview] = useState(null);
     const [isParsingCsv, setIsParsingCsv] = useState(false);
     const [showImportPreview, setShowImportPreview] = useState(false);
+    const [editablePreviewRows, setEditablePreviewRows] = useState([]);
+    const [previewSubmitting, setPreviewSubmitting] = useState(false);
 
     const { data, setData, post, put, processing, reset, errors, clearErrors } = useForm({
         id: null,
@@ -369,6 +369,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         setFileData('csv_file', selectedFile);
         setShowImportPreview(false);
         setCsvPreview(null);
+        setEditablePreviewRows([]);
         clearFileErrors();
 
         if (!selectedFile) {
@@ -379,6 +380,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         try {
             const preview = await buildCsvPreview(selectedFile);
             setCsvPreview(preview);
+            setEditablePreviewRows(preview.sampleRows || []);
 
             if (!preview.requiredColumnsFound) {
                 Swal.fire({
@@ -399,8 +401,62 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         }
     };
 
+    const computeRowWarnings = (row) => {
+        const warnings = [];
+        if (!cleanCsvCell(row.code)) warnings.push('رمز المادة مفقود');
+        if (!cleanCsvCell(row.name)) warnings.push('اسم المادة مفقود');
+        return warnings;
+    };
+
+    const updateEditablePreviewRow = (index, field, value) => {
+        setEditablePreviewRows((prev) => {
+            const next = [...prev];
+            const target = { ...next[index], [field]: value };
+            target.warnings = computeRowWarnings(target);
+            next[index] = target;
+            return next;
+        });
+    };
+
+    const addEditablePreviewRow = () => {
+        setEditablePreviewRows((prev) => ([
+            ...prev,
+            {
+                lineNumber: `جديد-${prev.length + 1}`,
+                code: '',
+                name: '',
+                creditHours: 3,
+                mappedType: 'compulsory',
+                rawType: '',
+                rawCategory: '',
+                rawDeliveryMode: '',
+                prerequisites: '',
+                semester: 1,
+                description: '',
+                minimumPassedHours: null,
+                warnings: ['رمز المادة مفقود', 'اسم المادة مفقود'],
+            },
+        ]));
+    };
+
+    const deleteEditablePreviewRow = (index) => {
+        setEditablePreviewRows((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const previewStats = useMemo(() => {
+        const total = editablePreviewRows.length;
+        const valid = editablePreviewRows.filter((row) => computeRowWarnings(row).length === 0).length;
+        return {
+            total,
+            valid,
+            warnings: Math.max(total - valid, 0),
+        };
+    }, [editablePreviewRows]);
+
     const handleImportSubmit = (e) => {
-        e.preventDefault();
+        if (e && typeof e.preventDefault === 'function') {
+            e.preventDefault();
+        }
 
         if (!fileData.csv_file) {
             Swal.fire({ icon: 'warning', title: 'اختر ملف أولاً', text: 'الرجاء اختيار ملف CSV قبل المتابعة.' });
@@ -435,6 +491,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             return;
         }
 
+        setEditablePreviewRows(csvPreview.sampleRows || []);
         setShowImportPreview(true);
 
         setTimeout(() => {
@@ -446,8 +503,76 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         }, 30);
     };
 
-    const confirmImportSubmit = () => {
+    const handleDirectImportSubmit = (e) => {
+        e.preventDefault();
+
+        if (!fileData.csv_file || !fileData.major_id || !fileData.study_plan_version) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'بيانات ناقصة',
+                text: 'اختر الكلية والتخصص والخطة وملف CSV قبل الاستيراد المباشر.',
+            });
+            return;
+        }
+
         postFile(route('admin.courses.import'), {
+            onSuccess: (page) => {
+                const flash = page?.props?.flash || {};
+                const flashType = flash.type || null;
+                const flashMessage = flash.message || null;
+
+                if (flashType === 'error') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'فشل الاستيراد',
+                        text: flashMessage || 'تعذر استيراد الملف. راجع البيانات وحاول مجدداً.',
+                    });
+                    return;
+                }
+
+                resetFile('csv_file', 'major_id', 'college_id');
+                setFileData('study_plan_version', '12');
+                setCsvPreview(null);
+                setEditablePreviewRows([]);
+                setShowImportPreview(false);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الاستيراد المباشر',
+                    text: flashMessage || 'تم حفظ المواد في قاعدة البيانات بنجاح.',
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'فشل الاستيراد',
+                    text: 'تحقق من الحقول المطلوبة ثم أعد المحاولة.',
+                });
+            },
+        });
+    };
+
+    const confirmImportSubmit = () => {
+        const normalizedRows = editablePreviewRows.map((row) => ({
+            code: cleanCsvCell(row.code),
+            name: cleanCsvCell(row.name),
+            credit_hours: parseCsvInteger(row.creditHours, 3, 0, 12) ?? 3,
+            type: cleanCsvCell(row.rawType),
+            category: cleanCsvCell(row.rawCategory),
+            delivery_mode: cleanCsvCell(row.rawDeliveryMode),
+            mappedType: cleanCsvCell(row.mappedType),
+            prerequisites: cleanCsvCell(row.prerequisites),
+            semester: parseCsvInteger(row.semester, 1, 1, 12) ?? 1,
+            description: cleanCsvCell(row.description),
+            minimum_passed_hours: parseCsvInteger(row.minimumPassedHours, null, 1, 200),
+        }));
+
+        setPreviewSubmitting(true);
+        router.post(route('admin.courses.import'), {
+            major_id: fileData.major_id,
+            study_plan_version: fileData.study_plan_version,
+            rows_payload: normalizedRows,
+        }, {
+            preserveScroll: true,
             onSuccess: (page) => {
                 const flash = page?.props?.flash || {};
                 const flashType = flash.type || null;
@@ -459,18 +584,21 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                         title: 'فشل الاستيراد',
                         text: flashMessage || 'تعذر استيراد الملف. راجع تنسيق CSV وحاول مجدداً.',
                     });
+                    setPreviewSubmitting(false);
                     return;
                 }
 
                 resetFile('csv_file', 'major_id', 'college_id');
                 setFileData('study_plan_version', '12');
                 setCsvPreview(null);
+                setEditablePreviewRows([]);
                 setShowImportPreview(false);
                 Swal.fire({
                     icon: 'success',
                     title: 'تم الاستيراد!',
                     text: flashMessage || 'تم بناء روابط الشجرة بنجاح 🚀',
                 });
+                setPreviewSubmitting(false);
             },
             onError: () => {
                 Swal.fire({
@@ -478,6 +606,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                     title: 'فشل الاستيراد',
                     text: 'تحقق من الحقول المطلوبة (الكلية، التخصص، الخطة، الملف) ثم أعد المحاولة.',
                 });
+                setPreviewSubmitting(false);
             },
         });
     };
@@ -631,7 +760,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                 </h2>
                                 <p className="text-slate-400 font-bold text-sm mb-8">ارفع خطة القسم كاملة بملف إكسل ليقوم النظام ببناء الشجرة وربط المتطلبات تلقائياً.</p>
                                 
-                                <form onSubmit={handleImportSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-5 items-end bg-white/5 p-6 rounded-[1.5rem] border border-white/10 backdrop-blur-md">
+                                <form onSubmit={handleDirectImportSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-5 items-end bg-white/5 p-6 rounded-[1.5rem] border border-white/10 backdrop-blur-md">
                                     <div>
                                         <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">1. حدد الكلية</label>
                                         <select className="w-full rounded-xl border-none bg-white/10 text-white font-bold p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 appearance-none" value={fileData.college_id} onChange={e => setFileData({ ...fileData, college_id: e.target.value, major_id: '' })}>
@@ -657,10 +786,21 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                         <label className="block text-[11px] font-black mb-2 text-indigo-200 tracking-widest uppercase">4. ملف الخطة (CSV)</label>
                                         <input type="file" accept=".csv,text/csv,.txt" onChange={handleCsvFileChange} className="w-full bg-white/10 rounded-xl p-2.5 border border-transparent text-sm file:bg-indigo-600 file:text-white file:rounded-lg file:border-0 file:px-4 file:py-1.5 file:font-black cursor-pointer hover:bg-white/20 transition-colors" required />
                                     </div>
-                                    <button type="submit" disabled={isParsingCsv || fileProcessing || !fileData.major_id || !fileData.csv_file || !fileData.study_plan_version} className="bg-indigo-600 text-white h-[52px] rounded-xl font-black hover:bg-indigo-500 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_20px_rgba(79,70,229,0.3)]">
-                                        {isParsingCsv ? 'جاري تحليل الملف...' : 'معاينة قبل الإرسال'}
+                                    <button type="submit" disabled={isParsingCsv || fileProcessing || !fileData.major_id || !fileData.csv_file || !fileData.study_plan_version} className="bg-emerald-600 text-white h-[52px] rounded-xl font-black hover:bg-emerald-500 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                                        {fileProcessing ? 'جاري الاستيراد...' : 'إرفاق واستيراد مباشر'}
                                     </button>
                                 </form>
+
+                                <div className="mt-3 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={handleImportSubmit}
+                                        disabled={isParsingCsv || !fileData.csv_file || !fileData.major_id || !fileData.study_plan_version}
+                                        className="px-4 h-10 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-500 transition-colors disabled:opacity-40"
+                                    >
+                                        {isParsingCsv ? 'جاري تحليل الملف...' : 'فتح المعاينة للتعديل'}
+                                    </button>
+                                </div>
 
                                 {(fileErrors.csv_file || fileErrors.major_id || fileErrors.study_plan_version) && (
                                     <div className="mt-4 bg-rose-500/15 border border-rose-400/30 rounded-xl p-3 text-xs font-bold text-rose-100 space-y-1">
@@ -679,7 +819,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                             </div>
                                             <button
                                                 type="button"
-                                                onClick={() => setShowImportPreview(true)}
+                                                onClick={handleImportSubmit}
                                                 disabled={!csvPreview.requiredColumnsFound || csvPreview.validRows === 0}
                                                 className="px-4 h-10 rounded-xl bg-white text-slate-900 font-black text-xs hover:bg-indigo-100 transition-colors disabled:opacity-40"
                                             >
@@ -1040,9 +1180,9 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                 <p className="text-xs text-slate-500 font-bold mt-1">الملف: {csvPreview.fileName}</p>
                             </div>
                             <div className="flex items-center gap-2 text-xs font-black">
-                                <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">صفوف: {csvPreview.totalRows}</span>
-                                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">صالحة: {csvPreview.validRows}</span>
-                                <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700">مراجعة: {csvPreview.rowsWithWarnings}</span>
+                                <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700">صفوف: {previewStats.total}</span>
+                                <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700">صالحة: {previewStats.valid}</span>
+                                <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700">مراجعة: {previewStats.warnings}</span>
                             </div>
                         </div>
 
@@ -1090,8 +1230,11 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                             </div>
 
                             <div className="rounded-2xl border border-slate-200 overflow-hidden">
-                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 text-sm font-black text-slate-700">عينة من البيانات ({csvPreview.sampleRows.length} صف)</div>
-                                <div className="overflow-auto max-h-[42vh]">
+                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 text-sm font-black text-slate-700 flex items-center justify-between">
+                                    <span>كل بيانات المعاينة ({editablePreviewRows.length} صف)</span>
+                                    <button type="button" onClick={addEditablePreviewRow} className="px-3 h-8 rounded-lg bg-indigo-600 text-white text-[11px] font-black hover:bg-indigo-500">+ إضافة صف</button>
+                                </div>
+                                <div className="overflow-auto max-h-[55vh]">
                                     <table className="w-full text-right text-xs whitespace-nowrap">
                                         <thead className="bg-white border-b border-slate-100 text-slate-500 font-black">
                                             <tr>
@@ -1101,19 +1244,30 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                                 <th className="px-3 py-2">credit_hours</th>
                                                 <th className="px-3 py-2">type المفسر</th>
                                                 <th className="px-3 py-2">prerequisites</th>
+                                                <th className="px-3 py-2">semester</th>
                                                 <th className="px-3 py-2">ملاحظات</th>
+                                                <th className="px-3 py-2">حذف</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
-                                            {csvPreview.sampleRows.map((row) => (
-                                                <tr key={row.lineNumber} className={row.warnings.length > 0 ? 'bg-amber-50/50' : 'bg-white'}>
+                                            {editablePreviewRows.map((row, index) => (
+                                                <tr key={`${row.lineNumber}-${index}`} className={row.warnings.length > 0 ? 'bg-amber-50/50' : 'bg-white'}>
                                                     <td className="px-3 py-2 font-black text-slate-500">{row.lineNumber}</td>
-                                                    <td className="px-3 py-2 font-mono text-slate-700">{row.code || '-'}</td>
-                                                    <td className="px-3 py-2 font-bold text-slate-800">{row.name || '-'}</td>
-                                                    <td className="px-3 py-2 font-black text-slate-700">{row.creditHours ?? 3}</td>
-                                                    <td className="px-3 py-2 font-bold text-indigo-700">{COURSE_TYPE_LABELS[row.mappedType] || row.mappedType}</td>
-                                                    <td className="px-3 py-2 text-slate-600">{row.prerequisites || '-'}</td>
+                                                    <td className="px-3 py-2"><input value={row.code || ''} onChange={(e) => updateEditablePreviewRow(index, 'code', e.target.value)} className="w-[120px] rounded border border-slate-200 px-2 py-1 font-mono" dir="ltr" /></td>
+                                                    <td className="px-3 py-2"><input value={row.name || ''} onChange={(e) => updateEditablePreviewRow(index, 'name', e.target.value)} className="w-[220px] rounded border border-slate-200 px-2 py-1 font-bold" /></td>
+                                                    <td className="px-3 py-2"><input type="number" min="0" max="12" value={row.creditHours ?? 3} onChange={(e) => updateEditablePreviewRow(index, 'creditHours', e.target.value)} className="w-[80px] rounded border border-slate-200 px-2 py-1 text-center font-black" /></td>
+                                                    <td className="px-3 py-2">
+                                                        <select value={row.mappedType || 'compulsory'} onChange={(e) => updateEditablePreviewRow(index, 'mappedType', e.target.value)} className="w-[130px] rounded border border-slate-200 px-2 py-1 font-bold text-indigo-700">
+                                                            <option value="compulsory">إجباري</option>
+                                                            <option value="elective">اختياري</option>
+                                                            <option value="supporting">مساندة</option>
+                                                            <option value="university_req">متطلب جامعة</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-3 py-2"><input value={row.prerequisites || ''} onChange={(e) => updateEditablePreviewRow(index, 'prerequisites', e.target.value)} className="w-[170px] rounded border border-slate-200 px-2 py-1" dir="ltr" /></td>
+                                                    <td className="px-3 py-2"><input type="number" min="1" max="12" value={row.semester ?? 1} onChange={(e) => updateEditablePreviewRow(index, 'semester', e.target.value)} className="w-[70px] rounded border border-slate-200 px-2 py-1 text-center font-black" /></td>
                                                     <td className="px-3 py-2 text-rose-600 font-bold">{row.warnings.length > 0 ? row.warnings.join(' | ') : 'OK'}</td>
+                                                    <td className="px-3 py-2"><button type="button" onClick={() => deleteEditablePreviewRow(index)} className="px-2 h-7 rounded bg-rose-50 text-rose-600 font-black border border-rose-200">حذف</button></td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1131,10 +1285,10 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                 <button
                                     type="button"
                                     onClick={confirmImportSubmit}
-                                    disabled={fileProcessing || !csvPreview.requiredColumnsFound || csvPreview.validRows === 0}
+                                    disabled={previewSubmitting || !csvPreview.requiredColumnsFound || previewStats.valid === 0}
                                     className="px-5 h-10 rounded-xl bg-indigo-600 text-white font-black text-xs hover:bg-indigo-500 transition-colors disabled:opacity-50"
                                 >
-                                    {fileProcessing ? 'جاري الإرسال...' : 'تأكيد إرسال البيانات'}
+                                    {previewSubmitting ? 'جاري الإرسال...' : 'تأكيد إرسال البيانات المعدلة'}
                                 </button>
                             </div>
                         </div>

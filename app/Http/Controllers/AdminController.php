@@ -677,46 +677,101 @@ class AdminController extends Controller
     {
         try {
             $request->validate([
-                'csv_file' => 'required|file|mimes:csv,txt|max:10240',
+                'csv_file' => 'nullable|file|mimes:csv,txt|max:10240',
+                'rows_payload' => 'nullable|array',
                 'major_id' => 'required|exists:majors,id',
                 'study_plan_version' => 'required|integer|in:11,12',
             ]);
 
             $file = $request->file('csv_file');
+            $rowsPayload = $request->input('rows_payload', []);
             $selectedMajorId = $request->input('major_id');
             $selectedPlanVersion = (int) $request->input('study_plan_version');
             $count = 0;
             $importedCourseIds = [];
             $prerequisitesMap = [];
 
-            if (($handle = fopen($file->getPathname(), 'r')) === false) {
+            $hasRowsPayload = is_array($rowsPayload) && count($rowsPayload) > 0;
+            if (!$file && !$hasRowsPayload) {
                 return redirect()->back()->with([
                     'type' => 'error',
-                    'message' => 'تعذر قراءة ملف CSV. تأكد من إعادة التصدير بصيغة CSV UTF-8.',
+                    'message' => 'لم يتم إرسال ملف CSV أو بيانات معاينة للحفظ.',
                 ]);
             }
 
-            $headers = fgetcsv($handle);
-            if ($headers === false || count($headers) === 0) {
+            $normalizedRows = [];
+
+            if ($hasRowsPayload) {
+                foreach ($rowsPayload as $idx => $row) {
+                    if (!is_array($row)) {
+                        continue;
+                    }
+
+                    $normalizedRows[] = [
+                        'line' => (int) ($idx + 1),
+                        'code' => $this->cleanCourseCode((string) ($row['code'] ?? '')),
+                        'name' => trim((string) ($row['name'] ?? '')),
+                        'credit_hours' => $this->parseCsvInteger((string) ($row['credit_hours'] ?? ''), 3, 0, 12) ?? 3,
+                        'raw_type' => trim((string) ($row['type'] ?? '')),
+                        'raw_category' => trim((string) ($row['category'] ?? '')),
+                        'raw_delivery_mode' => trim((string) ($row['delivery_mode'] ?? '')),
+                        'mapped_type' => trim((string) ($row['mappedType'] ?? '')),
+                        'prerequisites' => trim((string) ($row['prerequisites'] ?? '')),
+                        'semester' => $this->parseCsvInteger((string) ($row['semester'] ?? ''), 1, 1, 12) ?? 1,
+                        'description' => trim((string) ($row['description'] ?? '')),
+                        'minimum_passed_hours' => $this->parseCsvInteger((string) ($row['minimum_passed_hours'] ?? ''), null, 1, 200),
+                    ];
+                }
+            } else {
+                if (($handle = fopen($file->getPathname(), 'r')) === false) {
+                    return redirect()->back()->with([
+                        'type' => 'error',
+                        'message' => 'تعذر قراءة ملف CSV. تأكد من إعادة التصدير بصيغة CSV UTF-8.',
+                    ]);
+                }
+
+                $headers = fgetcsv($handle);
+                if ($headers === false || count($headers) === 0) {
+                    fclose($handle);
+                    return redirect()->back()->with([
+                        'type' => 'error',
+                        'message' => 'الملف لا يحتوي على ترويسة أعمدة صالحة.',
+                    ]);
+                }
+
+                $columnIndexes = $this->detectCsvColumns($headers);
+                if ($columnIndexes['code'] === -1 || $columnIndexes['name'] === -1) {
+                    fclose($handle);
+                    return redirect()->back()->with([
+                        'type' => 'error',
+                        'message' => 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!',
+                    ]);
+                }
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    $normalizedRows[] = [
+                        'line' => (int) ($count + 2),
+                        'code' => $this->cleanCourseCode($this->getCsvCell($row, $columnIndexes['code'])),
+                        'name' => $this->getCsvCell($row, $columnIndexes['name']),
+                        'credit_hours' => $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['credit_hours']), 3, 0, 12) ?? 3,
+                        'raw_type' => $this->getCsvCell($row, $columnIndexes['type']),
+                        'raw_category' => $this->getCsvCell($row, $columnIndexes['category']),
+                        'raw_delivery_mode' => $this->getCsvCell($row, $columnIndexes['delivery_mode']),
+                        'mapped_type' => '',
+                        'prerequisites' => $this->getCsvCell($row, $columnIndexes['prerequisites']),
+                        'semester' => $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['semester']), 1, 1, 12) ?? 1,
+                        'description' => $this->getCsvCell($row, $columnIndexes['description']),
+                        'minimum_passed_hours' => $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['minimum_passed_hours']), null, 1, 200),
+                    ];
+                    $count++;
+                }
                 fclose($handle);
-                return redirect()->back()->with([
-                    'type' => 'error',
-                    'message' => 'الملف لا يحتوي على ترويسة أعمدة صالحة.',
-                ]);
+                $count = 0;
             }
 
-            $columnIndexes = $this->detectCsvColumns($headers);
-            if ($columnIndexes['code'] === -1 || $columnIndexes['name'] === -1) {
-                fclose($handle);
-                return redirect()->back()->with([
-                    'type' => 'error',
-                    'message' => 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!',
-                ]);
-            }
-
-            while (($row = fgetcsv($handle)) !== false) {
-                $code = $this->cleanCourseCode($this->getCsvCell($row, $columnIndexes['code']));
-                $name = $this->getCsvCell($row, $columnIndexes['name']);
+            foreach ($normalizedRows as $rowData) {
+                $code = $rowData['code'];
+                $name = $rowData['name'];
 
                 if ($code === '' && $name === '') {
                     continue;
@@ -726,14 +781,19 @@ class AdminController extends Controller
                     continue;
                 }
 
-                $credits = $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['credit_hours']), 3, 0, 12) ?? 3;
-                $rawType = $this->getCsvCell($row, $columnIndexes['type']);
-                $rawCategory = $this->getCsvCell($row, $columnIndexes['category']);
-                $rawDeliveryMode = $this->getCsvCell($row, $columnIndexes['delivery_mode']);
-                $type = $this->mapImportedCourseType($rawType, $rawCategory, $rawDeliveryMode);
-                $semester = $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['semester']), 1, 1, 12) ?? 1;
-                $description = $this->getCsvCell($row, $columnIndexes['description']);
-                $minimumPassedHours = $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['minimum_passed_hours']), null, 1, 200);
+                $credits = $rowData['credit_hours'];
+                $rawType = $rowData['raw_type'];
+                $rawCategory = $rowData['raw_category'];
+                $rawDeliveryMode = $rowData['raw_delivery_mode'];
+
+                $mappedType = $rowData['mapped_type'];
+                $type = in_array($mappedType, ['compulsory', 'elective', 'supporting', 'university_req'], true)
+                    ? $mappedType
+                    : $this->mapImportedCourseType($rawType, $rawCategory, $rawDeliveryMode);
+
+                $semester = $rowData['semester'];
+                $description = $rowData['description'];
+                $minimumPassedHours = $rowData['minimum_passed_hours'];
 
                 $updatePayload = [
                     'name' => $name,
@@ -744,13 +804,8 @@ class AdminController extends Controller
                     'study_plan_version' => $selectedPlanVersion,
                 ];
 
-                if ($columnIndexes['description'] !== -1) {
-                    $updatePayload['description'] = $description !== '' ? $description : null;
-                }
-
-                if ($columnIndexes['minimum_passed_hours'] !== -1) {
-                    $updatePayload['minimum_passed_hours'] = $minimumPassedHours;
-                }
+                $updatePayload['description'] = $description !== '' ? $description : null;
+                $updatePayload['minimum_passed_hours'] = $minimumPassedHours;
 
                 $course = Course::updateOrCreate(
                     [
@@ -763,7 +818,7 @@ class AdminController extends Controller
 
                 $importedCourseIds[] = $course->id;
 
-                $prereqRaw = $this->getCsvCell($row, $columnIndexes['prerequisites']);
+                $prereqRaw = $rowData['prerequisites'];
                 if ($prereqRaw !== '') {
                     $prereqUpper = strtoupper($prereqRaw);
                     if ($prereqUpper !== 'NULL' && $prereqRaw !== '0' && $prereqRaw !== '-' && $prereqRaw !== '—') {
@@ -773,7 +828,6 @@ class AdminController extends Controller
 
                 $count++;
             }
-            fclose($handle);
 
             foreach ($prerequisitesMap as $courseId => $prereqString) {
                 $course = Course::find($courseId);
