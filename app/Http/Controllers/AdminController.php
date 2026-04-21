@@ -680,19 +680,28 @@ class AdminController extends Controller
             $prerequisitesMap = [];
 
             if (($handle = fopen($file->getPathname(), 'r')) === false) {
-                return redirect()->back()->with('error', 'تعذر قراءة ملف CSV. تأكد من إعادة التصدير بصيغة CSV UTF-8.');
+                return redirect()->back()->with([
+                    'type' => 'error',
+                    'message' => 'تعذر قراءة ملف CSV. تأكد من إعادة التصدير بصيغة CSV UTF-8.',
+                ]);
             }
 
             $headers = fgetcsv($handle);
             if ($headers === false || count($headers) === 0) {
                 fclose($handle);
-                return redirect()->back()->with('error', 'الملف لا يحتوي على ترويسة أعمدة صالحة.');
+                return redirect()->back()->with([
+                    'type' => 'error',
+                    'message' => 'الملف لا يحتوي على ترويسة أعمدة صالحة.',
+                ]);
             }
 
             $columnIndexes = $this->detectCsvColumns($headers);
             if ($columnIndexes['code'] === -1 || $columnIndexes['name'] === -1) {
                 fclose($handle);
-                return redirect()->back()->with('error', 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!');
+                return redirect()->back()->with([
+                    'type' => 'error',
+                    'message' => 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!',
+                ]);
             }
 
             while (($row = fgetcsv($handle)) !== false) {
@@ -811,12 +820,18 @@ class AdminController extends Controller
             }
 
             if ($count === 0) {
-                return redirect()->back()->with('error', 'لم يتم العثور على صفوف قابلة للاستيراد (تأكد من وجود code و name بكل صف).');
+                return redirect()->back()->with([
+                    'type' => 'error',
+                    'message' => 'لم يتم العثور على صفوف قابلة للاستيراد (تأكد من وجود code و name بكل صف).',
+                ]);
             }
 
             $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة للتخصص {$selectedMajorId} بالخطة {$selectedPlanVersion} مع إعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
 
-            return redirect()->back()->with('success', "تم الاستيراد بنجاح! 🚀 تم بناء الأسهم والمستويات تلقائياً لـ $count مادة.");
+            return redirect()->back()->with([
+                'type' => 'success',
+                'message' => "تم الاستيراد بنجاح! 🚀 تم بناء الأسهم والمستويات تلقائياً لـ $count مادة.",
+            ]);
         } catch (\Throwable $e) {
             Log::error('CSV import failed in AdminController@import', [
                 'message' => $e->getMessage(),
@@ -828,7 +843,10 @@ class AdminController extends Controller
                 'study_plan_version' => $request->input('study_plan_version'),
             ]);
 
-            return redirect()->back()->with('error', 'فشل استيراد الملف بسبب تنسيق أو ترميز غير متوافق. حاول حفظ الملف بصيغة CSV UTF-8 ثم أعد المحاولة.');
+            return redirect()->back()->with([
+                'type' => 'error',
+                'message' => 'فشل استيراد الملف بسبب تنسيق أو ترميز غير متوافق. حاول حفظ الملف بصيغة CSV UTF-8 ثم أعد المحاولة.',
+            ]);
         }
     }
 

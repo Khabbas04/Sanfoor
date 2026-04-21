@@ -448,12 +448,36 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
 
     const confirmImportSubmit = () => {
         postFile(route('admin.courses.import'), {
-            onSuccess: () => {
+            onSuccess: (page) => {
+                const flash = page?.props?.flash || {};
+                const flashType = flash.type || null;
+                const flashMessage = flash.message || null;
+
+                if (flashType === 'error') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'فشل الاستيراد',
+                        text: flashMessage || 'تعذر استيراد الملف. راجع تنسيق CSV وحاول مجدداً.',
+                    });
+                    return;
+                }
+
                 resetFile('csv_file', 'major_id', 'college_id');
                 setFileData('study_plan_version', '12');
                 setCsvPreview(null);
                 setShowImportPreview(false);
-                Swal.fire('تم الاستيراد!', 'تم بناء روابط الشجرة بنجاح 🚀', 'success');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم الاستيراد!',
+                    text: flashMessage || 'تم بناء روابط الشجرة بنجاح 🚀',
+                });
+            },
+            onError: () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'فشل الاستيراد',
+                    text: 'تحقق من الحقول المطلوبة (الكلية، التخصص، الخطة، الملف) ثم أعد المحاولة.',
+                });
             },
         });
     };
