@@ -716,6 +716,7 @@ class AdminController extends Controller
             $count = 0;
             $importedCourseIds = [];
             $prerequisitesMap = [];
+            $skippedRows = [];
 
             $hasRowsPayload = is_array($rowsPayload) && count($rowsPayload) > 0;
             if (!$file && !$hasRowsPayload) {
@@ -796,63 +797,80 @@ class AdminController extends Controller
             }
 
             foreach ($normalizedRows as $rowData) {
-                $code = $rowData['code'];
-                $name = $rowData['name'];
+                try {
+                    $code = $rowData['code'];
+                    $name = $rowData['name'];
 
-                if ($code === '' && $name === '') {
-                    continue;
-                }
+                    if ($code === '' && $name === '') {
+                        continue;
+                    }
 
-                if ($code === '' || $name === '') {
-                    continue;
-                }
+                    if ($code === '' || $name === '') {
+                        $skippedRows[] = [
+                            'line' => $rowData['line'] ?? null,
+                            'reason' => 'رمز المادة أو اسم المادة مفقود.',
+                        ];
+                        continue;
+                    }
 
-                $credits = $rowData['credit_hours'];
-                $rawType = $rowData['raw_type'];
-                $rawCategory = $rowData['raw_category'];
-                $rawDeliveryMode = $rowData['raw_delivery_mode'];
+                    $credits = $rowData['credit_hours'];
+                    $rawType = $rowData['raw_type'];
+                    $rawCategory = $rowData['raw_category'];
+                    $rawDeliveryMode = $rowData['raw_delivery_mode'];
 
-                $mappedType = $rowData['mapped_type'];
-                $type = in_array($mappedType, ['compulsory', 'elective', 'supporting', 'university_req'], true)
-                    ? $mappedType
-                    : $this->mapImportedCourseType($rawType, $rawCategory, $rawDeliveryMode);
+                    $mappedType = $rowData['mapped_type'];
+                    $type = in_array($mappedType, ['compulsory', 'elective', 'supporting', 'university_req'], true)
+                        ? $mappedType
+                        : $this->mapImportedCourseType($rawType, $rawCategory, $rawDeliveryMode);
 
-                $semester = $rowData['semester'];
-                $description = $rowData['description'];
-                $minimumPassedHours = $rowData['minimum_passed_hours'];
+                    $semester = $rowData['semester'];
+                    $description = $rowData['description'];
+                    $minimumPassedHours = $rowData['minimum_passed_hours'];
 
-                $updatePayload = [
-                    'name' => $name,
-                    'credit_hours' => $credits,
-                    'semester' => $semester,
-                    'type' => $type,
-                    'major_id' => $selectedMajorId,
-                    'study_plan_version' => $selectedPlanVersion,
-                ];
-
-                $updatePayload['description'] = $description !== '' ? $description : null;
-                $updatePayload['minimum_passed_hours'] = $minimumPassedHours;
-
-                $course = Course::updateOrCreate(
-                    [
-                        'code' => $code,
+                    $updatePayload = [
+                        'name' => $name,
+                        'credit_hours' => $credits,
+                        'semester' => $semester,
+                        'type' => $type,
                         'major_id' => $selectedMajorId,
                         'study_plan_version' => $selectedPlanVersion,
-                    ],
-                    $updatePayload
-                );
+                    ];
 
-                $importedCourseIds[] = $course->id;
+                    $updatePayload['description'] = $description !== '' ? $description : null;
+                    $updatePayload['minimum_passed_hours'] = $minimumPassedHours;
 
-                $prereqRaw = $rowData['prerequisites'];
-                if ($prereqRaw !== '') {
-                    $prereqUpper = strtoupper($prereqRaw);
-                    if ($prereqUpper !== 'NULL' && $prereqRaw !== '0' && $prereqRaw !== '-' && $prereqRaw !== '—') {
-                        $prerequisitesMap[$course->id] = $prereqRaw;
+                    $course = Course::updateOrCreate(
+                        [
+                            'code' => $code,
+                            'major_id' => $selectedMajorId,
+                            'study_plan_version' => $selectedPlanVersion,
+                        ],
+                        $updatePayload
+                    );
+
+                    $importedCourseIds[] = $course->id;
+
+                    $prereqRaw = $rowData['prerequisites'];
+                    if ($prereqRaw !== '') {
+                        $prereqUpper = strtoupper($prereqRaw);
+                        if ($prereqUpper !== 'NULL' && $prereqRaw !== '0' && $prereqRaw !== '-' && $prereqRaw !== '—') {
+                            $prerequisitesMap[$course->id] = $prereqRaw;
+                        }
                     }
-                }
 
-                $count++;
+                    $count++;
+                } catch (\Throwable $rowError) {
+                    $skippedRows[] = [
+                        'line' => $rowData['line'] ?? null,
+                        'reason' => $rowError->getMessage(),
+                    ];
+
+                    Log::warning('CSV row skipped during import', [
+                        'line' => $rowData['line'] ?? null,
+                        'code' => $rowData['code'] ?? null,
+                        'reason' => $rowError->getMessage(),
+                    ]);
+                }
             }
 
             foreach ($prerequisitesMap as $courseId => $prereqString) {
@@ -910,20 +928,36 @@ class AdminController extends Controller
             }
 
             if ($count === 0) {
+                $firstErrors = array_slice($skippedRows, 0, 3);
+                $details = collect($firstErrors)
+                    ->map(fn ($e) => 'سطر ' . ($e['line'] ?? '?') . ': ' . ($e['reason'] ?? 'خطأ غير معروف'))
+                    ->implode(' | ');
+
                 return redirect()->back()->with([
                     'type' => 'error',
-                    'message' => 'لم يتم العثور على صفوف قابلة للاستيراد (تأكد من وجود code و name بكل صف).',
+                    'message' => $details !== ''
+                        ? 'تعذر استيراد أي صف. ' . $details
+                        : 'لم يتم العثور على صفوف قابلة للاستيراد (تأكد من وجود code و name بكل صف).',
                 ]);
             }
 
             $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة للتخصص {$selectedMajorId} بالخطة {$selectedPlanVersion} مع إعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
 
+            $skippedCount = count($skippedRows);
+            $successMessage = "تم الاستيراد بنجاح! 🚀 تم حفظ/تحديث {$count} مادة.";
+            if ($skippedCount > 0) {
+                $successMessage .= " وتم تخطي {$skippedCount} صف بسبب بيانات غير صالحة.";
+            }
+
             return redirect()->back()->with([
                 'type' => 'success',
-                'message' => "تم الاستيراد بنجاح! 🚀 تم بناء الأسهم والمستويات تلقائياً لـ $count مادة.",
+                'message' => $successMessage,
             ]);
         } catch (\Throwable $e) {
+            $errorRef = 'IMP-' . now()->format('YmdHis') . '-' . substr(md5((string) microtime(true)), 0, 6);
+
             Log::error('CSV import failed in AdminController@import', [
+                'error_ref' => $errorRef,
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -933,9 +967,14 @@ class AdminController extends Controller
                 'study_plan_version' => $request->input('study_plan_version'),
             ]);
 
+            $baseMessage = 'فشل استيراد الملف بسبب تنسيق أو ترميز غير متوافق. حاول حفظ الملف بصيغة CSV UTF-8 ثم أعد المحاولة.';
+            if (config('app.debug')) {
+                $baseMessage = 'فشل الاستيراد: ' . $e->getMessage() . ' (ref: ' . $errorRef . ')';
+            }
+
             return redirect()->back()->with([
                 'type' => 'error',
-                'message' => 'فشل استيراد الملف بسبب تنسيق أو ترميز غير متوافق. حاول حفظ الملف بصيغة CSV UTF-8 ثم أعد المحاولة.',
+                'message' => $baseMessage,
             ]);
         }
     }

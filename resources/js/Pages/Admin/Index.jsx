@@ -503,70 +503,25 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         }, 30);
     };
 
-    const handleDirectImportSubmit = (e) => {
-        e.preventDefault();
-
-        if (!fileData.csv_file || !fileData.major_id || !fileData.study_plan_version) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'بيانات ناقصة',
-                text: 'اختر الكلية والتخصص والخطة وملف CSV قبل الاستيراد المباشر.',
-            });
-            return;
-        }
-
-        postFile(route('admin.courses.import'), {
-            onSuccess: (page) => {
-                const flash = page?.props?.flash || {};
-                const flashType = flash.type || null;
-                const flashMessage = flash.message || null;
-
-                if (flashType === 'error') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'فشل الاستيراد',
-                        text: flashMessage || 'تعذر استيراد الملف. راجع البيانات وحاول مجدداً.',
-                    });
-                    return;
-                }
-
-                resetFile('csv_file', 'major_id', 'college_id');
-                setFileData('study_plan_version', '12');
-                setCsvPreview(null);
-                setEditablePreviewRows([]);
-                setShowImportPreview(false);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم الاستيراد المباشر',
-                    text: flashMessage || 'تم حفظ المواد في قاعدة البيانات بنجاح.',
-                });
-            },
-            onError: () => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'فشل الاستيراد',
-                    text: 'تحقق من الحقول المطلوبة ثم أعد المحاولة.',
-                });
-            },
-        });
-    };
-
-    const confirmImportSubmit = () => {
-        const normalizedRows = editablePreviewRows.map((row) => ({
+    const submitRowsPayload = (rows, { loadingSetter = null, successTitle = 'تم الاستيراد!' } = {}) => {
+        const sourceRows = (Array.isArray(rows) && rows.length > 0) ? rows : editablePreviewRows;
+        const normalizedRows = sourceRows.map((row) => ({
             code: cleanCsvCell(row.code),
             name: cleanCsvCell(row.name),
-            credit_hours: parseCsvInteger(row.creditHours, 3, 0, 12) ?? 3,
-            type: cleanCsvCell(row.rawType),
-            category: cleanCsvCell(row.rawCategory),
-            delivery_mode: cleanCsvCell(row.rawDeliveryMode),
-            mappedType: cleanCsvCell(row.mappedType),
+            credit_hours: parseCsvInteger(row.creditHours ?? row.credit_hours, 3, 0, 12) ?? 3,
+            type: cleanCsvCell(row.rawType ?? row.type),
+            category: cleanCsvCell(row.rawCategory ?? row.category),
+            delivery_mode: cleanCsvCell(row.rawDeliveryMode ?? row.delivery_mode),
+            mappedType: cleanCsvCell(row.mappedType ?? row.mapped_type),
             prerequisites: cleanCsvCell(row.prerequisites),
             semester: parseCsvInteger(row.semester, 1, 1, 12) ?? 1,
             description: cleanCsvCell(row.description),
-            minimum_passed_hours: parseCsvInteger(row.minimumPassedHours, null, 1, 200),
+            minimum_passed_hours: parseCsvInteger(row.minimumPassedHours ?? row.minimum_passed_hours, null, 1, 200),
         }));
 
-        setPreviewSubmitting(true);
+        if (loadingSetter) {
+            loadingSetter(true);
+        }
         router.post(route('admin.courses.import'), {
             major_id: fileData.major_id,
             study_plan_version: fileData.study_plan_version,
@@ -584,7 +539,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                         title: 'فشل الاستيراد',
                         text: flashMessage || 'تعذر استيراد الملف. راجع تنسيق CSV وحاول مجدداً.',
                     });
-                    setPreviewSubmitting(false);
+                    if (loadingSetter) loadingSetter(false);
                     return;
                 }
 
@@ -595,20 +550,81 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 setShowImportPreview(false);
                 Swal.fire({
                     icon: 'success',
-                    title: 'تم الاستيراد!',
+                    title: successTitle,
                     text: flashMessage || 'تم بناء روابط الشجرة بنجاح 🚀',
                 });
-                setPreviewSubmitting(false);
+                if (loadingSetter) loadingSetter(false);
             },
             onError: () => {
                 Swal.fire({
                     icon: 'error',
                     title: 'فشل الاستيراد',
-                    text: 'تحقق من الحقول المطلوبة (الكلية، التخصص، الخطة، الملف) ثم أعد المحاولة.',
+                    text: 'تحقق من الحقول المطلوبة (الكلية، التخصص، الخطة، الملف) ثم أعد المحاولة. إذا استمر الخطأ أعد فتح المعاينة لمعرفة الصفوف غير الصالحة.',
                 });
-                setPreviewSubmitting(false);
+                if (loadingSetter) loadingSetter(false);
             },
         });
+    };
+
+    const handleDirectImportSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!fileData.csv_file || !fileData.major_id || !fileData.study_plan_version) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'بيانات ناقصة',
+                text: 'اختر الكلية والتخصص والخطة وملف CSV قبل الاستيراد المباشر.',
+            });
+            return;
+        }
+
+        let rows = editablePreviewRows;
+
+        if (!rows || rows.length === 0) {
+            try {
+                setIsParsingCsv(true);
+                const preview = await buildCsvPreview(fileData.csv_file);
+                setCsvPreview(preview);
+                rows = preview.sampleRows || [];
+                setEditablePreviewRows(rows);
+
+                if (!preview.requiredColumnsFound) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ترويسة غير مكتملة',
+                        text: `الأعمدة المطلوبة غير موجودة: ${preview.missingRequiredColumns.join(' - ')}`,
+                    });
+                    setIsParsingCsv(false);
+                    return;
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'فشل قراءة CSV',
+                    text: 'تعذر تحليل الملف. تأكد من سلامة CSV.',
+                });
+                setIsParsingCsv(false);
+                return;
+            } finally {
+                setIsParsingCsv(false);
+            }
+        }
+
+        const validCount = rows.filter((row) => computeRowWarnings(row).length === 0).length;
+        if (validCount === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'لا توجد صفوف صالحة',
+                text: 'الملف لا يحتوي صفوف قابلة للحفظ.',
+            });
+            return;
+        }
+
+        submitRowsPayload(rows, { loadingSetter: setPreviewSubmitting, successTitle: 'تم الاستيراد المباشر' });
+    };
+
+    const confirmImportSubmit = () => {
+        submitRowsPayload(editablePreviewRows, { loadingSetter: setPreviewSubmitting, successTitle: 'تم الاستيراد!' });
     };
 
     const handleColSubmit = (e) => {
