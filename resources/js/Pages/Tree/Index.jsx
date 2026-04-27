@@ -239,14 +239,67 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile]);
 
-    const coursesById = useMemo(
-        () => new Map(courses.map((course) => [course.id.toString(), course])),
-        [courses]
-    );
-
     const nodeSnapGrid = useMemo(() => (
         isMobile ? [16, 16] : [20, 20]
     ), [isMobile]);
+
+    const snapPositionToGrid = useCallback((position) => {
+        const [gridX, gridY] = nodeSnapGrid;
+        return {
+            x: Math.round((Number(position?.x) || 0) / gridX) * gridX,
+            y: Math.round((Number(position?.y) || 0) / gridY) * gridY,
+        };
+    }, [nodeSnapGrid]);
+
+    const resolveNonOverlappingPosition = useCallback((nodeId, droppedPosition, currentPositions = {}) => {
+        const safeGap = 14;
+        const nodeWidth = nodeDimensions.width;
+        const nodeHeight = nodeDimensions.height;
+        const [gridX, gridY] = nodeSnapGrid;
+
+        const snapped = snapPositionToGrid(droppedPosition);
+
+        const occupiedEntries = Object.entries(currentPositions)
+            .filter(([existingId]) => existingId !== nodeId.toString())
+            .map(([existingId, pos]) => ({
+                id: existingId,
+                x: Number(pos?.x) || 0,
+                y: Number(pos?.y) || 0,
+            }));
+
+        const collidesWithAny = (candidate) => {
+            return occupiedEntries.some((entry) => {
+                const overlapX = Math.abs(candidate.x - entry.x) < (nodeWidth + safeGap);
+                const overlapY = Math.abs(candidate.y - entry.y) < (nodeHeight + safeGap);
+                return overlapX && overlapY;
+            });
+        };
+
+        if (!collidesWithAny(snapped)) {
+            return snapped;
+        }
+
+        const maxRadius = 24;
+        for (let radius = 1; radius <= maxRadius; radius += 1) {
+            const candidates = [
+                { x: snapped.x + radius * gridX, y: snapped.y },
+                { x: snapped.x - radius * gridX, y: snapped.y },
+                { x: snapped.x, y: snapped.y + radius * gridY },
+                { x: snapped.x, y: snapped.y - radius * gridY },
+                { x: snapped.x + radius * gridX, y: snapped.y + radius * gridY },
+                { x: snapped.x + radius * gridX, y: snapped.y - radius * gridY },
+                { x: snapped.x - radius * gridX, y: snapped.y + radius * gridY },
+                { x: snapped.x - radius * gridX, y: snapped.y - radius * gridY },
+            ];
+
+            const match = candidates.find((candidate) => !collidesWithAny(candidate));
+            if (match) {
+                return match;
+            }
+        }
+
+        return snapped;
+    }, [nodeDimensions.width, nodeDimensions.height, nodeSnapGrid, snapPositionToGrid]);
 
     const layoutSeedPositions = useMemo(() => {
         if (!Array.isArray(courses) || courses.length === 0) {
@@ -278,56 +331,6 @@ export default function Tree({
                 .map((node) => [node.id, node.position])
         );
     }, [courses, nodeDimensions]);
-
-    const semesterLevelYMap = useMemo(() => {
-        const levels = new Map();
-
-        courses.forEach((course) => {
-            const courseId = course.id.toString();
-            const semester = Number.parseInt(course.semester, 10) || 1;
-            const seeded = layoutSeedPositions.get(courseId);
-            const fallbackY = (semester - 1) * (nodeDimensions.height + nodeDimensions.ranksep);
-            const y = Number(seeded?.y ?? fallbackY);
-
-            if (!levels.has(semester)) {
-                levels.set(semester, []);
-            }
-
-            levels.get(semester).push(y);
-        });
-
-        const normalized = new Map();
-        Array.from(levels.keys())
-            .sort((a, b) => a - b)
-            .forEach((semester, index) => {
-                const values = levels.get(semester) || [];
-                const avg = values.length > 0
-                    ? values.reduce((sum, value) => sum + value, 0) / values.length
-                    : index * (nodeDimensions.height + nodeDimensions.ranksep);
-
-                normalized.set(semester, Math.round(avg));
-            });
-
-        return normalized;
-    }, [courses, layoutSeedPositions, nodeDimensions.height, nodeDimensions.ranksep]);
-
-    const lockNodeToSemesterLevel = useCallback((courseId, position) => {
-        const course = coursesById.get(courseId.toString());
-        if (!course) {
-            return {
-                x: Number(position?.x) || 0,
-                y: Number(position?.y) || 0,
-            };
-        }
-
-        const semester = Number.parseInt(course.semester, 10) || 1;
-        const lockedY = semesterLevelYMap.get(semester);
-
-        return {
-            x: Number(position?.x) || 0,
-            y: Number.isFinite(lockedY) ? lockedY : (Number(position?.y) || 0),
-        };
-    }, [coursesById, semesterLevelYMap]);
 
     useEffect(() => {
         if (!Array.isArray(courses) || courses.length === 0) return;
@@ -812,8 +815,7 @@ export default function Tree({
                 </div>
             `;
 
-            const rawPosition = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
-            const storedPosition = lockNodeToSemesterLevel(course.id.toString(), rawPosition);
+            const storedPosition = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
 
             initialNodes.push({
                 id: course.id.toString(),
@@ -862,7 +864,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions, lockNodeToSemesterLevel]);
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -872,24 +874,6 @@ export default function Tree({
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [buildGraph]);
-
-    const onNodeDrag = useCallback((event, node) => {
-        if (!canEditTreePositions || !positionEditMode) return;
-
-        const lockedPosition = lockNodeToSemesterLevel(node.id, node.position);
-        if (Math.abs((node.position?.y ?? 0) - lockedPosition.y) < 0.5) return;
-
-        setNodes((prev) => prev.map((currentNode) => {
-            if (currentNode.id !== node.id) return currentNode;
-            return {
-                ...currentNode,
-                position: {
-                    ...currentNode.position,
-                    y: lockedPosition.y,
-                },
-            };
-        }));
-    }, [canEditTreePositions, positionEditMode, lockNodeToSemesterLevel, setNodes]);
 
     // 🛡️ حدود الحركة — يمنع الطالب من الضياع بالفراغ الأبيض
     const translateExtent = useMemo(() => {
@@ -927,20 +911,25 @@ export default function Tree({
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
 
-        const lockedPosition = lockNodeToSemesterLevel(node.id, node.position);
+        const basePositions = {
+            ...nodePositions,
+            ...draftNodePositions,
+        };
+
+        const droppedPosition = resolveNonOverlappingPosition(node.id, node.position, basePositions);
 
         setNodePositions((prev) => ({
             ...prev,
-            [node.id.toString()]: lockedPosition,
+            [node.id.toString()]: droppedPosition,
         }));
 
         setDraftNodePositions((prev) => ({
             ...prev,
-            [node.id.toString()]: lockedPosition,
+            [node.id.toString()]: droppedPosition,
         }));
 
         setHasUnsavedNodeMoves(true);
-    }, [canEditTreePositions, positionEditMode, lockNodeToSemesterLevel]);
+    }, [canEditTreePositions, positionEditMode, nodePositions, draftNodePositions, resolveNonOverlappingPosition]);
 
     const handleTargetYearChange = (yearValue) => {
         const year = parseInt(yearValue, 10) || 1;
@@ -2051,7 +2040,6 @@ export default function Tree({
                             nodes={nodes}
                             edges={edges}
                             onNodeClick={onNodeClick}
-                            onNodeDrag={onNodeDrag}
                             onNodeDragStop={onNodeDragStop}
                             onPaneClick={onPaneClick}
                             onNodesChange={onNodesChange}
@@ -2086,7 +2074,7 @@ export default function Tree({
 
                         {canEditTreePositions && positionEditMode && (
                             <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
-                                <span>🧭 السحب أفقي مع مستوى ثابت لكل فصل</span>
+                                <span>🧭 اسحب بأي اتجاه - التداخل يُعالج تلقائيًا</span>
                                 {hasUnsavedNodeMoves && <span className="text-amber-300">• يوجد تغييرات غير محفوظة</span>}
                             </div>
                         )}
