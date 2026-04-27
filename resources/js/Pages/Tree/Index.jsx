@@ -145,6 +145,7 @@ export default function Tree({
     const [hasUnsavedNodeMoves, setHasUnsavedNodeMoves] = useState(false);
     const [isSavingNodePositions, setIsSavingNodePositions] = useState(false);
     const [flowInstance, setFlowInstance] = useState(null);
+    const [isFullScreen, setIsFullScreen] = useState(false);
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
@@ -251,6 +252,12 @@ export default function Tree({
         if (!flowInstance) return;
         flowInstance.fitView({ padding: flowView.fitPadding, duration });
     }, [flowInstance, flowView.fitPadding]);
+
+    const toggleFullScreen = useCallback(() => {
+        setIsFullScreen((prev) => !prev);
+        if (isMobile) setIsSidebarOpen(false);
+        setTimeout(() => fitViewSmart(260), 140);
+    }, [fitViewSmart, isMobile]);
 
     const handleZoom = useCallback((delta) => {
         if (!flowInstance) return;
@@ -1467,7 +1474,7 @@ export default function Tree({
     };
 
     return (
-        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: isMobile ? '100dvh' : 'calc(100vh - 80px)' }}>
+        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: isMobile || isFullScreen ? '100dvh' : 'calc(100vh - 80px)' }}>
             <Head>
                 <title>{lang === 'ar' ? 'الخطة الشجرية الذكية | سنفور' : 'Smart Course Tree | Sanfoor'}</title>
                 <meta name="description" content={lang === 'ar' ? 'استعرض خطتك الشجرية، تتبع المتطلبات السابقة، وخطط تسجيل المواد بشكل ذكي داخل حسابك.' : 'Visualize your study tree, track prerequisites, and plan your courses smartly inside your account.'} />
@@ -1493,7 +1500,8 @@ export default function Tree({
             ` }} />
 
             {/* ═══ HEADER ═══ */}
-            <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
+            {!isFullScreen && (
+                <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
                 {isLandscapeMobile ? (
                     <div className="px-1">
                         <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
@@ -1544,16 +1552,18 @@ export default function Tree({
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
+            )}
 
             <div className="flex-1 flex w-full h-full relative overflow-hidden">
                 {show4YearPlan && render4YearPlan()}
-                {isSidebarOpen && isMobile && !isLandscapeMobile && (
+                {isSidebarOpen && isMobile && !isLandscapeMobile && !isFullScreen && (
                     <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
                 )}
 
                 {/* ═══ SIDEBAR ═══ */}
-                <div className={`
+                {!isFullScreen && (
+                    <div className={`
                     absolute lg:relative bg-slate-900/70 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 lg:z-10 flex flex-col overflow-hidden transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]
                     ${isMobile && !isLandscapeMobile
                         ? `bottom-0 left-0 right-0 h-[82%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
@@ -2022,11 +2032,12 @@ export default function Tree({
                             </div>
                         )}
                     </div>
-                </div>
+                    </div>
+                )}
 
                 {/* ═══ GRAPH AREA ═══ */}
-                <div className={`flex-1 relative h-full bg-slate-100/50 ${isMobile ? (isLandscapeMobile ? 'p-1' : 'p-1.5') : 'p-2 md:p-4'} w-full`} dir="ltr">
-                    <div className="w-full h-full bg-white/60 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-[inset_0_2px_12px_rgba(0,0,0,0.04)] relative overflow-hidden backdrop-blur-sm">
+                <div className={`flex-1 relative h-full bg-slate-100/50 ${isFullScreen ? 'p-0' : (isMobile ? (isLandscapeMobile ? 'p-1' : 'p-1.5') : 'p-2 md:p-4')} w-full`} dir="ltr">
+                    <div className={`${isFullScreen ? 'rounded-none border-none shadow-none' : 'rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-[inset_0_2px_12px_rgba(0,0,0,0.04)]'} w-full h-full bg-white/60 relative overflow-hidden backdrop-blur-sm`}>
 
                         {showRotateHint && (
                             <div className="absolute top-2 right-2 left-2 z-30" dir="rtl">
@@ -2044,7 +2055,8 @@ export default function Tree({
                             </div>
                         )}
 
-                        <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
+                        {!isFullScreen && (
+                            <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
                             {[
                                 { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
                                 { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' },
@@ -2079,7 +2091,8 @@ export default function Tree({
                                     </button>
                                 </>
                             )}
-                        </div>
+                            </div>
+                        )}
 
                         {/* 🎨 دليل الألوان — قابل للطي */}
                         <div className="absolute top-3 left-3 z-20 hidden md:block" dir="rtl">
@@ -2142,39 +2155,26 @@ export default function Tree({
                             />
                         </ReactFlow>
 
-                        {isMobile && (
-                            <div className={`absolute ${isLandscapeMobile ? 'bottom-2' : 'bottom-3'} right-3 z-30 flex flex-col gap-2`}>
-                                <button
-                                    type="button"
-                                    onClick={() => handleZoom(0.2)}
-                                    className="w-11 h-11 rounded-xl bg-white/95 border border-slate-200 text-slate-700 font-black text-lg shadow-lg backdrop-blur-md active:scale-95"
-                                    aria-label="Zoom in"
-                                    title="Zoom in"
-                                >
-                                    +
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => handleZoom(-0.2)}
-                                    className="w-11 h-11 rounded-xl bg-white/95 border border-slate-200 text-slate-700 font-black text-lg shadow-lg backdrop-blur-md active:scale-95"
-                                    aria-label="Zoom out"
-                                    title="Zoom out"
-                                >
-                                    -
-                                </button>
-                            </div>
-                        )}
+                        <button
+                            type="button"
+                            onClick={toggleFullScreen}
+                            className={`absolute ${isFullScreen ? 'top-3 left-3' : 'bottom-3 left-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
+                        >
+                            {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
+                        </button>
 
-                        {canEditTreePositions && positionEditMode && (
+                        {isMobile && null}
+
+                        {canEditTreePositions && positionEditMode && !isFullScreen && (
                             <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
                                 <span>🧭 اسحب بأي اتجاه - التداخل يُعالج تلقائيًا</span>
                                 {hasUnsavedNodeMoves && <span className="text-amber-300">• يوجد تغييرات غير محفوظة</span>}
                             </div>
                         )}
 
-                        {isMobile && (
+                        {isMobile && !isFullScreen && (
                             <div className={`absolute ${isLandscapeMobile ? 'bottom-2 text-[9px] px-2 py-1' : 'bottom-3 text-[10px] px-3 py-1.5'} left-1/2 -translate-x-1/2 z-20 bg-slate-900/85 text-white/80 font-bold rounded-full border border-white/10 backdrop-blur-md pointer-events-none`}>
-                                👌 اسحب للتنقل • قرّب بإصبعين أو بالأزرار
+                                👌 اسحب للتنقل • قرّب بإصبعين
                             </div>
                         )}
                     </div>
