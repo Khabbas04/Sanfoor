@@ -11,6 +11,17 @@ class Course extends Model
 {
     use HasFactory;
 
+    protected static function booted()
+    {
+        static::addGlobalScope('it_only', function ($builder) {
+            $builder->where(function ($query) {
+                $query->whereHas('major', function ($q) {
+                    $q->where('college_id', 1);
+                })->orWhereNull('major_id');
+            });
+        });
+    }
+
     // These fields are managed directly from the admin course CRUD flows.
     protected $fillable = [
         'name',

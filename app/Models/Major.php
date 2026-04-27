@@ -11,6 +11,13 @@ class Major extends Model
 {
     use HasFactory;
 
+    protected static function booted()
+    {
+        static::addGlobalScope('it_only', function ($builder) {
+            $builder->where('college_id', 1);
+        });
+    }
+
     // Basic major metadata managed from the academic structure admin tools.
     protected $fillable = ['college_id', 'name', 'code'];
 

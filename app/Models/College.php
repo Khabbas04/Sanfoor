@@ -11,6 +11,13 @@ class College extends Model
 {
     use HasFactory;
 
+    protected static function booted()
+    {
+        static::addGlobalScope('it_only', function ($builder) {
+            $builder->where('id', 1);
+        });
+    }
+
     // 🔥 أضفنا حقول التفاصيل الملموسة عن الكلية
     protected $fillable = [
         'university_id',
