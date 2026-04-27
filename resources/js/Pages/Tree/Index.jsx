@@ -140,7 +140,10 @@ export default function Tree({
     const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
     const [positionEditMode, setPositionEditMode] = useState(false);
     const [nodePositions, setNodePositions] = useState({});
-    const [savingPositionId, setSavingPositionId] = useState(null);
+    const [draftNodePositions, setDraftNodePositions] = useState({});
+    const [nodePositionsBeforeEdit, setNodePositionsBeforeEdit] = useState({});
+    const [hasUnsavedNodeMoves, setHasUnsavedNodeMoves] = useState(false);
+    const [isSavingNodePositions, setIsSavingNodePositions] = useState(false);
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
@@ -236,6 +239,11 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile]);
 
+    const coursesById = useMemo(
+        () => new Map(courses.map((course) => [course.id.toString(), course])),
+        [courses]
+    );
+
     const nodeSnapGrid = useMemo(() => (
         isMobile ? [16, 16] : [20, 20]
     ), [isMobile]);
@@ -270,6 +278,56 @@ export default function Tree({
                 .map((node) => [node.id, node.position])
         );
     }, [courses, nodeDimensions]);
+
+    const semesterLevelYMap = useMemo(() => {
+        const levels = new Map();
+
+        courses.forEach((course) => {
+            const courseId = course.id.toString();
+            const semester = Number.parseInt(course.semester, 10) || 1;
+            const seeded = layoutSeedPositions.get(courseId);
+            const fallbackY = (semester - 1) * (nodeDimensions.height + nodeDimensions.ranksep);
+            const y = Number(seeded?.y ?? fallbackY);
+
+            if (!levels.has(semester)) {
+                levels.set(semester, []);
+            }
+
+            levels.get(semester).push(y);
+        });
+
+        const normalized = new Map();
+        Array.from(levels.keys())
+            .sort((a, b) => a - b)
+            .forEach((semester, index) => {
+                const values = levels.get(semester) || [];
+                const avg = values.length > 0
+                    ? values.reduce((sum, value) => sum + value, 0) / values.length
+                    : index * (nodeDimensions.height + nodeDimensions.ranksep);
+
+                normalized.set(semester, Math.round(avg));
+            });
+
+        return normalized;
+    }, [courses, layoutSeedPositions, nodeDimensions.height, nodeDimensions.ranksep]);
+
+    const lockNodeToSemesterLevel = useCallback((courseId, position) => {
+        const course = coursesById.get(courseId.toString());
+        if (!course) {
+            return {
+                x: Number(position?.x) || 0,
+                y: Number(position?.y) || 0,
+            };
+        }
+
+        const semester = Number.parseInt(course.semester, 10) || 1;
+        const lockedY = semesterLevelYMap.get(semester);
+
+        return {
+            x: Number(position?.x) || 0,
+            y: Number.isFinite(lockedY) ? lockedY : (Number(position?.y) || 0),
+        };
+    }, [coursesById, semesterLevelYMap]);
 
     useEffect(() => {
         if (!Array.isArray(courses) || courses.length === 0) return;
@@ -307,37 +365,60 @@ export default function Tree({
         });
     }, [courses, layoutSeedPositions]);
 
-    const saveNodePosition = useCallback(async (courseId, position) => {
+    const startPositionEditMode = useCallback(() => {
+        setNodePositionsBeforeEdit({ ...nodePositions });
+        setDraftNodePositions({ ...nodePositions });
+        setHasUnsavedNodeMoves(false);
+        setPositionEditMode(true);
+    }, [nodePositions]);
+
+    const cancelPositionEditMode = useCallback(() => {
+        setNodePositions({ ...nodePositionsBeforeEdit });
+        setDraftNodePositions({ ...nodePositionsBeforeEdit });
+        setHasUnsavedNodeMoves(false);
+        setPositionEditMode(false);
+    }, [nodePositionsBeforeEdit]);
+
+    const saveAllNodePositions = useCallback(async () => {
         if (!canEditTreePositions) return;
 
-        const normalizedPosition = {
-            x: Number(position?.x) || 0,
-            y: Number(position?.y) || 0,
-        };
+        const changedEntries = Object.entries(draftNodePositions).filter(([courseId, position]) => {
+            const basePosition = nodePositionsBeforeEdit[courseId] || { x: 0, y: 0 };
+            const dx = Math.abs((Number(position?.x) || 0) - (Number(basePosition?.x) || 0));
+            const dy = Math.abs((Number(position?.y) || 0) - (Number(basePosition?.y) || 0));
+            return dx > 0.5 || dy > 0.5;
+        });
 
-        setNodePositions((prev) => ({
-            ...prev,
-            [courseId.toString()]: normalizedPosition,
-        }));
+        if (changedEntries.length === 0) {
+            setPositionEditMode(false);
+            return;
+        }
 
         try {
-            setSavingPositionId(courseId.toString());
-            await axios.post(route('admin.tree.positions'), {
-                course_id: courseId,
-                position_x: normalizedPosition.x,
-                position_y: normalizedPosition.y,
-            });
+            setIsSavingNodePositions(true);
+
+            for (const [courseId, position] of changedEntries) {
+                await axios.post(route('admin.tree.positions'), {
+                    course_id: Number(courseId),
+                    position_x: Number(position?.x) || 0,
+                    position_y: Number(position?.y) || 0,
+                });
+            }
+
+            setNodePositionsBeforeEdit({ ...draftNodePositions });
+            setHasUnsavedNodeMoves(false);
+            setPositionEditMode(false);
         } catch (error) {
             Swal.fire({
                 icon: 'error',
                 title: 'تعذر حفظ المكان',
-                text: error.response?.data?.message || 'حدث خطأ أثناء حفظ موضع المادة.',
+                text: error.response?.data?.message || 'حدث خطأ أثناء حفظ مواضع المواد.',
                 ...swalTheme
             });
         } finally {
-            setSavingPositionId(null);
+            setIsSavingNodePositions(false);
         }
-    }, [canEditTreePositions]);
+    }, [canEditTreePositions, draftNodePositions, nodePositionsBeforeEdit]);
 
     useEffect(() => {
         const onResize = () => {
@@ -731,7 +812,8 @@ export default function Tree({
                 </div>
             `;
 
-            const storedPosition = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
+            const rawPosition = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
+            const storedPosition = lockNodeToSemesterLevel(course.id.toString(), rawPosition);
 
             initialNodes.push({
                 id: course.id.toString(),
@@ -780,7 +862,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions, lockNodeToSemesterLevel]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -790,6 +872,24 @@ export default function Tree({
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [buildGraph]);
+
+    const onNodeDrag = useCallback((event, node) => {
+        if (!canEditTreePositions || !positionEditMode) return;
+
+        const lockedPosition = lockNodeToSemesterLevel(node.id, node.position);
+        if (Math.abs((node.position?.y ?? 0) - lockedPosition.y) < 0.5) return;
+
+        setNodes((prev) => prev.map((currentNode) => {
+            if (currentNode.id !== node.id) return currentNode;
+            return {
+                ...currentNode,
+                position: {
+                    ...currentNode.position,
+                    y: lockedPosition.y,
+                },
+            };
+        }));
+    }, [canEditTreePositions, positionEditMode, lockNodeToSemesterLevel, setNodes]);
 
     // 🛡️ حدود الحركة — يمنع الطالب من الضياع بالفراغ الأبيض
     const translateExtent = useMemo(() => {
@@ -826,8 +926,21 @@ export default function Tree({
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
-        saveNodePosition(node.id, node.position);
-    }, [canEditTreePositions, positionEditMode, saveNodePosition]);
+
+        const lockedPosition = lockNodeToSemesterLevel(node.id, node.position);
+
+        setNodePositions((prev) => ({
+            ...prev,
+            [node.id.toString()]: lockedPosition,
+        }));
+
+        setDraftNodePositions((prev) => ({
+            ...prev,
+            [node.id.toString()]: lockedPosition,
+        }));
+
+        setHasUnsavedNodeMoves(true);
+    }, [canEditTreePositions, positionEditMode, lockNodeToSemesterLevel]);
 
     const handleTargetYearChange = (yearValue) => {
         const year = parseInt(yearValue, 10) || 1;
@@ -1449,8 +1562,8 @@ export default function Tree({
                                         <div className="grid grid-cols-3 gap-2.5">
                                             <div className="bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
                                                 <p className="text-[8px] font-[800] text-indigo-300 uppercase mb-1">الأولوية</p>
-                                                <p className={`text-2xl font-[900] leading-none ${getCoursePriority(selectedCourse) >= 70 ? 'text-rose-400' : getCoursePriority(selectedCourse) >= 40 ? 'text-amber-400' : 'text-indigo-300'}`}>{getCoursePriority(selectedCourse)}</p>
-                                                <p className="text-[8px] text-white/30 font-bold mt-0.5">من 100</p>
+                                                <p className={`text-2xl font-[900] leading-none ${getCoursePriority(selectedCourse) >= 70 ? 'text-rose-400' : getCoursePriority(selectedCourse) >= 40 ? 'text-amber-400' : 'text-indigo-300'}`}>{getCoursePriority(selectedCourse)}%</p>
+                                                <p className="text-[8px] text-white/30 font-bold mt-0.5">نسبة أولوية</p>
                                             </div>
                                             <div className="bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
                                                 <p className="text-[8px] font-[800] text-violet-300 uppercase mb-1">التأثير</p>
@@ -1715,7 +1828,7 @@ export default function Tree({
                                                 <div className="relative z-10">
                                                     <div className="flex justify-between items-start mb-2">
                                                         <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded-md font-mono text-[10px] font-[800] border border-white/10">{getNextBestCourse().code}</span>
-                                                        <span className="text-[10px] font-[800] text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md">أولوية: {getCoursePriority(getNextBestCourse())}/100</span>
+                                                        <span className="text-[10px] font-[800] text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md">أولوية: {getCoursePriority(getNextBestCourse())}%</span>
                                                     </div>
                                                     <h3 className="font-[900] text-[14px] text-white mb-1">{getNextBestCourse().name}</h3>
                                                     <p className="text-[10px] text-white/40 font-bold mb-3">{getNextBestCourse().credit_hours} ساعات • تفتح {getUnlocksDetailed(getNextBestCourse().id).length} مواد • تأثير على {getTotalImpact(getNextBestCourse().id)} مادة</p>
@@ -1881,13 +1994,32 @@ export default function Tree({
                             ].map(f => (
                                 <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                             ))}
-                            {canEditTreePositions && (
+                            {canEditTreePositions && !positionEditMode && (
                                 <button
-                                    onClick={() => setPositionEditMode((prev) => !prev)}
-                                    className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${positionEditMode ? 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]' : 'bg-white text-slate-900 shadow-sm'}`}
+                                    onClick={startPositionEditMode}
+                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm"
                                 >
-                                    {positionEditMode ? '💾 وضع الترتيب مفعّل' : (isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد')}
+                                    {isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد'}
                                 </button>
+                            )}
+
+                            {canEditTreePositions && positionEditMode && (
+                                <>
+                                    <button
+                                        onClick={cancelPositionEditMode}
+                                        disabled={isSavingNodePositions}
+                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)] disabled:opacity-50"
+                                    >
+                                        ✖️ إلغاء
+                                    </button>
+                                    <button
+                                        onClick={saveAllNodePositions}
+                                        disabled={isSavingNodePositions || !hasUnsavedNodeMoves}
+                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] disabled:opacity-50"
+                                    >
+                                        {isSavingNodePositions ? '⏳ جاري الحفظ...' : '💾 حفظ الترتيب'}
+                                    </button>
+                                </>
                             )}
                         </div>
 
@@ -1919,6 +2051,7 @@ export default function Tree({
                             nodes={nodes}
                             edges={edges}
                             onNodeClick={onNodeClick}
+                            onNodeDrag={onNodeDrag}
                             onNodeDragStop={onNodeDragStop}
                             onPaneClick={onPaneClick}
                             onNodesChange={onNodesChange}
@@ -1953,8 +2086,8 @@ export default function Tree({
 
                         {canEditTreePositions && positionEditMode && (
                             <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
-                                <span>🖱️ اسحب المواد لمواضعها ثم اتركها للحفظ</span>
-                                {savingPositionId && <span className="text-emerald-300">• حفظ...</span>}
+                                <span>🧭 السحب أفقي مع مستوى ثابت لكل فصل</span>
+                                {hasUnsavedNodeMoves && <span className="text-amber-300">• يوجد تغييرات غير محفوظة</span>}
                             </div>
                         )}
 
