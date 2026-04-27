@@ -126,6 +126,16 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                 />
                 <meta name="robots" content="noindex,nofollow,noarchive" />
                 <link rel="canonical" href={`${siteUrl}/campus-directory`} />
+                <style dangerouslySetInnerHTML={{ __html: `
+                    @keyframes directoryFadeUp {
+                        from { opacity: 0; transform: translateY(14px) scale(0.985); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                    .directory-card-reveal {
+                        opacity: 0;
+                        animation: directoryFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    }
+                ` }} />
             </Head>
 
             <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)] py-8 sm:py-10" dir="rtl">
@@ -134,10 +144,10 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
                         <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
 
-                        <div className="relative z-10 p-6 sm:p-8 lg:p-10 text-right">
-                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-950">
-                                دليل واضح وسريع للمباني والكليات
-                            </h1>
+                        <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+                            <div className="text-center max-w-2xl mx-auto">
+                                <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">دليل المباني والكليات</h1>
+                            </div>
                         </div>
                     </section>
 
@@ -148,10 +158,11 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                                {OFFICIAL_BUILDING_GUIDE.map((entry) => (
+                                {OFFICIAL_BUILDING_GUIDE.map((entry, idx) => (
                                     <article
                                         key={entry.symbol}
-                                        className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                                        className="directory-card-reveal rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                                        style={{ animationDelay: `${idx * 70}ms` }}
                                     >
                                         <div className="flex items-start gap-3">
                                             <div className="min-w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 text-white flex items-center justify-center text-xl font-black shadow-sm">
@@ -181,14 +192,13 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                 ))}
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                            <div className="directory-card-reveal rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/70 p-4 sm:p-5" style={{ animationDelay: `${OFFICIAL_BUILDING_GUIDE.length * 70}ms` }}>
                                 <div className="flex items-center justify-between gap-3 flex-wrap">
                                     <p className="text-sm font-black text-slate-900">ترميز الطوابق</p>
-                                    <span className="text-xs font-semibold text-slate-500">كما هو موضح في الصورة</span>
                                 </div>
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-4 flex flex-wrap gap-2.5">
                                     {OFFICIAL_FLOOR_LEGEND.map((floor) => (
-                                        <span key={floor} className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                                        <span key={floor} className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
                                             {floor}
                                         </span>
                                     ))}
