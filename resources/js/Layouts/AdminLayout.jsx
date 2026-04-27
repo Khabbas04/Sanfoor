@@ -127,6 +127,7 @@ export default function AdminLayout({ children }) {
         { icon: '📚', name: t.courses, route: 'admin.courses', pattern: 'admin.courses' },
         { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors' },
         { icon: '🧩', name: t.collegesDirectory, route: 'admin.colleges.index', pattern: 'admin.colleges.*' },
+        { icon: '🎓', name: lang === 'ar' ? 'إدارة التخصصات' : 'Manage Majors', route: 'admin.majors.index', pattern: 'admin.majors.*' },
         { icon: '📍', name: t.campusLandmarks, route: 'admin.landmarks.index', pattern: 'admin.landmarks.*' },
         { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
         { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },

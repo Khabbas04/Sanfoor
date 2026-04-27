@@ -160,4 +160,73 @@ class AdminCollegeController extends Controller
         return redirect()->route('admin.landmarks.index')
             ->with('success', 'تم حذف المعلم بنجاح');
     }
+
+    // ==================== Majors ====================
+
+    public function indexMajors()
+    {
+        $majors = \App\Models\Major::with('college')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Admin/Majors/Index', [
+            'majors' => $majors,
+        ]);
+    }
+
+    public function createMajor()
+    {
+        $colleges = College::orderBy('name')->get();
+
+        return Inertia::render('Admin/Majors/Form', [
+            'major' => null,
+            'colleges' => $colleges,
+        ]);
+    }
+
+    public function storeMajor(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:majors,code',
+            'college_id' => 'required|exists:colleges,id',
+        ]);
+
+        \App\Models\Major::create($validated);
+
+        return redirect()->route('admin.majors.index')
+            ->with('success', 'تم إضافة التخصص بنجاح');
+    }
+
+    public function editMajor(\App\Models\Major $major)
+    {
+        $colleges = College::orderBy('name')->get();
+
+        return Inertia::render('Admin/Majors/Form', [
+            'major' => $major,
+            'colleges' => $colleges,
+        ]);
+    }
+
+    public function updateMajor(Request $request, \App\Models\Major $major)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:majors,code,' . $major->id,
+            'college_id' => 'required|exists:colleges,id',
+        ]);
+
+        $major->update($validated);
+
+        return redirect()->route('admin.majors.index')
+            ->with('success', 'تم تحديث التخصص بنجاح');
+    }
+
+    public function destroyMajor(\App\Models\Major $major)
+    {
+        $major->delete();
+
+        return redirect()->route('admin.majors.index')
+            ->with('success', 'تم حذف التخصص بنجاح');
+    }
 }

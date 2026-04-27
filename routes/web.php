@@ -240,9 +240,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/courses/export', [AdminController::class, 'export'])->name('courses.export');
         Route::post('/courses/bulk-delete', [AdminController::class, 'bulkDelete'])->name('courses.bulk_delete');
 
-        // Academic structure management.
+        // Academic structure management (Structure page).
         Route::post('/colleges', [AdminController::class, 'storeCollege'])->name('colleges.store');
+        Route::put('/colleges/{college}', [AdminController::class, 'updateCollege'])->name('colleges.quick_update');
+        Route::delete('/colleges/{college}', [AdminController::class, 'destroyCollege'])->name('colleges.quick_destroy');
+
         Route::post('/majors', [AdminController::class, 'storeMajor'])->name('majors.store');
+        Route::put('/majors/{major}', [AdminController::class, 'updateMajor'])->name('majors.quick_update');
+        Route::delete('/majors/{major}', [AdminController::class, 'destroyMajor'])->name('majors.quick_destroy');
 
         // Colleges and landmarks management - complete CRUD with UI forms.
         Route::get('/colleges/list', [AdminCollegeController::class, 'indexColleges'])->name('colleges.index');
@@ -251,6 +256,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/colleges/{college}/edit', [AdminCollegeController::class, 'editCollege'])->name('colleges.edit');
         Route::put('/colleges/{college}', [AdminCollegeController::class, 'updateCollege'])->name('colleges.update');
         Route::delete('/colleges/{college}', [AdminCollegeController::class, 'destroyCollege'])->name('colleges.destroy');
+
+        // Majors management - complete CRUD with UI forms.
+        Route::get('/majors/list', [AdminCollegeController::class, 'indexMajors'])->name('majors.index');
+        Route::get('/majors/new', [AdminCollegeController::class, 'createMajor'])->name('majors.create');
+        Route::post('/majors/new', [AdminCollegeController::class, 'storeMajor'])->name('majors.store_new');
+        Route::get('/majors/{major}/edit', [AdminCollegeController::class, 'editMajor'])->name('majors.edit');
+        Route::put('/majors/{major}', [AdminCollegeController::class, 'updateMajor'])->name('majors.update');
+        Route::delete('/majors/{major}', [AdminCollegeController::class, 'destroyMajor'])->name('majors.destroy');
 
         Route::get('/landmarks', [AdminCollegeController::class, 'indexLandmarks'])->name('landmarks.index');
         Route::get('/landmarks/new', [AdminCollegeController::class, 'createLandmark'])->name('landmarks.create');

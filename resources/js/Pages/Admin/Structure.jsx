@@ -58,35 +58,116 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
         });
     }, [majors, majorQuery]);
 
+    const [editingCollegeId, setEditingCollegeId] = React.useState(null);
+    const [editingMajorId, setEditingMajorId] = React.useState(null);
+
     const {
-        data: colData, setData: setColData, post: postCol,
+        data: colData, setData: setColData, post: postCol, put: putCol, delete: delCol,
         processing: colProcessing, errors: colErrors, reset: resetCol,
     } = useForm({ name: '' });
 
     const {
-        data: majData, setData: setMajData, post: postMaj,
+        data: majData, setData: setMajData, post: postMaj, put: putMaj, delete: delMaj,
         processing: majProcessing, errors: majErrors, reset: resetMaj,
     } = useForm({ name: '', code: '', college_id: '' });
 
     const handleCollegeSubmit = (e) => {
         e.preventDefault();
-        postCol(route('admin.colleges.store'), {
-            preserveScroll: true,
-            onSuccess: () => {
-                resetCol('name');
-                Swal.fire({ icon: 'success', title: lang === 'ar' ? 'تمت الإضافة' : 'Added', text: lang === 'ar' ? 'تم حفظ الكلية بنجاح' : 'College saved successfully.', timer: 1600, showConfirmButton: false });
-            },
-        });
+        if (editingCollegeId) {
+            putCol(route('admin.colleges.quick_update', editingCollegeId), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditingCollegeId(null);
+                    resetCol('name');
+                    Swal.fire({ icon: 'success', title: lang === 'ar' ? 'تم التحديث' : 'Updated', text: lang === 'ar' ? 'تم تحديث الكلية بنجاح' : 'College updated successfully.', timer: 1600, showConfirmButton: false });
+                },
+            });
+        } else {
+            postCol(route('admin.colleges.store'), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    resetCol('name');
+                    Swal.fire({ icon: 'success', title: lang === 'ar' ? 'تمت الإضافة' : 'Added', text: lang === 'ar' ? 'تم حفظ الكلية بنجاح' : 'College saved successfully.', timer: 1600, showConfirmButton: false });
+                },
+            });
+        }
     };
 
     const handleMajorSubmit = (e) => {
         e.preventDefault();
-        postMaj(route('admin.majors.store'), {
-            preserveScroll: true,
-            onSuccess: () => {
-                resetMaj('name', 'code');
-                Swal.fire({ icon: 'success', title: lang === 'ar' ? 'تمت الإضافة' : 'Added', text: lang === 'ar' ? 'تم حفظ التخصص بنجاح' : 'Major saved successfully.', timer: 1600, showConfirmButton: false });
-            },
+        if (editingMajorId) {
+            putMaj(route('admin.majors.quick_update', editingMajorId), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setEditingMajorId(null);
+                    resetMaj('name', 'code', 'college_id');
+                    Swal.fire({ icon: 'success', title: lang === 'ar' ? 'تم التحديث' : 'Updated', text: lang === 'ar' ? 'تم تحديث التخصص بنجاح' : 'Major updated successfully.', timer: 1600, showConfirmButton: false });
+                },
+            });
+        } else {
+            postMaj(route('admin.majors.store'), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    resetMaj('name', 'code', 'college_id');
+                    Swal.fire({ icon: 'success', title: lang === 'ar' ? 'تمت الإضافة' : 'Added', text: lang === 'ar' ? 'تم حفظ التخصص بنجاح' : 'Major saved successfully.', timer: 1600, showConfirmButton: false });
+                },
+            });
+        }
+    };
+
+    const editCollege = (college) => {
+        setEditingCollegeId(college.id);
+        setColData('name', college.name);
+    };
+
+    const cancelEditCollege = () => {
+        setEditingCollegeId(null);
+        resetCol('name');
+    };
+
+    const deleteCollege = (id) => {
+        Swal.fire({
+            title: lang === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?',
+            text: lang === 'ar' ? 'سيتم حذف الكلية وكافة البيانات المرتبطة بها!' : 'This will delete the college and all related data!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: lang === 'ar' ? 'نعم، احذف' : 'Yes, delete',
+            cancelButtonText: lang === 'ar' ? 'إلغاء' : 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                delCol(route('admin.colleges.quick_destroy', id), { preserveScroll: true });
+            }
+        });
+    };
+
+    const editMajor = (major) => {
+        setEditingMajorId(major.id);
+        setMajData({
+            name: major.name,
+            code: major.code,
+            college_id: major.college_id
+        });
+    };
+
+    const cancelEditMajor = () => {
+        setEditingMajorId(null);
+        resetMaj('name', 'code', 'college_id');
+    };
+
+    const deleteMajor = (id) => {
+        Swal.fire({
+            title: lang === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?',
+            text: lang === 'ar' ? 'سيتم حذف التخصص والمواد المرتبطة به!' : 'This will delete the major and related courses!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: lang === 'ar' ? 'نعم، احذف' : 'Yes, delete',
+            cancelButtonText: lang === 'ar' ? 'إلغاء' : 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                delMaj(route('admin.majors.quick_destroy', id), { preserveScroll: true });
+            }
         });
     };
 
@@ -116,7 +197,9 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                     {/* College Panel */}
                     <div className={`${card} rounded-[2rem] p-7 shadow-sm`}>
-                        <h3 className={`text-lg font-black ${heading} flex items-center gap-2 mb-6`}>{tr.addCollege}</h3>
+                        <h3 className={`text-lg font-black ${heading} flex items-center gap-2 mb-6`}>
+                            {editingCollegeId ? (lang === 'ar' ? '✏️ تعديل كلية' : '✏️ Edit College') : tr.addCollege}
+                        </h3>
                         <form onSubmit={handleCollegeSubmit} className="space-y-4">
                             <div>
                                 <label className={`text-[12px] font-bold ${labelCls} mb-1.5 block`}>{tr.collegeName}</label>
@@ -130,15 +213,28 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
                                 />
                                 {colErrors.name && <p className="text-[11px] font-bold text-rose-500 mt-1">{colErrors.name}</p>}
                             </div>
-                            <button type="submit" disabled={colProcessing} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white py-3 rounded-xl text-sm font-black transition-colors">
-                                {colProcessing ? tr.saving : tr.saveCollege}
-                            </button>
+                            <div className="flex gap-2">
+                                <button type="submit" disabled={colProcessing} className={`flex-1 ${editingCollegeId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'} disabled:opacity-60 text-white py-3 rounded-xl text-sm font-black transition-colors`}>
+                                    {colProcessing ? tr.saving : (editingCollegeId ? (lang === 'ar' ? 'تحديث' : 'Update') : tr.saveCollege)}
+                                </button>
+                                {editingCollegeId && (
+                                    <button type="button" onClick={cancelEditCollege} className="px-5 bg-slate-500 text-white rounded-xl text-sm font-black">
+                                        {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                                    </button>
+                                )}
+                            </div>
                         </form>
-                        <div className={`mt-5 border-t pt-4 max-h-60 overflow-y-auto space-y-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                        <div className={`mt-5 border-t pt-4 max-h-80 overflow-y-auto space-y-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
                             <input type="text" value={collegeQuery} onChange={(e) => setCollegeQuery(e.target.value)} placeholder={tr.searchCollege}
                                 className={`w-full rounded-xl text-sm font-bold border mb-2 ${inputCls}`} />
                             {visibleColleges.map((college) => (
-                                <div key={college.id} className={`text-[12px] font-bold border rounded-lg px-3 py-2 ${listItem}`}>{college.name}</div>
+                                <div key={college.id} className={`text-[12px] font-bold border rounded-lg px-3 py-2 flex items-center justify-between gap-2 ${listItem}`}>
+                                    <span>{college.name}</span>
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => editCollege(college)} className="p-1.5 bg-amber-500/10 text-amber-600 rounded-md hover:bg-amber-500 hover:text-white transition-colors">✏️</button>
+                                        <button onClick={() => deleteCollege(college.id)} className="p-1.5 bg-rose-500/10 text-rose-600 rounded-md hover:bg-rose-500 hover:text-white transition-colors">🗑️</button>
+                                    </div>
+                                </div>
                             ))}
                             {visibleColleges.length === 0 && <p className={`text-[12px] font-bold ${subtext}`}>{tr.noColleges}</p>}
                         </div>
@@ -146,7 +242,9 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
 
                     {/* Major Panel */}
                     <div className={`${card} rounded-[2rem] p-7 shadow-sm`}>
-                        <h3 className={`text-lg font-black ${heading} flex items-center gap-2 mb-6`}>{tr.addMajor}</h3>
+                        <h3 className={`text-lg font-black ${heading} flex items-center gap-2 mb-6`}>
+                            {editingMajorId ? (lang === 'ar' ? '✏️ تعديل تخصص' : '✏️ Edit Major') : tr.addMajor}
+                        </h3>
                         <form onSubmit={handleMajorSubmit} className="space-y-4">
                             <div>
                                 <label className={`text-[12px] font-bold ${labelCls} mb-1.5 block`}>{tr.parentCollege}</label>
@@ -171,17 +269,30 @@ export default function AdminStructure({ auth, platform = {}, colleges = [], maj
                                     {majErrors.code && <p className="text-[11px] font-bold text-rose-500 mt-1">{majErrors.code}</p>}
                                 </div>
                             </div>
-                            <button type="submit" disabled={majProcessing} className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white py-3 rounded-xl text-sm font-black transition-colors">
-                                {majProcessing ? tr.saving : tr.saveMajor}
-                            </button>
+                            <div className="flex gap-2">
+                                <button type="submit" disabled={majProcessing} className={`flex-1 ${editingMajorId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-violet-600 hover:bg-violet-700'} disabled:opacity-60 text-white py-3 rounded-xl text-sm font-black transition-colors`}>
+                                    {majProcessing ? tr.saving : (editingMajorId ? (lang === 'ar' ? 'تحديث' : 'Update') : tr.saveMajor)}
+                                </button>
+                                {editingMajorId && (
+                                    <button type="button" onClick={cancelEditMajor} className="px-5 bg-slate-500 text-white rounded-xl text-sm font-black">
+                                        {lang === 'ar' ? 'إلغاء' : 'Cancel'}
+                                    </button>
+                                )}
+                            </div>
                         </form>
-                        <div className={`mt-5 border-t pt-4 max-h-60 overflow-y-auto space-y-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                        <div className={`mt-5 border-t pt-4 max-h-80 overflow-y-auto space-y-2 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
                             <input type="text" value={majorQuery} onChange={(e) => setMajorQuery(e.target.value)} placeholder={tr.searchMajor}
                                 className={`w-full rounded-xl text-sm font-bold border mb-2 ${inputCls}`} />
                             {visibleMajors.map((major) => (
                                 <div key={major.id} className={`text-[12px] font-bold border rounded-lg px-3 py-2 flex items-center justify-between gap-2 ${listItem}`}>
-                                    <span>{major.name}</span>
-                                    <span dir="ltr" className={`text-[10px] font-black ${subtext}`}>{major.code}</span>
+                                    <div className="flex flex-col">
+                                        <span>{major.name}</span>
+                                        <span dir="ltr" className={`text-[9px] font-black opacity-50`}>{major.code}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => editMajor(major)} className="p-1.5 bg-amber-500/10 text-amber-600 rounded-md hover:bg-amber-500 hover:text-white transition-colors">✏️</button>
+                                        <button onClick={() => deleteMajor(major.id)} className="p-1.5 bg-rose-500/10 text-rose-600 rounded-md hover:bg-rose-500 hover:text-white transition-colors">🗑️</button>
+                                    </div>
                                 </div>
                             ))}
                             {visibleMajors.length === 0 && <p className={`text-[12px] font-bold ${subtext}`}>{tr.noMajors}</p>}

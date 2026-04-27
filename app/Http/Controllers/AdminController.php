@@ -317,14 +317,34 @@ class AdminController extends Controller
     public function storeCollege(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            // 🔥 تم إزالة validation الـ university_id 🔥
+            'name' => 'required|string|max:255|unique:colleges,name',
         ]);
 
         $college = College::create($validated);
         $this->logAction('ADD_COLLEGE', "تم إضافة كلية جديدة: {$college->name}");
 
         return redirect()->back()->with('success', 'تم إضافة الكلية بنجاح! 🏛️');
+    }
+
+    public function updateCollege(Request $request, College $college)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:colleges,name,' . $college->id,
+        ]);
+
+        $college->update($validated);
+        $this->logAction('UPDATE_COLLEGE', "تم تحديث الكلية: {$college->name}");
+
+        return redirect()->back()->with('success', 'تم تحديث الكلية بنجاح!');
+    }
+
+    public function destroyCollege(College $college)
+    {
+        $name = $college->name;
+        $college->delete();
+        $this->logAction('DELETE_COLLEGE', "تم حذف الكلية: {$name}");
+
+        return redirect()->back()->with('success', 'تم حذف الكلية بنجاح!');
     }
 
     public function storeMajor(Request $request)
@@ -339,6 +359,29 @@ class AdminController extends Controller
         $this->logAction('ADD_MAJOR', "تم إضافة تخصص جديد: {$major->name} ({$major->code})");
 
         return redirect()->back()->with('success', 'تم إضافة التخصص بنجاح! 🎓');
+    }
+
+    public function updateMajor(Request $request, Major $major)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|unique:majors,code,' . $major->id,
+            'college_id' => 'required|exists:colleges,id',
+        ]);
+
+        $major->update($validated);
+        $this->logAction('UPDATE_MAJOR', "تم تحديث التخصص: {$major->name}");
+
+        return redirect()->back()->with('success', 'تم تحديث التخصص بنجاح!');
+    }
+
+    public function destroyMajor(Major $major)
+    {
+        $name = $major->name;
+        $major->delete();
+        $this->logAction('DELETE_MAJOR', "تم حذف التخصص: {$name}");
+
+        return redirect()->back()->with('success', 'تم حذف التخصص بنجاح!');
     }
 
     // =========================================================
