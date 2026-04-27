@@ -479,6 +479,12 @@ export default function Tree({
     }, [isLandscapeMobile]);
 
     useEffect(() => {
+        if (isLandscapeMobile) {
+            setIsFullScreen(true);
+        }
+    }, [isLandscapeMobile]);
+
+    useEffect(() => {
         if (!flowInstance) return;
         const orientation = isLandscapeMobile ? 'landscape' : 'portrait';
         if (orientationRef.current !== orientation) {
@@ -961,8 +967,8 @@ export default function Tree({
             setTargetSemester(yearTermToSemester(next.year, next.term));
         }
         setActiveTab('details');
-        if (isMobile) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile]);
+        if (isMobile && !isFullScreen) setIsSidebarOpen(true);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -1473,6 +1479,320 @@ export default function Tree({
         );
     };
 
+    const renderDetailsPanel = ({ showCloseButton = true } = {}) => (
+        selectedCourse ? (
+            <motion.div
+                key={selectedCourse.id}
+                className="space-y-5"
+                style={{ zIndex: 50 }}
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            >
+                {/* Course Header */}
+                <div className="bg-white/10 backdrop-blur-md p-5 rounded-[1.25rem] border border-white/15 shadow-lg relative overflow-hidden">
+                    <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
+                    {/* Close Button */}
+                    {showCloseButton && (
+                        <button onClick={() => setSelectedCourse(null)} className="absolute top-3 left-3 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center text-white/60 hover:text-white text-xs transition-all z-20 backdrop-blur-sm border border-white/10">✕</button>
+                    )}
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-3.5">
+                            <div className="flex gap-2">
+                                <span className="bg-white/15 text-white/90 px-2.5 py-1 rounded-lg font-mono text-[11px] font-[800] border border-white/10 shadow-sm backdrop-blur-sm">{selectedCourse.code}</span>
+                                <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border backdrop-blur-sm ${selectedCourse.type === 'compulsory' ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/20' : selectedCourse.type === 'elective' ? 'bg-amber-500/20 text-amber-200 border-amber-400/20' : selectedCourse.type === 'supporting' ? 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-400/20' : 'bg-cyan-500/20 text-cyan-200 border-cyan-400/20'}`}>
+                                    {selectedCourse.type === 'compulsory' ? 'إجباري' : selectedCourse.type === 'elective' ? 'اختياري' : selectedCourse.type === 'supporting' ? 'مساندة' : 'متطلب جامعة'}
+                                </span>
+                            </div>
+                            <span className="text-white/60 font-[800] text-[11px] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">{selectedCourse.credit_hours} ساعات</span>
+                        </div>
+                        <h2 className="text-xl font-[900] text-white leading-tight">{selectedCourse.name}</h2>
+                        <p className="text-[11px] text-white/40 font-bold mt-1.5 font-i">المستوى الافتراضي: {selectedCourse.semester || 1}</p>
+                    </div>
+                </div>
+
+                {/* 🆕 نقاط الأولوية + التأثير + العمق */}
+                {getStatus(selectedCourse) !== 'passed' && (
+                    <div className="grid grid-cols-3 gap-2.5">
+                        <div className="bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
+                            <p className="text-[8px] font-[800] text-indigo-300 uppercase mb-1">الأولوية</p>
+                            <p className={`text-2xl font-[900] leading-none ${getCoursePriority(selectedCourse) >= 70 ? 'text-rose-400' : getCoursePriority(selectedCourse) >= 40 ? 'text-amber-400' : 'text-indigo-300'}`}>{getCoursePriority(selectedCourse)}%</p>
+                            <p className="text-[8px] text-white/30 font-bold mt-0.5">نسبة أولوية</p>
+                        </div>
+                        <div className="bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
+                            <p className="text-[8px] font-[800] text-violet-300 uppercase mb-1">التأثير</p>
+                            <p className="text-2xl font-[900] text-violet-300 leading-none">{getTotalImpact(selectedCourse.id)}</p>
+                            <p className="text-[8px] text-white/30 font-bold mt-0.5">مادة تتأثر</p>
+                        </div>
+                        <div className="bg-cyan-500/15 border border-cyan-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
+                            <p className="text-[8px] font-[800] text-cyan-300 uppercase mb-1">العمق</p>
+                            <p className="text-2xl font-[900] text-cyan-300 leading-none">{getCourseDepth(selectedCourse.id)}</p>
+                            <p className="text-[8px] text-white/30 font-bold mt-0.5">مستويات</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* 🆕 بطاقات تحليل سنفور */}
+                {getCourseInsights(selectedCourse).length > 0 && (
+                    <div className="space-y-2.5">
+                        <p className="text-[11px] font-[800] text-white/50 flex items-center gap-1.5">🧠 تحليل سنفور:</p>
+                        {getCourseInsights(selectedCourse).map((ins, i) => (
+                            <div key={i} className={`bg-${ins.color}-50 border border-${ins.color}-200 p-3.5 rounded-xl flex gap-3 items-start shadow-sm`} style={{ animationDelay: `${i * 80}ms`, animation: 'sn-slide-r 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
+                                <span className="text-lg mt-0.5 shrink-0">{ins.icon}</span>
+                                <div>
+                                    <h4 className={`text-${ins.color}-800 font-[800] text-[12px]`}>{ins.title}</h4>
+                                    <p className={`text-${ins.color}-600 text-[10.5px] font-bold mt-0.5 leading-relaxed`}>{ins.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Description */}
+                {selectedCourse.description && selectedCourse.description.trim() !== '' && (
+                    <div className="bg-amber-500/10 border border-amber-400/20 p-4 rounded-[1.25rem] relative overflow-hidden shadow-sm backdrop-blur-sm">
+                        <div className="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-amber-400/60 to-orange-400/60"></div>
+                        <h4 className="text-amber-200 font-[900] text-[12px] flex items-center gap-2 mb-2"><span>💡</span> لمحة عن المادة:</h4>
+                        <p className="text-[11.5px] font-bold text-amber-100/70 leading-relaxed whitespace-pre-wrap pl-1">{selectedCourse.description}</p>
+                    </div>
+                )}
+
+                {/* Unlocks */}
+                {getUnlocksDetailed(selectedCourse.id).length > 0 && (
+                    <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
+                        <h4 className="text-white/70 font-[800] text-[12px] flex items-center gap-2 mb-2.5">🚀 تفتح هذه المواد:</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                            {getUnlocksDetailed(selectedCourse.id).map(u => (
+                                <span key={u.id} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm border ${passedIds.includes(u.id) ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20 line-through opacity-60' : 'bg-white/10 text-white/80 border-white/10'}`}>{u.name}</span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Critical Path Warning */}
+                {getCourseDepth(selectedCourse.id) >= 2 && getStatus(selectedCourse) !== 'passed' && (
+                    <div className="bg-rose-500/15 border border-rose-400/20 p-3.5 rounded-xl flex gap-3 items-start backdrop-blur-sm">
+                        <span className="text-xl mt-0.5">🚨</span>
+                        <div>
+                            <h4 className="text-rose-200 font-[800] text-[13px]">مادة مسار حرج!</h4>
+                            <p className="text-rose-300/70 text-[11px] font-bold mt-0.5 font-i">تأجيلها قد يؤخر تخرجك فصلاً كاملاً.</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Locked */}
+                {getStatus(selectedCourse) === 'locked' && (() => {
+                    const hoursLockMessage = getHoursLockMessage(selectedCourse);
+                    const pathSteps = getShortestPathToUnlock(selectedCourse.id);
+                    const availableSteps = pathSteps.filter(s => s.isAvailableNow);
+                    const futureSteps = pathSteps.filter(s => !s.isAvailableNow);
+                    const totalSteps = pathSteps.length;
+                    const completedPrereqs = selectedCourse.prerequisites.filter(p => passedIds.includes(p.id)).length;
+                    const totalPrereqs = selectedCourse.prerequisites.length;
+
+                    return (
+                        <div className="space-y-4">
+                            {hoursLockMessage && (
+                                <div className="bg-amber-500/15 border border-amber-400/30 p-3.5 rounded-xl flex gap-3 items-start backdrop-blur-sm">
+                                    <span className="text-xl mt-0.5">⏳</span>
+                                    <div>
+                                        <h4 className="text-amber-200 font-[800] text-[13px]">شرط ساعات قبل التسجيل</h4>
+                                        <p className="text-amber-300/80 text-[11px] font-bold mt-0.5 font-i">{hoursLockMessage}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* المتطلبات المباشرة (الأصلي محسّن) */}
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
+                                <div className="flex justify-between items-center mb-3">
+                                    <p className="text-white/70 font-[800] text-[13px] flex items-center gap-2">🔒 المتطلبات المباشرة:</p>
+                                    <span className="text-[10px] font-[800] bg-white/10 text-white/60 px-2 py-0.5 rounded-lg">{completedPrereqs}/{totalPrereqs}</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-3">
+                                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${totalPrereqs > 0 ? (completedPrereqs / totalPrereqs) * 100 : 0}%` }} />
+                                </div>
+                                <div className="space-y-2">
+                                    {selectedCourse.prerequisites.map(p => (
+                                        <div key={p.id} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${passedIds.includes(p.id) ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : cartIds.includes(p.id) ? 'bg-amber-500/15 border-amber-400/20 text-amber-300' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'bg-indigo-500/15 border-indigo-400/20 text-indigo-300' : 'bg-white/5 border-rose-400/20 text-rose-300'}`}>
+                                            <span className="flex items-center gap-2">
+                                                {passedIds.includes(p.id) ? '✅' : cartIds.includes(p.id) ? '🛒' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? '🔓' : '🔒'}
+                                                {p.name}
+                                            </span>
+                                            <span className="font-[800] text-[10px]">
+                                                {passedIds.includes(p.id) ? 'منجز' : cartIds.includes(p.id) ? 'بالتسجيل التجريبي' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'متاح الآن!' : 'مقفل'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 🆕 خارطة الطريق — أقصر مسار لفتح المادة */}
+                            {pathSteps.length > 0 && (
+                                <div className="bg-indigo-500/10 border border-indigo-400/20 p-4 rounded-[1.25rem] relative overflow-hidden backdrop-blur-sm">
+                                    <div className="absolute -top-6 -left-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-2xl opacity-40" />
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="text-indigo-200 font-[900] text-[12px] flex items-center gap-2">
+                                                🗺️ خارطة الطريق لفتح المادة:
+                                            </h4>
+                                            <span className="text-[9px] font-[800] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-lg border border-indigo-400/20">
+                                                {totalSteps} {totalSteps === 1 ? 'خطوة' : totalSteps === 2 ? 'خطوتين' : 'خطوات'}
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-0">
+                                            {availableSteps.length > 0 && (
+                                                <div className="mb-2">
+                                                    <p className="text-[9px] font-[800] text-emerald-400 mb-1.5 flex items-center gap-1">✨ ابدأ بهذه الآن:</p>
+                                                    {availableSteps.map((step, i) => (
+                                                        <div key={step.id} className="flex items-start gap-2.5 mb-2">
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="w-7 h-7 rounded-lg bg-emerald-500/80 text-white flex items-center justify-center text-[11px] font-[900] shadow-md shadow-emerald-500/20">{i + 1}</div>
+                                                                {(i < availableSteps.length - 1 || futureSteps.length > 0) && <div className="w-0.5 h-4 bg-emerald-500/30 mt-0.5" />}
+                                                            </div>
+                                                            <div className="flex-1 bg-white/10 border border-emerald-400/20 rounded-xl p-2.5 shadow-sm backdrop-blur-sm">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-[11px] font-[800] text-emerald-200">{step.name}</span>
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[9px] font-mono text-white/30">{step.code}</span>
+                                                                        <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالتسجيل التجريبي' : '🔓 متاح'}</span>
+                                                                    </div>
+                                                                </div>
+                                                                {step.status === 'available' && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const c = courses.find(c => c.id === step.id);
+                                                                            if (c) toggleCart(c);
+                                                                        }}
+                                                                        className="mt-1.5 w-full bg-emerald-500/15 hover:bg-emerald-500/80 hover:text-white text-emerald-300 border border-emerald-400/20 py-1.5 rounded-lg text-[10px] font-[800] transition-all active:scale-95"
+                                                                    >
+                                                                        🛒 أضف للتسجيل التجريبي
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {futureSteps.length > 0 && (
+                                                <div>
+                                                    <p className="text-[9px] font-[800] text-white/30 mb-1.5 flex items-center gap-1">🔮 بعدها تنفتح:</p>
+                                                    {futureSteps.map((step, i) => (
+                                                        <div key={step.id} className="flex items-start gap-2.5 mb-2">
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="w-7 h-7 rounded-lg bg-white/10 text-white/40 flex items-center justify-center text-[11px] font-[900]">{availableSteps.length + i + 1}</div>
+                                                                {i < futureSteps.length - 1 && <div className="w-0.5 h-4 bg-white/10 mt-0.5" />}
+                                                            </div>
+                                                            <div className="flex-1 bg-white/5 border border-white/10 rounded-xl p-2.5">
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-[11px] font-[800] text-white/40">{step.name}</span>
+                                                                    <span className="text-[9px] font-mono text-white/20">{step.code}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-start gap-2.5 mt-1">
+                                                <div className="w-7 h-7 rounded-lg bg-indigo-500/80 text-white flex items-center justify-center text-[11px] font-[900] shadow-md shadow-indigo-500/20">🎯</div>
+                                                <div className="flex-1 bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-2.5">
+                                                    <span className="text-[11px] font-[900] text-indigo-200">{selectedCourse.name}</span>
+                                                    <span className="text-[9px] text-indigo-400 font-bold mr-2">← تنفتح!</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {/* Actions */}
+                <div className="space-y-2.5 pt-1">
+                    {getStatus(selectedCourse) === 'available' && (
+                        <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
+                            <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 تحديد الإنجاز حسب السنة والفصل:</span>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">السنة الدراسية</label>
+                                    <select
+                                        value={targetYear}
+                                        onChange={(e) => handleTargetYearChange(e.target.value)}
+                                        className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                    >
+                                        {yearOptions.map(year => (
+                                            <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">الفصل</label>
+                                    <select
+                                        value={targetTerm}
+                                        onChange={(e) => handleTargetTermChange(e.target.value)}
+                                        className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                    >
+                                        {termOptions.map(term => (
+                                            <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={applySuggestedStudySlot}
+                                className="w-full text-[11px] font-black text-emerald-900 bg-emerald-100/80 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 transition-colors"
+                            >
+                                ✨ اختيار تلقائي: سنة {suggestedStudySlot.year} - {termOptions.find(t => t.value === suggestedStudySlot.term)?.label || 'الفصل الأول'}
+                            </button>
+                            <p className="text-[10px] font-bold text-emerald-100/70">سيتم الحفظ كسنة {targetYear} - {termOptions.find(t => t.value === targetTerm)?.label || 'الفصل الأول'}.</p>
+                        </div>
+                    )}
+                    {getStatus(selectedCourse) === 'available' && (
+                        <>
+                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
+                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-emerald-500/80 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                        </>
+                    )}
+                    {(getStatus(selectedCourse) === 'passed' || getStatus(selectedCourse) === 'cart') && (
+                        <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                            {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التسجيل التجريبي'}
+                        </button>
+                    )}
+                </div>
+            </motion.div>
+        ) : (
+            <div className="h-full flex flex-col items-center justify-center text-white/40 mt-8">
+                <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-4xl mb-5 backdrop-blur-sm">🖱️</div>
+                <p className="font-bold text-[13px] text-center leading-relaxed text-white/50">اضغط على أي مادة في الشجرة<br />لاستكشاف مسارها الأكاديمي</p>
+
+                {getNextBestCourse() && (
+                    <div className="mt-8 w-full max-w-[320px]">
+                        <p className="text-[10px] font-[800] text-indigo-400 mb-2.5 text-center">💎 المادة الأهم للتسجيل حالياً:</p>
+                        <div className="bg-indigo-500/10 border border-indigo-400/20 p-4 rounded-[1.25rem] shadow-sm relative overflow-hidden backdrop-blur-sm">
+                            <div className="absolute -top-4 -left-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl opacity-60" />
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded-md font-mono text-[10px] font-[800] border border-white/10">{getNextBestCourse().code}</span>
+                                    <span className="text-[10px] font-[800] text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md">أولوية: {getCoursePriority(getNextBestCourse())}%</span>
+                                </div>
+                                <h3 className="font-[900] text-[14px] text-white mb-1">{getNextBestCourse().name}</h3>
+                                <p className="text-[10px] text-white/40 font-bold mb-3">{getNextBestCourse().credit_hours} ساعات • تفتح {getUnlocksDetailed(getNextBestCourse().id).length} مواد • تأثير على {getTotalImpact(getNextBestCourse().id)} مادة</p>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setSelectedCourse(getNextBestCourse())} className="flex-1 bg-indigo-500/80 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-[800] text-[11px] shadow-md active:scale-95 transition-all">📖 التفاصيل</button>
+                                    <button onClick={() => toggleCart(getNextBestCourse())} className="flex-1 bg-white/10 border border-white/15 text-white/70 py-2.5 rounded-xl font-[800] text-[11px] shadow-sm active:scale-95 transition-all hover:bg-white/20">🛒 إضافة</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        )
+    );
+
     return (
         <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: isMobile || isFullScreen ? '100dvh' : 'calc(100vh - 80px)' }}>
             <Head>
@@ -1595,322 +1915,7 @@ export default function Tree({
                     <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
 
                         {/* ═══ DETAILS TAB ═══ */}
-                        {activeTab === 'details' && (
-                            selectedCourse ? (
-                                <motion.div
-                                    key={selectedCourse.id}
-                                    className="space-y-5"
-                                    style={{ zIndex: 50 }}
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                                >
-                                    {/* Course Header */}
-                                    <div className="bg-white/10 backdrop-blur-md p-5 rounded-[1.25rem] border border-white/15 shadow-lg relative overflow-hidden">
-                                        <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
-                                        {/* Close Button */}
-                                        <button onClick={() => setSelectedCourse(null)} className="absolute top-3 left-3 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center text-white/60 hover:text-white text-xs transition-all z-20 backdrop-blur-sm border border-white/10">✕</button>
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-3.5">
-                                                <div className="flex gap-2">
-                                                    <span className="bg-white/15 text-white/90 px-2.5 py-1 rounded-lg font-mono text-[11px] font-[800] border border-white/10 shadow-sm backdrop-blur-sm">{selectedCourse.code}</span>
-                                                    <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border backdrop-blur-sm ${selectedCourse.type === 'compulsory' ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/20' : selectedCourse.type === 'elective' ? 'bg-amber-500/20 text-amber-200 border-amber-400/20' : selectedCourse.type === 'supporting' ? 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-400/20' : 'bg-cyan-500/20 text-cyan-200 border-cyan-400/20'}`}>
-                                                        {selectedCourse.type === 'compulsory' ? 'إجباري' : selectedCourse.type === 'elective' ? 'اختياري' : selectedCourse.type === 'supporting' ? 'مساندة' : 'متطلب جامعة'}
-                                                    </span>
-                                                </div>
-                                                <span className="text-white/60 font-[800] text-[11px] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">{selectedCourse.credit_hours} ساعات</span>
-                                            </div>
-                                            <h2 className="text-xl font-[900] text-white leading-tight">{selectedCourse.name}</h2>
-                                            <p className="text-[11px] text-white/40 font-bold mt-1.5 font-i">المستوى الافتراضي: {selectedCourse.semester || 1}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* 🆕 نقاط الأولوية + التأثير + العمق */}
-                                    {getStatus(selectedCourse) !== 'passed' && (
-                                        <div className="grid grid-cols-3 gap-2.5">
-                                            <div className="bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
-                                                <p className="text-[8px] font-[800] text-indigo-300 uppercase mb-1">الأولوية</p>
-                                                <p className={`text-2xl font-[900] leading-none ${getCoursePriority(selectedCourse) >= 70 ? 'text-rose-400' : getCoursePriority(selectedCourse) >= 40 ? 'text-amber-400' : 'text-indigo-300'}`}>{getCoursePriority(selectedCourse)}%</p>
-                                                <p className="text-[8px] text-white/30 font-bold mt-0.5">نسبة أولوية</p>
-                                            </div>
-                                            <div className="bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
-                                                <p className="text-[8px] font-[800] text-violet-300 uppercase mb-1">التأثير</p>
-                                                <p className="text-2xl font-[900] text-violet-300 leading-none">{getTotalImpact(selectedCourse.id)}</p>
-                                                <p className="text-[8px] text-white/30 font-bold mt-0.5">مادة تتأثر</p>
-                                            </div>
-                                            <div className="bg-cyan-500/15 border border-cyan-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
-                                                <p className="text-[8px] font-[800] text-cyan-300 uppercase mb-1">العمق</p>
-                                                <p className="text-2xl font-[900] text-cyan-300 leading-none">{getCourseDepth(selectedCourse.id)}</p>
-                                                <p className="text-[8px] text-white/30 font-bold mt-0.5">مستويات</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 🆕 بطاقات تحليل سنفور */}
-                                    {getCourseInsights(selectedCourse).length > 0 && (
-                                        <div className="space-y-2.5">
-                                            <p className="text-[11px] font-[800] text-white/50 flex items-center gap-1.5">🧠 تحليل سنفور:</p>
-                                            {getCourseInsights(selectedCourse).map((ins, i) => (
-                                                <div key={i} className={`bg-${ins.color}-50 border border-${ins.color}-200 p-3.5 rounded-xl flex gap-3 items-start shadow-sm`} style={{ animationDelay: `${i * 80}ms`, animation: 'sn-slide-r 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                                    <span className="text-lg mt-0.5 shrink-0">{ins.icon}</span>
-                                                    <div>
-                                                        <h4 className={`text-${ins.color}-800 font-[800] text-[12px]`}>{ins.title}</h4>
-                                                        <p className={`text-${ins.color}-600 text-[10.5px] font-bold mt-0.5 leading-relaxed`}>{ins.desc}</p>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Description */}
-                                    {selectedCourse.description && selectedCourse.description.trim() !== '' && (
-                                        <div className="bg-amber-500/10 border border-amber-400/20 p-4 rounded-[1.25rem] relative overflow-hidden shadow-sm backdrop-blur-sm">
-                                            <div className="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-amber-400/60 to-orange-400/60"></div>
-                                            <h4 className="text-amber-200 font-[900] text-[12px] flex items-center gap-2 mb-2"><span>💡</span> لمحة عن المادة:</h4>
-                                            <p className="text-[11.5px] font-bold text-amber-100/70 leading-relaxed whitespace-pre-wrap pl-1">{selectedCourse.description}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Unlocks */}
-                                    {getUnlocksDetailed(selectedCourse.id).length > 0 && (
-                                        <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
-                                            <h4 className="text-white/70 font-[800] text-[12px] flex items-center gap-2 mb-2.5">🚀 تفتح هذه المواد:</h4>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {getUnlocksDetailed(selectedCourse.id).map(u => (
-                                                    <span key={u.id} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm border ${passedIds.includes(u.id) ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20 line-through opacity-60' : 'bg-white/10 text-white/80 border-white/10'}`}>{u.name}</span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Critical Path Warning */}
-                                    {getCourseDepth(selectedCourse.id) >= 2 && getStatus(selectedCourse) !== 'passed' && (
-                                        <div className="bg-rose-500/15 border border-rose-400/20 p-3.5 rounded-xl flex gap-3 items-start backdrop-blur-sm">
-                                            <span className="text-xl mt-0.5">🚨</span>
-                                            <div>
-                                                <h4 className="text-rose-200 font-[800] text-[13px]">مادة مسار حرج!</h4>
-                                                <p className="text-rose-300/70 text-[11px] font-bold mt-0.5 font-i">تأجيلها قد يؤخر تخرجك فصلاً كاملاً.</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Locked */}
-                                    {getStatus(selectedCourse) === 'locked' && (() => {
-                                        const hoursLockMessage = getHoursLockMessage(selectedCourse);
-                                        const pathSteps = getShortestPathToUnlock(selectedCourse.id);
-                                        const availableSteps = pathSteps.filter(s => s.isAvailableNow);
-                                        const futureSteps = pathSteps.filter(s => !s.isAvailableNow);
-                                        const totalSteps = pathSteps.length;
-                                        const completedPrereqs = selectedCourse.prerequisites.filter(p => passedIds.includes(p.id)).length;
-                                        const totalPrereqs = selectedCourse.prerequisites.length;
-
-                                        return (
-                                            <div className="space-y-4">
-                                                {hoursLockMessage && (
-                                                    <div className="bg-amber-500/15 border border-amber-400/30 p-3.5 rounded-xl flex gap-3 items-start backdrop-blur-sm">
-                                                        <span className="text-xl mt-0.5">⏳</span>
-                                                        <div>
-                                                            <h4 className="text-amber-200 font-[800] text-[13px]">شرط ساعات قبل التسجيل</h4>
-                                                            <p className="text-amber-300/80 text-[11px] font-bold mt-0.5 font-i">{hoursLockMessage}</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* المتطلبات المباشرة (الأصلي محسّن) */}
-                                                <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
-                                                    <div className="flex justify-between items-center mb-3">
-                                                        <p className="text-white/70 font-[800] text-[13px] flex items-center gap-2">🔒 المتطلبات المباشرة:</p>
-                                                        <span className="text-[10px] font-[800] bg-white/10 text-white/60 px-2 py-0.5 rounded-lg">{completedPrereqs}/{totalPrereqs}</span>
-                                                    </div>
-                                                    {/* شريط تقدم المتطلبات */}
-                                                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-3">
-                                                        <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${totalPrereqs > 0 ? (completedPrereqs / totalPrereqs) * 100 : 0}%` }} />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        {selectedCourse.prerequisites.map(p => (
-                                                            <div key={p.id} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${passedIds.includes(p.id) ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : cartIds.includes(p.id) ? 'bg-amber-500/15 border-amber-400/20 text-amber-300' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'bg-indigo-500/15 border-indigo-400/20 text-indigo-300' : 'bg-white/5 border-rose-400/20 text-rose-300'}`}>
-                                                                <span className="flex items-center gap-2">
-                                                                    {passedIds.includes(p.id) ? '✅' : cartIds.includes(p.id) ? '🛒' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? '🔓' : '🔒'}
-                                                                    {p.name}
-                                                                </span>
-                                                                <span className="font-[800] text-[10px]">
-                                                                    {passedIds.includes(p.id) ? 'منجز' : cartIds.includes(p.id) ? 'بالتسجيل التجريبي' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'متاح الآن!' : 'مقفل'}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* 🆕 خارطة الطريق — أقصر مسار لفتح المادة */}
-                                                {pathSteps.length > 0 && (
-                                                    <div className="bg-indigo-500/10 border border-indigo-400/20 p-4 rounded-[1.25rem] relative overflow-hidden backdrop-blur-sm">
-                                                        <div className="absolute -top-6 -left-6 w-20 h-20 bg-indigo-500/10 rounded-full blur-2xl opacity-40" />
-                                                        <div className="relative z-10">
-                                                            <div className="flex justify-between items-center mb-3">
-                                                                <h4 className="text-indigo-200 font-[900] text-[12px] flex items-center gap-2">
-                                                                    🗺️ خارطة الطريق لفتح المادة:
-                                                                </h4>
-                                                                <span className="text-[9px] font-[800] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-lg border border-indigo-400/20">
-                                                                    {totalSteps} {totalSteps === 1 ? 'خطوة' : totalSteps === 2 ? 'خطوتين' : 'خطوات'}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="space-y-0">
-                                                                {/* الخطوات المتاحة الآن */}
-                                                                {availableSteps.length > 0 && (
-                                                                    <div className="mb-2">
-                                                                        <p className="text-[9px] font-[800] text-emerald-400 mb-1.5 flex items-center gap-1">✨ ابدأ بهذه الآن:</p>
-                                                                        {availableSteps.map((step, i) => (
-                                                                            <div key={step.id} className="flex items-start gap-2.5 mb-2">
-                                                                                <div className="flex flex-col items-center">
-                                                                                    <div className="w-7 h-7 rounded-lg bg-emerald-500/80 text-white flex items-center justify-center text-[11px] font-[900] shadow-md shadow-emerald-500/20">{i + 1}</div>
-                                                                                    {(i < availableSteps.length - 1 || futureSteps.length > 0) && <div className="w-0.5 h-4 bg-emerald-500/30 mt-0.5" />}
-                                                                                </div>
-                                                                                <div className="flex-1 bg-white/10 border border-emerald-400/20 rounded-xl p-2.5 shadow-sm backdrop-blur-sm">
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <span className="text-[11px] font-[800] text-emerald-200">{step.name}</span>
-                                                                                        <div className="flex items-center gap-1.5">
-                                                                                            <span className="text-[9px] font-mono text-white/30">{step.code}</span>
-                                                                                            <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالتسجيل التجريبي' : '🔓 متاح'}</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    {step.status === 'available' && (
-                                                                                        <button
-                                                                                            onClick={() => {
-                                                                                                const c = courses.find(c => c.id === step.id);
-                                                                                                if (c) toggleCart(c);
-                                                                                            }}
-                                                                                            className="mt-1.5 w-full bg-emerald-500/15 hover:bg-emerald-500/80 hover:text-white text-emerald-300 border border-emerald-400/20 py-1.5 rounded-lg text-[10px] font-[800] transition-all active:scale-95"
-                                                                                        >
-                                                                                            🛒 أضف للتسجيل التجريبي
-                                                                                        </button>
-                                                                                    )}
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-
-                                                                {/* الخطوات المستقبلية */}
-                                                                {futureSteps.length > 0 && (
-                                                                    <div>
-                                                                        <p className="text-[9px] font-[800] text-white/30 mb-1.5 flex items-center gap-1">🔮 بعدها تنفتح:</p>
-                                                                        {futureSteps.map((step, i) => (
-                                                                            <div key={step.id} className="flex items-start gap-2.5 mb-2">
-                                                                                <div className="flex flex-col items-center">
-                                                                                    <div className="w-7 h-7 rounded-lg bg-white/10 text-white/40 flex items-center justify-center text-[11px] font-[900]">{availableSteps.length + i + 1}</div>
-                                                                                    {i < futureSteps.length - 1 && <div className="w-0.5 h-4 bg-white/10 mt-0.5" />}
-                                                                                </div>
-                                                                                <div className="flex-1 bg-white/5 border border-white/10 rounded-xl p-2.5">
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <span className="text-[11px] font-[800] text-white/40">{step.name}</span>
-                                                                                        <span className="text-[9px] font-mono text-white/20">{step.code}</span>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-
-                                                                {/* الهدف النهائي */}
-                                                                <div className="flex items-start gap-2.5 mt-1">
-                                                                    <div className="w-7 h-7 rounded-lg bg-indigo-500/80 text-white flex items-center justify-center text-[11px] font-[900] shadow-md shadow-indigo-500/20">🎯</div>
-                                                                    <div className="flex-1 bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-2.5">
-                                                                        <span className="text-[11px] font-[900] text-indigo-200">{selectedCourse.name}</span>
-                                                                        <span className="text-[9px] text-indigo-400 font-bold mr-2">← تنفتح!</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* Actions */}
-                                    <div className="space-y-2.5 pt-1">
-                                        {getStatus(selectedCourse) === 'available' && (
-                                            <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
-                                                <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 تحديد الإنجاز حسب السنة والفصل:</span>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">السنة الدراسية</label>
-                                                        <select
-                                                            value={targetYear}
-                                                            onChange={(e) => handleTargetYearChange(e.target.value)}
-                                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                                        >
-                                                            {yearOptions.map(year => (
-                                                                <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">الفصل</label>
-                                                        <select
-                                                            value={targetTerm}
-                                                            onChange={(e) => handleTargetTermChange(e.target.value)}
-                                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                                        >
-                                                            {termOptions.map(term => (
-                                                                <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={applySuggestedStudySlot}
-                                                    className="w-full text-[11px] font-black text-emerald-900 bg-emerald-100/80 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 transition-colors"
-                                                >
-                                                    ✨ اختيار تلقائي: سنة {suggestedStudySlot.year} - {termOptions.find(t => t.value === suggestedStudySlot.term)?.label || 'الفصل الأول'}
-                                                </button>
-                                                <p className="text-[10px] font-bold text-emerald-100/70">سيتم الحفظ كسنة {targetYear} - {termOptions.find(t => t.value === targetTerm)?.label || 'الفصل الأول'}.</p>
-                                            </div>
-                                        )}
-                                        {getStatus(selectedCourse) === 'available' && (
-                                            <>
-                                                <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
-                                                <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-emerald-500/80 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
-                                            </>
-                                        )}
-                                        {(getStatus(selectedCourse) === 'passed' || getStatus(selectedCourse) === 'cart') && (
-                                            <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                                {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التسجيل التجريبي'}
-                                            </button>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-white/40 mt-8">
-                                    <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-4xl mb-5 backdrop-blur-sm">🖱️</div>
-                                    <p className="font-bold text-[13px] text-center leading-relaxed text-white/50">اضغط على أي مادة في الشجرة<br />لاستكشاف مسارها الأكاديمي</p>
-
-                                    {/* 🆕 اقتراح المادة التالية الأفضل */}
-                                    {getNextBestCourse() && (
-                                        <div className="mt-8 w-full max-w-[320px]">
-                                            <p className="text-[10px] font-[800] text-indigo-400 mb-2.5 text-center">💎 المادة الأهم للتسجيل حالياً:</p>
-                                            <div className="bg-indigo-500/10 border border-indigo-400/20 p-4 rounded-[1.25rem] shadow-sm relative overflow-hidden backdrop-blur-sm">
-                                                <div className="absolute -top-4 -left-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl opacity-60" />
-                                                <div className="relative z-10">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded-md font-mono text-[10px] font-[800] border border-white/10">{getNextBestCourse().code}</span>
-                                                        <span className="text-[10px] font-[800] text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md">أولوية: {getCoursePriority(getNextBestCourse())}%</span>
-                                                    </div>
-                                                    <h3 className="font-[900] text-[14px] text-white mb-1">{getNextBestCourse().name}</h3>
-                                                    <p className="text-[10px] text-white/40 font-bold mb-3">{getNextBestCourse().credit_hours} ساعات • تفتح {getUnlocksDetailed(getNextBestCourse().id).length} مواد • تأثير على {getTotalImpact(getNextBestCourse().id)} مادة</p>
-                                                    <div className="flex gap-2">
-                                                        <button onClick={() => setSelectedCourse(getNextBestCourse())} className="flex-1 bg-indigo-500/80 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-[800] text-[11px] shadow-md active:scale-95 transition-all">📖 التفاصيل</button>
-                                                        <button onClick={() => toggleCart(getNextBestCourse())} className="flex-1 bg-white/10 border border-white/15 text-white/70 py-2.5 rounded-xl font-[800] text-[11px] shadow-sm active:scale-95 transition-all hover:bg-white/20">🛒 إضافة</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        )}
+                        {activeTab === 'details' && renderDetailsPanel()}
 
                         {/* ═══ SIMULATOR TAB ═══ */}
                         {activeTab === 'simulator' && (
@@ -2039,11 +2044,11 @@ export default function Tree({
                 <div className={`flex-1 relative h-full bg-slate-100/50 ${isFullScreen ? 'p-0' : (isMobile ? (isLandscapeMobile ? 'p-1' : 'p-1.5') : 'p-2 md:p-4')} w-full`} dir="ltr">
                     <div className={`${isFullScreen ? 'rounded-none border-none shadow-none' : 'rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-[inset_0_2px_12px_rgba(0,0,0,0.04)]'} w-full h-full bg-white/60 relative overflow-hidden backdrop-blur-sm`}>
 
-                        {showRotateHint && (
+                        {showRotateHint && !isFullScreen && (
                             <div className="absolute top-2 right-2 left-2 z-30" dir="rtl">
                                 <div className="bg-amber-50/95 border border-amber-200 text-amber-800 rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm flex items-center gap-2.5">
                                     <span className="text-base shrink-0">🔄</span>
-                                    <p className="text-[10px] font-black leading-snug flex-1">لرؤية الشجرة بشكل أوضح، لف الشاشة للوضع الأفقي.</p>
+                                    <p className="text-[10px] font-black leading-snug flex-1">لأفضل تجربة: لف الشاشة للوضع الأفقي ثم فعّل وضع ملء الشاشة.</p>
                                     <button
                                         type="button"
                                         onClick={() => setDismissedRotateHint(true)}
@@ -2155,15 +2160,31 @@ export default function Tree({
                             />
                         </ReactFlow>
 
+                        {isFullScreen && selectedCourse && (
+                            <div className="absolute inset-x-0 bottom-0 z-40 h-[58%] bg-slate-900/95 border-t border-white/10 backdrop-blur-xl flex flex-col">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                                    <span className="text-white font-[900] text-[12px]">تفاصيل المادة</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedCourse(null)}
+                                        className="w-8 h-8 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto overscroll-contain p-4 hide-scrollbar">
+                                    {renderDetailsPanel({ showCloseButton: false })}
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'top-3 left-3' : 'bottom-3 left-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
+                            className={`absolute ${isFullScreen ? 'top-3 right-3' : 'bottom-3 right-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
                         </button>
-
-                        {isMobile && null}
 
                         {canEditTreePositions && positionEditMode && !isFullScreen && (
                             <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
