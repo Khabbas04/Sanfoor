@@ -254,11 +254,21 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     1. HERO SECTION (Video & Curve)
                 ════════════════════════════════════ */}
-                <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-10 pb-28 hero-curve bg-slate-900 z-10 shadow-2xl">
+                <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-10 pb-28 hero-curve bg-transparent z-10 shadow-none">
 
                     {/* Static Image Background */}
-                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit] bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.28),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.16),transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_55%,#020617_100%)]">
-                        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),transparent_40%,rgba(255,255,255,0.03))] rounded-b-[inherit]"></div>
+                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit]">
+                        {/* Background image (subtle, blurred, low-opacity for performance & legibility) */}
+                        <div
+                            className="absolute inset-0 bg-center bg-cover opacity-30 transform scale-105 filter blur-sm"
+                            style={{ backgroundImage: "url('/images/background.png')" }}
+                        />
+
+                        {/* Soft gradient overlay to improve contrast and give a professional look */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/60 rounded-b-[inherit]" />
+
+                        {/* Very subtle highlight layer */}
+                        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.03),transparent_40%)] rounded-b-[inherit] pointer-events-none" />
                     </div>
 
                     {/* Decorative Orbs */}
@@ -284,7 +294,7 @@ export default function Welcome({ auth }) {
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
                         <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
-                            <div className="absolute inset-0 bg-indigo-400/25 rounded-full blur-2xl animate-ping-large"></div>
+                            <div className="absolute inset-0 bg-indigo-400/12 rounded-full blur-2xl"></div>
                             <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
@@ -588,7 +598,7 @@ export default function Welcome({ auth }) {
                             </svg>
 
                             {[
-                                { step: '01', title: 'اختار تخصصك', desc: 'حدد تخصصك، وسانفور بيجهز لك المواد والمتطلبات تلقائياً بثوانٍ.', gradient: 'from-indigo-500 to-indigo-600', glow: 'shadow-indigo-500/30' },
+                                { step: '01', title: 'اختار تخصصك', desc: 'حدد تخصصك، و سنفور بيجهز لك المواد والمتطلبات تلقائياً بثوانٍ.', gradient: 'from-indigo-500 to-indigo-600', glow: 'shadow-indigo-500/30' },
                                 { step: '02', title: 'حدد المواد المنجزة', desc: 'علّم على المواد اللي نجحت فيها. الشجرة بتتحدث فوراً وبتفتحلك المتاح.', gradient: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/30' },
                                 { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم التسجيل التجريبي الذكي أو اسأل المرشد الآلي لترتيب جدولك صح.', gradient: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/30' },
                             ].map((s, i) => (
