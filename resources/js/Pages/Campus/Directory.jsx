@@ -16,6 +16,46 @@ const LANDMARK_TYPES = {
     other: { label: 'أخرى', icon: '📍' },
 };
 
+const OFFICIAL_BUILDING_GUIDE = [
+    {
+        symbol: 'أ.ب',
+        building: 'مبنى الفاروق',
+        colleges: ['كلية الشريعة', 'كلية الآداب', 'كلية تكنولوجيا المعلومات', 'كلية العلوم التربوية'],
+    },
+    {
+        symbol: 'ت',
+        building: 'كلية العلوم الطبية المساندة / الكلية الزرقاء التقنية',
+        colleges: ['كلية العلوم الطبية المساندة', 'الكلية الزرقاء التقنية'],
+    },
+    {
+        symbol: 'د.ه',
+        building: 'الخوارزمي',
+        colleges: ['كلية التمريض', 'كلية الصيدلة', 'كلية العلوم'],
+    },
+    {
+        symbol: 'ل',
+        building: 'مبنى الكليات التالية',
+        colleges: ['كلية الهندسة التكنولوجية', 'كلية الفنون والتصميم'],
+    },
+    {
+        symbol: 'ص',
+        building: 'مبنى الكليات التالية',
+        colleges: ['كلية الصحافة والإعلام', 'كلية الحقوق'],
+    },
+    {
+        symbol: 'ق',
+        building: 'مبنى الشهيد معاذ الكساسبة',
+        colleges: ['كلية الاقتصاد والعلوم الإدارية', 'كلية الدراسات العليا'],
+    },
+    {
+        symbol: 'ط',
+        building: 'كلية طب الأسنان',
+        colleges: [],
+    },
+];
+
+const OFFICIAL_FLOOR_LEGEND = ['100 = الطابق الأول', '200 = الطابق الثاني', '300 = الطابق الثالث'];
+
 export default function Directory({ auth, colleges = [], landmarks = [] }) {
     const [collegeSearch, setCollegeSearch] = useState('');
     const [landmarkSearch, setLandmarkSearch] = useState('');
@@ -74,30 +114,9 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
         return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol, 'ar'));
     }, [filteredColleges]);
 
-    const buildingLegend = useMemo(() => {
-        const map = new Map();
-
-        colleges.forEach((college) => {
-            const symbol = (college.building_symbol || '').trim();
-            if (!symbol) return;
-
-            if (!map.has(symbol)) {
-                map.set(symbol, {
-                    symbol,
-                    location: college.building_location || 'غير محدد',
-                    colleges: [],
-                });
-            }
-
-            map.get(symbol).colleges.push(college.name);
-        });
-
-        return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol, 'ar'));
-    }, [colleges]);
-
     const directoryStats = [
         { label: 'الكليات', value: colleges.length, hint: 'المتاحة في الدليل' },
-        { label: 'المباني', value: buildingLegend.length, hint: 'رموز معرّفة' },
+        { label: 'المباني', value: OFFICIAL_BUILDING_GUIDE.length, hint: 'رموز معرّفة' },
         { label: 'المعالم', value: landmarks.length, hint: 'الخدمات والمواقع' },
     ];
 
@@ -174,20 +193,20 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         </div>
                     </section>
 
-                    {buildingLegend.length > 0 && (
+                    {OFFICIAL_BUILDING_GUIDE.length > 0 && (
                         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
                             <div className="flex items-center justify-between gap-3 flex-wrap">
                                 <div className="space-y-1">
-                                    <h2 className="text-xl sm:text-2xl font-black text-slate-950">رموز المباني</h2>
-                                    <p className="text-sm text-slate-500 font-medium">عرض مختصر يربط الرمز بالموقع فقط.</p>
+                                    <h2 className="text-xl sm:text-2xl font-black text-slate-950">المرجع الرسمي لرموز المباني</h2>
+                                    <p className="text-sm text-slate-500 font-medium">المحتوى مطابق للصورة الجاهزة حتى ما تحتاج تضيفه يدويًا.</p>
                                 </div>
                                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
-                                    {buildingLegend.length} رمز
+                                    {OFFICIAL_BUILDING_GUIDE.length} رمز
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {buildingLegend.map((entry) => (
+                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                                {OFFICIAL_BUILDING_GUIDE.map((entry) => (
                                     <article
                                         key={entry.symbol}
                                         className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -196,13 +215,42 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                             <div className="min-w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 text-white flex items-center justify-center text-xl font-black shadow-sm">
                                                 {entry.symbol}
                                             </div>
-                                            <div className="min-w-0 flex-1 space-y-1">
-                                                <p className="text-sm font-black text-slate-900 truncate">{entry.location}</p>
-                                                <p className="text-xs text-slate-500 font-medium">{entry.colleges.length} كلية مرتبطة</p>
+                                            <div className="min-w-0 flex-1 space-y-2">
+                                                <p className="text-sm font-black text-slate-900">{entry.building}</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {entry.colleges.length > 0 ? (
+                                                        entry.colleges.map((college) => (
+                                                            <span
+                                                                key={college}
+                                                                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                                                            >
+                                                                {college}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                                                            كلية طب الأسنان
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </article>
                                 ))}
+                            </div>
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                                <div className="flex items-center justify-between gap-3 flex-wrap">
+                                    <p className="text-sm font-black text-slate-900">ترميز الطوابق</p>
+                                    <span className="text-xs font-semibold text-slate-500">كما هو موضح في الصورة</span>
+                                </div>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {OFFICIAL_FLOOR_LEGEND.map((floor) => (
+                                        <span key={floor} className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                                            {floor}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         </section>
                     )}
