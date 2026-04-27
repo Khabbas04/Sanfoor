@@ -114,12 +114,6 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
         return Array.from(map.values()).sort((a, b) => a.symbol.localeCompare(b.symbol, 'ar'));
     }, [filteredColleges]);
 
-    const directoryStats = [
-        { label: 'الكليات', value: colleges.length, hint: 'المتاحة في الدليل' },
-        { label: 'المباني', value: OFFICIAL_BUILDING_GUIDE.length, hint: 'رموز معرّفة' },
-        { label: 'المعالم', value: landmarks.length, hint: 'الخدمات والمواقع' },
-    ];
-
     return (
         <MainLayout user={auth?.user}>
             <Head>
@@ -138,71 +132,17 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
                         <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
 
-                        <div className="relative z-10 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] p-6 sm:p-8 lg:p-10">
-                            <div className="space-y-5 text-right">
-                                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black text-slate-600">
-                                    <span>🏛️</span>
-                                    <span>دليل مباني الجامعة</span>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-950">
-                                        دليل واضح وسريع للمباني والكليات
-                                    </h1>
-                                    <p className="max-w-2xl text-sm sm:text-base leading-7 text-slate-600 font-medium">
-                                        ابحث عن الكلية أو المعلم مباشرة، وشوف الموقع المناسب بدون تشتيت أو تفاصيل زائدة.
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    {directoryStats.map((stat) => (
-                                        <div
-                                            key={stat.label}
-                                            className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-4 shadow-sm"
-                                        >
-                                            <p className="text-xs font-black text-slate-500">{stat.label}</p>
-                                            <p className="mt-2 text-2xl font-black text-slate-950">{stat.value}</p>
-                                            <p className="mt-1 text-xs font-medium text-slate-500">{stat.hint}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 sm:p-6 text-white shadow-xl shadow-slate-900/10">
-                                <div className="space-y-4">
-                                    <p className="text-xs font-black tracking-[0.25em] text-sky-200 uppercase">Quick View</p>
-                                    <div className="space-y-2">
-                                        <p className="text-lg font-black">ترتيب أبسط</p>
-                                        <p className="text-sm leading-7 text-slate-300">
-                                            كل شيء صار مقسوم بوضوح: كليات حسب المبنى، ومعالم حسب النوع، مع بحث سريع وفلاتر مباشرة.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid gap-3 pt-1">
-                                        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                                            <p className="text-[11px] font-black text-slate-400">نتائج الكليات الحالية</p>
-                                            <p className="mt-1 text-2xl font-black">{filteredColleges.length}</p>
-                                        </div>
-                                        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                                            <p className="text-[11px] font-black text-slate-400">نتائج المعالم الحالية</p>
-                                            <p className="mt-1 text-2xl font-black">{filteredLandmarks.length}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="relative z-10 p-6 sm:p-8 lg:p-10 text-right">
+                            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-950">
+                                دليل واضح وسريع للمباني والكليات
+                            </h1>
                         </div>
                     </section>
 
                     {OFFICIAL_BUILDING_GUIDE.length > 0 && (
                         <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
                             <div className="flex items-center justify-between gap-3 flex-wrap">
-                                <div className="space-y-1">
-                                    <h2 className="text-xl sm:text-2xl font-black text-slate-950">المرجع الرسمي لرموز المباني</h2>
-                                    <p className="text-sm text-slate-500 font-medium">المحتوى مطابق للصورة الجاهزة حتى ما تحتاج تضيفه يدويًا.</p>
-                                </div>
-                                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
-                                    {OFFICIAL_BUILDING_GUIDE.length} رمز
-                                </span>
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-950">المرجع الرسمي لرموز المباني</h2>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -257,13 +197,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
 
                     <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
                         <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div className="space-y-1">
-                                <h2 className="text-xl sm:text-2xl font-black text-slate-950">الكليات حسب المبنى</h2>
-                                <p className="text-sm text-slate-500 font-medium">بحث مباشر مع تجميع واضح ومختصر.</p>
-                            </div>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
-                                {filteredColleges.length} نتيجة
-                            </span>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-950">الكليات حسب المبنى</h2>
                         </div>
 
                         <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5 space-y-4">
@@ -341,13 +275,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
 
                     <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
-                            <div className="space-y-1">
-                                <h2 className="text-xl sm:text-2xl font-black text-slate-950">معالم الجامعة</h2>
-                                <p className="text-sm text-slate-500 font-medium">فلترة سريعة على حسب النوع.</p>
-                            </div>
-                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-600">
-                                {filteredLandmarks.length} نتيجة
-                            </span>
+                            <h2 className="text-xl sm:text-2xl font-black text-slate-950">معالم الجامعة</h2>
                         </div>
 
                         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
