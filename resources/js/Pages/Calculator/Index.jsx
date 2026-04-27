@@ -186,23 +186,18 @@ export default function Calculator({ auth, initialCourses }) {
                 <link rel="canonical" href={`${siteUrl}/calculator`} />
             </Head>
             
-            <div className="py-12 bg-slate-50 min-h-screen relative overflow-hidden" dir="rtl">
-                
-                {/* خلفية تجميلية */}
-                <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50/80 to-transparent pointer-events-none"></div>
-                <div className="absolute top-[-10%] right-[-5%] w-[40vw] h-[40vw] max-w-[500px] max-h-[500px] bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none"></div>
+            <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)] py-8 sm:py-10" dir="rtl">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
+                        <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-
-                    <div className="mb-12 text-center max-w-2xl mx-auto">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-indigo-100 shadow-sm text-indigo-600 text-xs font-black uppercase tracking-widest mb-4">
-                            <span>⚡</span> مساحة العمل الأكاديمية
+                        <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+                            <div className="text-center max-w-2xl mx-auto">
+                                <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">حاسبة المعدل الذكية</h1>
+                            </div>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 mb-4 tracking-tight">حاسبة المعدل الذكية</h1>
-                        <p className="text-slate-500 font-bold text-lg leading-relaxed">
-                            أدخل علاماتك وتوقع معدلك التراكمي. يمكنك نقل المواد بين الفصول الدراسية لترتيب سجلك الأكاديمي بدقة.
-                        </p>
-                    </div>
+                    </section>
 
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
 
