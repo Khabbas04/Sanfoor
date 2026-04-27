@@ -55,6 +55,8 @@ const OFFICIAL_BUILDING_GUIDE = [
 ];
 
 const OFFICIAL_FLOOR_LEGEND = ['100 = الطابق الأول', '200 = الطابق الثاني', '300 = الطابق الثالث'];
+const SHOW_COLLEGES_BY_BUILDING = false;
+const SHOW_LANDMARKS_SECTION = false;
 
 export default function Directory({ auth, colleges = [], landmarks = [] }) {
     const [collegeSearch, setCollegeSearch] = useState('');
@@ -195,177 +197,181 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         </section>
                     )}
 
-                    <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <h2 className="text-xl sm:text-2xl font-black text-slate-950">الكليات حسب المبنى</h2>
-                        </div>
-
-                        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5 space-y-4">
-                            <div className="relative">
-                                <span className="absolute inset-y-0 right-4 flex items-center text-lg opacity-60">🔍</span>
-                                <input
-                                    type="text"
-                                    value={collegeSearch}
-                                    onChange={(e) => setCollegeSearch(e.target.value)}
-                                    placeholder="ابحث عن كلية أو موقع"
-                                    className="w-full rounded-2xl border border-transparent bg-white py-3.5 pr-11 pl-4 text-sm font-medium text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
-                                />
+                    {SHOW_COLLEGES_BY_BUILDING && (
+                        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-950">الكليات حسب المبنى</h2>
                             </div>
 
-                            {groupedBuildings.length > 0 ? (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {groupedBuildings.map((group) => (
-                                        <article
-                                            key={`${group.symbol}-${group.location}`}
-                                            className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                                        >
-                                            <div className="h-1.5 bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500" />
-                                            <div className="p-5 sm:p-6 space-y-4">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="min-w-[56px] h-[56px] rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xl font-black shadow-sm">
-                                                        {group.symbol}
+                            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 sm:p-5 space-y-4">
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 right-4 flex items-center text-lg opacity-60">🔍</span>
+                                    <input
+                                        type="text"
+                                        value={collegeSearch}
+                                        onChange={(e) => setCollegeSearch(e.target.value)}
+                                        placeholder="ابحث عن كلية أو موقع"
+                                        className="w-full rounded-2xl border border-transparent bg-white py-3.5 pr-11 pl-4 text-sm font-medium text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100"
+                                    />
+                                </div>
+
+                                {groupedBuildings.length > 0 ? (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {groupedBuildings.map((group) => (
+                                            <article
+                                                key={`${group.symbol}-${group.location}`}
+                                                className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                                            >
+                                                <div className="h-1.5 bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-500" />
+                                                <div className="p-5 sm:p-6 space-y-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="min-w-[56px] h-[56px] rounded-2xl bg-slate-950 text-white flex items-center justify-center text-xl font-black shadow-sm">
+                                                            {group.symbol}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1 space-y-1">
+                                                            <h3 className="text-lg font-black text-slate-950">{group.location}</h3>
+                                                            <p className="text-sm text-slate-500 font-medium">{group.colleges.length} كلية داخل هذا المبنى</p>
+                                                        </div>
                                                     </div>
-                                                    <div className="min-w-0 flex-1 space-y-1">
-                                                        <h3 className="text-lg font-black text-slate-950">{group.location}</h3>
-                                                        <p className="text-sm text-slate-500 font-medium">{group.colleges.length} كلية داخل هذا المبنى</p>
+
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {group.colleges.map((college) => {
+                                                            const isMyCollege = myCollegeId === college.id;
+
+                                                            return (
+                                                                <span
+                                                                    key={college.id}
+                                                                    className={`inline-flex items-center rounded-full border px-3 py-2 text-sm font-semibold ${
+                                                                        isMyCollege
+                                                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                                                            : 'border-slate-200 bg-slate-50 text-slate-700'
+                                                                    }`}
+                                                                >
+                                                                    {isMyCollege ? '🌟 ' : ''}
+                                                                    {college.name}
+                                                                </span>
+                                                            );
+                                                        })}
                                                     </div>
+
+                                                    {group.colleges.some((college) => college.maps_url) && (
+                                                        <a
+                                                            href={group.colleges.find((college) => college.maps_url)?.maps_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+                                                        >
+                                                            🗺️ فتح على الخريطة
+                                                        </a>
+                                                    )}
                                                 </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-10 text-center">
+                                        <p className="text-slate-500 font-medium">لا توجد كليات مطابقة للبحث.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    )}
 
-                                                <div className="flex flex-wrap gap-2">
-                                                    {group.colleges.map((college) => {
-                                                        const isMyCollege = myCollegeId === college.id;
+                    {SHOW_LANDMARKS_SECTION && (
+                        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
+                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <h2 className="text-xl sm:text-2xl font-black text-slate-950">معالم الجامعة</h2>
+                            </div>
 
-                                                        return (
-                                                            <span
-                                                                key={college.id}
-                                                                className={`inline-flex items-center rounded-full border px-3 py-2 text-sm font-semibold ${
-                                                                    isMyCollege
-                                                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                                                        : 'border-slate-200 bg-slate-50 text-slate-700'
-                                                                }`}
-                                                            >
-                                                                {isMyCollege ? '🌟 ' : ''}
-                                                                {college.name}
-                                                            </span>
-                                                        );
-                                                    })}
-                                                </div>
+                            <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
+                                <div className="relative">
+                                    <span className="absolute inset-y-0 right-4 flex items-center text-lg opacity-60">🔎</span>
+                                    <input
+                                        type="text"
+                                        value={landmarkSearch}
+                                        onChange={(e) => setLandmarkSearch(e.target.value)}
+                                        placeholder="ابحث عن معلم أو موقع"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-11 pl-4 text-sm font-medium text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+                                    />
+                                </div>
 
-                                                {group.colleges.some((college) => college.maps_url) && (
-                                                    <a
-                                                        href={group.colleges.find((college) => college.maps_url)?.maps_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
-                                                    >
-                                                        🗺️ فتح على الخريطة
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </article>
+                                <select
+                                    value={landmarkType}
+                                    onChange={(e) => setLandmarkType(e.target.value)}
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 lg:min-w-[220px]"
+                                >
+                                    {Object.entries(LANDMARK_TYPES).map(([key, value]) => (
+                                        <option key={key} value={key}>
+                                            {value.icon} {value.label}
+                                        </option>
                                     ))}
+                                </select>
+                            </div>
+
+                            {filteredLandmarks.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    {filteredLandmarks.map((landmark) => {
+                                        const typeInfo = LANDMARK_TYPES[landmark.type] || LANDMARK_TYPES.other;
+
+                                        return (
+                                            <article
+                                                key={landmark.id}
+                                                className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                                            >
+                                                <div className="relative h-40 bg-slate-950">
+                                                    {landmark.image_url ? (
+                                                        <img
+                                                            src={landmark.image_url}
+                                                            alt={landmark.name}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full w-full items-center justify-center text-5xl text-white/90">
+                                                            {typeInfo.icon}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
+                                                    <div className="absolute bottom-3 right-3 rounded-full border border-white/20 bg-slate-950/70 px-3 py-1 text-xs font-black text-white backdrop-blur">
+                                                        {typeInfo.icon} {typeInfo.label}
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-5 space-y-3">
+                                                    <h3 className="text-lg font-black text-slate-950">{landmark.name}</h3>
+
+                                                    {landmark.description && (
+                                                        <p className="text-sm leading-7 text-slate-600 line-clamp-2">
+                                                            {landmark.description}
+                                                        </p>
+                                                    )}
+
+                                                    {landmark.building_location && (
+                                                        <p className="text-sm font-medium text-slate-700">📍 {landmark.building_location}</p>
+                                                    )}
+
+                                                    {landmark.maps_url && (
+                                                        <a
+                                                            href={landmark.maps_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-500"
+                                                        >
+                                                            🗺️ فتح على الخريطة
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            </article>
+                                        );
+                                    })}
                                 </div>
                             ) : (
-                                <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-10 text-center">
-                                    <p className="text-slate-500 font-medium">لا توجد كليات مطابقة للبحث.</p>
+                                <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+                                    <p className="text-slate-500 font-medium">لا يوجد معالم مطابقة للفلاتر الحالية.</p>
                                 </div>
                             )}
-                        </div>
-                    </section>
-
-                    <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                            <h2 className="text-xl sm:text-2xl font-black text-slate-950">معالم الجامعة</h2>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto]">
-                            <div className="relative">
-                                <span className="absolute inset-y-0 right-4 flex items-center text-lg opacity-60">🔎</span>
-                                <input
-                                    type="text"
-                                    value={landmarkSearch}
-                                    onChange={(e) => setLandmarkSearch(e.target.value)}
-                                    placeholder="ابحث عن معلم أو موقع"
-                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pr-11 pl-4 text-sm font-medium text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
-                                />
-                            </div>
-
-                            <select
-                                value={landmarkType}
-                                onChange={(e) => setLandmarkType(e.target.value)}
-                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-semibold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100 lg:min-w-[220px]"
-                            >
-                                {Object.entries(LANDMARK_TYPES).map(([key, value]) => (
-                                    <option key={key} value={key}>
-                                        {value.icon} {value.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {filteredLandmarks.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {filteredLandmarks.map((landmark) => {
-                                    const typeInfo = LANDMARK_TYPES[landmark.type] || LANDMARK_TYPES.other;
-
-                                    return (
-                                        <article
-                                            key={landmark.id}
-                                            className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                                        >
-                                            <div className="relative h-40 bg-slate-950">
-                                                {landmark.image_url ? (
-                                                    <img
-                                                        src={landmark.image_url}
-                                                        alt={landmark.name}
-                                                        className="h-full w-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-full w-full items-center justify-center text-5xl text-white/90">
-                                                        {typeInfo.icon}
-                                                    </div>
-                                                )}
-
-                                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 via-transparent to-transparent" />
-                                                <div className="absolute bottom-3 right-3 rounded-full border border-white/20 bg-slate-950/70 px-3 py-1 text-xs font-black text-white backdrop-blur">
-                                                    {typeInfo.icon} {typeInfo.label}
-                                                </div>
-                                            </div>
-
-                                            <div className="p-5 space-y-3">
-                                                <h3 className="text-lg font-black text-slate-950">{landmark.name}</h3>
-
-                                                {landmark.description && (
-                                                    <p className="text-sm leading-7 text-slate-600 line-clamp-2">
-                                                        {landmark.description}
-                                                    </p>
-                                                )}
-
-                                                {landmark.building_location && (
-                                                    <p className="text-sm font-medium text-slate-700">📍 {landmark.building_location}</p>
-                                                )}
-
-                                                {landmark.maps_url && (
-                                                    <a
-                                                        href={landmark.maps_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-500"
-                                                    >
-                                                        🗺️ فتح على الخريطة
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </article>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
-                                <p className="text-slate-500 font-medium">لا يوجد معالم مطابقة للفلاتر الحالية.</p>
-                            </div>
-                        )}
-                    </section>
+                        </section>
+                    )}
                 </div>
             </div>
         </MainLayout>
