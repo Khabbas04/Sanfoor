@@ -147,6 +147,7 @@ export default function Tree({
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
+    const isLandscapeMobile = isMobile && viewportWidth >= viewportHeight;
     const showRotateHint = isPortraitMobile && !dismissedRotateHint;
 
     const semesterToYearTerm = useCallback((semesterValue) => {
@@ -229,15 +230,19 @@ export default function Tree({
     }, [localPassedCourses, selectedCourse, legacyPlanSemesterToYearTerm]);
     const nodeDimensions = useMemo(() => (
         isMobile
-            ? { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 }
+            ? (isLandscapeMobile
+                ? { width: 170, height: 78, ranksep: 58, nodesep: 18 }
+                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 })
             : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
-    ), [isMobile]);
+    ), [isMobile, isLandscapeMobile]);
 
     const flowView = useMemo(() => (
         isMobile
-            ? { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 }
+            ? (isLandscapeMobile
+                ? { fitPadding: 0.18, minZoom: 0.45, maxZoom: 2.2 }
+                : { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 })
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
-    ), [isMobile]);
+    ), [isMobile, isLandscapeMobile]);
 
     const nodeSnapGrid = useMemo(() => (
         isMobile ? [16, 16] : [20, 20]
@@ -1444,14 +1449,14 @@ export default function Tree({
             ` }} />
 
             {/* ═══ HEADER ═══ */}
-            <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative space-y-3">
-                <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+            <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
+                <section className={`relative overflow-hidden ${isLandscapeMobile ? 'rounded-[1.25rem]' : 'rounded-[2rem]'} border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl`}>
                     <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
                     <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
 
-                    <div className="relative z-10 p-4 sm:p-6">
+                    <div className={`relative z-10 ${isLandscapeMobile ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}`}>
                         <div className="text-center max-w-2xl mx-auto">
-                            <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                            <h1 className={`${isLandscapeMobile ? 'text-2xl sm:text-3xl' : 'text-4xl md:text-5xl'} font-[900] text-slate-900 tracking-tight`}>الخطة الشجرية</h1>
                         </div>
                     </div>
                 </section>
@@ -1956,7 +1961,7 @@ export default function Tree({
                 </div>
 
                 {/* ═══ GRAPH AREA ═══ */}
-                <div className={`flex-1 relative h-full bg-slate-100/50 ${isMobile ? 'p-1.5' : 'p-2 md:p-4'} w-full`} dir="ltr">
+                <div className={`flex-1 relative h-full bg-slate-100/50 ${isMobile ? (isLandscapeMobile ? 'p-1' : 'p-1.5') : 'p-2 md:p-4'} w-full`} dir="ltr">
                     <div className="w-full h-full bg-white/60 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-[inset_0_2px_12px_rgba(0,0,0,0.04)] relative overflow-hidden backdrop-blur-sm">
 
                         {showRotateHint && (
@@ -1975,7 +1980,7 @@ export default function Tree({
                             </div>
                         )}
 
-                        <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? 'top-2' : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? 'w-[calc(100%-0.75rem)] overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
+                        <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
                             {[
                                 { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
                                 { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' },
