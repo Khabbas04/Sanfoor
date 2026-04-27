@@ -67,67 +67,44 @@ export default function Calculator({ auth, initialCourses }) {
     });
     
     const [loading, setLoading] = useState(false);
-    const [selectedSemester, setSelectedSemester] = useState('all');
-    const [selectedYear, setSelectedYear] = useState('all');
+    const [selectedYear, setSelectedYear] = useState('');
     const [selectedTerm, setSelectedTerm] = useState('');
-
-    // 2. استخراج الفصول الفريدة
-    const semesters = useMemo(() => {
-        const sems = new Set(courses.map(c => c.recordKey));
-        return Array.from(sems).sort((a, b) => {
-            const [ay, at] = a.split('-').map(Number);
-            const [by, bt] = b.split('-').map(Number);
-            if (ay !== by) return ay - by;
-            return at - bt;
-        });
-    }, [courses]);
-
-    // استخراج السنوات المتاحة
-    const availableYears = useMemo(() => {
-        const years = new Set(courses.map(c => c.localYear));
-        return Array.from(years).sort((a, b) => a - b);
-    }, [courses]);
 
     // استخراج الفصول المتاحة للسنة المختارة - كل السنة لها 3 فصول دائماً
     const availableTermsForYear = useMemo(() => {
-        if (selectedYear === 'all') return [];
+        if (!selectedYear) return [];
         // كل سنة دائماً لها 3 فصول: الأول والثاني والصيفي
         return [1, 2, 3];
     }, [selectedYear]);
 
     // معالج تغيير السنة
     const handleYearChange = (year) => {
-        setSelectedYear(year);
-        if (year === 'all') {
-            setSelectedTerm('');
-            setSelectedSemester('all');
-        } else {
-            const terms = new Set(
-                courses
-                    .filter(c => c.localYear === parseInt(year, 10))
-                    .map(c => c.localTerm)
-            );
-            const firstTerm = Math.min(...Array.from(terms));
-            setSelectedTerm(String(firstTerm));
-            setSelectedSemester(`${year}-${firstTerm}`);
-        }
+        setSelectedYear(String(year || ''));
+        setSelectedTerm('');
     };
 
     // معالج تغيير الفصل
     const handleTermChange = (term) => {
-        setSelectedTerm(term);
-        if (selectedYear !== 'all') {
-            setSelectedSemester(`${selectedYear}-${term}`);
-        }
+        setSelectedTerm(String(term || ''));
     };
 
-    // 3. فلترة المواد المعروضة (حسب الفصل المختار)
+    // 3. فلترة المواد المعروضة (حسب السنة/الفصل المختار)
     const filteredCourses = useMemo(() => {
         if (!courses || courses.length === 0) return [];
-        if (selectedSemester === 'all') return courses;
-        
-        return courses.filter(c => c.recordKey === selectedSemester);
-    }, [courses, selectedSemester]);
+        if (!selectedYear) return courses;
+        if (!selectedTerm) return courses.filter(c => String(c.localYear) === selectedYear);
+
+        return courses.filter(c => c.recordKey === `${selectedYear}-${selectedTerm}`);
+    }, [courses, selectedYear, selectedTerm]);
+
+    const hasYearFilter = Boolean(selectedYear);
+    const hasTermFilter = Boolean(selectedTerm);
+
+    const selectedPeriodLabel = useMemo(() => {
+        if (!hasYearFilter) return 'المحددة';
+        if (!hasTermFilter) return `سنة ${selectedYear}`;
+        return `سنة ${selectedYear} - ${termLabel(parseInt(selectedTerm, 10))}`;
+    }, [hasYearFilter, hasTermFilter, selectedYear, selectedTerm]);
 
     // 4. تحديث العلامة (محلياً)
     const handleGradeChange = (id, val) => {
@@ -266,18 +243,15 @@ export default function Calculator({ auth, initialCourses }) {
                                         </p>
                                     </div>
 
-                                    <div className={`pt-6 border-t border-slate-800 text-center xl:text-right transition-all duration-500 ${selectedSemester !== 'all' ? 'opacity-100 h-auto' : 'opacity-30 grayscale'}`}>
+                                    <div className={`pt-6 border-t border-slate-800 text-center xl:text-right transition-all duration-500 ${hasYearFilter ? 'opacity-100 h-auto' : 'opacity-30 grayscale'}`}>
                                         <p className="text-slate-400 text-xs font-black uppercase tracking-widest mb-2 flex items-center justify-center xl:justify-start gap-2">
-                                            <span>📊</span> معدل الفترة {selectedSemester !== 'all' ? (() => {
-                                                const [y, t] = String(selectedSemester).split('-').map(Number);
-                                                return `سنة ${y} - ${termLabel(t)}`;
-                                            })() : 'المحددة'}
+                                            <span>📊</span> معدل الفترة {selectedPeriodLabel}
                                         </p>
                                         <div className="flex items-baseline justify-center xl:justify-start gap-2">
-                                            <h2 className={`text-4xl font-[900] drop-shadow-md tracking-tighter ${selectedSemester !== 'all' ? 'text-white' : 'text-slate-600'}`}>
-                                                {selectedSemester !== 'all' ? semesterStats.percentage : '--'}
+                                            <h2 className={`text-4xl font-[900] drop-shadow-md tracking-tighter ${hasYearFilter ? 'text-white' : 'text-slate-600'}`}>
+                                                {hasYearFilter ? semesterStats.percentage : '--'}
                                             </h2>
-                                            <span className={`text-xl font-bold ${selectedSemester !== 'all' ? 'text-emerald-400' : 'text-slate-600'}`}>%</span>
+                                            <span className={`text-xl font-bold ${hasYearFilter ? 'text-emerald-400' : 'text-slate-600'}`}>%</span>
                                         </div>
                                     </div>
 
@@ -311,156 +285,60 @@ export default function Calculator({ auth, initialCourses }) {
                         ========================================== */}
                         <div className="xl:col-span-8 space-y-6 order-2 xl:order-none">
                             
-                            {/* منتقي السنة والفصل - نمط القائمة احترافي قوي (Professional Menu Selector) */}
-                            <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 p-6 rounded-2xl shadow-lg border border-slate-200/80 space-y-4">
-                                {/* العنوان والوصف */}
-                                <div className="flex items-center gap-3 px-2">
-                                    <span className="text-2xl">📊</span>
+                            {/* منتقي السنة والفصل - واجهة احترافية ثابتة */}
+                            <div className="bg-white/95 rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                                <div className="flex items-center justify-between gap-4 flex-wrap">
                                     <div>
-                                        <h3 className="font-black text-slate-900 text-sm">اختر السنة والفصل الدراسي</h3>
-                                        <p className="text-xs text-slate-500 font-medium">تحديد الفترة الدراسية لعرض المواد والإحصائيات</p>
+                                        <h3 className="text-sm font-black text-slate-900">تصفية حسب السنة والفصل</h3>
+                                        <p className="text-xs text-slate-500 mt-1">ابدأ بدون قيمة مسبقة ثم اختر السنة والفصل الذي تريده.</p>
                                     </div>
-                                </div>
-
-                                {/* الفاصل */}
-                                <div className="h-px bg-gradient-to-r from-slate-200/0 via-slate-300 to-slate-200/0"></div>
-
-                                {/* الأزرار والقوائم */}
-                                <div className="flex flex-wrap items-center gap-4 px-2">
-                                    {/* زر عرض الكل - بتصميم قوي */}
-                                    <button 
-                                        onClick={() => handleYearChange('all')}
-                                        className={`relative group px-7 py-3.5 rounded-xl font-black text-sm transition-all duration-300 transform ${
-                                            selectedYear === 'all' 
-                                                ? 'bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-lg shadow-slate-900/20 scale-105' 
-                                                : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300 hover:shadow-md hover:scale-102'
+                                    <button
+                                        onClick={() => handleYearChange('')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all border ${
+                                            !hasYearFilter
+                                                ? 'bg-slate-900 text-white border-slate-900'
+                                                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
                                         }`}
                                     >
-                                        <span className="flex items-center gap-2">
-                                            <span className="text-lg">🌐</span>
-                                            <span>عرض الكل</span>
-                                            <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${selectedYear === 'all' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                                                {courses.length}
-                                            </span>
-                                        </span>
+                                        عرض الكل ({courses.length})
                                     </button>
+                                </div>
 
-                                    {/* الفاصل العمودي المتقدم */}
-                                    <div className="h-10 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 rounded-full opacity-50"></div>
-
-                                    {/* منتقي السنة - Dropdown محترف */}
-                                    <div className="relative group">
-                                        <button className={`relative px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-300 transform flex items-center gap-3 border-2 ${
-                                            selectedYear !== 'all' 
-                                                ? 'bg-gradient-to-br from-indigo-50 to-indigo-100/50 text-indigo-700 border-indigo-300 shadow-md shadow-indigo-500/10 scale-105' 
-                                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'
-                                        }`}>
-                                            <span className="text-xl">📅</span>
-                                            <div className="flex flex-col items-start">
-                                                <span className="text-xs text-opacity-70 font-medium">السنة الدراسية</span>
-                                                <span className="text-sm font-black">
-                                                    {selectedYear === 'all' ? 'اختر سنة' : `السنة ${selectedYear}`}
-                                                </span>
-                                            </div>
-                                            <span className={`text-xs ml-auto transition-transform duration-300 ${selectedYear !== 'all' ? 'text-indigo-600' : 'text-slate-400'}`}>▼</span>
-                                        </button>
-
-                                        {/* قائمة السنوات - Dropdown Menu محترفة */}
-                                        <div className="absolute right-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-20 w-56">
-                                            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden backdrop-blur-xl bg-white/95">
-                                                {/* رأس القائمة */}
-                                                <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-5 py-3 text-white">
-                                                    <p className="text-xs font-bold opacity-90">اختر السنة الدراسية</p>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => handleYearChange('all')}
-                                                    className={`w-full text-right px-5 py-3.5 font-bold text-sm transition-all duration-200 flex items-center gap-3 ${
-                                                        selectedYear === 'all' 
-                                                            ? 'bg-slate-900 text-white border-l-4 border-white' 
-                                                            : 'text-slate-700 hover:bg-slate-50 border-l-4 border-transparent'
-                                                    }`}
-                                                >
-                                                    <span>🌐</span>
-                                                    <span>عرض الكل</span>
-                                                </button>
-
-                                                <div className="h-px bg-slate-100"></div>
-
-                                                {yearOptions.map((year, idx) => (
-                                                    <button
-                                                        key={year.value}
-                                                        onClick={() => handleYearChange(String(year.value))}
-                                                        className={`w-full text-right px-5 py-3.5 font-bold text-sm transition-all duration-200 flex items-center gap-3 ${
-                                                            selectedYear === String(year.value) 
-                                                                ? 'bg-indigo-600 text-white border-l-4 border-white shadow-md shadow-indigo-600/20' 
-                                                                : 'text-slate-700 hover:bg-indigo-50 border-l-4 border-transparent'
-                                                        }`}
-                                                    >
-                                                        <span className="text-lg">{['🎓', '📚', '💼', '⭐', '🏆', '🚀'][idx]}</span>
-                                                        <span>{year.label}</span>
-                                                    </button>
+                                <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <label className="block">
+                                        <span className="mb-2 block text-xs font-bold text-slate-600">السنة الدراسية</span>
+                                        <div className="relative">
+                                            <select
+                                                value={selectedYear}
+                                                onChange={(e) => handleYearChange(e.target.value)}
+                                                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/15"
+                                            >
+                                                <option value="">اختر السنة</option>
+                                                {yearOptions.map((year) => (
+                                                    <option key={year.value} value={year.value}>{year.label}</option>
                                                 ))}
-                                            </div>
+                                            </select>
+                                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
                                         </div>
-                                    </div>
+                                    </label>
 
-                                    {/* منتقي الفصل - Dropdown محترف (يظهر فقط عند اختيار سنة معينة) */}
-                                    {selectedYear !== 'all' && (
-                                        <>
-                                            {/* الفاصل العمودي */}
-                                            <div className="h-10 w-0.5 bg-gradient-to-b from-slate-200 via-slate-300 to-slate-200 rounded-full opacity-50"></div>
-
-                                            <div className="relative group">
-                                                <button className={`relative px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-300 transform flex items-center gap-3 border-2 bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-emerald-700 border-emerald-300 shadow-md shadow-emerald-500/10 scale-105`}>
-                                                    <span className="text-xl">📚</span>
-                                                    <div className="flex flex-col items-start">
-                                                        <span className="text-xs text-opacity-70 font-medium">الفصل الدراسي</span>
-                                                        <span className="text-sm font-black">
-                                                            {selectedTerm ? termLabel(parseInt(selectedTerm, 10)) : 'اختر فصل'}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-xs ml-auto text-emerald-600">▼</span>
-                                                </button>
-
-                                                {/* قائمة الفصول - Dropdown Menu محترفة */}
-                                                <div className="absolute right-0 top-full pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-20 w-56">
-                                                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden backdrop-blur-xl bg-white/95">
-                                                        {/* رأس القائمة */}
-                                                        <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3 text-white">
-                                                            <p className="text-xs font-bold opacity-90">اختر الفصل الدراسي</p>
-                                                            <p className="text-[10px] opacity-70 mt-1">السنة {selectedYear}</p>
-                                                        </div>
-
-                                                        {availableTermsForYear.map((term, idx) => {
-                                                            const termIcons = ['1️⃣', '2️⃣', '☀️'];
-                                                            const termColors = [
-                                                                { active: 'bg-emerald-600 border-white', inactive: 'hover:bg-emerald-50' },
-                                                                { active: 'bg-blue-600 border-white', inactive: 'hover:bg-blue-50' },
-                                                                { active: 'bg-amber-600 border-white', inactive: 'hover:bg-amber-50' }
-                                                            ];
-                                                            const colorConfig = termColors[term - 1] || termColors[0];
-                                                            
-                                                            return (
-                                                                <button
-                                                                    key={term}
-                                                                    onClick={() => handleTermChange(String(term))}
-                                                                    className={`w-full text-right px-5 py-3.5 font-bold text-sm transition-all duration-200 flex items-center gap-3 border-l-4 ${
-                                                                        selectedTerm === String(term) 
-                                                                            ? `${colorConfig.active} text-white shadow-md shadow-emerald-600/20` 
-                                                                            : `text-slate-700 border-transparent ${colorConfig.inactive}`
-                                                                    }`}
-                                                                >
-                                                                    <span className="text-lg">{termIcons[term - 1]}</span>
-                                                                    <span>{termLabel(term)}</span>
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                    <label className="block">
+                                        <span className="mb-2 block text-xs font-bold text-slate-600">الفصل الدراسي</span>
+                                        <div className="relative">
+                                            <select
+                                                value={selectedTerm}
+                                                onChange={(e) => handleTermChange(e.target.value)}
+                                                disabled={!selectedYear}
+                                                className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pl-10 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                            >
+                                                <option value="">اختر الفصل</option>
+                                                {availableTermsForYear.map((term) => (
+                                                    <option key={term} value={term}>{termOptions.find((item) => item.value === term)?.label || termLabel(term)}</option>
+                                                ))}
+                                            </select>
+                                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
+                                        </div>
+                                    </label>
                                 </div>
                             </div>
 
@@ -469,10 +347,7 @@ export default function Calculator({ auth, initialCourses }) {
                                 <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                                     <h3 className="font-black text-slate-800 text-lg flex items-center gap-3">
                                         <span className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-lg shadow-sm">📝</span>
-                                        {selectedSemester === 'all' ? 'جميع المواد المنجزة' : (() => {
-                                            const [y, t] = String(selectedSemester).split('-').map(Number);
-                                            return `مواد السنة ${y} - ${termLabel(t)}`;
-                                        })()}
+                                        {!hasYearFilter ? 'جميع المواد المنجزة' : hasTermFilter ? `مواد السنة ${selectedYear} - ${termLabel(parseInt(selectedTerm, 10))}` : `مواد السنة ${selectedYear}`}
                                     </h3>
                                 </div>
                                 
