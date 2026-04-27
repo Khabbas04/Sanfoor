@@ -257,27 +257,22 @@ export default function Welcome({ auth }) {
                 <section ref={heroRef} className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-10 pb-28 hero-curve bg-slate-900 z-10 shadow-2xl">
 
                     {/* Static Image Background */}
-                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit]">
-                        <div
-                            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                            style={{ backgroundImage: "url('/images/background.png')" }}
-                        ></div>
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#02040a]/92 via-[#060c1b]/86 to-[#03060f]/93 rounded-b-[inherit]"></div>
-                        <div className="absolute inset-0 bg-black/35 rounded-b-[inherit]"></div>
+                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit] bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.28),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.16),transparent_28%),linear-gradient(180deg,#020617_0%,#0f172a_55%,#020617_100%)]">
+                        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),transparent_40%,rgba(255,255,255,0.03))] rounded-b-[inherit]"></div>
                     </div>
 
                     {/* Decorative Orbs */}
-                    <div className="absolute hidden md:block w-[420px] h-[420px] bg-indigo-500/20 blur-[100px] top-[-8%] right-[-8%] pointer-events-none z-0" />
-                    <div className="absolute hidden md:block w-[350px] h-[350px] bg-cyan-500/20 blur-[110px] bottom-[0%] left-[-6%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[260px] h-[260px] bg-indigo-400/15 blur-[90px] top-[-5%] right-[2%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[220px] h-[220px] bg-cyan-300/12 blur-[90px] bottom-[2%] left-[2%] pointer-events-none z-0" />
 
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
-                        <div className="rounded-[2rem] bg-black/52 backdrop-blur-[2px] border border-white/15 p-6 sm:p-8 md:p-10 shadow-[0_28px_80px_rgba(0,0,0,0.45)]">
+                        <div className="rounded-[2rem] bg-white/8 backdrop-blur-xl border border-white/12 p-6 sm:p-8 md:p-10 shadow-[0_28px_80px_rgba(0,0,0,0.32)]">
 
                         {/* Beta Badge */}
                         <div className="hero-animate mb-10" style={{ animationDelay: '0.1s' }}>
-                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/30 text-white text-xs font-bold shadow-lg shadow-black/30 select-none">
+                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white text-xs font-bold shadow-lg shadow-black/20 select-none">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
@@ -289,8 +284,7 @@ export default function Welcome({ auth }) {
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
                         <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
-                            <div className="absolute inset-0 bg-indigo-400/30 rounded-full blur-2xl animate-ping-large"></div>
-                            {/* تكبير الـ width والـ height للوجو */}
+                            <div className="absolute inset-0 bg-indigo-400/25 rounded-full blur-2xl animate-ping-large"></div>
                             <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
@@ -311,7 +305,7 @@ export default function Welcome({ auth }) {
                         {/* Sub */}
                         <div className="h-rise-slow" style={{ animationDelay: '1.1s' }}>
                             <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-white mb-7 font-semibold leading-relaxed px-4 drop-shadow-[0_4px_14px_rgba(0,0,0,0.75)]">
-                                <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسم لك خريطة تخصصك، يفتح لك المواد المتاحة، ويخطط فصلك القادم بدقة.
+                                <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسم لك خريطة تخصصك، يفتح لك المواد المتاحة، ويخطط فصلك القادم بدقة مع <span className="text-cyan-200">AI Sanfoor</span>.
                             </p>
                             <a
                                 href={creatorLinkedIn}
@@ -398,8 +392,8 @@ export default function Welcome({ auth }) {
                                 },
                                 {
                                     icon: "📈",
-                                    title: 'تتبع المعدل',
-                                    desc: 'حاسبة دقيقة تتوقع معدلك التراكمي والفصلي بناءً على العلامات اللي بتطمح تجيبها وتخبرك بالنتيجة.',
+                                    title: 'AI Sanfoor',
+                                    desc: 'مساعد ذكي يقرأ خطتك، يفهم المتطلبات، ويقترح لك أفضل خيارات التسجيل بشكل واضح وسريع.',
                                     gradient: 'from-emerald-500 to-green-500',
                                     accentBg: 'bg-emerald-50',
                                     delay: 300,
@@ -594,7 +588,7 @@ export default function Welcome({ auth }) {
                             </svg>
 
                             {[
-                                { step: '01', title: 'سجّل حسابك', desc: 'اختار جامعتك وتخصصك. سنفور بيجهزلك كل المواد والمتطلبات تلقائياً بثوانِ.', gradient: 'from-indigo-500 to-indigo-600', glow: 'shadow-indigo-500/30' },
+                                { step: '01', title: 'اختار تخصصك', desc: 'حدد تخصصك، وسانفور بيجهز لك المواد والمتطلبات تلقائياً بثوانٍ.', gradient: 'from-indigo-500 to-indigo-600', glow: 'shadow-indigo-500/30' },
                                 { step: '02', title: 'حدد المواد المنجزة', desc: 'علّم على المواد اللي نجحت فيها. الشجرة بتتحدث فوراً وبتفتحلك المتاح.', gradient: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/30' },
                                 { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم التسجيل التجريبي الذكي أو اسأل المرشد الآلي لترتيب جدولك صح.', gradient: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/30' },
                             ].map((s, i) => (
