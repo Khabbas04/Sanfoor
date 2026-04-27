@@ -57,6 +57,8 @@ function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
 export default function Welcome({ auth }) {
     const heroRef = useRef(null);
     const { lang } = useLanguage();
+    const [motionReady, setMotionReady] = useState(false);
+    const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
 
     // Each observer controls the reveal timing of a different landing section.
     const [featRef, featIn] = useInView();
@@ -64,6 +66,54 @@ export default function Welcome({ auth }) {
     const [aiRef, aiIn] = useInView(0.3);
     const [howRef, howIn] = useInView();
     const [ctaRef, ctaIn] = useInView();
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const lowCpu = typeof navigator?.hardwareConcurrency === 'number' && navigator.hardwareConcurrency <= 4;
+        const lowMemory = typeof navigator?.deviceMemory === 'number' && navigator.deviceMemory <= 4;
+        const saveData = Boolean(navigator?.connection?.saveData);
+
+        const evaluateMotionMode = () => {
+            setShouldReduceMotion(motionQuery.matches || lowCpu || lowMemory || saveData);
+        };
+
+        evaluateMotionMode();
+
+        const onMotionChange = () => evaluateMotionMode();
+        if (motionQuery.addEventListener) {
+            motionQuery.addEventListener('change', onMotionChange);
+        } else {
+            motionQuery.addListener(onMotionChange);
+        }
+
+        let idleId;
+        let timeoutId;
+        const activateMotion = () => setMotionReady(true);
+
+        if (typeof window.requestIdleCallback === 'function') {
+            idleId = window.requestIdleCallback(activateMotion, { timeout: 1200 });
+        } else {
+            timeoutId = window.setTimeout(activateMotion, 480);
+        }
+
+        return () => {
+            if (motionQuery.removeEventListener) {
+                motionQuery.removeEventListener('change', onMotionChange);
+            } else {
+                motionQuery.removeListener(onMotionChange);
+            }
+
+            if (idleId && typeof window.cancelIdleCallback === 'function') {
+                window.cancelIdleCallback(idleId);
+            }
+
+            if (timeoutId) {
+                window.clearTimeout(timeoutId);
+            }
+        };
+    }, []);
 
     return (
         <MainLayout>
@@ -113,10 +163,12 @@ export default function Welcome({ auth }) {
                 .hero-animate {
                     opacity: 0;
                     animation: heroSlideUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    will-change: transform, opacity;
                 }
                 .h-rise-slow {
                     opacity: 0;
                     animation: heroSlideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                    will-change: transform, opacity;
                 }
 
                 /* ── FLOATING LOGO ── */
@@ -124,14 +176,14 @@ export default function Welcome({ auth }) {
                     0%, 100% { transform: translateY(0px); }
                     50% { transform: translateY(-12px); }
                 }
-                .animate-float { animation: float-logo 4s ease-in-out infinite; }
+                .animate-float { animation: float-logo 5.2s ease-in-out infinite; will-change: transform; }
 
                 /* ── BACKGROUND ORBS ── */
                 @keyframes pulse-slow {
-                    0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.5; }
-                    50% { transform: scale(1.1) translate(10px, -10px); opacity: 0.8; }
+                    0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.32; }
+                    50% { transform: scale(1.07) translate(8px, -8px); opacity: 0.5; }
                 }
-                .orb-pulse { animation: pulse-slow 8s infinite alternate ease-in-out; }
+                .orb-pulse { animation: pulse-slow 9s infinite alternate ease-in-out; will-change: transform, opacity; }
 
                 /* ── GRADIENT TEXT ── */
                 .txt-grad {
@@ -141,6 +193,7 @@ export default function Welcome({ auth }) {
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
                     animation: grad-flow 5s ease infinite;
+                    will-change: background-position;
                 }
                 .txt-grad-dark {
                     background: linear-gradient(135deg, #312e81 0%, #4f46e5 50%, #06b6d4 100%);
@@ -149,6 +202,7 @@ export default function Welcome({ auth }) {
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
                     animation: grad-flow 5s ease infinite;
+                    will-change: background-position;
                 }
                 @keyframes grad-flow {
                     0%   { background-position: 0% 50%; }
@@ -163,18 +217,18 @@ export default function Welcome({ auth }) {
                     position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
                     background: linear-gradient(to right, transparent, rgba(255,255,255,0.18) 50%, transparent 75%);
                     transform: skewX(-20deg);
-                    animation: shimmer 3s infinite;
+                    animation: shimmer 3.8s infinite;
                 }
                 @keyframes shimmer { 100% { left: 200%; } }
 
                 /* ── CARD LIFT ── */
-                .card-lift { transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+                .card-lift { transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform; }
                 .card-lift:hover {
                     transform: translateY(-14px) scale(1.015);
                     box-shadow: 0 36px 80px -20px rgba(79,70,229,0.18), 0 0 0 1px rgba(79,70,229,0.06);
                 }
 
-                .route-card { transition: all 0.55s cubic-bezier(0.16, 1, 0.3, 1); }
+                .route-card { transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1); will-change: transform; }
                 .route-card:hover {
                     transform: translateY(-10px);
                     box-shadow: 0 30px 60px -24px rgba(30, 41, 59, 0.35);
@@ -184,17 +238,19 @@ export default function Welcome({ auth }) {
                 }
                 .route-icon {
                     transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+                    will-change: transform;
                 }
 
                 /* ── NOISE & DOT GRID ── */
                 .noise { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); }
-                .dot-grid { background-image: radial-gradient(circle, rgba(99,102,241,0.07) 1px, transparent 1px); background-size: 28px 28px; }
+                .dot-grid { background-image: radial-gradient(circle, rgba(99,102,241,0.05) 1px, transparent 1px); background-size: 30px 30px; }
 
                 /* ── SVG TREE ANIMATIONS ── */
                 .tree-node-rect { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
                 @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
                 .tree-edge { stroke-dasharray: 100; stroke-dashoffset: 100; animation: drawLine 1s ease forwards; }
                 @keyframes drawLine { to { stroke-dashoffset: 0; } }
+                @keyframes dash-flow { to { stroke-dashoffset: -28; } }
 
                 /* ── AI CHAT ANIMATIONS ── */
                 @keyframes chat-pop {
@@ -211,9 +267,55 @@ export default function Welcome({ auth }) {
 
                 /* ── MISC ── */
                 @keyframes ping-large { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(2); opacity: 0; } }
-                .animate-ping-large { animation: ping-large 2.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+                .animate-ping-large { animation: ping-large 2.5s cubic-bezier(0, 0, 0.2, 1) infinite; will-change: transform, opacity; }
                 @keyframes rotate-border { to { transform: rotate(360deg); } }
                 @keyframes bounce-s { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+                @keyframes orb-drift {
+                    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+                    50% { transform: translate3d(-10px, -14px, 0) scale(1.06); }
+                }
+                .morph-orb { animation: orb-drift 13s ease-in-out infinite; will-change: transform; }
+                .rotating-ring { will-change: transform; }
+
+                .motion-boot .animate-float,
+                .motion-boot .animate-ping-large,
+                .motion-boot .txt-grad,
+                .motion-boot .txt-grad-dark,
+                .motion-boot .typing-dot,
+                .motion-boot .orb-pulse,
+                .motion-boot .rotating-ring,
+                .motion-boot .btn-shimmer::after {
+                    animation-play-state: paused !important;
+                }
+
+                .motion-boot .dot-grid,
+                .motion-boot .noise {
+                    opacity: 0 !important;
+                }
+
+                .motion-lite .hero-animate,
+                .motion-lite .h-rise-slow,
+                .motion-lite .chat-msg-1,
+                .motion-lite .chat-msg-2,
+                .motion-lite .tree-node-rect,
+                .motion-lite .tree-edge,
+                .motion-lite .animate-float,
+                .motion-lite .animate-ping-large,
+                .motion-lite .typing-dot,
+                .motion-lite .orb-pulse,
+                .motion-lite .morph-orb,
+                .motion-lite .rotating-ring,
+                .motion-lite .btn-shimmer::after {
+                    animation: none !important;
+                    opacity: 1 !important;
+                    transform: none !important;
+                }
+
+                .motion-lite .card-lift,
+                .motion-lite .route-card,
+                .motion-lite .route-icon {
+                    transition-duration: 0.01ms !important;
+                }
 
                 /* 🔥 الانحناء الناعم الجديد بدل الـ Polygon 🔥 */
                 .hero-curve { 
@@ -249,7 +351,7 @@ export default function Welcome({ auth }) {
                 }
             ` }} />
 
-            <div className="bg-[#fafbff] text-slate-800 overflow-x-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+            <div className={`bg-[#fafbff] text-slate-800 overflow-x-hidden ${motionReady ? 'motion-ready' : 'motion-boot'} ${shouldReduceMotion ? 'motion-lite' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
 
                 {/* ════════════════════════════════════
                     1. HERO SECTION (Video & Curve)
@@ -258,31 +360,36 @@ export default function Welcome({ auth }) {
 
                     {/* Static Image Background */}
                     <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit]">
-                        <div
-                            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                            style={{ backgroundImage: "url('/images/background.png')" }}
-                        ></div>
-                        <div className="absolute inset-0 bg-gradient-to-b from-[#02040a]/92 via-[#060c1b]/86 to-[#03060f]/93 rounded-b-[inherit]"></div>
-                        <div className="absolute inset-0 bg-black/35 rounded-b-[inherit]"></div>
+                        <img
+                            src="/images/background.png"
+                            alt=""
+                            aria-hidden="true"
+                            loading="eager"
+                            decoding="async"
+                            fetchPriority="high"
+                            className="absolute inset-0 w-full h-full object-cover object-center"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#02040a]/72 via-[#060c1b]/60 to-[#03060f]/76 rounded-b-[inherit]"></div>
+                        <div className="absolute inset-0 bg-black/18 rounded-b-[inherit]"></div>
                     </div>
 
                     {/* Decorative Orbs */}
-                    <div className="absolute hidden md:block w-[420px] h-[420px] bg-indigo-500/20 blur-[100px] top-[-8%] right-[-8%] pointer-events-none z-0" />
-                    <div className="absolute hidden md:block w-[350px] h-[350px] bg-cyan-500/20 blur-[110px] bottom-[0%] left-[-6%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[340px] h-[340px] bg-indigo-500/16 blur-[74px] top-[-8%] right-[-8%] pointer-events-none z-0 orb-pulse" />
+                    <div className="absolute hidden md:block w-[300px] h-[300px] bg-cyan-500/14 blur-[74px] bottom-[0%] left-[-6%] pointer-events-none z-0 orb-pulse" style={{ animationDelay: '-4s' }} />
 
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
-                        <div className="rounded-[2rem] bg-black/52 backdrop-blur-[2px] border border-white/15 p-6 sm:p-8 md:p-10 shadow-[0_28px_80px_rgba(0,0,0,0.45)]">
+                        <div className="rounded-[2rem] bg-black/35 backdrop-blur-[1.5px] border border-white/15 p-6 sm:p-8 md:p-10 shadow-[0_22px_60px_rgba(0,0,0,0.34)]">
 
                         {/* Beta Badge */}
                         <div className="hero-animate mb-10" style={{ animationDelay: '0.1s' }}>
-                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/30 text-white text-xs font-bold shadow-lg shadow-black/30 select-none">
+                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-black/26 backdrop-blur-md border border-white/30 text-white text-xs font-bold shadow-lg shadow-black/20 select-none">
                                 <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                                 </span>
-                                <span className="font-i tracking-wide">النظام الذكي الأول في الجامعات</span>
+                                <span className="font-i tracking-wide">منصة الإرشاد الأكاديمي الذكية</span>
                             </div>
 
                         </div>
@@ -292,7 +399,7 @@ export default function Welcome({ auth }) {
                             <div className="absolute inset-0 bg-indigo-400/30 rounded-full blur-2xl animate-ping-large"></div>
                             {/* تكبير الـ width والـ height للوجو */}
                             <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
-                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
+                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" loading="eager" decoding="async" fetchPriority="high" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
                         </div>
 
@@ -360,7 +467,7 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32">
+                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32" style={{ contentVisibility: 'auto', containIntrinsicSize: '920px' }}>
                     <div className="absolute inset-0 dot-grid opacity-40 pointer-events-none" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -429,7 +536,7 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     3. TREE PREVIEW (Animated SVG)
                 ════════════════════════════════════ */}
-                <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800">
+                <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800" style={{ contentVisibility: 'auto', containIntrinsicSize: '860px' }}>
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-5"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -450,7 +557,7 @@ export default function Welcome({ auth }) {
                         <div className={`max-w-3xl mx-auto transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${previewIn ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`} style={{ transitionDelay: '200ms' }}>
                             <div className="relative bg-white/5 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] p-6 sm:p-10 overflow-hidden shadow-2xl">
                                 <div className="absolute -inset-[1px] rounded-[2rem] overflow-hidden pointer-events-none">
-                                    <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_0%,#6366f140_25%,transparent_50%)]" style={{ animation: 'rotate-border 8s linear infinite' }} />
+                                    <div className="rotating-ring absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_0%,#6366f140_25%,transparent_50%)]" style={{ animation: 'rotate-border 8s linear infinite' }} />
                                 </div>
 
                                 <svg viewBox="0 0 500 280" className="w-full h-auto relative z-10" dir="ltr">
@@ -493,7 +600,7 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     5. AI BOT SECTION
                 ════════════════════════════════════ */}
-                <section ref={aiRef} className="py-24 sm:py-32 bg-slate-50 relative overflow-hidden">
+                <section ref={aiRef} className="py-24 sm:py-32 bg-slate-50 relative overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '860px' }}>
                     <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none" />
                     
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -571,7 +678,7 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     6. HOW IT WORKS
                 ════════════════════════════════════ */}
-                <section ref={howRef} className="py-20 sm:py-32 bg-white relative overflow-hidden">
+                <section ref={howRef} className="py-20 sm:py-32 bg-white relative overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '820px' }}>
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
                         <div className={`text-center mb-16 sm:mb-20 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
@@ -619,7 +726,7 @@ export default function Welcome({ auth }) {
                     7. BOTTOM CTA
                 ════════════════════════════════════ */}
                 {!auth.user && (
-                    <section ref={ctaRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800">
+                    <section ref={ctaRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800" style={{ contentVisibility: 'auto', containIntrinsicSize: '700px' }}>
                         <div className="absolute inset-0 noise opacity-30 pointer-events-none" />
                         <div className="morph-orb absolute w-[400px] h-[400px] bg-indigo-500/10 blur-[80px] top-[-20%] right-[-10%] pointer-events-none" />
                         <div className="morph-orb absolute w-[300px] h-[300px] bg-cyan-400/10 blur-[100px] bottom-[-20%] left-[-8%] pointer-events-none" style={{ animationDelay: '-6s' }} />
@@ -627,7 +734,7 @@ export default function Welcome({ auth }) {
                         <div className={`max-w-4xl mx-auto px-4 relative z-10 text-center transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${ctaIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
                             {/* 🔥 تكبير لوجو الـ CTA ليصبح متناسق مع الحجم الجديد 🔥 */}
                             <div className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-2xl p-4" style={{ animation: 'bounce-s 3s ease-in-out infinite' }}>
-                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
+                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" loading="lazy" decoding="async" className="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
                             </div>
                             
                             <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-5 leading-tight tracking-tight">
@@ -638,7 +745,7 @@ export default function Welcome({ auth }) {
                             </p>
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                                 <MagneticButton>
-                                    <Link href={route('register')} className="shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-indigo-700 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
+                                    <Link href={route('register')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-indigo-700 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
                                         إنشاء حساب مجاني
                                     </Link>
                                 </MagneticButton>
