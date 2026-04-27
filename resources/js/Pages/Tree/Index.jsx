@@ -236,6 +236,10 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile]);
 
+    const nodeSnapGrid = useMemo(() => (
+        isMobile ? [16, 16] : [20, 20]
+    ), [isMobile]);
+
     const layoutSeedPositions = useMemo(() => {
         if (!Array.isArray(courses) || courses.length === 0) {
             return new Map();
@@ -1911,7 +1915,34 @@ export default function Tree({
                             )}
                         </div>
 
-                        <ReactFlow nodes={nodes} edges={edges} onNodeClick={onNodeClick} onNodeDragStop={onNodeDragStop} onPaneClick={onPaneClick} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView fitViewOptions={{ padding: flowView.fitPadding, minZoom: flowView.minZoom, maxZoom: flowView.maxZoom }} minZoom={flowView.minZoom} maxZoom={flowView.maxZoom} translateExtent={translateExtent} nodesDraggable={canEditTreePositions && positionEditMode} nodesConnectable={false} elementsSelectable={true} selectionOnDrag={false} panOnDrag={true} panOnScroll={false} zoomOnPinch={true} zoomOnScroll={!isMobile} zoomOnDoubleClick={!isMobile} proOptions={{ hideAttribution: true }} className="react-flow-rtl-fix">
+                        <ReactFlow
+                            nodes={nodes}
+                            edges={edges}
+                            onNodeClick={onNodeClick}
+                            onNodeDragStop={onNodeDragStop}
+                            onPaneClick={onPaneClick}
+                            onNodesChange={onNodesChange}
+                            onEdgesChange={onEdgesChange}
+                            fitView
+                            fitViewOptions={{ padding: flowView.fitPadding, minZoom: flowView.minZoom, maxZoom: flowView.maxZoom }}
+                            minZoom={flowView.minZoom}
+                            maxZoom={flowView.maxZoom}
+                            translateExtent={translateExtent}
+                            nodeExtent={translateExtent}
+                            nodesDraggable={canEditTreePositions && positionEditMode}
+                            snapToGrid={canEditTreePositions && positionEditMode}
+                            snapGrid={nodeSnapGrid}
+                            nodesConnectable={false}
+                            elementsSelectable={true}
+                            selectionOnDrag={false}
+                            panOnDrag={!positionEditMode}
+                            panOnScroll={false}
+                            zoomOnPinch={true}
+                            zoomOnScroll={!isMobile && !positionEditMode}
+                            zoomOnDoubleClick={!isMobile && !positionEditMode}
+                            proOptions={{ hideAttribution: true }}
+                            className="react-flow-rtl-fix"
+                        >
                             <Controls position="bottom-left" className={`hidden md:block border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
                             <Background
                                 color={isDark ? '#334155' : '#cbd5e1'}
