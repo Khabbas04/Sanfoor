@@ -260,7 +260,7 @@ export default function Welcome({ auth }) {
                     <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-b-[inherit]">
                         {/* Background image (subtle, blurred, low-opacity for performance & legibility) */}
                         <div
-                            className="absolute inset-0 bg-center bg-cover opacity-30 transform scale-105 filter blur-sm"
+                            className="absolute inset-0 bg-center bg-cover opacity-100 transform scale-105"
                             style={{ backgroundImage: "url('/images/background.png')" }}
                         />
 
@@ -277,8 +277,6 @@ export default function Welcome({ auth }) {
 
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
-
-                        <div className="rounded-[2rem] bg-white/8 backdrop-blur-xl border border-white/12 p-6 sm:p-8 md:p-10 shadow-[0_28px_80px_rgba(0,0,0,0.32)]">
 
                         {/* Beta Badge */}
                         <div className="hero-animate mb-10" style={{ animationDelay: '0.1s' }}>
@@ -355,7 +353,6 @@ export default function Welcome({ auth }) {
                                     </MagneticButton>
                                 </>
                             )}
-                        </div>
                         </div>
                     </div>
                 </section>

@@ -2127,7 +2127,7 @@ export default function Tree({
                             elementsSelectable={true}
                             selectionOnDrag={false}
                             panOnDrag={!positionEditMode}
-                            panOnScroll={false}
+                            panOnScroll={isMobile && !positionEditMode}
                             zoomOnPinch={true}
                             zoomOnScroll={!isMobile && !positionEditMode}
                             zoomOnDoubleClick={!isMobile && !positionEditMode}
@@ -2161,15 +2161,6 @@ export default function Tree({
                                     title="Zoom out"
                                 >
                                     -
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => fitViewSmart(220)}
-                                    className="w-11 h-11 rounded-xl bg-slate-900 text-white text-[11px] font-black shadow-lg active:scale-95"
-                                    aria-label="Fit view"
-                                    title="Fit view"
-                                >
-                                    Fit
                                 </button>
                             </div>
                         )}

@@ -157,7 +157,7 @@ export default function MainLayout({ children }) {
             </Head>
 
             {/* Shared floating navbar used across the public-facing experience. */}
-            <div className="fixed top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
+            <div className="relative md:fixed md:top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
                 <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[72px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
