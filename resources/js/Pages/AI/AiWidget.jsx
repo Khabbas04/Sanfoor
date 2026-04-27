@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 
 export default function AiWidget({ user }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     const [messages, setMessages] = useState([
         { id: 1, role: 'ai', content: `هلا ${user?.name?.split(' ')[0] || 'بطل'}! أنا سنفور، معك بكل خطوة بالموقع.. كيف بقدر أساعدك؟ 🤖` }
     ]);
@@ -13,6 +14,7 @@ export default function AiWidget({ user }) {
     const [isTyping, setIsTyping] = useState(false);
     const [showEntrance, setShowEntrance] = useState(true);
     const scrollRef = useRef(null);
+    const dragRef = useRef({ startX: 0, active: false });
 
     // التمرير التلقائي لأسفل عند وصول رسالة جديدة
     useEffect(() => {
@@ -24,6 +26,14 @@ export default function AiWidget({ user }) {
         const timer = setTimeout(() => setShowEntrance(false), 3000);
         return () => clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        const update = () => setIsMobile(window.innerWidth < 768);
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -44,6 +54,28 @@ export default function AiWidget({ user }) {
         } finally {
             setIsTyping(false);
         }
+    };
+
+    const handleToggle = () => setIsOpen(prev => !prev);
+
+    const onHandleTouchStart = (e) => {
+        dragRef.current = { startX: e.touches[0].clientX, active: true };
+    };
+
+    const onHandleTouchMove = (e) => {
+        if (!dragRef.current.active) return;
+        const delta = dragRef.current.startX - e.touches[0].clientX;
+        if (!isOpen && delta > 36) {
+            setIsOpen(true);
+            dragRef.current.active = false;
+        } else if (isOpen && delta < -36) {
+            setIsOpen(false);
+            dragRef.current.active = false;
+        }
+    };
+
+    const onHandleTouchEnd = () => {
+        dragRef.current.active = false;
     };
 
     return (
@@ -128,31 +160,46 @@ export default function AiWidget({ user }) {
                 </div>
             )}
 
-            {/* 🔘 زر التشغيل العائم — الزاوية السفلية اليمنى */}
-            <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 sm:bottom-8 sm:right-8 z-[100]">
-                {/* 🔵 حلقة النبض الخلفية (Ping Ring) */}
-                {!isOpen && (
-                    <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
-                )}
-
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-visible shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
-                >
-                    <span className="w-full h-full rounded-full overflow-hidden bg-white/90 border border-white/80">
-                        <img
-                            src="/images/aiwidget.png"
-                            alt="AI Widget"
-                            className={`w-full h-full object-cover transition-transform duration-300 ${isOpen ? 'scale-110' : 'scale-110 group-hover:scale-[1.14]'}`}
-                        />
-                    </span>
-
-                    {/* 🟢 نقطة "نشط" */}
+            {isMobile ? (
+                <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[100]">
+                    <button
+                        type="button"
+                        onClick={handleToggle}
+                        onTouchStart={onHandleTouchStart}
+                        onTouchMove={onHandleTouchMove}
+                        onTouchEnd={onHandleTouchEnd}
+                        className={`h-14 w-10 rounded-l-2xl bg-slate-900/90 text-white text-[10px] font-black shadow-lg border border-white/10 backdrop-blur-md flex items-center justify-center gap-1 transition-all active:scale-95 ${isOpen ? 'ring-2 ring-indigo-300 ring-offset-2' : ''}`}
+                        style={{ touchAction: 'pan-y' }}
+                        aria-label="AI chat"
+                        title="اسحب أو اضغط"
+                    >
+                        <span className="-rotate-90">AI</span>
+                    </button>
+                </div>
+            ) : (
+                <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 sm:bottom-8 sm:right-8 z-[100]">
                     {!isOpen && (
-                        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300 z-20" />
+                        <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
                     )}
-                </button>
-            </div>
+
+                    <button
+                        onClick={handleToggle}
+                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-visible shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
+                    >
+                        <span className="w-full h-full rounded-full overflow-hidden bg-white/90 border border-white/80">
+                            <img
+                                src="/images/aiwidget.png"
+                                alt="AI Widget"
+                                className={`w-full h-full object-cover transition-transform duration-300 ${isOpen ? 'scale-110' : 'scale-110 group-hover:scale-[1.14]'}`}
+                            />
+                        </span>
+
+                        {!isOpen && (
+                            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse shadow-sm shadow-emerald-300 z-20" />
+                        )}
+                    </button>
+                </div>
+            )}
         </>
     );
 }

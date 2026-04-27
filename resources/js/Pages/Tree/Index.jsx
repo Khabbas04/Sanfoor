@@ -151,6 +151,7 @@ export default function Tree({
     const isLandscapeMobile = isMobile && viewportWidth >= viewportHeight;
     const showRotateHint = isPortraitMobile && !dismissedRotateHint;
     const orientationRef = useRef(isLandscapeMobile ? 'landscape' : 'portrait');
+    const filterButtonSizing = isLandscapeMobile ? 'px-3 py-1.5 text-[10px]' : 'px-3.5 py-2 text-[11px]';
 
     const semesterToYearTerm = useCallback((semesterValue) => {
         const normalized = Math.min(18, Math.max(1, parseInt(semesterValue, 10) || 1));
@@ -241,7 +242,7 @@ export default function Tree({
     const flowView = useMemo(() => (
         isMobile
             ? (isLandscapeMobile
-                ? { fitPadding: 0.18, minZoom: 0.45, maxZoom: 2.2 }
+                ? { fitPadding: 0.12, minZoom: 0.55, maxZoom: 2.2 }
                 : { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 })
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile, isLandscapeMobile]);
@@ -857,7 +858,10 @@ export default function Tree({
                 </div>
             `;
 
-            const storedPosition = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
+            const seededPosition = layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
+            const storedPosition = (isMobile && !positionEditMode)
+                ? seededPosition
+                : (nodePositions[course.id.toString()] || seededPosition);
 
             initialNodes.push({
                 id: course.id.toString(),
@@ -935,7 +939,10 @@ export default function Tree({
         return [[minX - PAD, minY - PAD], [maxX + PAD, maxY + PAD]];
     }, [nodes, nodeDimensions]);
 
-    const onPaneClick = useCallback(() => setSelectedCourse(null), []);
+    const onPaneClick = useCallback(() => {
+        setSelectedCourse(null);
+        if (isMobile) setIsSidebarOpen(false);
+    }, [isMobile]);
 
     const onNodeClick = useCallback((e, node) => {
         const course = courses.find(c => c.id === parseInt(node.id));
@@ -947,8 +954,8 @@ export default function Tree({
             setTargetSemester(yearTermToSemester(next.year, next.term));
         }
         setActiveTab('details');
-        if (window.innerWidth < 1024) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester]);
+        if (isMobile) setIsSidebarOpen(true);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -1541,18 +1548,32 @@ export default function Tree({
 
             <div className="flex-1 flex w-full h-full relative overflow-hidden">
                 {show4YearPlan && render4YearPlan()}
-                {isSidebarOpen && (<div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />)}
+                {isSidebarOpen && isMobile && !isLandscapeMobile && (
+                    <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+                )}
 
                 {/* ═══ SIDEBAR ═══ */}
                 <div className={`
                     absolute lg:relative bg-slate-900/70 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 lg:z-10 flex flex-col overflow-hidden transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]
-                    ${isMobile
-                        ? `bottom-0 left-0 right-0 h-[78%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
-                        : `top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px] rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`
+                    ${isMobile && !isLandscapeMobile
+                        ? `bottom-0 left-0 right-0 h-[82%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
+                        : `${isLandscapeMobile ? 'top-0 right-0 h-full w-[320px] sm:w-[360px]' : 'top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px]'} rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : `translate-x-full ${isLandscapeMobile ? '' : 'lg:translate-x-0'}`}`
                     }
                 `}>
 
                     <div className="flex p-2.5 gap-2 bg-white/5 border-b border-white/10 shrink-0">
+                        {isMobile && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedCourse(null);
+                                    setIsSidebarOpen(false);
+                                }}
+                                className="w-9 h-9 rounded-xl bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
+                            >
+                                ✕
+                            </button>
+                        )}
                         <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
                         <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
                             🪄 التخطيط
@@ -1561,7 +1582,7 @@ export default function Tree({
                         <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-5 pb-24 hide-scrollbar">
+                    <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
 
                         {/* ═══ DETAILS TAB ═══ */}
                         {activeTab === 'details' && (
@@ -2029,7 +2050,7 @@ export default function Tree({
                                 { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' },
                                 { id: 'critical', label: '🚨 المسار الحرج', mobileLabel: '🚨 الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' }
                             ].map(f => (
-                                <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
+                                <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                             ))}
                             {canEditTreePositions && !positionEditMode && (
                                 <button
