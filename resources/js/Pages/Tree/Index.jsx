@@ -19,8 +19,8 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 
 const DESKTOP_NODE_WIDTH = 200;
 const DESKTOP_NODE_HEIGHT = 88;
-const MOBILE_NODE_WIDTH = 150;
-const MOBILE_NODE_HEIGHT = 72;
+const MOBILE_NODE_WIDTH = 160;
+const MOBILE_NODE_HEIGHT = 76;
 
 // Shared SweetAlert theme so all tree interactions feel visually consistent.
 const swalTheme = {
@@ -712,7 +712,14 @@ export default function Tree({
     const buildGraph = useCallback(() => {
         const nodeWidth = nodeDimensions.width;
         const nodeHeight = nodeDimensions.height;
-        const titleFontSize = isMobile ? '10px' : '11.5px';
+        const titleFontSize = isMobile ? (isLandscapeMobile ? '11.5px' : '11px') : '12px';
+        const titleLineHeight = isMobile ? '1.35' : '1.45';
+        const badgeFontSize = isMobile ? (isLandscapeMobile ? '9px' : '8.5px') : '9.5px';
+        const metaFontSize = isMobile ? '8.5px' : '9px';
+        const chipPadding = isMobile ? '2px 6px' : '2px 7px';
+        const metaPadding = isMobile ? '1px 6px' : '1px 7px';
+        const typeLabelFontSize = isMobile ? '8px' : '8.5px';
+        const typeLabelPadding = isMobile ? '2px 6px' : '2px 7px';
         const initialNodes = [];
         const initialEdges = [];
 
@@ -788,9 +795,9 @@ export default function Tree({
             const dimStyle = isDimmed ? 'opacity:0.25;filter:grayscale(1);' : '';
 
             let typeLabelHtml = '';
-            if (isElective) typeLabelHtml = `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>`;
-            if (isSupporting) typeLabelHtml = `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">مساندة</span>`;
-            if (isUniversityReq) typeLabelHtml = `<span style="font-size:7.5px;font-weight:900;padding:2px 5px;border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">جامعة</span>`;
+            if (isElective) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>`;
+            if (isSupporting) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">مساندة</span>`;
+            if (isUniversityReq) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">جامعة</span>`;
 
             const nodeHtml = `
                 <div class="sn-node-hover" style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.3s ease-out;${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;box-shadow:${!isDimmed && !ringStyle.includes('box-shadow') ? '0 4px 12px rgba(0,0,0,0.06)' : ''};">
@@ -798,21 +805,21 @@ export default function Tree({
                     
                     <div style="padding:8px 10px;display:flex;flex-direction:column;height:100%;justify-content:space-between;position:relative;z-index:1;">
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:6px;background:${t.badgeBg};color:${t.textColor};backdrop-filter:blur(4px);display:flex;align-items:center;gap:3px;letter-spacing:0.3px;">
+                            <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};backdrop-filter:blur(4px);display:flex;align-items:center;gap:3px;letter-spacing:0.3px;">
                                 ${statusIcon} ${statusLabel}
                                 ${hasDescription ? '<span style="margin-right:3px; font-size:10px; animation: pulse 2s infinite;" title="يوجد لمحة عن المادة">📝</span>' : ''}
                             </span>
                             <div style="display:flex; gap:3px;">
                                 ${typeLabelHtml}
-                                <span style="font-size:8.5px;font-weight:800;padding:2px 7px;border-radius:6px;background:${t.badgeBg};color:${t.textColor};">${course.credit_hours} س</span>
+                                <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};">${course.credit_hours} س</span>
                             </div>
                         </div>
                         <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2px 4px;">
-                            <h3 style="font-weight:900;font-size:${titleFontSize};color:${t.textColor};line-height:1.45;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:${status !== 'locked' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};">${course.name}</h3>
+                            <h3 style="font-weight:900;font-size:${titleFontSize};color:${t.textColor};line-height:${titleLineHeight};text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:${status !== 'locked' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};">${course.name}</h3>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:8.5px;font-weight:800;font-family:monospace;text-transform:uppercase;padding:1px 6px;border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
-                            <span style="font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:5px;background:${t.badgeBg};color:${t.textColor};">م ${course.semester || 1}</span>
+                            <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
+                            <span style="font-size:${metaFontSize};font-weight:700;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">م ${course.semester || 1}</span>
                         </div>
                     </div>
                     ${isCriticalPath ? `<div style="position:absolute;top:-4px;left:-4px;width:22px;height:22px;background:#ef4444;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,0.4);z-index:20;animation:bounce 1s infinite;" title="مسار حرج!">🚨</div>` : ''}
@@ -869,7 +876,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -1423,7 +1430,7 @@ export default function Tree({
     };
 
     return (
-        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: 'calc(100vh - 80px)' }}>
+        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: isMobile ? '100dvh' : 'calc(100vh - 80px)' }}>
             <Head>
                 <title>{lang === 'ar' ? 'الخطة الشجرية الذكية | سنفور' : 'Smart Course Tree | Sanfoor'}</title>
                 <meta name="description" content={lang === 'ar' ? 'استعرض خطتك الشجرية، تتبع المتطلبات السابقة، وخطط تسجيل المواد بشكل ذكي داخل حسابك.' : 'Visualize your study tree, track prerequisites, and plan your courses smartly inside your account.'} />
