@@ -2184,4 +2184,8 @@ export default function Tree({
     );
 }
 
-Tree.layout = page => <MainLayout children={page} />;
+Tree.layout = page => (
+    <MainLayout hideNavbarOnMobileLandscape hideAiWidgetOnMobileLandscape>
+        {page}
+    </MainLayout>
+);

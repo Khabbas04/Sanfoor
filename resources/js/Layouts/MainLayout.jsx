@@ -5,7 +5,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/AI/AiWidget';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
-export default function MainLayout({ children }) {
+export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false }) {
     const page = usePage();
     const { auth } = page.props;
     const isAdvisorRoute = route().current('ai.advisor');
@@ -18,9 +18,16 @@ export default function MainLayout({ children }) {
     // UI state for the floating navbar and mobile drawer menu.
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [viewport, setViewport] = useState({
+        width: typeof window !== 'undefined' ? window.innerWidth : 1280,
+        height: typeof window !== 'undefined' ? window.innerHeight : 720,
+    });
 
     const { isDark, toggleTheme } = useTheme();
     const { lang, toggleLang } = useLanguage();
+    const isLandscapeMobile = viewport.width < 1024 && viewport.width >= viewport.height;
+    const shouldHideNav = hideNavbarOnMobileLandscape && isLandscapeMobile;
+    const shouldHideAiWidget = hideAiWidgetOnMobileLandscape && isLandscapeMobile;
 
     // Add the compact navbar style after the user scrolls down.
     useEffect(() => {
@@ -37,10 +44,20 @@ export default function MainLayout({ children }) {
 
     // Also close the mobile menu when switching back to desktop width.
     useEffect(() => {
-        const handleResize = () => { if (window.innerWidth >= 1024) setMobileOpen(false); };
+        const handleResize = () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            setViewport({ width, height });
+            if (width >= 1024) setMobileOpen(false);
+        };
+        handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    useEffect(() => {
+        if (shouldHideNav) setMobileOpen(false);
+    }, [shouldHideNav]);
 
     // Prevent background scroll when the mobile drawer is open.
     useEffect(() => {
@@ -157,8 +174,9 @@ export default function MainLayout({ children }) {
             </Head>
 
             {/* Shared floating navbar used across the public-facing experience. */}
-            <div className="relative md:fixed md:top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
-                <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[72px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
+            {!shouldHideNav && (
+                <div className="relative md:fixed md:top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
+                    <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[72px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
                         {/* Logo Section */}
@@ -276,13 +294,15 @@ export default function MainLayout({ children }) {
                             </button>
                         </div>
                     </div>
-                </nav>
-            </div>
+                    </nav>
+                </div>
+            )}
 
             {/* Mobile drawer version of the main navigation. */}
-            <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
-                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
-                <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
+            {!shouldHideNav && (
+                <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
+                    <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
                     <div className="h-32 border-b border-white/10 flex items-center justify-between px-6 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white">
                         <div className="flex items-center gap-4">
                             <img src="/images/sanfoor.png" alt="Logo" className="w-14 h-14 object-contain drop-shadow-md" />
@@ -319,16 +339,17 @@ export default function MainLayout({ children }) {
                             <Link href={route('logout')} method="post" as="button" className="w-full py-3.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-sm transition-colors hover:bg-rose-100 dark:hover:bg-rose-500/20">👋 {t.logout}</Link>
                         </div>
                     )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Routed page content is rendered inside the shared layout shell. */}
-            <main className="flex-1 flex flex-col w-full relative z-10 pt-20 sm:pt-28 animate-fade-in-up">
+            <main className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'} animate-fade-in-up`}>
                 {children}
             </main>
 
             {/* The floating AI assistant is available only for signed-in users. */}
-            {auth.user && !isAdvisorRoute && <AiWidget user={auth.user} />}
+            {auth.user && !isAdvisorRoute && !shouldHideAiWidget && <AiWidget user={auth.user} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
