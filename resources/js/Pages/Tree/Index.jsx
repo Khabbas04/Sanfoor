@@ -1338,41 +1338,48 @@ export default function Tree({
             ` }} />
 
             {/* ═══ HEADER ═══ */}
-            <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 flex justify-between items-center relative">
-                <div className="flex items-center gap-3">
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
-                        {isSidebarOpen ? '✕' : '☰'}
-                    </button>
+            <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 py-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative space-y-3">
+                <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                    <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
+                    <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
 
-                    <div>
-                        <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 shadow-sm">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-cyan-500 text-white text-xs font-black shadow-sm">🌳</span>
-                            <h1 className="text-base sm:text-lg font-[900] tracking-tight text-slate-900 leading-tight">الخطة الشجرية</h1>
+                    <div className="relative z-10 p-4 sm:p-6">
+                        <div className="text-center max-w-2xl mx-auto">
+                            <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
                         </div>
-                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 mt-1.5 font-i flex items-center gap-1.5">
+                    </div>
+                </section>
+
+                <div className="flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
+                            {isSidebarOpen ? '✕' : '☰'}
+                        </button>
+
+                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
                             <span>{major_name && `${major_name} • `}{student_name}</span>
                             <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
                                 خطة {study_plan_version}
                             </span>
                         </p>
                     </div>
-                </div>
 
-                {/* 🆕 Header مع Mini Stats */}
-                <div className="hidden md:flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
-                        {miniStats.criticalCount > 0 && (
-                            <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
-                        )}
-                    </div>
-                    <div className="flex flex-col items-end w-56">
-                        <div className="flex justify-between w-full mb-1.5 items-center">
-                            <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
-                            <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
+                    {/* 🆕 Header مع Mini Stats */}
+                    <div className="hidden md:flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
+                            {miniStats.criticalCount > 0 && (
+                                <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
+                            )}
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
+                        <div className="flex flex-col items-end w-56">
+                            <div className="flex justify-between w-full mb-1.5 items-center">
+                                <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
+                                <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
+                            </div>
                         </div>
                     </div>
                 </div>
