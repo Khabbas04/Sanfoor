@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import ReactFlow, { Controls, Background, MarkerType, useNodesState, useEdgesState } from 'reactflow';
 import dagre from 'dagre';
 import axios from 'axios';
@@ -144,11 +144,13 @@ export default function Tree({
     const [nodePositionsBeforeEdit, setNodePositionsBeforeEdit] = useState({});
     const [hasUnsavedNodeMoves, setHasUnsavedNodeMoves] = useState(false);
     const [isSavingNodePositions, setIsSavingNodePositions] = useState(false);
+    const [flowInstance, setFlowInstance] = useState(null);
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
     const isLandscapeMobile = isMobile && viewportWidth >= viewportHeight;
     const showRotateHint = isPortraitMobile && !dismissedRotateHint;
+    const orientationRef = useRef(isLandscapeMobile ? 'landscape' : 'portrait');
 
     const semesterToYearTerm = useCallback((semesterValue) => {
         const normalized = Math.min(18, Math.max(1, parseInt(semesterValue, 10) || 1));
@@ -243,6 +245,18 @@ export default function Tree({
                 : { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 })
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile, isLandscapeMobile]);
+
+    const fitViewSmart = useCallback((duration = 260) => {
+        if (!flowInstance) return;
+        flowInstance.fitView({ padding: flowView.fitPadding, duration });
+    }, [flowInstance, flowView.fitPadding]);
+
+    const handleZoom = useCallback((delta) => {
+        if (!flowInstance) return;
+        const current = flowInstance.getZoom();
+        const next = Math.min(flowView.maxZoom, Math.max(flowView.minZoom, current + delta));
+        flowInstance.zoomTo(next, { duration: 160 });
+    }, [flowInstance, flowView.maxZoom, flowView.minZoom]);
 
     const nodeSnapGrid = useMemo(() => (
         isMobile ? [16, 16] : [20, 20]
@@ -449,6 +463,22 @@ export default function Tree({
             setIsSidebarOpen(false);
         }
     }, [isMobile]);
+
+    useEffect(() => {
+        if (isLandscapeMobile) {
+            setIsSidebarOpen(false);
+        }
+    }, [isLandscapeMobile]);
+
+    useEffect(() => {
+        if (!flowInstance) return;
+        const orientation = isLandscapeMobile ? 'landscape' : 'portrait';
+        if (orientationRef.current !== orientation) {
+            orientationRef.current = orientation;
+            const timer = setTimeout(() => fitViewSmart(240), 140);
+            return () => clearTimeout(timer);
+        }
+    }, [isLandscapeMobile, fitViewSmart, flowInstance]);
 
     useEffect(() => {
         const next = semesterToYearTerm(targetSemester);
@@ -1457,16 +1487,22 @@ export default function Tree({
 
             {/* ═══ HEADER ═══ */}
             <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
-                <section className={`relative overflow-hidden ${isLandscapeMobile ? 'rounded-[1.25rem]' : 'rounded-[2rem]'} border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl`}>
-                    <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
-                    <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
-
-                    <div className={`relative z-10 ${isLandscapeMobile ? 'p-3 sm:p-4' : 'p-4 sm:p-6'}`}>
-                        <div className="text-center max-w-2xl mx-auto">
-                            <h1 className={`${isLandscapeMobile ? 'text-2xl sm:text-3xl' : 'text-4xl md:text-5xl'} font-[900] text-slate-900 tracking-tight`}>الخطة الشجرية</h1>
-                        </div>
+                {isLandscapeMobile ? (
+                    <div className="px-1">
+                        <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
                     </div>
-                </section>
+                ) : (
+                    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
+                        <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
+
+                        <div className="relative z-10 p-4 sm:p-6">
+                            <div className="text-center max-w-2xl mx-auto">
+                                <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 <div className="flex justify-between items-center gap-3">
                     <div className="flex items-center gap-3">
@@ -2056,6 +2092,7 @@ export default function Tree({
                             onPaneClick={onPaneClick}
                             onNodesChange={onNodesChange}
                             onEdgesChange={onEdgesChange}
+                            onInit={setFlowInstance}
                             fitView
                             fitViewOptions={{ padding: flowView.fitPadding, minZoom: flowView.minZoom, maxZoom: flowView.maxZoom }}
                             minZoom={flowView.minZoom}
@@ -2084,6 +2121,38 @@ export default function Tree({
                             />
                         </ReactFlow>
 
+                        {isMobile && (
+                            <div className={`absolute ${isLandscapeMobile ? 'bottom-2' : 'bottom-3'} right-3 z-30 flex flex-col gap-2`}>
+                                <button
+                                    type="button"
+                                    onClick={() => handleZoom(0.2)}
+                                    className="w-11 h-11 rounded-xl bg-white/95 border border-slate-200 text-slate-700 font-black text-lg shadow-lg backdrop-blur-md active:scale-95"
+                                    aria-label="Zoom in"
+                                    title="Zoom in"
+                                >
+                                    +
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleZoom(-0.2)}
+                                    className="w-11 h-11 rounded-xl bg-white/95 border border-slate-200 text-slate-700 font-black text-lg shadow-lg backdrop-blur-md active:scale-95"
+                                    aria-label="Zoom out"
+                                    title="Zoom out"
+                                >
+                                    -
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => fitViewSmart(220)}
+                                    className="w-11 h-11 rounded-xl bg-slate-900 text-white text-[11px] font-black shadow-lg active:scale-95"
+                                    aria-label="Fit view"
+                                    title="Fit view"
+                                >
+                                    Fit
+                                </button>
+                            </div>
+                        )}
+
                         {canEditTreePositions && positionEditMode && (
                             <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
                                 <span>🧭 اسحب بأي اتجاه - التداخل يُعالج تلقائيًا</span>
@@ -2092,8 +2161,8 @@ export default function Tree({
                         )}
 
                         {isMobile && (
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 bg-slate-900/85 text-white/80 text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md pointer-events-none">
-                                👌 اسحب للتنقل • قرّب بإصبعين
+                            <div className={`absolute ${isLandscapeMobile ? 'bottom-2 text-[9px] px-2 py-1' : 'bottom-3 text-[10px] px-3 py-1.5'} left-1/2 -translate-x-1/2 z-20 bg-slate-900/85 text-white/80 font-bold rounded-full border border-white/10 backdrop-blur-md pointer-events-none`}>
+                                👌 اسحب للتنقل • قرّب بإصبعين أو بالأزرار
                             </div>
                         )}
                     </div>
