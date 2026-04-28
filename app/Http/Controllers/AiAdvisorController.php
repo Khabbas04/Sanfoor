@@ -177,6 +177,10 @@ class AiAdvisorController extends Controller
             $prereqCount = $course->prerequisites->count();
             $inCart = in_array($course->id, $cartCourseIds);
             $courseType = $course->type ?? 'غير محدد';
+            $manualDifficulty = (int) ($course->difficulty_level ?? 3);
+            if ($manualDifficulty < 1 || $manualDifficulty > 5) {
+                $manualDifficulty = 3;
+            }
 
             // ─── استخراج أول 150 حرف من الوصف (RAG) ───
             $descriptionSnippet = '';
@@ -195,7 +199,7 @@ class AiAdvisorController extends Controller
             $tagString = !empty($tags) ? ' [' . implode(' | ', $tags) . ']' : '';
 
             // ─── بناء نص المادة المُعزَّز للـ AI ───
-            $courseTextLine = "- {$course->name} (رمز: {$course->code}, ساعات: {$course->credit_hours}, سنة_المادة: {$courseYear}, نوع: {$courseType}, عدد_المتطلبات: {$prereqCount}){$tagString}";
+            $courseTextLine = "- {$course->name} (رمز: {$course->code}, ساعات: {$course->credit_hours}, سنة_المادة: {$courseYear}, نوع: {$courseType}, عدد_المتطلبات: {$prereqCount}, تصنيف_الصعوبة_الاداري: {$manualDifficulty}){$tagString}";
 
             // إضافة الوصف المختصر إن وجد (سطر فرعي)
             if (!empty($descriptionSnippet)) {
@@ -210,6 +214,7 @@ class AiAdvisorController extends Controller
                 'credit_hours' => $course->credit_hours,
                 'course_year' => $courseYear,
                 'type' => $courseType,
+                'difficulty_level' => $manualDifficulty,
                 'prereq_count' => $prereqCount,
                 'unlocks' => $unlocksCount,
                 'in_cart' => $inCart,
@@ -250,6 +255,27 @@ class AiAdvisorController extends Controller
             $strategicLines[] = "- {$course['name']} | سنة {$course['course_year']} | {$course['credit_hours']}س | يفتح {$course['unlocks']} | متطلبات {$course['prereq_count']}";
         }
 
+        $difficultyBuckets = [
+            'easy' => [],
+            'balanced' => [],
+            'heavy' => [],
+        ];
+
+        foreach ($availableDetails as $course) {
+            $difficultyLevel = (int) ($course['difficulty_level'] ?? 3);
+            if ($difficultyLevel <= 2) {
+                $difficultyBuckets['easy'][] = $course['name'];
+            } elseif ($difficultyLevel >= 4) {
+                $difficultyBuckets['heavy'][] = $course['name'];
+            } else {
+                $difficultyBuckets['balanced'][] = $course['name'];
+            }
+        }
+
+        $easySample = array_slice($difficultyBuckets['easy'], 0, 4);
+        $balancedSample = array_slice($difficultyBuckets['balanced'], 0, 4);
+        $heavySample = array_slice($difficultyBuckets['heavy'], 0, 4);
+
         $cartCourseCount = is_array($cartData['ids'] ?? null) ? count($cartData['ids']) : 0;
         $hoursState = ($cartData['hours'] ?? 0) > ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL)
             ? 'متجاوز_الحد'
@@ -262,8 +288,12 @@ class AiAdvisorController extends Controller
         - ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "
         - حالة_الساعات: {$hoursState}
         - عدد_مواد_التسجيل_التجريبي: {$cartCourseCount}
-        - مواد_استراتيجية_مرشحة:
-        " . (!empty($strategicLines) ? implode("\n", $strategicLines) : '- لا توجد مواد مرشحة حالياً');
+                - مواد_استراتيجية_مرشحة:
+                " . (!empty($strategicLines) ? implode("\n", $strategicLines) : '- لا توجد مواد مرشحة حالياً') . "
+                - عينات_حسب_تصنيف_الصعوبة_الاداري:
+                    - خفيف: " . (!empty($easySample) ? implode(' | ', $easySample) : 'لا يوجد') . "
+                    - متوازن: " . (!empty($balancedSample) ? implode(' | ', $balancedSample) : 'لا يوجد') . "
+                    - مكثف: " . (!empty($heavySample) ? implode(' | ', $heavySample) : 'لا يوجد');
     }
 
     /**
@@ -328,6 +358,8 @@ class AiAdvisorController extends Controller
         ═══════════════════════════════════════════════════════
         🧮 [خوارزمية الصعوبة النسبية — Relative Difficulty Scoring]:
         ═══════════════════════════════════════════════════════
+        إذا كان ضمن بيانات المادة \"تصنيف_الصعوبة_الاداري\" (1-5) فاعتبره مرجعاً أساسياً للصعوبة،
+        واستخدم المعادلة أدناه فقط للتأكيد أو عند غياب التصنيف.
         ⚠️ لا تخمّن صعوبة أي مادة! احسبها رياضياً كالتالي:
 
         المعادلة: difficulty_score = base + prereq_bonus + unlock_bonus + keyword_modifier
