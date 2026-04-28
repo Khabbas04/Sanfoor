@@ -11,6 +11,7 @@ export default function CreateCourse({ universities, colleges, majors }) {
         name: '',
         code: '',
         credit_hours: '',
+        difficulty_level: 3,
         type: 'compulsory',
     });
 
@@ -149,6 +150,19 @@ export default function CreateCourse({ universities, colleges, majors }) {
                                 onChange={e => setData('credit_hours', e.target.value)} 
                                 required 
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 mb-2">مستوى صعوبة المادة (للجدول الذكي)</label>
+                            <select
+                                className="w-full rounded-lg border-slate-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                value={data.difficulty_level}
+                                onChange={e => setData('difficulty_level', e.target.value)}
+                            >
+                                <option value="1">خفيف</option>
+                                <option value="3">متوازن</option>
+                                <option value="5">مكثف</option>
+                            </select>
                         </div>
 
                         <div>

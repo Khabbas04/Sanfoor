@@ -48,6 +48,7 @@ class TreeController extends Controller
                 'courses.name',
                 'courses.code',
                 'courses.credit_hours',
+                'courses.difficulty_level',
                 'courses.minimum_passed_hours',
                 'courses.type',
                 'courses.semester',

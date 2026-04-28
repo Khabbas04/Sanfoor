@@ -584,11 +584,17 @@ export default function Tree({
             const avgGrade = Number(course.avg_grade ?? 72);
             const failRate = Number(course.fail_rate ?? 18);
             const prerequisitesCount = Number(course.prerequisites_count || (course.prerequisites?.length || 0));
+            const manualDifficultyRaw = Number(course.difficulty_level ?? 3);
+            const manualDifficulty = Number.isFinite(manualDifficultyRaw)
+                ? Math.min(5, Math.max(1, manualDifficultyRaw))
+                : 3;
+            const manualDifficultyScore = (manualDifficulty - 1) * 25;
             const baseDifficulty =
                 ((100 - avgGrade) * 0.5)
                 + (failRate * 0.35)
                 + Math.min(prerequisitesCount * 7, 25)
                 + ((recommendedYear - 1) * 6);
+            const blendedDifficulty = (baseDifficulty * 0.7) + (manualDifficultyScore * 0.3);
 
             return {
                 ...course,
@@ -597,7 +603,8 @@ export default function Tree({
                 fail_rate: Number(failRate.toFixed(1)),
                 graded_attempts: Number(course.graded_attempts || 0),
                 prerequisites_count: prerequisitesCount,
-                difficulty_score: Math.max(0, Math.min(100, Number(baseDifficulty.toFixed(1)))),
+                manual_difficulty: manualDifficulty,
+                difficulty_score: Math.max(0, Math.min(100, Number(blendedDifficulty.toFixed(1)))),
             };
         });
     }, [courses]);
@@ -1210,7 +1217,8 @@ export default function Tree({
             const isMajor = course.major_id !== null;
             const isCompulsory = course.type === 'compulsory';
             const difficulty = Number(course.difficulty_score || 0);
-            const isHeavy = difficulty >= 65 || Number(course.fail_rate || 0) >= 30;
+            const manualDifficulty = Number(course.manual_difficulty || course.difficulty_level || 3);
+            const isHeavy = difficulty >= 65 || Number(course.fail_rate || 0) >= 30 || manualDifficulty >= 4;
             const yearGap = Number(course.recommended_year || 1) - currentAcademicYear;
             const difficultyFit = Math.max(0, 100 - Math.abs(difficulty - pace.targetDifficulty) * 1.7);
             const dataConfidence = Math.min(100, 42 + (Number(course.graded_attempts || 0) * 7));

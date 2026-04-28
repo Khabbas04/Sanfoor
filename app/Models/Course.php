@@ -27,6 +27,7 @@ class Course extends Model
         'name',
         'code',
         'credit_hours',
+        'difficulty_level',
         'minimum_passed_hours',
         'type',
         'semester',
