@@ -135,7 +135,6 @@ export default function Tree({
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
     const [compareCourse, setCompareCourse] = useState(null);
-    const [showTreeGuideTip, setShowTreeGuideTip] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
     const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 720);
@@ -469,22 +468,6 @@ export default function Tree({
     }, [isPortraitMobile]);
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const seenTreeGuide = window.localStorage.getItem('sanfoor-tree-guide-tip-seen') === '1';
-        setShowTreeGuideTip(!seenTreeGuide);
-    }, []);
-
-    const dismissTreeGuideTip = useCallback(() => {
-        setShowTreeGuideTip(false);
-        if (typeof window === 'undefined') return;
-        try {
-            window.localStorage.setItem('sanfoor-tree-guide-tip-seen', '1');
-        } catch (error) {
-            // Ignore storage errors in private/incognito contexts.
-        }
-    }, []);
-
-    useEffect(() => {
         if (!isMobile) {
             setIsSidebarOpen(false);
         }
@@ -796,17 +779,6 @@ export default function Tree({
         const forwardIds = selectedCourse ? Array.from(getForwardPath(selectedCourse.id)) : [];
         const connectedIds = [...new Set([...backwardIds, ...forwardIds])];
 
-        // 🆕 FIX: حساب سلسلة المسار الحرج كاملة للفلتر
-        const criticalChainIds = new Set();
-        if (filterMode === 'critical') {
-            courses.forEach(c => {
-                if (getStatus(c) !== 'passed' && getCourseDepth(c.id) >= 2) {
-                    getForwardPath(c.id).forEach(id => criticalChainIds.add(id));
-                    getBackwardPath(c.id).forEach(id => criticalChainIds.add(id));
-                }
-            });
-        }
-
         courses.forEach((course) => {
             const status = getStatus(course);
             const isHourLocked = status === 'locked' && isLockedByHours(course);
@@ -861,8 +833,6 @@ export default function Tree({
             if (filterMode === 'easy' && difficultyBand !== 'easy') isFilteredOut = true;
             if (filterMode === 'balanced' && difficultyBand !== 'balanced') isFilteredOut = true;
             if (filterMode === 'heavy' && difficultyBand !== 'heavy') isFilteredOut = true;
-            // 🆕 FIX: فلتر المسار الحرج يستخدم السلسلة الكاملة بدل المادة لحالها
-            if (filterMode === 'critical' && !criticalChainIds.has(course.id)) isFilteredOut = true;
 
             const isDimmed = isFilteredOut || (selectedCourse && !connectedIds.includes(course.id));
             const isSelected = selectedCourse?.id === course.id;
@@ -946,8 +916,6 @@ export default function Tree({
                     if (filterMode === 'easy' && (difficultyBand !== 'easy' || prereqDifficultyBand !== 'easy')) edgeFilteredOut = true;
                     if (filterMode === 'balanced' && (difficultyBand !== 'balanced' || prereqDifficultyBand !== 'balanced')) edgeFilteredOut = true;
                     if (filterMode === 'heavy' && (difficultyBand !== 'heavy' || prereqDifficultyBand !== 'heavy')) edgeFilteredOut = true;
-                    // 🆕 FIX: edges تستخدم نفس سلسلة الفلتر
-                    if (filterMode === 'critical' && !criticalChainIds.has(course.id) && !criticalChainIds.has(prereq.id)) edgeFilteredOut = true;
 
                     initialEdges.push({
                         id: `e${prereq.id}-${course.id}`,
@@ -1641,21 +1609,25 @@ export default function Tree({
 
                 {/* ⚖️ مقارنة سريعة */}
                 {compareCourse && compareCourse.id !== selectedCourse.id && (
-                    <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl">
+                    <div className="rounded-[1.4rem] border border-white/10 bg-slate-950/92 p-4 shadow-2xl backdrop-blur-xl overflow-hidden">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-indigo-500 via-violet-500 to-fuchsia-500" />
                         <div className="flex items-start justify-between gap-3 mb-3">
-                            <div>
-                                <h4 className="text-white font-[900] text-[13px]">مقارنة سريعة</h4>
-                                <p className="text-[10px] text-white/50 font-bold mt-0.5">الأولى هي المادة الحالية، والثانية هي المادة التي ضغطتها بعدها.</p>
+                            <div className="min-w-0">
+                                <p className="text-[9px] font-[900] text-white/45 uppercase tracking-[0.18em] mb-1">Course compare</p>
+                                <h4 className="text-white font-[900] text-[13px]">مقارنة ذكية بين مادتين</h4>
+                                <p className="text-[10px] text-white/55 font-bold mt-1 leading-relaxed">اضغط أول مادة من الشجرة، ثم اضغط مادة ثانية ليظهر التحليل تلقائيًا. يمكنك الضغط على أي بطاقة هنا للعودة إليها مباشرة.</p>
                             </div>
-                            <button type="button" onClick={() => setCompareCourse(null)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all flex items-center justify-center text-sm">✕</button>
+                            <button type="button" onClick={() => setCompareCourse(null)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all flex items-center justify-center text-sm shrink-0">✕</button>
                         </div>
-                        <div className="grid grid-cols-2 gap-2.5">
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             {[
                                 { course: selectedCourse, label: 'المادة الأولى', tone: 'indigo' },
                                 { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
-                            ].map(({ course, label, tone }) => {
+                            ].map(({ course, label, tone }, index) => {
                                 const courseDifficulty = Number(course.difficulty_level || 3);
                                 const courseImpact = getTotalImpact(course.id);
+                                const coursePriority = getCoursePriority(course);
                                 return (
                                     <button
                                         key={course.id}
@@ -1666,37 +1638,68 @@ export default function Tree({
                                         }}
                                         className={`text-right rounded-2xl border p-3 transition-all hover:-translate-y-0.5 ${tone === 'indigo' ? 'bg-indigo-500/10 border-indigo-400/20 hover:bg-indigo-500/15' : 'bg-violet-500/10 border-violet-400/20 hover:bg-violet-500/15'}`}
                                     >
-                                        <p className={`text-[9px] font-[900] mb-1 ${tone === 'indigo' ? 'text-indigo-200' : 'text-violet-200'}`}>{label}</p>
-                                        <p className="text-[12px] font-[900] text-white leading-tight truncate">{course.name}</p>
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                            <span className={`text-[9px] font-[900] px-2 py-0.5 rounded-full border ${tone === 'indigo' ? 'bg-white/10 text-white/80 border-white/10' : 'bg-white/10 text-white/80 border-white/10'}`}>صعوبة {courseDifficulty}/5</span>
-                                            <span className="text-[9px] font-[900] px-2 py-0.5 rounded-full border bg-white/10 text-white/80 border-white/10">تأثير {courseImpact}</span>
+                                        <div className="flex items-start justify-between gap-2 mb-2">
+                                            <div className="min-w-0 flex-1">
+                                                <p className={`text-[9px] font-[900] mb-1 ${tone === 'indigo' ? 'text-indigo-200' : 'text-violet-200'}`}>{label}</p>
+                                                <p className="text-[12px] font-[900] text-white leading-tight truncate">{course.name}</p>
+                                            </div>
+                                            <span className="shrink-0 text-[9px] font-[900] px-2 py-1 rounded-full border bg-white/10 text-white/85 border-white/10">{course.code}</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
+                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">الصعوبة</p>
+                                                <p className="text-[13px] font-[900] text-white leading-none">{courseDifficulty}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
+                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">التأثير</p>
+                                                <p className="text-[13px] font-[900] text-white leading-none">{courseImpact}</p>
+                                            </div>
+                                            <div className="rounded-xl bg-white/5 border border-white/10 p-2 text-center">
+                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">الأولوية</p>
+                                                <p className="text-[13px] font-[900] text-white leading-none">{coursePriority}%</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-2.5 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                            <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(0, coursePriority))}%` }} />
                                         </div>
                                     </button>
                                 );
                             })}
                         </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2.5">
+
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                             {(() => {
                                 const firstDifficulty = Number(selectedCourse.difficulty_level || 3);
                                 const secondDifficulty = Number(compareCourse.difficulty_level || 3);
                                 const firstImpact = getTotalImpact(selectedCourse.id);
                                 const secondImpact = getTotalImpact(compareCourse.id);
+                                const firstPriority = getCoursePriority(selectedCourse);
+                                const secondPriority = getCoursePriority(compareCourse);
+
                                 const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : selectedCourse;
                                 const moreImpactCourse = secondImpact > firstImpact ? compareCourse : selectedCourse;
+                                const higherPriorityCourse = secondPriority > firstPriority ? compareCourse : selectedCourse;
+
+                                const statCard = (title, course, value, accent) => (
+                                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                                        <p className="text-[9px] font-[900] text-white/45 mb-1">{title}</p>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-[12px] font-[900] text-white leading-tight truncate">{course.name}</p>
+                                                <p className="text-[10px] font-bold text-white/45 mt-0.5">{value}</p>
+                                            </div>
+                                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${accent}`} />
+                                        </div>
+                                    </div>
+                                );
 
                                 return (
                                     <>
-                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
-                                            <p className="text-[9px] font-[900] text-white/50 mb-1">الأثقل</p>
-                                            <p className="text-[12px] font-[900] text-white leading-tight truncate">{harderCourse.name}</p>
-                                            <p className="text-[10px] font-bold text-white/45 mt-1">صعوبة {Math.max(firstDifficulty, secondDifficulty)}/5</p>
-                                        </div>
-                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
-                                            <p className="text-[9px] font-[900] text-white/50 mb-1">الأكثر تأثيرًا</p>
-                                            <p className="text-[12px] font-[900] text-white leading-tight truncate">{moreImpactCourse.name}</p>
-                                            <p className="text-[10px] font-bold text-white/45 mt-1">مفتاح {Math.max(firstImpact, secondImpact)} مادة</p>
-                                        </div>
+                                        {statCard('الأثقل', harderCourse, `صعوبة ${Math.max(firstDifficulty, secondDifficulty)}/5`, 'bg-rose-400')}
+                                        {statCard('الأكثر تأثيرًا', moreImpactCourse, `${Math.max(firstImpact, secondImpact)} مادة تتأثر`, 'bg-violet-400')}
+                                        {statCard('الأعلى أولوية', higherPriorityCourse, `${Math.max(firstPriority, secondPriority)}%`, 'bg-indigo-400')}
                                     </>
                                 );
                             })()}
@@ -2232,46 +2235,29 @@ export default function Tree({
                             </div>
                         )}
 
-                        {showTreeGuideTip && (
-                            <div className="absolute z-30 left-1/2 -translate-x-1/2 w-[min(92%,38rem)]" style={{ top: showRotateHint && !isFullScreen ? '7.1rem' : '4.75rem' }} dir="rtl">
-                                <div className="overflow-hidden rounded-[1.35rem] border border-white/15 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
-                                    <div className="flex items-start justify-between gap-3 bg-gradient-to-l from-sky-600 via-indigo-600 to-violet-600 px-4 py-3 text-white">
-                                        <div className="min-w-0">
-                                            <p className="text-[10px] font-[900] uppercase tracking-[0.18em] text-white/70 mb-1">نظرة سريعة على الشجرة</p>
-                                            <h3 className="text-[13px] sm:text-sm font-[900] leading-tight">دليل سريع لفهم الشجرة خلال ثوانٍ</h3>
-                                        </div>
-                                        <button type="button" onClick={dismissTreeGuideTip} className="shrink-0 w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 text-white/85 transition-all flex items-center justify-center text-sm">✕</button>
-                                    </div>
-                                    <div className="grid gap-2 p-3 text-right sm:grid-cols-3">
-                                        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-3">
-                                            <p className="text-[10px] font-[900] text-sky-200 mb-1">الألوان</p>
-                                            <p className="text-[10px] font-bold leading-snug text-white/75">تعكس حالة المادة: متاح، منجز، أو مقفل.</p>
-                                        </div>
-                                        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3">
-                                            <p className="text-[10px] font-[900] text-rose-200 mb-1">المسار الحرج</p>
-                                            <p className="text-[10px] font-bold leading-snug text-white/75">أي تأخير فيها قد ينعكس على تخرجك لأنها تؤثر على مواد كثيرة بعدها.</p>
-                                        </div>
-                                        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-3">
-                                            <p className="text-[10px] font-[900] text-violet-200 mb-1">المقارنة</p>
-                                            <p className="text-[10px] font-bold leading-snug text-white/75">اضغط مادة ثانية بعد الأولى لتعرف أيهما أثقل وأيهما تؤثر أكثر.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {!isFullScreen && (
                             <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
                             {[
                                 { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
-                                { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' },
-                                { id: 'critical', label: '🚨 المسار الحرج', mobileLabel: '🚨 الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' },
-                                { id: 'easy', label: '🌿 خفيف', mobileLabel: '🌿 خفيف', active: 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]', dot: 'bg-emerald-300' },
-                                { id: 'balanced', label: '⚖️ متوسط', mobileLabel: '⚖️ متوسط', active: 'bg-amber-500 text-white shadow-[0_0_12px_rgba(245,158,11,0.35)]', dot: 'bg-amber-300' },
-                                { id: 'heavy', label: '🔥 صعب', mobileLabel: '🔥 صعب', active: 'bg-rose-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]', dot: 'bg-rose-300' }
+                                { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }
                             ].map(f => (
                                 <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                             ))}
+
+                            <div className="relative shrink-0">
+                                <select
+                                    value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
+                                    onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
+                                    className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
+                                >
+                                    <option value="all">🎚️ كل الصعوبات</option>
+                                    <option value="easy">🌿 خفيف</option>
+                                    <option value="balanced">⚖️ متوسط</option>
+                                    <option value="heavy">🔥 صعب</option>
+                                </select>
+                                <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400 text-[10px]">⌄</span>
+                            </div>
+
                             {canEditTreePositions && !positionEditMode && (
                                 <button
                                     onClick={startPositionEditMode}
@@ -2338,6 +2324,10 @@ export default function Tree({
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
+                                        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/10 p-2.5 text-right">
+                                            <p className="text-[10px] font-[900] text-violet-700 mb-0.5">المقارنة بين مادتين</p>
+                                            <p className="text-[9px] font-bold text-slate-500 leading-snug">1) اضغط مادة من الشجرة لتكون الأولى. 2) اضغط مادة ثانية لتظهر المقارنة تلقائيًا.</p>
+                                        </div>
                                     </div>
                                 </div>
                             )}
