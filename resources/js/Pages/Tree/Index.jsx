@@ -882,8 +882,7 @@ export default function Tree({
                             ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
                     </div>
-                    ${isCriticalPath ? `<div style="position:absolute;top:-5px;left:-5px;width:20px;height:20px;background:#ef4444;border:2px solid #fff;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,0.35);z-index:20;" title="مسار حرج">!</div>` : ''}
-                    ${isBottleneck ? `<div style="position:absolute;top:-5px;right:-5px;width:20px;height:20px;background:#a855f7;border:2px solid #fff;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;color:#fff;box-shadow:0 2px 8px rgba(168,85,247,0.35);z-index:20;" title="مفصلية: تفتح ${unlocksCount} مواد">🔑</div>` : ''}
+                    ${isCriticalPath ? `<div style="position:absolute;top:50%;left:50%;width:24px;height:24px;transform:translate(-50%,-50%);background:rgba(239,68,68,0.95);border:2px solid rgba(255,255,255,0.95);border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;font-weight:900;color:#fff;box-shadow:0 0 0 4px rgba(239,68,68,0.14),0 6px 16px rgba(239,68,68,0.35);z-index:20;animation:pulse 1.5s ease-in-out infinite;pointer-events:none;" title="مسار حرج">!</div>` : ''}
                 </div>
             `;
 
