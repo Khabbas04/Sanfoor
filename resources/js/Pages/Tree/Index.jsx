@@ -802,6 +802,15 @@ export default function Tree({
             const isUniversityReq = course.type === 'university_req';
             const hasDescription = course.description && course.description.trim() !== '';
 
+            // 🆕 دالة الحصول على لون الصعوبة
+            const getDifficultyColor = (difficulty) => {
+                if (!difficulty) return null;
+                if (difficulty >= 4) return { label: 'مكثّف', color: '#ef4444', icon: '🔥', bg: 'rgba(239,68,68,0.2)', border: '#f87171' };
+                if (difficulty === 3) return { label: 'متوازن', color: '#f59e0b', icon: '⚡', bg: 'rgba(245,158,11,0.2)', border: '#fbbf24' };
+                return { label: 'خفيف', color: '#10b981', icon: '✨', bg: 'rgba(16,185,129,0.2)', border: '#6ee7b7' };
+            };
+            const difficultyInfo = getDifficultyColor(course.difficulty_level);
+
             const themes = {
                 passed: { bg: 'background:linear-gradient(135deg,#059669,#10b981)', border: 'border:1.5px solid rgba(16,185,129,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'منجز', statusIcon: '✅' },
                 cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'تجريبي', statusIcon: '🛒' },
@@ -871,10 +880,12 @@ export default function Tree({
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
                             <span style="font-size:${metaFontSize};font-weight:700;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">م ${course.semester || 1}</span>
+                            ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
                     </div>
                     ${isCriticalPath ? `<div style="position:absolute;top:-4px;left:-4px;width:22px;height:22px;background:#ef4444;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,0.4);z-index:20;animation:bounce 1s infinite;" title="مسار حرج!">🚨</div>` : ''}
                     ${isBottleneck ? `<div style="position:absolute;top:-4px;right:-4px;width:22px;height:22px;background:#a855f7;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(168,85,247,0.4);z-index:20;" title="مفصلية: تفتح ${unlocksCount} مواد">🔑</div>` : ''}
+                    ${difficultyInfo ? `<div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:40px;height:3px;background:${difficultyInfo.color};border-radius:2px;opacity:${status === 'passed' ? '0.5' : '0.8'};"></div>` : ''}
                 </div>
             `;
 
@@ -1516,7 +1527,7 @@ export default function Tree({
                             <span className="text-white/60 font-[800] text-[11px] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">{selectedCourse.credit_hours} ساعات</span>
                         </div>
                         <h2 className="text-xl font-[900] text-white leading-tight">{selectedCourse.name}</h2>
-                        <p className="text-[11px] text-white/40 font-bold mt-1.5 font-i">المستوى: {selectedCourse.semester || 1}</p>
+                        <p className="text-[11px] text-white/40 font-bold mt-1.5 font-i">المستوى الافتراضي: {selectedCourse.semester || 1}</p>
                     </div>
                 </div>
 
