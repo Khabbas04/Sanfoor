@@ -882,7 +882,7 @@ export default function Tree({
                             ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
                     </div>
-                    ${isCriticalPath ? `<div style="position:absolute;top:50%;left:50%;width:24px;height:24px;transform:translate(-50%,-50%);background:rgba(239,68,68,0.95);border:2px solid rgba(255,255,255,0.95);border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;font-weight:900;color:#fff;box-shadow:0 0 0 4px rgba(239,68,68,0.14),0 6px 16px rgba(239,68,68,0.35);z-index:20;animation:pulse 1.5s ease-in-out infinite;pointer-events:none;" title="مسار حرج">!</div>` : ''}
+                    ${isCriticalPath ? `<div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ef4444 0%,#fb7185 50%,#f43f5e 100%);box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset,0 2px 10px rgba(239,68,68,0.25);z-index:20;pointer-events:none;" title="هذه مادة على المسار الحرج"></div>` : ''}
                 </div>
             `;
 
@@ -2122,25 +2122,42 @@ export default function Tree({
                             </div>
                         )}
 
-                        {/* 🎨 دليل الألوان — قابل للطي */}
+                        {/* 🌳 دليل الشجرة — قابل للطي */}
                         <div className="absolute top-3 left-3 z-20 hidden md:block" dir="rtl">
                             <button onClick={() => setLegendOpen(!legendOpen)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-[800] transition-all shadow-md active:scale-95 ${legendOpen ? 'bg-slate-900 text-white' : 'bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200/60 hover:bg-slate-50'}`}>
-                                🎨 {legendOpen ? 'إخفاء الدليل' : 'دليل الألوان'}
+                                🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
                             </button>
                             {legendOpen && (
                                 <div className="mt-2 bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200/60 flex flex-col gap-2" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الحالات</p>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
                                         {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
                                             <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
                                         ))}
                                     </div>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الأشكال</p>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الصعوبة</p>
+                                    <div className="flex flex-col gap-2 pb-2 border-b border-slate-100 mb-2">
+                                        {[
+                                            { color: 'bg-emerald-500', title: 'خفيف', desc: 'عادةً من 1 إلى 2، ويكون الحمل الدراسي أخف.' },
+                                            { color: 'bg-amber-500', title: 'متوازن', desc: 'عادةً 3، ويعني مادة بعبء متوسط.' },
+                                            { color: 'bg-rose-500', title: 'مكثّف', desc: 'عادةً من 4 إلى 5، وتحتاج وقت ومجهود أعلى.' },
+                                        ].map(item => (
+                                            <div key={item.title} className="flex items-start justify-end gap-2">
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-[800] text-slate-700 leading-tight">{item.title}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 leading-snug">{item.desc}</p>
+                                                </div>
+                                                <span className={`mt-0.5 w-3 h-3 rounded-full ${item.color} shadow-sm shrink-0`} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الرموز</p>
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span><div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">علامة المسار الحرج: هذه المادة إذا تأخرت قد تؤخر التخرج</span><span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm">!</span></div>
                                     </div>
                                 </div>
                             )}
