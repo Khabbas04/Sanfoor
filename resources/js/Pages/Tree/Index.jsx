@@ -881,9 +881,11 @@ export default function Tree({
                             <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
                             ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
+                        <div style="display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin-top:6px;min-height:18px;">
+                            ${isCriticalPath ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(239,68,68,0.16);border:1px solid rgba(239,68,68,0.28);color:${t.textColor};font-size:10px;font-weight:800;line-height:1;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(239,68,68,0.10);" title="مسار حرج">🚨 <span>حرج</span></span>` : ''}
+                            ${isBottleneck ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(168,85,247,0.16);border:1px solid rgba(168,85,247,0.28);color:${t.textColor};font-size:10px;font-weight:800;line-height:1;backdrop-filter:blur(4px);box-shadow:0 2px 8px rgba(168,85,247,0.10);" title="مفصلية: تفتح ${unlocksCount} مواد">🔑 <span>${unlocksCount} فتحات</span></span>` : ''}
+                        </div>
                     </div>
-                    ${isCriticalPath ? `<div style="position:absolute;top:-4px;left:-4px;width:22px;height:22px;background:#ef4444;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,0.4);z-index:20;animation:bounce 1s infinite;" title="مسار حرج!">🚨</div>` : ''}
-                    ${isBottleneck ? `<div style="position:absolute;top:-4px;right:-4px;width:22px;height:22px;background:#a855f7;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(168,85,247,0.4);z-index:20;" title="مفصلية: تفتح ${unlocksCount} مواد">🔑</div>` : ''}
                     ${difficultyInfo ? `<div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:40px;height:3px;background:${difficultyInfo.color};border-radius:2px;opacity:${status === 'passed' ? '0.5' : '0.8'};"></div>` : ''}
                 </div>
             `;
