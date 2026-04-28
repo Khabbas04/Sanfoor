@@ -134,6 +134,8 @@ export default function Tree({
     const [smartMetaByCourseId, setSmartMetaByCourseId] = useState({});
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
+    const [compareCourse, setCompareCourse] = useState(null);
+    const [showTreeGuideTip, setShowTreeGuideTip] = useState(false);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
     const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 720);
@@ -467,6 +469,22 @@ export default function Tree({
     }, [isPortraitMobile]);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const seenTreeGuide = window.localStorage.getItem('sanfoor-tree-guide-tip-seen') === '1';
+        setShowTreeGuideTip(!seenTreeGuide);
+    }, []);
+
+    const dismissTreeGuideTip = useCallback(() => {
+        setShowTreeGuideTip(false);
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem('sanfoor-tree-guide-tip-seen', '1');
+        } catch (error) {
+            // Ignore storage errors in private/incognito contexts.
+        }
+    }, []);
+
+    useEffect(() => {
         if (!isMobile) {
             setIsSidebarOpen(false);
         }
@@ -796,6 +814,8 @@ export default function Tree({
             const isCriticalPath = depth >= 2 && status !== 'passed';
             const unlocksCount = courses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
             const isBottleneck = unlocksCount >= 3 && status !== 'passed';
+            const difficultyLevel = Number(course.difficulty_level ?? 3);
+            const difficultyBand = difficultyLevel <= 2 ? 'easy' : (difficultyLevel === 3 ? 'balanced' : 'heavy');
 
             const isElective = course.type === 'elective';
             const isSupporting = course.type === 'supporting';
@@ -838,6 +858,9 @@ export default function Tree({
 
             let isFilteredOut = false;
             if (filterMode === 'available' && status !== 'available') isFilteredOut = true;
+            if (filterMode === 'easy' && difficultyBand !== 'easy') isFilteredOut = true;
+            if (filterMode === 'balanced' && difficultyBand !== 'balanced') isFilteredOut = true;
+            if (filterMode === 'heavy' && difficultyBand !== 'heavy') isFilteredOut = true;
             // 🆕 FIX: فلتر المسار الحرج يستخدم السلسلة الكاملة بدل المادة لحالها
             if (filterMode === 'critical' && !criticalChainIds.has(course.id)) isFilteredOut = true;
 
@@ -911,12 +934,18 @@ export default function Tree({
                     const isBackwardEdge = backwardIds.includes(prereq.id) && backwardIds.includes(course.id);
                     const isForwardEdge = forwardIds.includes(prereq.id) && forwardIds.includes(course.id);
                     const isActivePath = isBackwardEdge || isForwardEdge;
+                    const prereqCourse = courses.find(c => c.id === prereq.id);
+                    const prereqDifficultyLevel = Number(prereqCourse?.difficulty_level ?? 3);
+                    const prereqDifficultyBand = prereqDifficultyLevel <= 2 ? 'easy' : (prereqDifficultyLevel === 3 ? 'balanced' : 'heavy');
 
                     let edgeColor = isActivePath ? (isForwardEdge ? '#a855f7' : '#d97706') : (isSourceDone ? '#10b981' : '#cbd5e1');
                     let edgeWidth = isActivePath ? 3.5 : (isSourceDone ? 2.5 : 1.5);
                     let isAnimated = (isSourceDone && status !== 'passed') || isActivePath;
                     let edgeFilteredOut = false;
                     if (filterMode === 'available' && status !== 'available') edgeFilteredOut = true;
+                    if (filterMode === 'easy' && (difficultyBand !== 'easy' || prereqDifficultyBand !== 'easy')) edgeFilteredOut = true;
+                    if (filterMode === 'balanced' && (difficultyBand !== 'balanced' || prereqDifficultyBand !== 'balanced')) edgeFilteredOut = true;
+                    if (filterMode === 'heavy' && (difficultyBand !== 'heavy' || prereqDifficultyBand !== 'heavy')) edgeFilteredOut = true;
                     // 🆕 FIX: edges تستخدم نفس سلسلة الفلتر
                     if (filterMode === 'critical' && !criticalChainIds.has(course.id) && !criticalChainIds.has(prereq.id)) edgeFilteredOut = true;
 
@@ -970,12 +999,27 @@ export default function Tree({
 
     const onPaneClick = useCallback(() => {
         setSelectedCourse(null);
+        setCompareCourse(null);
         if (isMobile) setIsSidebarOpen(false);
     }, [isMobile]);
 
     const onNodeClick = useCallback((e, node) => {
         const course = courses.find(c => c.id === parseInt(node.id));
-        setSelectedCourse(course);
+        if (!course) return;
+
+        if (!selectedCourse || selectedCourse.id === course.id) {
+            setSelectedCourse(course);
+            if (compareCourse?.id === course.id) {
+                setCompareCourse(null);
+            }
+        } else if (!compareCourse) {
+            setCompareCourse(course);
+        } else if (compareCourse.id === course.id) {
+            setCompareCourse(null);
+        } else {
+            setCompareCourse(course);
+        }
+
         if (course) {
             const next = legacyPlanSemesterToYearTerm(course.semester || 1);
             setTargetYear(next.year);
@@ -984,7 +1028,7 @@ export default function Tree({
         }
         setActiveTab('details');
         if (isMobile && !isFullScreen) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen]);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, selectedCourse, compareCourse]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -1571,6 +1615,95 @@ export default function Tree({
                     </div>
                 )}
 
+                {/* ⏳ مؤشر مخاطر التأخير */}
+                {(getCourseDepth(selectedCourse.id) >= 2 || getTotalImpact(selectedCourse.id) >= 3 || Number(selectedCourse.difficulty_level || 0) >= 4) && (
+                    <div className={`rounded-[1.25rem] border p-4 shadow-sm backdrop-blur-sm ${getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5 ? 'bg-rose-500/12 border-rose-400/25' : 'bg-amber-500/12 border-amber-400/25'}`}>
+                        <div className="flex items-start gap-3">
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg shrink-0 ${getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5 ? 'bg-rose-500 text-white shadow-[0_0_18px_rgba(244,63,94,0.25)]' : 'bg-amber-500 text-white shadow-[0_0_18px_rgba(245,158,11,0.2)]'}`}>
+                                ⏳
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2 mb-1.5">
+                                    <h4 className={`font-[900] text-[13px] ${getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5 ? 'text-rose-200' : 'text-amber-200'}`}>مؤشر مخاطر التأخير</h4>
+                                    <span className={`text-[9px] font-[900] px-2 py-1 rounded-full border ${getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5 ? 'bg-rose-500/20 text-rose-100 border-rose-400/25' : 'bg-amber-500/20 text-amber-100 border-amber-400/25'}`}>
+                                        {getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5 ? 'مرتفع' : 'متوسط'}
+                                    </span>
+                                </div>
+                                <p className={`text-[11px] font-bold leading-relaxed ${getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5 ? 'text-rose-100/80' : 'text-amber-100/80'}`}>
+                                    {getCourseDepth(selectedCourse.id) >= 3 || getTotalImpact(selectedCourse.id) >= 5
+                                        ? 'هذه المادة حساسة جدًا لأن التأخير فيها قد يؤخر مواد كثيرة بعدها أو يؤخر التخرج.'
+                                        : 'تأخير هذه المادة قد يبطئ مسارك، لأنها ترتبط بعدد مهم من المواد التالية.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ⚖️ مقارنة سريعة */}
+                {compareCourse && compareCourse.id !== selectedCourse.id && (
+                    <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-xl">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                            <div>
+                                <h4 className="text-white font-[900] text-[13px]">مقارنة سريعة</h4>
+                                <p className="text-[10px] text-white/50 font-bold mt-0.5">الأولى هي المادة الحالية، والثانية هي المادة التي ضغطتها بعدها.</p>
+                            </div>
+                            <button type="button" onClick={() => setCompareCourse(null)} className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all flex items-center justify-center text-sm">✕</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2.5">
+                            {[
+                                { course: selectedCourse, label: 'المادة الأولى', tone: 'indigo' },
+                                { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
+                            ].map(({ course, label, tone }) => {
+                                const courseDifficulty = Number(course.difficulty_level || 3);
+                                const courseImpact = getTotalImpact(course.id);
+                                return (
+                                    <button
+                                        key={course.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedCourse(course);
+                                            setCompareCourse(null);
+                                        }}
+                                        className={`text-right rounded-2xl border p-3 transition-all hover:-translate-y-0.5 ${tone === 'indigo' ? 'bg-indigo-500/10 border-indigo-400/20 hover:bg-indigo-500/15' : 'bg-violet-500/10 border-violet-400/20 hover:bg-violet-500/15'}`}
+                                    >
+                                        <p className={`text-[9px] font-[900] mb-1 ${tone === 'indigo' ? 'text-indigo-200' : 'text-violet-200'}`}>{label}</p>
+                                        <p className="text-[12px] font-[900] text-white leading-tight truncate">{course.name}</p>
+                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                            <span className={`text-[9px] font-[900] px-2 py-0.5 rounded-full border ${tone === 'indigo' ? 'bg-white/10 text-white/80 border-white/10' : 'bg-white/10 text-white/80 border-white/10'}`}>صعوبة {courseDifficulty}/5</span>
+                                            <span className="text-[9px] font-[900] px-2 py-0.5 rounded-full border bg-white/10 text-white/80 border-white/10">تأثير {courseImpact}</span>
+                                        </div>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2.5">
+                            {(() => {
+                                const firstDifficulty = Number(selectedCourse.difficulty_level || 3);
+                                const secondDifficulty = Number(compareCourse.difficulty_level || 3);
+                                const firstImpact = getTotalImpact(selectedCourse.id);
+                                const secondImpact = getTotalImpact(compareCourse.id);
+                                const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : selectedCourse;
+                                const moreImpactCourse = secondImpact > firstImpact ? compareCourse : selectedCourse;
+
+                                return (
+                                    <>
+                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
+                                            <p className="text-[9px] font-[900] text-white/50 mb-1">الأثقل</p>
+                                            <p className="text-[12px] font-[900] text-white leading-tight truncate">{harderCourse.name}</p>
+                                            <p className="text-[10px] font-bold text-white/45 mt-1">صعوبة {Math.max(firstDifficulty, secondDifficulty)}/5</p>
+                                        </div>
+                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3">
+                                            <p className="text-[9px] font-[900] text-white/50 mb-1">الأكثر تأثيرًا</p>
+                                            <p className="text-[12px] font-[900] text-white leading-tight truncate">{moreImpactCourse.name}</p>
+                                            <p className="text-[10px] font-bold text-white/45 mt-1">مفتاح {Math.max(firstImpact, secondImpact)} مادة</p>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                )}
+
                 {/* 🆕 بطاقات تحليل سنفور */}
                 {getCourseInsights(selectedCourse).length > 0 && (
                     <div className="space-y-2.5">
@@ -2099,12 +2232,43 @@ export default function Tree({
                             </div>
                         )}
 
+                        {showTreeGuideTip && (
+                            <div className="absolute z-30 left-1/2 -translate-x-1/2 w-[min(92%,38rem)]" style={{ top: showRotateHint && !isFullScreen ? '7.1rem' : '4.75rem' }} dir="rtl">
+                                <div className="overflow-hidden rounded-[1.35rem] border border-white/15 bg-slate-950/90 shadow-2xl backdrop-blur-xl">
+                                    <div className="flex items-start justify-between gap-3 bg-gradient-to-l from-sky-600 via-indigo-600 to-violet-600 px-4 py-3 text-white">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-[900] uppercase tracking-[0.18em] text-white/70 mb-1">نظرة سريعة على الشجرة</p>
+                                            <h3 className="text-[13px] sm:text-sm font-[900] leading-tight">دليل سريع لفهم الشجرة خلال ثوانٍ</h3>
+                                        </div>
+                                        <button type="button" onClick={dismissTreeGuideTip} className="shrink-0 w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 text-white/85 transition-all flex items-center justify-center text-sm">✕</button>
+                                    </div>
+                                    <div className="grid gap-2 p-3 text-right sm:grid-cols-3">
+                                        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-3">
+                                            <p className="text-[10px] font-[900] text-sky-200 mb-1">الألوان</p>
+                                            <p className="text-[10px] font-bold leading-snug text-white/75">تعكس حالة المادة: متاح، منجز، أو مقفل.</p>
+                                        </div>
+                                        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3">
+                                            <p className="text-[10px] font-[900] text-rose-200 mb-1">المسار الحرج</p>
+                                            <p className="text-[10px] font-bold leading-snug text-white/75">أي تأخير فيها قد ينعكس على تخرجك لأنها تؤثر على مواد كثيرة بعدها.</p>
+                                        </div>
+                                        <div className="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-3">
+                                            <p className="text-[10px] font-[900] text-violet-200 mb-1">المقارنة</p>
+                                            <p className="text-[10px] font-bold leading-snug text-white/75">اضغط مادة ثانية بعد الأولى لتعرف أيهما أثقل وأيهما تؤثر أكثر.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {!isFullScreen && (
                             <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
                             {[
                                 { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
                                 { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' },
-                                { id: 'critical', label: '🚨 المسار الحرج', mobileLabel: '🚨 الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' }
+                                { id: 'critical', label: '🚨 المسار الحرج', mobileLabel: '🚨 الحرج', active: 'bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.4)]', dot: 'bg-rose-300 animate-pulse' },
+                                { id: 'easy', label: '🌿 خفيف', mobileLabel: '🌿 خفيف', active: 'bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]', dot: 'bg-emerald-300' },
+                                { id: 'balanced', label: '⚖️ متوسط', mobileLabel: '⚖️ متوسط', active: 'bg-amber-500 text-white shadow-[0_0_12px_rgba(245,158,11,0.35)]', dot: 'bg-amber-300' },
+                                { id: 'heavy', label: '🔥 صعب', mobileLabel: '🔥 صعب', active: 'bg-rose-600 text-white shadow-[0_0_12px_rgba(239,68,68,0.35)]', dot: 'bg-rose-300' }
                             ].map(f => (
                                 <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                             ))}
@@ -2173,7 +2337,7 @@ export default function Tree({
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">علامة المسار الحرج: هذه المادة إذا تأخرت قد تؤخر التخرج</span><span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] font-black shadow-sm">!</span></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
                                     </div>
                                 </div>
                             )}
