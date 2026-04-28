@@ -804,9 +804,9 @@ export default function Tree({
 
             // 🆕 دالة الحصول على لون الصعوبة
             const getDifficultyColor = (difficulty) => {
-                const level = difficulty || 3;
-                if (level >= 4) return { label: 'مكثّف', color: '#ef4444', icon: '🔥', bg: 'rgba(239,68,68,0.2)', border: '#f87171' };
-                if (level === 3) return { label: 'متوازن', color: '#f59e0b', icon: '⚡', bg: 'rgba(245,158,11,0.2)', border: '#fbbf24' };
+                if (!difficulty) return null;
+                if (difficulty >= 4) return { label: 'مكثّف', color: '#ef4444', icon: '🔥', bg: 'rgba(239,68,68,0.2)', border: '#f87171' };
+                if (difficulty === 3) return { label: 'متوازن', color: '#f59e0b', icon: '⚡', bg: 'rgba(245,158,11,0.2)', border: '#fbbf24' };
                 return { label: 'خفيف', color: '#10b981', icon: '✨', bg: 'rgba(16,185,129,0.2)', border: '#6ee7b7' };
             };
             const difficultyInfo = getDifficultyColor(course.difficulty_level);
@@ -880,12 +880,12 @@ export default function Tree({
                         <div style="display:flex;justify-content:space-between;align-items:center;">
                             <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
                             <span style="font-size:${metaFontSize};font-weight:700;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">م ${course.semester || 1}</span>
-                            <span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level || 3}</span>
+                            ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
                     </div>
                     ${isCriticalPath ? `<div style="position:absolute;top:-4px;left:-4px;width:22px;height:22px;background:#ef4444;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(239,68,68,0.4);z-index:20;animation:bounce 1s infinite;" title="مسار حرج!">🚨</div>` : ''}
                     ${isBottleneck ? `<div style="position:absolute;top:-4px;right:-4px;width:22px;height:22px;background:#a855f7;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;box-shadow:0 2px 8px rgba(168,85,247,0.4);z-index:20;" title="مفصلية: تفتح ${unlocksCount} مواد">🔑</div>` : ''}
-                    <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:${difficultyInfo.color ? '40px' : '0'};height:3px;background:${difficultyInfo.color};border-radius:2px;opacity:${status === 'passed' ? '0.5' : '0.8'};"></div>
+                    ${difficultyInfo ? `<div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:40px;height:3px;background:${difficultyInfo.color};border-radius:2px;opacity:${status === 'passed' ? '0.5' : '0.8'};"></div>` : ''}
                 </div>
             `;
 
@@ -1549,11 +1549,13 @@ export default function Tree({
                             <p className="text-2xl font-[900] text-cyan-300 leading-none">{getCourseDepth(selectedCourse.id)}</p>
                             <p className="text-[8px] text-white/30 font-bold mt-0.5">مستوى</p>
                         </div>
+                        {selectedCourse.difficulty_level && (
                         <div className={`rounded-xl p-3 text-center backdrop-blur-sm border ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
-                            <p className="text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}">الصعوبة</p>
-                            <p className={`text-2xl font-[900] leading-none ${selectedCourse.difficulty_level >= 4 ? 'text-rose-400' : selectedCourse.difficulty_level === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{selectedCourse.difficulty_level || 3}</p>
+                            <p className={`text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}`}>الصعوبة</p>
+                            <p className={`text-2xl font-[900] leading-none ${selectedCourse.difficulty_level >= 4 ? 'text-rose-400' : selectedCourse.difficulty_level === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{selectedCourse.difficulty_level}</p>
                             <p className={`text-[8px] font-bold mt-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-white/30' : selectedCourse.difficulty_level === 3 ? 'text-white/30' : 'text-white/30'}`}>/5</p>
                         </div>
+                        )}
                     </div>
                 )}
 
