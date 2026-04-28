@@ -2184,7 +2184,10 @@ export default function Tree({
                         </ReactFlow>
 
                         {isFullScreen && selectedCourse && (
-                            <div className="absolute inset-x-0 bottom-0 z-40 h-[58%] bg-slate-900/95 border-t border-white/10 backdrop-blur-xl flex flex-col">
+                            <div
+                                className="absolute inset-y-0 right-0 z-40 w-full sm:w-[26rem] lg:w-[30rem] xl:w-[32rem] bg-slate-900/95 border-l border-white/10 backdrop-blur-xl flex flex-col shadow-2xl"
+                                style={{ width: isMobile ? '100%' : 'clamp(20rem, 30vw, 32rem)' }}
+                            >
                                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                                     <span className="text-white font-[900] text-[12px]">تفاصيل المادة</span>
                                     <button
