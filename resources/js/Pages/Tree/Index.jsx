@@ -1527,29 +1527,45 @@ export default function Tree({
                     </div>
                 </div>
 
-                {/* 🆕 نقاط الأولوية + التأثير + العمق + الصعوبة */}
+                {/* 🆕 نقاط الأولوية + التأثير + الصعوبة */}
                 {getStatus(selectedCourse) !== 'passed' && (
-                    <div className="grid grid-cols-4 gap-2.5">
-                        <div className="bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
+                    <div className="grid grid-cols-3 gap-2.5">
+                        <div className="group relative bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm overflow-visible">
                             <p className="text-[8px] font-[800] text-indigo-300 uppercase mb-1">الأولوية</p>
                             <p className={`text-2xl font-[900] leading-none ${getCoursePriority(selectedCourse) >= 70 ? 'text-rose-400' : getCoursePriority(selectedCourse) >= 40 ? 'text-amber-400' : 'text-indigo-300'}`}>{getCoursePriority(selectedCourse)}%</p>
                             <p className="text-[8px] text-white/30 font-bold mt-0.5">نسبة</p>
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                                <div className="relative rounded-xl border border-indigo-200 bg-slate-950/95 px-3 py-2 text-right shadow-2xl backdrop-blur-md">
+                                    <p className="text-[10px] font-[900] text-indigo-200 mb-0.5">ما معنى الأولوية؟</p>
+                                    <p className="text-[10px] font-bold leading-snug text-white/75">كلما ارتفعت النسبة، كانت المادة أهم في ترتيب دراستك وتأثيرها على التقدم أكبر.</p>
+                                    <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-indigo-200 bg-slate-950/95"></span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
+                        <div className="group relative bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm overflow-visible">
                             <p className="text-[8px] font-[800] text-violet-300 uppercase mb-1">التأثير</p>
                             <p className="text-2xl font-[900] text-violet-300 leading-none">{getTotalImpact(selectedCourse.id)}</p>
                             <p className="text-[8px] text-white/30 font-bold mt-0.5">مادة</p>
-                        </div>
-                        <div className="bg-cyan-500/15 border border-cyan-400/20 rounded-xl p-3 text-center backdrop-blur-sm">
-                            <p className="text-[8px] font-[800] text-cyan-300 uppercase mb-1">العمق</p>
-                            <p className="text-2xl font-[900] text-cyan-300 leading-none">{getCourseDepth(selectedCourse.id)}</p>
-                            <p className="text-[8px] text-white/30 font-bold mt-0.5">مستوى</p>
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                                <div className="relative rounded-xl border border-violet-200 bg-slate-950/95 px-3 py-2 text-right shadow-2xl backdrop-blur-md">
+                                    <p className="text-[10px] font-[900] text-violet-200 mb-0.5">ما معنى التأثير؟</p>
+                                    <p className="text-[10px] font-bold leading-snug text-white/75">هذا الرقم يوضح كم مادة أخرى تعتمد على هذه المادة، يعني كم مادة ممكن تتأثر إذا تأخرت.</p>
+                                    <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-violet-200 bg-slate-950/95"></span>
+                                </div>
+                            </div>
                         </div>
                         {selectedCourse.difficulty_level && (
-                        <div className={`rounded-xl p-3 text-center backdrop-blur-sm border ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
+                        <div className={`group relative rounded-xl p-3 text-center backdrop-blur-sm border overflow-visible ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
                             <p className={`text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}`}>الصعوبة</p>
                             <p className={`text-2xl font-[900] leading-none ${selectedCourse.difficulty_level >= 4 ? 'text-rose-400' : selectedCourse.difficulty_level === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{selectedCourse.difficulty_level}</p>
                             <p className={`text-[8px] font-bold mt-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-white/30' : selectedCourse.difficulty_level === 3 ? 'text-white/30' : 'text-white/30'}`}>/5</p>
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                                <div className="relative rounded-xl border px-3 py-2 text-right shadow-2xl backdrop-blur-md bg-slate-950/95 border-slate-700/80">
+                                    <p className={`text-[10px] font-[900] mb-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-200' : selectedCourse.difficulty_level === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>ما معنى الصعوبة؟</p>
+                                    <p className="text-[10px] font-bold leading-snug text-white/75">هذا الرقم يشرح ثقل المادة الدراسي: خفيف، متوسط، أو مكثف حسب الجهد المتوقع.</p>
+                                    <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-slate-700/80 bg-slate-950/95"></span>
+                                </div>
+                            </div>
                         </div>
                         )}
                     </div>
