@@ -1112,7 +1112,7 @@ class AiAdvisorController extends Controller
         $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
         $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float)$gpaData['percentage'] < 60;
 
-        return Inertia::render('Ai/Advisor', [
+        return Inertia::render('AI/Advisor', [
             'studentStats' => [
                 'name' => $user->name ?? 'طالب',
                 'major' => $majorName,
