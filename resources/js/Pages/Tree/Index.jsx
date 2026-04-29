@@ -135,6 +135,7 @@ export default function Tree({
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
     const [compareMode, setCompareMode] = useState(false);
+    const [compareFirstCourse, setCompareFirstCourse] = useState(null);
     const [compareCourse, setCompareCourse] = useState(null);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
@@ -971,6 +972,7 @@ export default function Tree({
     const onPaneClick = useCallback(() => {
         setSelectedCourse(null);
         setCompareMode(false);
+        setCompareFirstCourse(null);
         setCompareCourse(null);
         if (isMobile) setIsSidebarOpen(false);
     }, [isMobile]);
@@ -980,7 +982,13 @@ export default function Tree({
         if (!course) return;
 
         if (compareMode) {
-            if (selectedCourse?.id === course.id) {
+            if (!compareFirstCourse) {
+                setCompareFirstCourse(course);
+                setCompareCourse(null);
+            } else if (!compareCourse) {
+                setCompareCourse(course);
+            } else if (compareFirstCourse.id === course.id) {
+                setCompareFirstCourse(course);
                 setCompareCourse(null);
             } else {
                 setCompareCourse(course);
@@ -1000,7 +1008,7 @@ export default function Tree({
         }
         setActiveTab('details');
         if (isMobile && !isFullScreen) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, selectedCourse, compareCourse, compareMode]);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, selectedCourse, compareCourse, compareFirstCourse, compareMode]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -1549,6 +1557,7 @@ export default function Tree({
                             type="button"
                             onClick={() => {
                                 setCompareMode(true);
+                                setCompareFirstCourse(null);
                                 setCompareCourse(null);
                             }}
                             className="px-3.5 py-2 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-200 border border-violet-400/20 hover:bg-violet-500/25 transition-all"
@@ -1560,6 +1569,7 @@ export default function Tree({
                             type="button"
                             onClick={() => {
                                 setCompareMode(false);
+                                setCompareFirstCourse(null);
                                 setCompareCourse(null);
                             }}
                             className="px-3.5 py-2 rounded-xl text-[11px] font-[900] bg-white/10 text-white/75 border border-white/10 hover:bg-white/15 transition-all"
@@ -1569,7 +1579,7 @@ export default function Tree({
                     )}
                     {compareMode && (
                         <span className="text-[10px] font-[800] text-violet-200/80 bg-violet-500/10 border border-violet-400/20 px-3 py-2 rounded-xl">
-                            اختر المادة الثانية من الشجرة
+                            {compareFirstCourse ? 'اختر المادة الثانية من الشجرة' : 'اختر المادة الأولى من الشجرة'}
                         </span>
                     )}
                 </div>
@@ -2305,22 +2315,23 @@ export default function Tree({
                             />
                         </ReactFlow>
 
-                        {compareMode && selectedCourse && (
+                        {compareMode && (
                             <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6" dir="rtl">
-                                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => { setCompareMode(false); setCompareCourse(null); }} />
+                                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} />
                                 <div className="relative w-full max-w-7xl max-h-[92vh] overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/96 shadow-[0_30px_100px_rgba(15,23,42,0.5)]">
                                     <div className="bg-gradient-to-l from-slate-950 via-indigo-950 to-slate-950 px-4 sm:px-6 py-4 border-b border-white/10 flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                             <p className="text-[9px] font-[900] text-white/45 uppercase tracking-[0.2em] mb-1">Course compare</p>
                                             <h3 className="text-white font-[900] text-[14px] sm:text-[15px]">مقارنة مستقلة بين مادتين</h3>
                                             <p className="text-[10px] sm:text-[11px] text-white/55 font-bold mt-1 leading-relaxed">
-                                                المادة الأولى مثبتة من التفاصيل، والآن اختر المادة الثانية من الشجرة. هذه النافذة منفصلة حتى تظل قراءة الخطة واضحة.
+                                                اضغط أول نود لتحديد المادة الأولى، ثم اضغط نود ثانية لتحديد المادة الثانية. النافذة تبقى منفصلة وتحدث تلقائيًا.
                                             </p>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 setCompareMode(false);
+                                                setCompareFirstCourse(null);
                                                 setCompareCourse(null);
                                             }}
                                             className="w-9 h-9 rounded-2xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all flex items-center justify-center text-sm shrink-0"
@@ -2331,17 +2342,15 @@ export default function Tree({
 
                                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 p-4 sm:p-6 max-h-[calc(92vh-5.5rem)] overflow-y-auto hide-scrollbar">
                                         {[
-                                            { course: selectedCourse, label: 'المادة الأولى', tone: 'indigo' },
-                                            compareCourse
-                                                ? { course: compareCourse, label: 'المادة الثانية', tone: 'violet' }
-                                                : null,
+                                            compareFirstCourse ? { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' } : null,
+                                            compareCourse ? { course: compareCourse, label: 'المادة الثانية', tone: 'violet' } : null,
                                         ].map((entry, index) => {
                                             if (!entry) {
                                                 return (
-                                                    <div key="placeholder" className="rounded-[1.5rem] border border-dashed border-white/15 bg-white/5 p-5 sm:p-6 min-h-[20rem] flex flex-col items-center justify-center text-center">
+                                                    <div key={`placeholder-${index}`} className="rounded-[1.5rem] border border-dashed border-white/15 bg-white/5 p-5 sm:p-6 min-h-[20rem] flex flex-col items-center justify-center text-center">
                                                         <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-400/20 flex items-center justify-center text-2xl mb-3 text-violet-200">+</div>
-                                                        <p className="text-[13px] font-[900] text-white mb-1">بانتظار المادة الثانية</p>
-                                                        <p className="text-[10px] font-bold text-white/45 leading-relaxed max-w-xs">اضغط على مادة أخرى من الشجرة حتى تظهر المقارنة هنا بشكل مباشر.</p>
+                                                        <p className="text-[13px] font-[900] text-white mb-1">{index === 0 ? 'بانتظار المادة الأولى' : 'بانتظار المادة الثانية'}</p>
+                                                        <p className="text-[10px] font-bold text-white/45 leading-relaxed max-w-xs">{index === 0 ? 'اضغط على مادة من الشجرة لتثبيتها كطرف أول.' : 'بعد تحديد المادة الأولى، اضغط مادة ثانية لتظهر المقارنة هنا.'}</p>
                                                     </div>
                                                 );
                                             }
@@ -2360,6 +2369,7 @@ export default function Tree({
                                                     onClick={() => {
                                                         setSelectedCourse(course);
                                                         setCompareMode(false);
+                                                        setCompareFirstCourse(null);
                                                         setCompareCourse(null);
                                                     }}
                                                     className={`group text-right rounded-[1.5rem] border p-4 sm:p-5 transition-all hover:-translate-y-0.5 ${tone === 'indigo' ? 'bg-indigo-500/10 border-indigo-400/20 hover:bg-indigo-500/15' : 'bg-violet-500/10 border-violet-400/20 hover:bg-violet-500/15'}`}
@@ -2405,7 +2415,7 @@ export default function Tree({
                                                     </div>
 
                                                     <p className="mt-3 text-[10px] font-bold text-white/45 leading-relaxed">
-                                                        اضغط على هذه البطاقة لفتحها مباشرة وإغلاق المقارنة.
+                                                        اضغط على هذه البطاقة لتثبيتها كطرف {label === 'المادة الأولى' ? 'أول' : 'ثاني'}.
                                                     </p>
                                                 </button>
                                             );
@@ -2418,20 +2428,20 @@ export default function Tree({
                                         </div>
                                     </div>
 
-                                    {compareCourse ? (
+                                    {compareFirstCourse && compareCourse ? (
                                         <div className="px-4 sm:px-6 pb-5 sm:pb-6">
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                                 {(() => {
-                                                    const firstDifficulty = Number(selectedCourse.difficulty_level || 3);
+                                                    const firstDifficulty = Number(compareFirstCourse.difficulty_level || 3);
                                                     const secondDifficulty = Number(compareCourse.difficulty_level || 3);
-                                                    const firstImpact = getTotalImpact(selectedCourse.id);
+                                                    const firstImpact = getTotalImpact(compareFirstCourse.id);
                                                     const secondImpact = getTotalImpact(compareCourse.id);
-                                                    const firstPriority = getCoursePriority(selectedCourse);
+                                                    const firstPriority = getCoursePriority(compareFirstCourse);
                                                     const secondPriority = getCoursePriority(compareCourse);
 
-                                                    const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : selectedCourse;
-                                                    const moreImpactCourse = secondImpact > firstImpact ? compareCourse : selectedCourse;
-                                                    const higherPriorityCourse = secondPriority > firstPriority ? compareCourse : selectedCourse;
+                                                    const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : compareFirstCourse;
+                                                    const moreImpactCourse = secondImpact > firstImpact ? compareCourse : compareFirstCourse;
+                                                    const higherPriorityCourse = secondPriority > firstPriority ? compareCourse : compareFirstCourse;
                                                     const difficultyGap = Math.abs(secondDifficulty - firstDifficulty);
                                                     const impactGap = Math.abs(secondImpact - firstImpact);
                                                     const priorityGap = Math.abs(secondPriority - firstPriority);
@@ -2480,7 +2490,7 @@ export default function Tree({
                                         <div className="px-4 sm:px-6 pb-5 sm:pb-6">
                                             <div className="rounded-2xl border border-violet-400/20 bg-violet-500/10 p-4 text-right">
                                                 <p className="text-[10px] font-[900] text-violet-200 mb-1">خطوة المقارنة التالية</p>
-                                                <p className="text-[11px] font-bold text-white/65 leading-relaxed">الآن اختر مادة ثانية من الشجرة، وبعدها ستظهر مقارنة ذكية فيها الصعوبة والتأثير والأولوية بشكل منفصل وواضح.</p>
+                                                <p className="text-[11px] font-bold text-white/65 leading-relaxed">{compareFirstCourse ? 'الآن اختر مادة ثانية من الشجرة، وبعدها ستظهر المقارنة هنا.' : 'ابدأ باختيار المادة الأولى من الشجرة حتى نثبتها في المقارنة.'}</p>
                                             </div>
                                         </div>
                                     )}
