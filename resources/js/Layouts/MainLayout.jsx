@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
-import AiWidget from '@/Pages/AI/AiWidget';
+import AiWidget from '@/Pages/Ai/AiWidget';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false }) {
