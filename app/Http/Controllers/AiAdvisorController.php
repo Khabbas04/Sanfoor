@@ -48,7 +48,7 @@ class AiAdvisorController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return Inertia::render('Ai/Advisor', [
+        return Inertia::render('AI/Advisor', [
             'studentStats' => [
                 'name' => $user->name ?? 'طالب',
                 'major' => $user->major?->name ?? 'غير محدد',
