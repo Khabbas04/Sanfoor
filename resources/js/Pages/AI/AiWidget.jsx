@@ -48,9 +48,11 @@ export default function AiWidget({ user }) {
             const response = await axios.post(route('ai.advisor.chat'), { message: msg });
             if (response.data.status === 'success') {
                 setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: response.data.reply }]);
+            } else {
+                setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: response.data.message || 'في مشكلة بالاتصال، جرب كمان شوي.' }]);
             }
         } catch (error) {
-            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: 'في مشكلة بالاتصال، جرب كمان شوي.' }]);
+            setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: error?.response?.data?.message || 'في مشكلة بالاتصال، جرب كمان شوي.' }]);
         } finally {
             setIsTyping(false);
         }

@@ -432,9 +432,16 @@ export default function Advisor() {
     const [loadId, setLoadId] = useState(null);
 
     const chatRef = useRef(null), inputRef = useRef(null), abortRef = useRef(null);
+    const typewriterTimeoutRef = useRef(null);
     const isMobileViewport = viewportWidth < 1024;
     const scroll = useCallback(() => { chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' }); }, []);
     useEffect(() => { const t = setTimeout(scroll, 60); return () => clearTimeout(t); }, [msgs, typing]);
+
+    useEffect(() => {
+        return () => {
+            if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         const onResize = () => setViewportWidth(window.innerWidth);
@@ -443,8 +450,21 @@ export default function Advisor() {
         return () => window.removeEventListener('resize', onResize);
     }, []);
 
-    const finish = useCallback(() => { setGenerating(false); setMsgs(p => p.map((m, i) => i === p.length - 1 && m.role === 'ai' && m.isAnimating ? { ...m, isAnimating: false } : m)); setTimeout(scroll, 100); }, [scroll]);
-    const newChat = useCallback(() => { setActiveId(null); setMsgs([welcome]); setInput(''); setGenerating(false); setTyping(false); setSidebar(false); setTimeout(() => inputRef.current?.focus(), 100); }, [welcome]);
+    const finish = useCallback(() => {
+        if (typewriterTimeoutRef.current) {
+            clearTimeout(typewriterTimeoutRef.current);
+            typewriterTimeoutRef.current = null;
+        }
+        setGenerating(false);
+        setMsgs(p => p.map((m, i) => i === p.length - 1 && m.role === 'ai' && m.isAnimating ? { ...m, isAnimating: false } : m));
+        setTimeout(scroll, 100);
+    }, [scroll]);
+    const newChat = useCallback(() => { 
+        if (typewriterTimeoutRef.current) {
+            clearTimeout(typewriterTimeoutRef.current);
+            typewriterTimeoutRef.current = null;
+        }
+        setActiveId(null); setMsgs([welcome]); setInput(''); setGenerating(false); setTyping(false); setSidebar(false); setTimeout(() => inputRef.current?.focus(), 100); }, [welcome]);
 
     const loadChat = useCallback(async (id) => {
         if (activeId === id) { setSidebar(false); return; }
@@ -488,11 +508,13 @@ export default function Advisor() {
                     ? r.data.reply
                     : 'ما وصلني رد واضح هذه المرة. حاول إعادة الصياغة بسؤال أقصر.';
                 setGenerating(true);
+                if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
+                typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
                 setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:r.data.suggested_courses||[], courses_to_remove:r.data.courses_to_remove||[], follow_up_suggestions:r.data.follow_up_suggestions||[], interactive_widget:r.data.interactive_widget||null, isAnimating:true }]);
                 if (!activeId && r.data.chat_id) { setActiveId(r.data.chat_id); setChats(p => [{ id:r.data.chat_id, title:r.data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
                 if (r.data.chat_title && r.data.chat_id) setChats(p => p.map(c => c.id===r.data.chat_id ? {...c, title:r.data.chat_title} : c));
-            } else { setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:'الخادم مشغول، حاول ثانية. 🔄', isAnimating:false }]); }
-        } catch(e) { if (axios.isCancel?.(e)) return; setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:'انقطع الاتصال. 📡', isAnimating:false }]); }
+            } else { setGenerating(false); setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:r.data.message || 'الخادم مشغول، حاول ثانية. 🔄', isAnimating:false }]); }
+        } catch(e) { if (axios.isCancel?.(e)) return; setGenerating(false); setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:e?.response?.data?.message || 'انقطع الاتصال. 📡', isAnimating:false }]); }
         finally { setTyping(false); }
     }, [activeId, generating, typing, magicCommands]);
 

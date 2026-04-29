@@ -1289,6 +1289,15 @@ class AiAdvisorController extends Controller
         } catch (\Exception $e) {
             Log::error("Gemini AI Error: {$e->getMessage()} on line {$e->getLine()} in {$e->getFile()}");
 
+            $errorMessage = $e->getMessage();
+            if (str_contains($errorMessage, '429') || str_contains($errorMessage, 'quota') || str_contains($errorMessage, 'RESOURCE_EXHAUSTED')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'خدمة الذكاء الاصطناعي وصلت للحد المسموح من Gemini حالياً. لازم تراجع quota/billing للمفتاح أو تنتظر إعادة التفعيل.',
+                    'chat_id' => $chatId,
+                ], 429);
+            }
+
             return response()->json([
                 'status' => 'success',
                 'reply' => "⚠️ صار تأخير أو مشكلة مؤقتة بالرد.\n\nحاول مرة ثانية بسؤال أقصر، وأنا جاهز.",
