@@ -1,4 +1,4 @@
-// resources/js/Components/AI/AiWidget.jsx
+// resources/js/Pages/Ai/AiWidget.jsx
 
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
