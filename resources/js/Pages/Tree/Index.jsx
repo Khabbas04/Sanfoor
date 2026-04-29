@@ -148,6 +148,108 @@ export default function Tree({
     const [flowInstance, setFlowInstance] = useState(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
 
+    const isMobile = viewportWidth < 1024;
+    const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
+    const isLandscapeMobile = isMobile && viewportWidth >= viewportHeight;
+    const showRotateHint = isPortraitMobile && !dismissedRotateHint;
+    const orientationRef = useRef(isLandscapeMobile ? 'landscape' : 'portrait');
+    const filterButtonSizing = isLandscapeMobile ? 'px-3 py-1.5 text-[10px]' : 'px-3.5 py-2 text-[11px]';
+
+    const semesterToYearTerm = useCallback((semesterValue) => {
+        const normalized = Math.min(18, Math.max(1, parseInt(semesterValue, 10) || 1));
+        return {
+            year: Math.ceil(normalized / 3),
+            term: ((normalized - 1) % 3) + 1,
+        };
+    }, []);
+
+    // Used to decode legacy plan-level semester numbering (1..12 regular terms only).
+    const legacyPlanSemesterToYearTerm = useCallback((semesterValue) => {
+        const normalized = Math.min(12, Math.max(1, parseInt(semesterValue, 10) || 1));
+        return {
+            year: Math.ceil(normalized / 2),
+            term: normalized % 2 === 0 ? 2 : 1,
+        };
+    }, []);
+
+    const yearTermToSemester = useCallback((yearValue, termValue) => {
+        const safeYear = Math.min(6, Math.max(1, parseInt(yearValue, 10) || 1));
+        const parsedTerm = parseInt(termValue, 10);
+        const safeTerm = [1, 2, 3].includes(parsedTerm) ? parsedTerm : 1;
+        return ((safeYear - 1) * 3) + safeTerm;
+    }, []);
+
+    const yearOptions = useMemo(() => ([
+        { value: 1, label: 'السنة الأولى' },
+        { value: 2, label: 'السنة الثانية' },
+        { value: 3, label: 'السنة الثالثة' },
+        { value: 4, label: 'السنة الرابعة' },
+        { value: 5, label: 'السنة الخامسة' },
+        { value: 6, label: 'السنة السادسة' },
+    ]), []);
+
+    const termOptions = useMemo(() => ([
+        { value: 1, label: 'الفصل الأول' },
+        { value: 2, label: 'الفصل الثاني' },
+        { value: 3, label: 'الفصل الصيفي' },
+    ]), []);
+
+    const suggestedStudySlot = useMemo(() => {
+        const passedArray = Array.isArray(localPassedCourses) ? localPassedCourses : [];
+
+        if (passedArray.length === 0) {
+            if (selectedCourse?.semester) {
+                return legacyPlanSemesterToYearTerm(selectedCourse.semester);
+            }
+
+            return { year: 1, term: 1 };
+        }
+
+        let maxYear = 1;
+        let maxTerm = 1;
+
+        passedArray.forEach((course) => {
+            const y = parseInt(course?.pivot?.studied_year, 10);
+            const t = parseInt(course?.pivot?.studied_term, 10);
+
+            if (y >= 1 && y <= 6 && [1, 2, 3].includes(t)) {
+                if (y > maxYear || (y === maxYear && t > maxTerm)) {
+                    maxYear = y;
+                    maxTerm = t;
+                }
+                return;
+            }
+
+            const fallback = legacyPlanSemesterToYearTerm(course?.pivot?.studied_semester || course?.semester || 1);
+            if (fallback.year > maxYear || (fallback.year === maxYear && fallback.term > maxTerm)) {
+                maxYear = fallback.year;
+                maxTerm = fallback.term;
+            }
+        });
+
+        if (maxTerm < 3) {
+            return { year: maxYear, term: maxTerm + 1 };
+        }
+
+        return { year: Math.min(6, maxYear + 1), term: 1 };
+    }, [localPassedCourses, selectedCourse, legacyPlanSemesterToYearTerm]);
+
+    const nodeDimensions = useMemo(() => (
+        isMobile
+            ? (isLandscapeMobile
+                ? { width: 170, height: 78, ranksep: 58, nodesep: 18 }
+                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 })
+            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
+    ), [isMobile, isLandscapeMobile]);
+
+    const flowView = useMemo(() => (
+        isMobile
+            ? (isLandscapeMobile
+                ? { fitPadding: 0.12, minZoom: 0.55, maxZoom: 2.2 }
+                : { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 })
+            : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
+    ), [isMobile, isLandscapeMobile]);
+
 
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
@@ -2192,6 +2294,7 @@ export default function Tree({
                                             const courseImpact = getTotalImpact(course.id);
                                             const coursePriority = getCoursePriority(course);
                                             const difficultyLabel = courseDifficulty >= 4 ? 'مكثّف' : courseDifficulty === 3 ? 'متوازن' : 'خفيف';
+                                            const statusLabel = getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'available' ? 'متاحة' : 'مقفلة';
 
                                             return (
                                                 <button
@@ -2210,6 +2313,13 @@ export default function Tree({
                                                             <p className="mt-1 text-[10px] text-white/45 font-bold truncate">{course.code} • {course.credit_hours} ساعات</p>
                                                         </div>
                                                         <span className="shrink-0 text-[9px] font-[900] px-2.5 py-1 rounded-full border bg-white/10 text-white/85 border-white/10">{course.type === 'compulsory' ? 'إجباري' : course.type === 'elective' ? 'اختياري' : course.type === 'supporting' ? 'مساندة' : 'جامعة'}</span>
+                                                    </div>
+
+                                                    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                                                        <span className={`text-[9px] font-[800] px-2 py-1 rounded-full border ${getStatus(course) === 'passed' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20' : getStatus(course) === 'available' ? 'bg-sky-500/15 text-sky-300 border-sky-400/20' : 'bg-rose-500/15 text-rose-300 border-rose-400/20'}`}>{statusLabel}</span>
+                                                        {getCourseDepth(course.id) >= 2 && (
+                                                            <span className="text-[9px] font-[800] px-2 py-1 rounded-full border bg-rose-500/10 text-rose-200 border-rose-400/20">في المسار الحرج</span>
+                                                        )}
                                                     </div>
 
                                                     <div className="grid grid-cols-3 gap-2.5">
@@ -2233,6 +2343,10 @@ export default function Tree({
                                                     <div className="mt-3 h-2 bg-white/10 rounded-full overflow-hidden">
                                                         <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(0, coursePriority))}%` }} />
                                                     </div>
+
+                                                    <p className="mt-3 text-[10px] font-bold text-white/45 leading-relaxed">
+                                                        اضغط على هذه البطاقة لفتحها مباشرة بدل إعادة اختيارها من الشجرة.
+                                                    </p>
                                                 </button>
                                             );
                                         })}
@@ -2257,6 +2371,9 @@ export default function Tree({
                                                 const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : selectedCourse;
                                                 const moreImpactCourse = secondImpact > firstImpact ? compareCourse : selectedCourse;
                                                 const higherPriorityCourse = secondPriority > firstPriority ? compareCourse : selectedCourse;
+                                                const difficultyGap = Math.abs(secondDifficulty - firstDifficulty);
+                                                const impactGap = Math.abs(secondImpact - firstImpact);
+                                                const priorityGap = Math.abs(secondPriority - firstPriority);
 
                                                 const statCard = (title, course, value, accent, helper) => (
                                                     <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5">
@@ -2276,6 +2393,20 @@ export default function Tree({
 
                                                 return (
                                                     <>
+                                                        <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                                            <div className="rounded-2xl bg-slate-950/40 border border-white/10 p-3">
+                                                                <p className="text-[9px] font-[900] text-white/45 mb-1">الخلاصة السريعة</p>
+                                                                <p className="text-[12px] font-[900] text-white leading-relaxed">{harderCourse.name} هي الأثقل من ناحية الصعوبة.</p>
+                                                            </div>
+                                                            <div className="rounded-2xl bg-slate-950/40 border border-white/10 p-3">
+                                                                <p className="text-[9px] font-[900] text-white/45 mb-1">الفروقات</p>
+                                                                <p className="text-[12px] font-[900] text-white leading-relaxed">الصعوبة {difficultyGap} نقاط، التأثير {impactGap}، والأولوية {priorityGap}%.</p>
+                                                            </div>
+                                                            <div className="rounded-2xl bg-slate-950/40 border border-white/10 p-3">
+                                                                <p className="text-[9px] font-[900] text-white/45 mb-1">قرار الدراسة</p>
+                                                                <p className="text-[12px] font-[900] text-white leading-relaxed">ابدأ بالمادة الأعلى أولوية ثم راقب المادة الأثقل.</p>
+                                                            </div>
+                                                        </div>
                                                         {statCard('الأثقل', harderCourse, `صعوبة ${Math.max(firstDifficulty, secondDifficulty)}/5`, 'bg-rose-400', harderCourse.id === selectedCourse.id ? 'يتصدر في الصعوبة' : 'يتصدر في الصعوبة')}
                                                         {statCard('الأكثر تأثيرًا', moreImpactCourse, `${Math.max(firstImpact, secondImpact)} مادة تتأثر`, 'bg-violet-400', 'الأعلى تأثيرًا على الخطة')}
                                                         {statCard('الأعلى أولوية', higherPriorityCourse, `${Math.max(firstPriority, secondPriority)}%`, 'bg-indigo-400', 'يستحق البدء به أولًا')}
