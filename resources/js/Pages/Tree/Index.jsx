@@ -1813,32 +1813,32 @@ export default function Tree({
                 })()}
 
                 {/* Actions */}
-                <div className="space-y-3 pt-2">
+                <div className="space-y-2.5 pt-1">
                     {getStatus(selectedCourse) === 'available' && (
-                        <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl mb-4 shadow-sm backdrop-blur-sm space-y-3">
-                            <span className="text-[11px] font-[900] text-emerald-400/80 flex items-center gap-2 uppercase tracking-wider">📅 تسجيل الإنجاز</span>
+                        <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
+                            <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 تحديد الإنجاز حسب السنة والفصل:</span>
                             <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <label className="text-[9px] font-bold text-slate-400 mr-1">السنة</label>
+                                <div>
+                                    <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">السنة الدراسية</label>
                                     <select
                                         value={targetYear}
                                         onChange={(e) => handleTargetYearChange(e.target.value)}
-                                        className="w-full text-[12px] font-black text-white bg-white/5 border border-white/10 rounded-xl focus:ring-1 focus:ring-emerald-500/50 py-2 px-2.5 cursor-pointer outline-none transition-all"
+                                        className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
                                     >
                                         {yearOptions.map(year => (
-                                            <option key={year.value} value={year.value} className="bg-slate-900 text-white">{year.label}</option>
+                                            <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-[9px] font-bold text-slate-400 mr-1">الفصل</label>
+                                <div>
+                                    <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">الفصل</label>
                                     <select
                                         value={targetTerm}
                                         onChange={(e) => handleTargetTermChange(e.target.value)}
-                                        className="w-full text-[12px] font-black text-white bg-white/5 border border-white/10 rounded-xl focus:ring-1 focus:ring-emerald-500/50 py-2 px-2.5 cursor-pointer outline-none transition-all"
+                                        className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
                                     >
                                         {termOptions.map(term => (
-                                            <option key={term.value} value={term.value} className="bg-slate-900 text-white">{term.label}</option>
+                                            <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -1846,29 +1846,22 @@ export default function Tree({
                             <button
                                 type="button"
                                 onClick={applySuggestedStudySlot}
-                                className="w-full text-[10px] font-black text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl py-2 transition-all flex items-center justify-center gap-2"
+                                className="w-full text-[11px] font-black text-emerald-900 bg-emerald-100/80 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 transition-colors"
                             >
-                                ✨ اقتراح: سنة {suggestedStudySlot.year} - {termOptions.find(t => t.value === suggestedStudySlot.term)?.label}
+                                ✨ اختيار تلقائي: سنة {suggestedStudySlot.year} - {termOptions.find(t => t.value === suggestedStudySlot.term)?.label || 'الفصل الأول'}
                             </button>
+                            <p className="text-[10px] font-bold text-emerald-100/70">سيتم الحفظ كسنة {targetYear} - {termOptions.find(t => t.value === targetTerm)?.label || 'الفصل الأول'}.</p>
                         </div>
                     )}
-                    
                     {getStatus(selectedCourse) === 'available' && (
-                        <div className="flex flex-col gap-2.5">
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-l from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white py-4 rounded-2xl font-[900] text-[14px] transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98] flex items-center justify-center gap-2">
-                                <span>✅</span>
-                                تأكيد اجتياز المادة
-                            </button>
-                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/80 py-3.5 rounded-2xl font-[800] text-[13px] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                <span>🛒</span>
-                                إضافة للتسجيل التجريبي
-                            </button>
-                        </div>
+                        <>
+                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
+                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-emerald-500/80 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                        </>
                     )}
-                    
                     {(getStatus(selectedCourse) === 'passed' || getStatus(selectedCourse) === 'cart') && (
-                        <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white py-4 rounded-2xl font-[900] text-[13px] transition-all active:scale-[0.98]">
-                            {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التجريبي'}
+                        <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                            {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التسجيل التجريبي'}
                         </button>
                     )}
                 </div>
@@ -1879,23 +1872,20 @@ export default function Tree({
                 <p className="font-bold text-[13px] text-center leading-relaxed text-white/50">اضغط على أي مادة في الشجرة<br />لاستكشاف مسارها الأكاديمي</p>
 
                 {getNextBestCourse() && (
-                    <div className="mt-10 w-full max-w-[340px]">
-                        <p className="text-[10px] font-[900] text-indigo-400/80 mb-3 text-center uppercase tracking-widest">💎 توصية التسجيل الذكية</p>
-                        <div className="bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-indigo-400/20 p-5 rounded-[2rem] shadow-xl relative overflow-hidden backdrop-blur-md group hover:border-indigo-400/40 transition-all">
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all" />
+                    <div className="mt-8 w-full max-w-[320px]">
+                        <p className="text-[10px] font-[800] text-indigo-400 mb-2.5 text-center">💎 المادة الأهم للتسجيل حالياً:</p>
+                        <div className="bg-indigo-500/10 border border-indigo-400/20 p-4 rounded-[1.25rem] shadow-sm relative overflow-hidden backdrop-blur-sm">
+                            <div className="absolute -top-4 -left-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl opacity-60" />
                             <div className="relative z-10">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="bg-white/5 text-indigo-200 px-2.5 py-1 rounded-lg font-mono text-[10px] font-[900] border border-white/10">{getNextBestCourse().code}</span>
-                                    <div className="text-right">
-                                        <p className="text-[9px] font-black text-indigo-300/60 uppercase">الأولوية</p>
-                                        <p className="text-[14px] font-[900] text-indigo-300">{getCoursePriority(getNextBestCourse())}%</p>
-                                    </div>
+                                <div className="flex justify-between items-start mb-2">
+                                    <span className="bg-white/10 text-white/60 px-2 py-0.5 rounded-md font-mono text-[10px] font-[800] border border-white/10">{getNextBestCourse().code}</span>
+                                    <span className="text-[10px] font-[800] text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-md">أولوية: {getCoursePriority(getNextBestCourse())}%</span>
                                 </div>
-                                <h3 className="font-[900] text-[16px] text-white mb-1.5 leading-tight">{getNextBestCourse().name}</h3>
-                                <p className="text-[10px] text-white/50 font-bold mb-5 leading-relaxed">تفتح هذه المادة {getUnlocksDetailed(getNextBestCourse().id).length} مواد وتؤثر بشكل مباشر على {getTotalImpact(getNextBestCourse().id)} مادة في خطتك.</p>
+                                <h3 className="font-[900] text-[14px] text-white mb-1">{getNextBestCourse().name}</h3>
+                                <p className="text-[10px] text-white/40 font-bold mb-3">{getNextBestCourse().credit_hours} ساعات • تفتح {getUnlocksDetailed(getNextBestCourse().id).length} مواد • تأثير على {getTotalImpact(getNextBestCourse().id)} مادة</p>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setSelectedCourse(getNextBestCourse())} className="flex-2 bg-indigo-500 hover:bg-indigo-400 text-white py-3 rounded-xl font-[900] text-[11px] shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">📖 التفاصيل</button>
-                                    <button onClick={() => toggleCart(getNextBestCourse())} className="w-12 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/20 active:scale-95 transition-all text-sm">🛒</button>
+                                    <button onClick={() => setSelectedCourse(getNextBestCourse())} className="flex-1 bg-indigo-500/80 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-[800] text-[11px] shadow-md active:scale-95 transition-all">📖 التفاصيل</button>
+                                    <button onClick={() => toggleCart(getNextBestCourse())} className="flex-1 bg-white/10 border border-white/15 text-white/70 py-2.5 rounded-xl font-[800] text-[11px] shadow-sm active:scale-95 transition-all hover:bg-white/20">🛒 إضافة</button>
                                 </div>
                             </div>
                         </div>
@@ -1931,47 +1921,59 @@ export default function Tree({
                 }
             ` }} />
 
-            {/* ═══ HEADER (Compact & Pro) ═══ */}
+            {/* ═══ HEADER ═══ */}
             {!isFullScreen && (
-                <div className={`bg-white/80 backdrop-blur-md border-b border-slate-200/50 px-4 md:px-6 py-2 z-20 relative sticky top-0`}>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                        <div className="flex items-center gap-4">
-                            <h1 className="text-xl font-[900] text-slate-900 tracking-tight shrink-0 flex items-center gap-2">
-                                <span className="bg-indigo-600 w-2 h-8 rounded-full"></span>
-                                الخطة الشجرية
-                            </h1>
-                            <div className="h-6 w-[1px] bg-slate-200 hidden md:block"></div>
-                            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
-                                <span>{major_name && `${major_name} • `}{student_name}</span>
-                                <span className="inline-flex items-center gap-1 rounded-md border border-indigo-100 bg-indigo-50/50 px-1.5 py-0.5 text-[10px] font-black text-indigo-600">
-                                    خطة {study_plan_version}
-                                </span>
-                            </p>
+                <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
+                {isLandscapeMobile ? (
+                    <div className="px-1">
+                        <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                    </div>
+                ) : (
+                    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
+                        <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
+
+                        <div className="relative z-10 p-4 sm:p-6">
+                            <div className="text-center max-w-2xl mx-auto">
+                                <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                            </div>
                         </div>
+                    </section>
+                )}
 
-                        <div className="flex items-center gap-4 justify-between md:justify-end flex-1">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-[900] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg border border-emerald-100/50">🔓 {miniStats.availableCount} متاح</span>
-                                {miniStats.criticalCount > 0 && (
-                                    <span className="text-[10px] font-[900] bg-rose-50 text-rose-600 px-2 py-1 rounded-lg border border-rose-100/50 animate-pulse">🚨 {miniStats.criticalCount} حرج</span>
-                                )}
+                <div className="flex justify-between items-center gap-3">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
+                            {isSidebarOpen ? '✕' : '☰'}
+                        </button>
+
+                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
+                            <span>{major_name && `${major_name} • `}{student_name}</span>
+                            <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
+                                خطة {study_plan_version}
+                            </span>
+                        </p>
+                    </div>
+
+                    {/* 🆕 Header مع Mini Stats */}
+                    <div className="hidden md:flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
+                            {miniStats.criticalCount > 0 && (
+                                <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
+                            )}
+                        </div>
+                        <div className="flex flex-col items-end w-56">
+                            <div className="flex justify-between w-full mb-1.5 items-center">
+                                <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
+                                <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
                             </div>
-
-                            <div className="flex flex-col items-end w-40 md:w-56">
-                                <div className="flex justify-between w-full mb-1 items-center">
-                                    <span className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider">الإنجاز</span>
-                                    <span className="text-[10px] font-bold text-slate-600 font-i">{totalPassedCredits} / 132</span>
-                                </div>
-                                <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
-                                    <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms]" style={{ width: `${progressPct}%` }} />
-                                </div>
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
                             </div>
-
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center shadow-sm">
-                                {isSidebarOpen ? '✕' : '☰'}
-                            </button>
                         </div>
                     </div>
+                </div>
                 </div>
             )}
 
@@ -1991,27 +1993,25 @@ export default function Tree({
                     }
                 `}>
 
-                    <div className="p-2 shrink-0">
-                        <div className="flex p-1 bg-white/5 border border-white/10 rounded-2xl">
-                            {isMobile && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedCourse(null);
-                                        setIsSidebarOpen(false);
-                                    }}
-                                    className="w-9 h-9 rounded-xl bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm mr-1"
-                                >
-                                    ✕
-                                </button>
-                            )}
-                            <button onClick={() => setActiveTab('details')} className={`flex-1 py-2 rounded-xl text-[11px] font-[900] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/20 text-white shadow-lg border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
-                            <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2 rounded-xl text-[11px] font-[900] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/40 text-white shadow-lg shadow-indigo-500/20 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
-                                🪄 التخطيط
-                                {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-4 h-4 rounded-md text-[9px] flex items-center justify-center font-[900] mr-1">{cartIds.length}</span>)}
+                    <div className="flex p-2.5 gap-2 bg-white/5 border-b border-white/10 shrink-0">
+                        {isMobile && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedCourse(null);
+                                    setIsSidebarOpen(false);
+                                }}
+                                className="w-9 h-9 rounded-xl bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
+                            >
+                                ✕
                             </button>
-                            <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2 rounded-xl text-[11px] font-[900] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/20 text-white shadow-lg border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
-                        </div>
+                        )}
+                        <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
+                        <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
+                            🪄 التخطيط
+                            {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
+                        </button>
+                        <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
                     </div>
 
                     <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
@@ -2162,107 +2162,103 @@ export default function Tree({
                             </div>
                         )}
 
-                        {/* ═══ CONTROL HUB (Unified Dock) ═══ */}
-                        <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-2' : 'top-3') : 'top-4'} left-1/2 transform -translate-x-1/2 z-30 flex items-center gap-2 p-1.5 bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 shrink-0 max-w-[95%] overflow-x-auto hide-scrollbar`}>
-                            {/* Filter Modes */}
-                            <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5">
-                                {[
-                                    { id: 'none', label: '🌐 الكل', active: 'bg-white text-slate-900' },
-                                    { id: 'available', label: '🔓 المتاح', active: 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' }
-                                ].map(f => (
-                                    <button key={f.id} onClick={() => setFilterMode(f.id)} className={`px-3 py-2 rounded-lg text-[10px] font-[900] transition-all whitespace-nowrap ${filterMode === f.id ? f.active : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>{f.label}</button>
-                                ))}
-                            </div>
+                        {!isFullScreen && (
+                            <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
+                            {[
+                                { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
+                                { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }
+                            ].map(f => (
+                                <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
+                            ))}
 
-                            {/* Difficulty Select */}
                             <div className="relative shrink-0">
                                 <select
                                     value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
                                     onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
-                                    className="appearance-none pl-8 pr-3 py-2 rounded-xl text-[10px] font-[900] transition-all bg-white/5 text-slate-300 border border-white/10 outline-none hover:bg-white/10 focus:border-indigo-500/50"
+                                    className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
                                 >
-                                    <option value="all" className="bg-slate-900">🎚️ الصعوبة</option>
-                                    <option value="easy" className="bg-slate-900">🌿 خفيف</option>
-                                    <option value="balanced" className="bg-slate-900">⚖️ متوسط</option>
-                                    <option value="heavy" className="bg-slate-900">🔥 صعب</option>
+                                    <option value="all">🎚️ كل الصعوبات</option>
+                                    <option value="easy">🌿 خفيف</option>
+                                    <option value="balanced">⚖️ متوسط</option>
+                                    <option value="heavy">🔥 صعب</option>
                                 </select>
-                                <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-slate-500 text-[10px]">⌄</span>
+                                <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400 text-[10px]">⌄</span>
                             </div>
 
-                            <div className="h-6 w-[1px] bg-white/10 mx-1"></div>
-
-                            {/* Global Actions */}
-                            <div className="flex items-center gap-1">
-                                <button onClick={() => flowInstance?.fitView({ padding: 0.2, duration: 800 })} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all shadow-sm border border-white/5" title="توسيط الشجرة">🎯</button>
-                                <button onClick={() => setIsFullScreen(!isFullScreen)} className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all shadow-sm border border-white/5 ${isFullScreen ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`} title="ملء الشاشة">🔲</button>
-                                <button onClick={() => setLegendOpen(!legendOpen)} className={`px-3 h-9 flex items-center justify-center gap-2 rounded-xl transition-all shadow-sm border border-white/5 ${legendOpen ? 'bg-emerald-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}>
-                                    <span className="text-xs">🌳</span>
-                                    {!isMobile && <span className="text-[10px] font-[900]">الدليل</span>}
+                            {canEditTreePositions && !positionEditMode && (
+                                <button
+                                    onClick={startPositionEditMode}
+                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm"
+                                >
+                                    {isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد'}
                                 </button>
-                            </div>
+                            )}
 
-                            {/* Admin Tools */}
-                            {canEditTreePositions && (
-                                <div className="flex items-center gap-1 ml-1 border-r border-white/10 pr-2">
-                                    {!positionEditMode ? (
-                                        <button onClick={startPositionEditMode} className="px-3 h-9 flex items-center justify-center gap-2 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20 text-[10px] font-[900] transition-all">🖱️ ترتيب</button>
-                                    ) : (
-                                        <div className="flex items-center gap-1">
-                                            <button onClick={saveAllNodePositions} disabled={isSavingNodePositions || !hasUnsavedNodeMoves} className="px-3 h-9 rounded-xl bg-emerald-500 text-white text-[10px] font-[900] shadow-lg shadow-emerald-500/20">💾 حفظ</button>
-                                            <button onClick={cancelPositionEditMode} className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/10 hover:bg-rose-500/20 hover:text-rose-500">✕</button>
+                            {canEditTreePositions && positionEditMode && (
+                                <>
+                                    <button
+                                        onClick={cancelPositionEditMode}
+                                        disabled={isSavingNodePositions}
+                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)] disabled:opacity-50"
+                                    >
+                                        ✖️ إلغاء
+                                    </button>
+                                    <button
+                                        onClick={saveAllNodePositions}
+                                        disabled={isSavingNodePositions || !hasUnsavedNodeMoves}
+                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] disabled:opacity-50"
+                                    >
+                                        {isSavingNodePositions ? '⏳ جاري الحفظ...' : '💾 حفظ الترتيب'}
+                                    </button>
+                                </>
+                            )}
+                            </div>
+                        )}
+
+                        {/* 🌳 دليل الشجرة — قابل للطي */}
+                        <div className="absolute top-14 left-3 z-20 hidden md:block" dir="rtl">
+                            <button onClick={() => setLegendOpen(!legendOpen)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-[800] transition-all shadow-md active:scale-95 ${legendOpen ? 'bg-slate-900 text-white' : 'bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200/60 hover:bg-slate-50'}`}>
+                                🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
+                            </button>
+                            {legendOpen && (
+                                <div className="mt-2 bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200/60 flex flex-col gap-2" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
+                                        {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                            <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الصعوبة</p>
+                                    <div className="flex flex-col gap-2 pb-2 border-b border-slate-100 mb-2">
+                                        {[
+                                            { color: 'bg-emerald-500', title: 'خفيف', desc: 'عادةً من 1 إلى 2، ويكون الحمل الدراسي أخف.' },
+                                            { color: 'bg-amber-500', title: 'متوازن', desc: 'عادةً 3، ويعني مادة بعبء متوسط.' },
+                                            { color: 'bg-rose-500', title: 'مكثّف', desc: 'عادةً من 4 إلى 5، وتحتاج وقت ومجهود أعلى.' },
+                                        ].map(item => (
+                                            <div key={item.title} className="flex items-start justify-end gap-2">
+                                                <div className="text-right">
+                                                    <p className="text-[10px] font-[800] text-slate-700 leading-tight">{item.title}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 leading-snug">{item.desc}</p>
+                                                </div>
+                                                <span className={`mt-0.5 w-3 h-3 rounded-full ${item.color} shadow-sm shrink-0`} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الرموز</p>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span><div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
+                                        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/10 p-2.5 text-right">
+                                            <p className="text-[10px] font-[900] text-violet-700 mb-0.5">المقارنة بين مادتين</p>
+                                            <p className="text-[9px] font-bold text-slate-500 leading-snug">1) افتح أي مادة ثم اضغط زر قارن. 2) اختر مادة ثانية من الشجرة لتظهر المقارنة في نافذة مستقلة.</p>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
                         </div>
-
-                        {/* 🌳 دليل الشجرة Floating Panel */}
-                        {legendOpen && (
-                            <div className="absolute top-16 md:top-20 left-1/2 transform -translate-x-1/2 z-[40] w-[calc(100%-2rem)] max-w-md bg-white/95 backdrop-blur-xl p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-200" dir="rtl" style={{ animation: 'sn-scale 0.25s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-100">
-                                    <h3 className="font-[900] text-slate-800 text-[14px]">🌳 دليل رموز الشجرة</h3>
-                                    <button onClick={() => setLegendOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all">✕</button>
-                                </div>
-                                
-                                <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1 hide-scrollbar">
-                                    <section>
-                                        <p className="text-[9px] font-[900] text-indigo-500 uppercase tracking-widest mb-3">حالات المواد</p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[{ color: 'bg-[#059669]', label: 'منجز ✅' }, { color: 'bg-[#4338ca]', label: 'متاح 🔓' }, { color: 'bg-[#d97706]', label: 'تجريبي 🛒' }, { color: 'bg-slate-200', label: 'مغلق 🔒' }].map(l => (
-                                                <div key={l.label} className="flex items-center justify-end gap-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                                                    <span className="text-[10px] font-bold text-slate-700">{l.label}</span>
-                                                    <span className={`w-3 h-3 rounded-full ${l.color} shadow-sm`} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
-
-                                    <section>
-                                        <p className="text-[9px] font-[900] text-amber-500 uppercase tracking-widest mb-3">مستويات الصعوبة</p>
-                                        <div className="space-y-2">
-                                            {[
-                                                { color: 'bg-emerald-500', title: 'خفيف ✨', desc: 'عبء دراسي منخفض، سهولة في الفهم.' },
-                                                { color: 'bg-amber-500', title: 'متوازن ⚡', desc: 'عبء متوسط يحتاج متابعة منتظمة.' },
-                                                { color: 'bg-rose-500', title: 'مكثّف 🔥', desc: 'عبء عالي يحتاج مجهود إضافي.' },
-                                            ].map(item => (
-                                                <div key={item.title} className="flex items-start justify-end gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                    <div className="text-right">
-                                                        <p className="text-[11px] font-[900] text-slate-800 leading-tight">{item.title}</p>
-                                                        <p className="text-[9px] font-bold text-slate-400 leading-relaxed mt-1">{item.desc}</p>
-                                                    </div>
-                                                    <span className={`mt-1 w-2.5 h-2.5 rounded-full ${item.color} shadow-sm shrink-0`} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </section>
-
-                                    <section className="bg-violet-50 p-3 rounded-2xl border border-violet-100">
-                                        <p className="text-[10px] font-[900] text-violet-700 mb-1.5 flex items-center gap-2"><span>⚠️</span> المسار الحرج (Critical Path)</p>
-                                        <p className="text-[9px] font-bold text-slate-500 leading-snug">المادة التي تحمل شريطاً أحمر في أعلاها هي مادة استراتيجية؛ تأخيرها قد يؤدي لتأخير تخرجك لأنها تفتح مسارات طويلة جداً.</p>
-                                    </section>
-                                </div>
-                            </div>
-                        )}
 
                         <ReactFlow
                             nodes={nodes}
@@ -2491,7 +2487,7 @@ export default function Tree({
 
                         <button
                             type="button"
-                            onClick={() => setIsFullScreen(!isFullScreen)}
+                            onClick={toggleFullScreen}
                             className={`absolute ${isFullScreen ? 'top-3 right-3' : 'bottom-3 left-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
