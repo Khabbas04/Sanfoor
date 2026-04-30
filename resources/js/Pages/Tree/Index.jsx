@@ -970,45 +970,37 @@ export default function Tree({
     }, [nodes, nodeDimensions]);
 
     const onPaneClick = useCallback(() => {
+        if (compareMode && !compareCourse) return; // don't cancel while picking
         setSelectedCourse(null);
         setCompareMode(false);
         setCompareFirstCourse(null);
         setCompareCourse(null);
         if (isMobile) setIsSidebarOpen(false);
-    }, [isMobile]);
+    }, [isMobile, compareMode, compareCourse]);
 
     const onNodeClick = useCallback((e, node) => {
         const course = courses.find(c => c.id === parseInt(node.id));
         if (!course) return;
 
         if (compareMode) {
-            if (!compareFirstCourse) {
-                setCompareFirstCourse(course);
-                setCompareCourse(null);
-            } else if (!compareCourse) {
+            // In compare mode: picking the second course
+            if (compareFirstCourse && compareFirstCourse.id !== course.id) {
                 setCompareCourse(course);
-            } else if (compareFirstCourse.id === course.id) {
+            } else if (!compareFirstCourse) {
+                // Edge case: no first course yet
                 setCompareFirstCourse(course);
-                setCompareCourse(null);
-            } else {
-                setCompareCourse(course);
             }
-        } else {
-            setSelectedCourse(course);
-            if (compareCourse?.id === course.id) {
-                setCompareCourse(null);
-            }
+            return;
         }
 
-        if (!compareMode && course) {
-            const next = legacyPlanSemesterToYearTerm(course.semester || 1);
-            setTargetYear(next.year);
-            setTargetTerm(next.term);
-            setTargetSemester(yearTermToSemester(next.year, next.term));
-        }
+        setSelectedCourse(course);
+        const next = legacyPlanSemesterToYearTerm(course.semester || 1);
+        setTargetYear(next.year);
+        setTargetTerm(next.term);
+        setTargetSemester(yearTermToSemester(next.year, next.term));
         setActiveTab('details');
         if (isMobile && !isFullScreen) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, selectedCourse, compareCourse, compareFirstCourse, compareMode]);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -1552,36 +1544,18 @@ export default function Tree({
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    {!compareMode ? (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setCompareMode(true);
-                                setCompareFirstCourse(null);
-                                setCompareCourse(null);
-                            }}
-                            className="px-3.5 py-2 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-200 border border-violet-400/20 hover:bg-violet-500/25 transition-all"
-                        >
-                            ⚖️ قارن
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setCompareMode(false);
-                                setCompareFirstCourse(null);
-                                setCompareCourse(null);
-                            }}
-                            className="px-3.5 py-2 rounded-xl text-[11px] font-[900] bg-white/10 text-white/75 border border-white/10 hover:bg-white/15 transition-all"
-                        >
-                            ✕ إلغاء المقارنة
-                        </button>
-                    )}
-                    {compareMode && (
-                        <span className="text-[10px] font-[800] text-violet-200/80 bg-violet-500/10 border border-violet-400/20 px-3 py-2 rounded-xl">
-                            {compareFirstCourse ? 'اختر المادة الثانية من الشجرة' : 'اختر المادة الأولى من الشجرة'}
-                        </span>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setCompareMode(true);
+                            setCompareFirstCourse(selectedCourse);
+                            setCompareCourse(null);
+                            if (isMobile) setIsSidebarOpen(false);
+                        }}
+                        className="px-3.5 py-2 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-200 border border-violet-400/20 hover:bg-violet-500/25 transition-all"
+                    >
+                        ⚖️ قارن مع مادة أخرى
+                    </button>
                 </div>
 
                 {/* 🆕 نقاط الأولوية + التأثير + الصعوبة */}
@@ -2234,7 +2208,7 @@ export default function Tree({
                         )}
 
                         {/* 🌳 دليل الشجرة — قابل للطي */}
-                        <div className="absolute top-3 left-3 z-20 hidden md:block" dir="rtl">
+                        <div className="absolute top-14 left-3 z-20 hidden md:block" dir="rtl">
                             <button onClick={() => setLegendOpen(!legendOpen)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-[800] transition-all shadow-md active:scale-95 ${legendOpen ? 'bg-slate-900 text-white' : 'bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200/60 hover:bg-slate-50'}`}>
                                 🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
                             </button>
@@ -2315,7 +2289,19 @@ export default function Tree({
                             />
                         </ReactFlow>
 
-                        {compareMode && (
+                        {/* Floating toast while picking second course */}
+                        {compareMode && compareFirstCourse && !compareCourse && (
+                            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-violet-600/95 backdrop-blur-xl text-white px-5 py-3 rounded-2xl shadow-2xl shadow-violet-500/30 border border-violet-400/30 flex items-center gap-3" dir="rtl" style={{ animation: 'sn-scale 0.25s cubic-bezier(0.16,1,0.3,1) both' }}>
+                                <span className="text-lg">⚖️</span>
+                                <div>
+                                    <p className="text-[12px] font-[900]">اختر المادة الثانية من الشجرة</p>
+                                    <p className="text-[10px] font-bold text-violet-200/70">المادة الأولى: {compareFirstCourse.name}</p>
+                                </div>
+                                <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-xs transition-all mr-1">✕</button>
+                            </div>
+                        )}
+
+                        {compareMode && compareFirstCourse && compareCourse && (
                             <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6" dir="rtl">
                                 <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} />
                                 <div className="relative w-full max-w-7xl max-h-[92vh] overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/96 shadow-[0_30px_100px_rgba(15,23,42,0.5)]">
@@ -2342,18 +2328,9 @@ export default function Tree({
 
                                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 p-4 sm:p-6 max-h-[calc(92vh-5.5rem)] overflow-y-auto hide-scrollbar">
                                         {[
-                                            compareFirstCourse ? { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' } : null,
-                                            compareCourse ? { course: compareCourse, label: 'المادة الثانية', tone: 'violet' } : null,
+                                            { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
+                                            { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
                                         ].map((entry, index) => {
-                                            if (!entry) {
-                                                return (
-                                                    <div key={`placeholder-${index}`} className="rounded-[1.5rem] border border-dashed border-white/15 bg-white/5 p-5 sm:p-6 min-h-[20rem] flex flex-col items-center justify-center text-center">
-                                                        <div className="w-14 h-14 rounded-2xl bg-violet-500/15 border border-violet-400/20 flex items-center justify-center text-2xl mb-3 text-violet-200">+</div>
-                                                        <p className="text-[13px] font-[900] text-white mb-1">{index === 0 ? 'بانتظار المادة الأولى' : 'بانتظار المادة الثانية'}</p>
-                                                        <p className="text-[10px] font-bold text-white/45 leading-relaxed max-w-xs">{index === 0 ? 'اضغط على مادة من الشجرة لتثبيتها كطرف أول.' : 'بعد تحديد المادة الأولى، اضغط مادة ثانية لتظهر المقارنة هنا.'}</p>
-                                                    </div>
-                                                );
-                                            }
 
                                             const { course, label, tone } = entry;
                                             const courseDifficulty = Number(course.difficulty_level || 3);
@@ -2486,14 +2463,7 @@ export default function Tree({
                                                 })()}
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div className="px-4 sm:px-6 pb-5 sm:pb-6">
-                                            <div className="rounded-2xl border border-violet-400/20 bg-violet-500/10 p-4 text-right">
-                                                <p className="text-[10px] font-[900] text-violet-200 mb-1">خطوة المقارنة التالية</p>
-                                                <p className="text-[11px] font-bold text-white/65 leading-relaxed">{compareFirstCourse ? 'الآن اختر مادة ثانية من الشجرة، وبعدها ستظهر المقارنة هنا.' : 'ابدأ باختيار المادة الأولى من الشجرة حتى نثبتها في المقارنة.'}</p>
-                                            </div>
-                                        </div>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
                         )}
@@ -2522,20 +2492,20 @@ export default function Tree({
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'top-3 right-3' : 'bottom-3 right-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
+                            className={`absolute ${isFullScreen ? 'top-3 right-3' : 'bottom-3 left-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
                         </button>
 
                         {canEditTreePositions && positionEditMode && !isFullScreen && (
-                            <div className="absolute bottom-3 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
+                            <div className="absolute bottom-12 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
                                 <span>🧭 اسحب بأي اتجاه - التداخل يُعالج تلقائيًا</span>
                                 {hasUnsavedNodeMoves && <span className="text-amber-300">• يوجد تغييرات غير محفوظة</span>}
                             </div>
                         )}
 
                         {isMobile && !isFullScreen && (
-                            <div className={`absolute ${isLandscapeMobile ? 'bottom-2 text-[9px] px-2 py-1' : 'bottom-3 text-[10px] px-3 py-1.5'} left-1/2 -translate-x-1/2 z-20 bg-slate-900/85 text-white/80 font-bold rounded-full border border-white/10 backdrop-blur-md pointer-events-none`}>
+                            <div className={`absolute ${isLandscapeMobile ? 'bottom-2 text-[9px] px-2 py-1' : 'bottom-3 text-[10px] px-3 py-1.5'} right-3 z-20 bg-slate-900/85 text-white/80 font-bold rounded-full border border-white/10 backdrop-blur-md pointer-events-none`}>
                                 👌 اسحب للتنقل • قرّب بإصبعين
                             </div>
                         )}
