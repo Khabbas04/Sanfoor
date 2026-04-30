@@ -2465,6 +2465,7 @@ export default function Tree({
                                         </div>
                                     </div>
                                 </div>
+                            </div>
                         )}
 
                         {isFullScreen && selectedCourse && (
