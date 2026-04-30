@@ -328,6 +328,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <Link onClick={() => setMobileOpen(false)} href={route('admin.dashboard')} className="px-4 py-3.5 rounded-2xl font-black text-sm bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-2 mt-2 transition-colors">🛡️ {t.admin}</Link>
                                 )}
                                 <Link onClick={() => setMobileOpen(false)} href={route('dashboard')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📊 {t.dashboard}</Link>
+                                <Link onClick={() => setMobileOpen(false)} href={route('profile.edit')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">⚙️ {t.profile}</Link>
                             </>
                         )}
                         
