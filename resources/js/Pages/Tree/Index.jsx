@@ -150,7 +150,6 @@ export default function Tree({
     const [isSavingNodePositions, setIsSavingNodePositions] = useState(false);
     const [flowInstance, setFlowInstance] = useState(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
-    const [hoveredCourseId, setHoveredCourseId] = useState(null);
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
@@ -781,9 +780,8 @@ export default function Tree({
         const initialNodes = [];
         const initialEdges = [];
 
-        const baseTargetCourse = selectedCourse || (hoveredCourseId ? courses.find(c => c.id === hoveredCourseId) : null);
-        const backwardIds = baseTargetCourse ? Array.from(getBackwardPath(baseTargetCourse.id)) : [];
-        const forwardIds = baseTargetCourse ? Array.from(getForwardPath(baseTargetCourse.id)) : [];
+        const backwardIds = selectedCourse ? Array.from(getBackwardPath(selectedCourse.id)) : [];
+        const forwardIds = selectedCourse ? Array.from(getForwardPath(selectedCourse.id)) : [];
         const connectedIds = [...new Set([...backwardIds, ...forwardIds])];
 
         courses.forEach((course) => {
@@ -841,15 +839,13 @@ export default function Tree({
             if (filterMode === 'balanced' && difficultyBand !== 'balanced') isFilteredOut = true;
             if (filterMode === 'heavy' && difficultyBand !== 'heavy') isFilteredOut = true;
 
-            const isDimmed = isFilteredOut || (baseTargetCourse && !connectedIds.includes(course.id));
+            const isDimmed = isFilteredOut || (selectedCourse && !connectedIds.includes(course.id));
             const isSelected = selectedCourse?.id === course.id;
-            const isHovered = hoveredCourseId === course.id;
-            const isBackward = backwardIds.includes(course.id) && !(isSelected || isHovered);
-            const isForward = forwardIds.includes(course.id) && !(isSelected || isHovered);
+            const isBackward = backwardIds.includes(course.id) && !isSelected;
+            const isForward = forwardIds.includes(course.id) && !isSelected;
 
             let ringStyle = '';
             if (isSelected) ringStyle = 'box-shadow:0 0 0 3px #fff,0 0 0 6px #4f46e5,0 12px 40px rgba(79,70,229,0.35);transform:scale(1.08);z-index:50;';
-            else if (isHovered && !isSelected) ringStyle = 'box-shadow:0 0 0 2px #fff,0 0 0 4px #8b5cf6,0 10px 30px rgba(139,92,246,0.3);transform:scale(1.04);z-index:40;';
             else if (isBackward) ringStyle = 'box-shadow:0 0 0 2.5px #fbbf24,0 8px 24px rgba(245,158,11,0.25);';
             else if (isForward) ringStyle = 'box-shadow:0 0 0 2.5px #c084fc,0 8px 24px rgba(192,132,252,0.25);';
             else if (!isDimmed) ringStyle = 'box-shadow:0 4px 16px rgba(0,0,0,0.08);';
@@ -935,7 +931,7 @@ export default function Tree({
                         style: {
                             stroke: edgeColor,
                             strokeWidth: edgeWidth,
-                            opacity: (baseTargetCourse && !isActivePath) || edgeFilteredOut ? 0.08 : 1,
+                            opacity: (selectedCourse && !isActivePath) || edgeFilteredOut ? 0.08 : 1,
                             transition: 'all 0.5s ease',
                         },
                         markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
@@ -945,7 +941,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, hoveredCourseId, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -2268,8 +2264,6 @@ export default function Tree({
                             nodes={nodes}
                             edges={edges}
                             onNodeClick={onNodeClick}
-                            onNodeMouseEnter={(_, node) => { if (!isMobile) setHoveredCourseId(parseInt(node.id)); }}
-                            onNodeMouseLeave={() => { if (!isMobile) setHoveredCourseId(null); }}
                             onNodeDragStop={onNodeDragStop}
                             onPaneClick={onPaneClick}
                             onNodesChange={onNodesChange}
