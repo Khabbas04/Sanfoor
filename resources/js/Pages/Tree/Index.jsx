@@ -523,7 +523,7 @@ export default function Tree({
 
     const totalPassedCredits = useMemo(() => {
         const calculated = courses
-            .filter(c => passedIdSet.has(c.id))
+            .filter(c => passedIds.includes(c.id))
             .reduce((acc, c) => acc + (c.credit_hours || 0), 0);
 
         return calculated > 0 ? calculated : Number(total_passed_hours || 0);
@@ -546,41 +546,42 @@ export default function Tree({
 
     const getStatus = useCallback((course) => {
         if (!course) return 'locked';
-        if (passedIdSet.has(course.id)) return 'passed';
-        if (cartIdSet.has(course.id)) return 'cart';
+        if (passedIds.includes(course.id)) return 'passed';
+        if (cartIds.includes(course.id)) return 'cart';
         if (isLockedByHours(course)) return 'locked';
         if (!course.prerequisites || course.prerequisites.length === 0) return 'available';
-        return course.prerequisites.every(p => passedIdSet.has(p.id)) ? 'available' : 'locked';
-    }, [passedIdSet, cartIdSet, isLockedByHours]);
+        return course.prerequisites.every(p => passedIds.includes(p.id)) ? 'available' : 'locked';
+    }, [passedIds, cartIds, isLockedByHours]);
 
     const getUnlocksDetailed = useCallback((courseId) => {
-        return childrenByCourseId.get(courseId) || [];
-    }, [childrenByCourseId]);
+        return courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
+    }, [courses]);
 
     const getBackwardPath = useCallback((courseId, visited = new Set()) => {
         if (visited.has(courseId)) return visited;
         visited.add(courseId);
-        const course = courseById.get(courseId);
+        const course = courses.find(c => c.id === courseId);
         if (course?.prerequisites) course.prerequisites.forEach(p => getBackwardPath(p.id, visited));
         return visited;
-    }, [courseById]);
+    }, [courses]);
 
     const getForwardPath = useCallback((courseId, visited = new Set()) => {
         if (visited.has(courseId)) return visited;
         visited.add(courseId);
-        (childrenByCourseId.get(courseId) || []).forEach((u) => getForwardPath(u.id, visited));
+        courses.filter(c => c.prerequisites?.some(p => p.id === courseId))
+            .forEach(u => getForwardPath(u.id, visited));
         return visited;
-    }, [childrenByCourseId]);
+    }, [courses]);
 
     const getCourseDepth = useCallback((courseId, visited = new Set()) => {
         if (visited.has(courseId)) return 0;
         visited.add(courseId);
-        const unlocks = childrenByCourseId.get(courseId) || [];
+        const unlocks = courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
         if (unlocks.length === 0) return 0;
         let maxDepth = 0;
         for (const u of unlocks) maxDepth = Math.max(maxDepth, 1 + getCourseDepth(u.id, new Set(visited)));
         return maxDepth;
-    }, [childrenByCourseId]);
+    }, [courses]);
 
     const coursesWithDifficulty = useMemo(() => {
         return courses.map((course) => {
@@ -614,28 +615,9 @@ export default function Tree({
         });
     }, [courses]);
 
-    const courseById = useMemo(() => new Map(courses.map((course) => [course.id, course])), [courses]);
-
-    const childrenByCourseId = useMemo(() => {
-        const map = new Map();
-
-        courses.forEach((course) => {
-            (course.prerequisites || []).forEach((prerequisite) => {
-                const next = map.get(prerequisite.id) || [];
-                next.push(course);
-                map.set(prerequisite.id, next);
-            });
-        });
-
-        return map;
-    }, [courses]);
-
-    const passedIdSet = useMemo(() => new Set(passedIds), [passedIds]);
-    const cartIdSet = useMemo(() => new Set(cartIds), [cartIds]);
-
     // 🆕 أقصر طريق لفتح مادة مقفلة
     const getShortestPathToUnlock = useCallback((courseId) => {
-        const course = courseById.get(courseId);
+        const course = courses.find(c => c.id === courseId);
         if (!course || !course.prerequisites) return [];
 
         // BFS لإيجاد الترتيب الصحيح للمتطلبات
@@ -649,7 +631,7 @@ export default function Tree({
                 if (visited.has(prereq.id)) continue;
                 visited.add(prereq.id);
 
-                const prereqCourse = courseById.get(prereq.id);
+                const prereqCourse = courses.find(c => c.id === prereq.id);
                 if (!prereqCourse) continue;
 
                 // أولاً: نعالج متطلبات المتطلب (الأعمق أولاً)
@@ -685,7 +667,7 @@ export default function Tree({
         }
 
         return unique;
-    }, [courseById, getStatus]);
+    }, [courses, getStatus]);
 
     // 🆕 حساب التأثير الكلي المتسلسل
     const getTotalImpact = useCallback((courseId) => {
@@ -742,23 +724,23 @@ export default function Tree({
         if (unlocks.length === 0 && status !== 'passed' && course.type === 'compulsory')
             insights.push({ icon: '🏁', title: 'مادة نهائية', desc: 'لا تفتح مواد أخرى — يمكن تأجيلها لآخر فصل بأمان.', color: 'slate', p: 10 });
 
-        if (status === 'available' && course.prerequisites?.some(p => cartIdSet.has(p.id)))
+        if (status === 'available' && course.prerequisites?.some(p => cartIds.includes(p.id)))
             insights.push({ icon: '⚠️', title: 'تنبيه مهم!', desc: 'أحد متطلباتها موجود بالتسجيل التجريبي — لا يُنصح بتسجيلهم بنفس الفصل.', color: 'rose', p: 95 });
 
         if (status === 'cart') {
-            const cartHours = courses.filter(c => cartIdSet.has(c.id)).reduce((s, c) => s + c.credit_hours, 0);
+            const cartHours = courses.filter(c => cartIds.includes(c.id)).reduce((s, c) => s + c.credit_hours, 0);
             insights.push({ icon: '🛒', title: `في التسجيل التجريبي (${cartHours} ساعة إجمالي)`, desc: cartHours > 18 ? '⚠️ تجاوزت الحد الأقصى!' : cartHours >= 15 ? 'عبء جيد ومتوازن.' : 'عبء خفيف — ممكن تضيف المزيد.', color: cartHours > 18 ? 'rose' : 'amber', p: 50 });
         }
 
         return insights.sort((a, b) => b.p - a.p);
-    }, [getStatus, getUnlocksDetailed, getTotalImpact, cartIdSet, courses, isLockedByHours, totalPassedCredits]);
+    }, [getStatus, getUnlocksDetailed, getTotalImpact, cartIds, courses, isLockedByHours, totalPassedCredits]);
 
     // 🆕 اقتراح المادة التالية الأفضل
     const getNextBestCourse = useCallback(() => {
-        const available = courses.filter(c => getStatus(c) === 'available' && !cartIdSet.has(c.id));
+        const available = courses.filter(c => getStatus(c) === 'available' && !cartIds.includes(c.id));
         if (available.length === 0) return null;
         return available.sort((a, b) => getCoursePriority(b) - getCoursePriority(a))[0];
-    }, [courses, getStatus, cartIdSet, getCoursePriority]);
+    }, [courses, getStatus, cartIds, getCoursePriority]);
 
     // 🆕 إحصائيات سريعة
     const miniStats = useMemo(() => {
@@ -773,7 +755,7 @@ export default function Tree({
     // 🆕 تحليل صحة التسجيل التجريبي
     const cartHealthAnalysis = useMemo(() => {
         if (cartIds.length === 0) return null;
-        const cc = courses.filter(c => cartIdSet.has(c.id));
+        const cc = courses.filter(c => cartIds.includes(c.id));
         const compulsory = cc.filter(c => c.type === 'compulsory').length;
         const elective = cc.filter(c => c.type === 'elective' || c.type === 'university_req').length;
         const supporting = cc.filter(c => c.type === 'supporting').length;
@@ -782,7 +764,7 @@ export default function Tree({
         const compPct = cc.length > 0 ? Math.round((compulsory / cc.length) * 100) : 0;
         const elecPct = cc.length > 0 ? Math.round(((elective + supporting) / cc.length) * 100) : 0;
         return { compulsory, elective, supporting, criticalInCart, totalImpactScore, compPct, elecPct };
-    }, [cartIdSet, courses, getCourseDepth, getTotalImpact]);
+    }, [cartIds, courses, getCourseDepth, getTotalImpact]);
 
     const buildGraph = useCallback(() => {
         const nodeWidth = nodeDimensions.width;
@@ -807,7 +789,7 @@ export default function Tree({
             const isHourLocked = status === 'locked' && isLockedByHours(course);
             const depth = getCourseDepth(course.id);
             const isCriticalPath = depth >= 2 && status !== 'passed';
-            const unlocksCount = (childrenByCourseId.get(course.id) || []).length;
+            const unlocksCount = courses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
             const isBottleneck = unlocksCount >= 3 && status !== 'passed';
             const difficultyLevel = Number(course.difficulty_level ?? 3);
             const difficultyBand = difficultyLevel <= 2 ? 'easy' : (difficultyLevel === 3 ? 'balanced' : 'heavy');
@@ -822,7 +804,7 @@ export default function Tree({
                 if (!difficulty) return null;
                 if (difficulty >= 4) return { label: 'مكثّف', color: '#ef4444', icon: '🔥', bg: 'rgba(239,68,68,0.2)', border: '#f87171' };
                 if (difficulty === 3) return { label: 'متوازن', color: '#f59e0b', icon: '⚡', bg: 'rgba(245,158,11,0.2)', border: '#fbbf24' };
-                const unlocks = getUnlocksDetailed(course.id);
+                return { label: 'خفيف', color: '#10b981', icon: '✨', bg: 'rgba(16,185,129,0.2)', border: '#6ee7b7' };
             };
             const difficultyInfo = getDifficultyColor(course.difficulty_level);
 
@@ -923,11 +905,11 @@ export default function Tree({
 
             if (course.prerequisites) {
                 course.prerequisites.forEach((prereq) => {
-                    const isSourceDone = passedIdSet.has(prereq.id);
+                    const isSourceDone = passedIds.includes(prereq.id);
                     const isBackwardEdge = backwardIds.includes(prereq.id) && backwardIds.includes(course.id);
                     const isForwardEdge = forwardIds.includes(prereq.id) && forwardIds.includes(course.id);
                     const isActivePath = isBackwardEdge || isForwardEdge;
-                    const prereqCourse = courseById.get(prereq.id);
+                    const prereqCourse = courses.find(c => c.id === prereq.id);
                     const prereqDifficultyLevel = Number(prereqCourse?.difficulty_level ?? 3);
                     const prereqDifficultyBand = prereqDifficultyLevel <= 2 ? 'easy' : (prereqDifficultyLevel === 3 ? 'balanced' : 'heavy');
 
@@ -959,7 +941,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIdSet, cartIdSet, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions, childrenByCourseId, courseById]);
+    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -998,7 +980,7 @@ export default function Tree({
     }, [isMobile, compareMode, compareCourse]);
 
     const onNodeClick = useCallback((e, node) => {
-        const course = courseById.get(parseInt(node.id, 10));
+        const course = courses.find(c => c.id === parseInt(node.id));
         if (!course) return;
 
         if (compareMode) {
@@ -1019,7 +1001,7 @@ export default function Tree({
         setTargetSemester(yearTermToSemester(next.year, next.term));
         setActiveTab('details');
         if (isMobile && !isFullScreen) setIsSidebarOpen(true);
-    }, [courseById, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
+    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -1067,33 +1049,36 @@ export default function Tree({
 
     // 🆕 FIX: منع إلغاء مادة إذا مواد بعدها منجزة
     const togglePassed = async (courseId) => {
-        if (passedIdSet.has(courseId)) {
-            const dependentPassed = courses.filter((course) =>
-                passedIdSet.has(course.id) &&
-                course.id !== courseId &&
-                course.prerequisites?.some((prerequisite) => prerequisite.id === courseId)
+        if (passedIds.includes(courseId)) {
+            // نبحث عن مواد منجزة تعتمد على هالمادة كمتطلب سابق
+            const dependentPassed = courses.filter(c =>
+                passedIds.includes(c.id) &&
+                c.id !== courseId &&
+                c.prerequisites?.some(p => p.id === courseId)
             );
 
             if (dependentPassed.length > 0) {
+                const names = dependentPassed.map(c => `• ${c.name}`).join('\n');
                 Swal.fire({
                     icon: 'error',
                     title: 'لا يمكن إلغاء هذه المادة!',
-                    html: `هذه المادة متطلب سابق لمواد <b>أنت ناجح فيها</b>:<br/><br/><div style="text-align:right;font-size:13px;line-height:2;">${dependentPassed.map((course) => `<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 10px;border-radius:8px;margin:2px;font-weight:700;">✅ ${course.name}</span>`).join('')}</div><br/>لإلغائها، يجب إلغاء المواد اللاحقة أولاً.`,
+                    html: `هذه المادة متطلب سابق لمواد <b>أنت ناجح فيها</b>:<br/><br/><div style="text-align:right;font-size:13px;line-height:2;">${dependentPassed.map(c => `<span style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 10px;border-radius:8px;margin:2px;font-weight:700;">✅ ${c.name}</span>`).join('')}</div><br/>لإلغائها، يجب إلغاء المواد اللاحقة أولاً.`,
                     ...swalTheme
                 });
                 return;
             }
 
-            const dependentInCart = courses.filter((course) =>
-                cartIdSet.has(course.id) &&
-                course.prerequisites?.some((prerequisite) => prerequisite.id === courseId)
+            // لو مادة بالتسجيل التجريبي تعتمد عليها — نحذر بس نسمح
+            const dependentInCart = courses.filter(c =>
+                cartIds.includes(c.id) &&
+                c.prerequisites?.some(p => p.id === courseId)
             );
 
             if (dependentInCart.length > 0) {
                 const result = await Swal.fire({
                     icon: 'warning',
                     title: 'تنبيه!',
-                    html: `إلغاء هذه المادة سيحذف هذه المواد من التسجيل التجريبي تلقائياً:<br/><br/><div style="text-align:right;font-size:13px;">${dependentInCart.map((course) => `<span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;padding:2px 10px;border-radius:8px;margin:2px;font-weight:700;">🛒 ${course.name}</span>`).join('')}</div>`,
+                    html: `إلغاء هذه المادة سيحذف هذه المواد من التسجيل التجريبي تلقائياً:<br/><br/><div style="text-align:right;font-size:13px;">${dependentInCart.map(c => `<span style="display:inline-block;background:#fef3c7;border:1px solid #fde68a;padding:2px 10px;border-radius:8px;margin:2px;font-weight:700;">🛒 ${c.name}</span>`).join('')}</div>`,
                     showCancelButton: true,
                     confirmButtonText: 'نعم، ألغِ الكل',
                     cancelButtonText: 'تراجع',
@@ -1102,8 +1087,9 @@ export default function Tree({
 
                 if (!result.isConfirmed) return;
 
-                const idsToRemove = dependentInCart.map((course) => course.id);
-                const updatedCart = cartIds.filter((id) => !idsToRemove.includes(id));
+                // حذف المواد المعتمدة من التسجيل التجريبي
+                const idsToRemove = dependentInCart.map(c => c.id);
+                const updatedCart = cartIds.filter(id => !idsToRemove.includes(id));
                 setCartIds(updatedCart);
                 syncCartWithDB(updatedCart);
             }
@@ -1125,14 +1111,14 @@ export default function Tree({
                     colors: ['#10b981', '#34d399', '#059669', '#f59e0b', '#fbbf24'],
                     zIndex: 10000
                 });
-                setPassedIds((currentPassedIds) => [...currentPassedIds, courseId]);
-                const updatedCart = cartIds.filter((id) => id !== courseId);
+                setPassedIds(p => [...p, courseId]);
+                const updatedCart = cartIds.filter(id => id !== courseId);
                 setCartIds(updatedCart);
                 syncCartWithDB(updatedCart);
 
-                const addedCourse = courseById.get(courseId);
+                const addedCourse = courses.find(c => c.id === courseId);
                 if (addedCourse) {
-                    setLocalPassedCourses((currentPassedCourses) => [...currentPassedCourses, {
+                    setLocalPassedCourses(prev => [...prev, {
                         ...addedCourse,
                         pivot: {
                             grade: null,
@@ -1143,9 +1129,10 @@ export default function Tree({
                     }]);
                 }
                 setActiveTab('semesters');
+
             } else if (response.data.status === 'removed') {
-                setPassedIds((currentPassedIds) => currentPassedIds.filter((id) => id !== courseId));
-                setLocalPassedCourses((currentPassedCourses) => currentPassedCourses.filter((course) => course.id !== courseId));
+                setPassedIds(p => p.filter(id => id !== courseId));
+                setLocalPassedCourses(prev => prev.filter(c => c.id !== courseId));
             }
         } catch (error) {
             Swal.fire({
@@ -1160,7 +1147,7 @@ export default function Tree({
     // 🆕 FIX: فحص حد الساعات قبل الإضافة للتسجيل التجريبي
     const toggleCart = (course) => {
         let updatedCart;
-        if (cartIdSet.has(course.id)) {
+        if (cartIds.includes(course.id)) {
             updatedCart = cartIds.filter(id => id !== course.id);
             setCartIds(updatedCart);
             setSmartMetaByCourseId((prev) => {
@@ -1184,7 +1171,7 @@ export default function Tree({
         }
 
         const currentCartHours = courses
-            .filter(c => cartIdSet.has(c.id))
+            .filter(c => cartIds.includes(c.id))
             .reduce((sum, c) => sum + (c.credit_hours || 0), 0);
 
         if (currentCartHours + course.credit_hours > 18) {
@@ -1197,7 +1184,7 @@ export default function Tree({
             return;
         }
 
-        if (course.prerequisites?.some(p => cartIdSet.has(p.id))) {
+        if (course.prerequisites?.some(p => cartIds.includes(p.id))) {
             Swal.fire({
                 icon: 'warning',
                 title: 'تنبيه ذكي!',
@@ -1222,7 +1209,7 @@ export default function Tree({
         const pace = paceConfig[schedulePace] || paceConfig.balanced;
 
         const passedCredits = coursesWithDifficulty
-            .filter((course) => passedIdSet.has(course.id))
+            .filter((course) => passedIds.includes(course.id))
             .reduce((sum, course) => sum + (Number(course.credit_hours) || 0), 0);
 
         const currentAcademicYear = passedCredits < 33 ? 1 : passedCredits < 66 ? 2 : passedCredits < 99 ? 3 : 4;
@@ -1252,10 +1239,10 @@ export default function Tree({
         };
 
         let trulyAvailable = coursesWithDifficulty.filter(c => {
-            if (passedIdSet.has(c.id)) return false;
+            if (passedIds.includes(c.id)) return false;
             if (isLockedByHours(c)) return false;
             if (!c.prerequisites || c.prerequisites.length === 0) return true;
-            return c.prerequisites.every(p => passedIdSet.has(p.id));
+            return c.prerequisites.every(p => passedIds.includes(p.id));
         });
 
         const scored = trulyAvailable.map((course) => {
@@ -1361,7 +1348,7 @@ export default function Tree({
         }
     };
 
-    const totalCartCredits = useMemo(() => courses.filter(c => cartIdSet.has(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIdSet]);
+    const totalCartCredits = useMemo(() => courses.filter(c => cartIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIds]);
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
 
     const processedCourses = useMemo(() => {
@@ -1436,7 +1423,7 @@ export default function Tree({
 
     const workloadAnalysis = useMemo(() => {
         if (totalCartCredits === 0) return null;
-        const cartCourses = coursesWithDifficulty.filter(c => cartIdSet.has(c.id));
+        const cartCourses = coursesWithDifficulty.filter(c => cartIds.includes(c.id));
         const heavyCount = cartCourses.filter(c => Number(c.difficulty_score || 0) >= 65 || Number(c.fail_rate || 0) >= 30).length;
         const avgDifficulty = cartCourses.length
             ? cartCourses.reduce((sum, c) => sum + Number(c.difficulty_score || 0), 0) / cartCourses.length
@@ -1678,7 +1665,7 @@ export default function Tree({
                         <h4 className="text-white/70 font-[800] text-[12px] flex items-center gap-2 mb-2.5">🚀 تفتح هذه المواد:</h4>
                         <div className="flex flex-wrap gap-1.5">
                             {getUnlocksDetailed(selectedCourse.id).map(u => (
-                                <span key={u.id} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm border ${passedIdSet.has(u.id) ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20 line-through opacity-60' : 'bg-white/10 text-white/80 border-white/10'}`}>{u.name}</span>
+                                <span key={u.id} className={`text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-sm border ${passedIds.includes(u.id) ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20 line-through opacity-60' : 'bg-white/10 text-white/80 border-white/10'}`}>{u.name}</span>
                             ))}
                         </div>
                     </div>
@@ -1702,7 +1689,7 @@ export default function Tree({
                     const availableSteps = pathSteps.filter(s => s.isAvailableNow);
                     const futureSteps = pathSteps.filter(s => !s.isAvailableNow);
                     const totalSteps = pathSteps.length;
-                    const completedPrereqs = selectedCourse.prerequisites.filter(p => passedIdSet.has(p.id)).length;
+                    const completedPrereqs = selectedCourse.prerequisites.filter(p => passedIds.includes(p.id)).length;
                     const totalPrereqs = selectedCourse.prerequisites.length;
 
                     return (
@@ -1728,13 +1715,13 @@ export default function Tree({
                                 </div>
                                 <div className="space-y-2">
                                     {selectedCourse.prerequisites.map(p => (
-                                        <div key={p.id} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${passedIdSet.has(p.id) ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : cartIdSet.has(p.id) ? 'bg-amber-500/15 border-amber-400/20 text-amber-300' : getStatus(courseById.get(p.id)) === 'available' ? 'bg-indigo-500/15 border-indigo-400/20 text-indigo-300' : 'bg-white/5 border-rose-400/20 text-rose-300'}`}>
+                                        <div key={p.id} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${passedIds.includes(p.id) ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : cartIds.includes(p.id) ? 'bg-amber-500/15 border-amber-400/20 text-amber-300' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'bg-indigo-500/15 border-indigo-400/20 text-indigo-300' : 'bg-white/5 border-rose-400/20 text-rose-300'}`}>
                                             <span className="flex items-center gap-2">
-                                                {passedIdSet.has(p.id) ? '✅' : cartIdSet.has(p.id) ? '🛒' : getStatus(courseById.get(p.id)) === 'available' ? '🔓' : '🔒'}
+                                                {passedIds.includes(p.id) ? '✅' : cartIds.includes(p.id) ? '🛒' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? '🔓' : '🔒'}
                                                 {p.name}
                                             </span>
                                             <span className="font-[800] text-[10px]">
-                                                {passedIdSet.has(p.id) ? 'منجز' : cartIdSet.has(p.id) ? 'بالتسجيل التجريبي' : getStatus(courseById.get(p.id)) === 'available' ? 'متاح الآن!' : 'مقفل'}
+                                                {passedIds.includes(p.id) ? 'منجز' : cartIds.includes(p.id) ? 'بالتسجيل التجريبي' : getStatus(courses.find(c => c.id === p.id)) === 'available' ? 'متاح الآن!' : 'مقفل'}
                                             </span>
                                         </div>
                                     ))}
@@ -2090,7 +2077,7 @@ export default function Tree({
                                 {cartIds.length > 0 ? (
                                     <div className="space-y-2.5 pb-8">
                                         <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); setSmartMetaByCourseId({}); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
-                                        {coursesWithDifficulty.filter(c => cartIdSet.has(c.id)).map(c => (
+                                        {coursesWithDifficulty.filter(c => cartIds.includes(c.id)).map(c => (
                                             <div key={c.id} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center group hover:border-indigo-200 transition-colors">
                                                 <div className="min-w-0 flex-1 ml-3">
                                                     <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
