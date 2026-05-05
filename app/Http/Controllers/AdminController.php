@@ -445,6 +445,7 @@ class AdminController extends Controller
         }
 
         $this->logAction('ADD_COURSE', "تم إضافة المادة وربط المتطلب: {$course->name} ({$course->code})");
+        TreeController::flushCourseTreeCache();
         return redirect()->back()->with('success', 'تم حفظ المادة بنجاح وتفعيل نظام المتطلبات! 🎉');
     }
 
@@ -513,6 +514,7 @@ class AdminController extends Controller
         }
 
         $this->logAction('UPDATE_COURSE', "تم تعديل المادة: {$course->name}");
+        TreeController::flushCourseTreeCache();
         return redirect()->back()->with('success', 'تم تعديل المادة بنجاح!');
     }
 
@@ -523,6 +525,7 @@ class AdminController extends Controller
         $course->delete();
 
         $this->logAction('DELETE_COURSE', "تم حذف المادة: {$courseName}");
+        TreeController::flushCourseTreeCache();
         return redirect()->back()->with('success', 'تم الحذف بنجاح');
     }
 
@@ -533,6 +536,7 @@ class AdminController extends Controller
             $count = Course::whereIn('id', $ids)->delete();
             DB::table('course_prerequisites')->whereIn('course_id', $ids)->orWhereIn('prerequisite_id', $ids)->delete();
             $this->logAction('BULK_DELETE', "تم حذف $count مادة مع كافة علاقاتها الشجرية.");
+            TreeController::flushCourseTreeCache();
             return redirect()->back()->with('success', "تم حذف المواد بنجاح.");
         }
         return redirect()->back()->with('error', 'لم يتم تحديد أي مادة.');

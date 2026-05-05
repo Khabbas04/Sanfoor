@@ -2,29 +2,85 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CourseTreeResource;
+use App\Http\Resources\PassedCourseResource;
 use App\Models\Course;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class TreeController extends Controller
 {
+    private const TREE_CACHE_TTL_MINUTES = 15;
+    private const TREE_CACHE_VERSION_KEY = 'tree:cache:version';
+
     /**
      * عرض صفحة الخطة الشجرية للطالب
      */
     public function index()
     {
-        // 1. جلب بيانات الطالب الحالي مع علاقات التخصص والكلية
-        $user = Auth::user()->load('major.college');
+        $user = Auth::user()->load([
+            'major:id,name,college_id',
+            'major.college:id,name',
+            'passedCourses' => function ($query) {
+                $query->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours', 'courses.semester');
+            },
+            'cartCourses' => function ($query) {
+                $query->select('courses.id');
+            },
+        ]);
 
-        // 2. إجبار النظام على أخذ تخصص الطالب حصراً لمنع تداخل البيانات
         $selectedMajorId = $user->major_id;
         $selectedPlanVersion = (int) ($user->study_plan_version ?? 12);
         $layoutMajorId = (int) ($selectedMajorId ?? 0);
 
+        $courses = Cache::remember(
+            $this->treeCoursesCacheKey($layoutMajorId, $selectedPlanVersion),
+            now()->addMinutes(self::TREE_CACHE_TTL_MINUTES),
+            function () use ($selectedMajorId, $selectedPlanVersion, $layoutMajorId) {
+                return $this->buildTreeCoursesPayload($selectedMajorId, $selectedPlanVersion, $layoutMajorId);
+            }
+        );
+
+        $passedCourses = PassedCourseResource::collection($user->passedCourses)->resolve();
+        $passed_course_ids = $user->passedCourses->pluck('id')->all();
+        $totalPassedHours = (int) $user->passedCourses->sum('credit_hours');
+        $cart_course_ids = $user->cartCourses->pluck('id')->all();
+
+        return Inertia::render('Tree/Index', [
+            'courses' => $courses,
+            'passed_course_ids' => $passed_course_ids,
+            'initial_cart_ids' => $cart_course_ids,
+            'passed_courses' => $passedCourses,
+            'total_passed_hours' => $totalPassedHours,
+            'student_name' => $user->name ?? 'طالب',
+            'major_name' => $user->major ? $user->major->name : 'غير محدد',
+            'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
+            'study_plan_version' => (int) ($user->study_plan_version ?? 12),
+        ]);
+    }
+
+    public static function flushCourseTreeCache(): void
+    {
+        Cache::forever(self::TREE_CACHE_VERSION_KEY, (string) Str::uuid());
+    }
+
+    private function treeCoursesCacheKey(int $majorId, int $planVersion): string
+    {
+        $version = (string) Cache::get(self::TREE_CACHE_VERSION_KEY, 'v1');
+
+        return "tree:courses:{$version}:major:{$majorId}:plan:{$planVersion}";
+    }
+
+    private function buildTreeCoursesPayload(?int $selectedMajorId, int $selectedPlanVersion, int $layoutMajorId): array
+    {
         $layoutPositions = DB::table('tree_course_positions')
+            ->select('course_id', 'position_x', 'position_y')
             ->where('major_id', $layoutMajorId)
             ->where('study_plan_version', $selectedPlanVersion)
             ->get()
@@ -38,7 +94,6 @@ class TreeController extends Controller
             ->whereNotNull('grade')
             ->groupBy('course_id');
 
-        // 3. بناء الاستعلام مع المتطلبات ومؤشرات الصعوبة
         $query = Course::query()
             ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
                 $join->on('courses.id', '=', 'course_stats.course_id');
@@ -63,76 +118,39 @@ class TreeController extends Controller
             ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
             ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate')
             ->withCount('prerequisites')
-            ->with(['prerequisites']);
+            ->with([
+                'prerequisites' => function ($query) {
+                    $query->select('courses.id', 'courses.name', 'courses.code', 'courses.semester');
+                },
+            ])
+            ->orderBy('courses.semester')
+            ->orderBy('courses.code');
 
-        // 4. الفلترة الصارمة حسب التخصص
         if ($selectedMajorId) {
             $query->where(function ($q) use ($selectedMajorId, $selectedPlanVersion) {
-                // جلب مواد تخصص الطالب فقط
                 $q->where(function ($majorScope) use ($selectedMajorId, $selectedPlanVersion) {
                     $majorScope->where('major_id', $selectedMajorId)
                         ->where('study_plan_version', $selectedPlanVersion);
-                })
-                // أو متطلبات الجامعة (التي لا تتبع لتخصص محدد)
-                ->orWhere(function ($universityScope) use ($selectedPlanVersion) {
+                })->orWhere(function ($universityScope) use ($selectedPlanVersion) {
                     $universityScope->whereNull('major_id')
                         ->where('study_plan_version', $selectedPlanVersion);
                 });
             });
-        }
-        else {
-            // في حال كان الطالب غير مربوط بتخصص، نعرض متطلبات الجامعة فقط
+        } else {
             $query->whereNull('major_id')
                 ->where('study_plan_version', $selectedPlanVersion);
         }
 
         $courses = $query->get();
-        $courses->transform(function (Course $course) use ($layoutPositions) {
+
+        $courses->each(function (Course $course) use ($layoutPositions) {
             $position = $layoutPositions->get($course->id);
             $course->tree_position_x = $position ? (float) $position->position_x : null;
             $course->tree_position_y = $position ? (float) $position->position_y : null;
-
-            return $course;
-        });
-
-        $totalPassedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
-        $courses->transform(function (Course $course) {
             $course->minimum_passed_hours = CourseEligibility::minimumPassedHoursForCourse($course);
-
-            return $course;
         });
 
-        // 5. جلب معرفات المواد التي أنجزها الطالب الحالي (لتلوين الشجرة)
-        $passed_course_ids = DB::table('course_user')
-            ->where('user_id', $user->id)
-            ->pluck('course_id')
-            ->toArray();
-
-        // 6. جلب المواد المنجزة بالتفصيل (مع العلامة ورقم الفصل) لتبويب السجل الأكاديمي الجديد
-        $passedCourses = $user->passedCourses()
-            ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
-            ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
-            ->get();
-
-        // 7. Fetch user's cart (simulator) from DB
-        $cart_course_ids = [];
-        if ($user->cartCourses) {
-            $cart_course_ids = $user->cartCourses->pluck('id')->toArray();
-        }
-
-        return Inertia::render('Tree/Index', [
-            'courses' => $courses,
-            'passed_course_ids' => $passed_course_ids,
-            'initial_cart_ids' => $cart_course_ids,
-            'passed_courses' => $passedCourses, // إرسال البيانات المفصلة للواجهة هنا
-            'total_passed_hours' => $totalPassedHours,
-
-            // إرسال بيانات الطالب للهيدر المخصص
-            'student_name' => $user->name ?? 'طالب',
-            'major_name' => $user->major ? $user->major->name : 'غير محدد',
-            'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
-            'study_plan_version' => (int) ($user->study_plan_version ?? 12),
-        ]);
+        return CourseTreeResource::collection($courses)->resolve();
     }
 
     /**
@@ -166,6 +184,8 @@ class TreeController extends Controller
             ]
         );
 
+        self::flushCourseTreeCache();
+
         return response()->json([
             'status' => 'saved',
             'course_id' => (int) $data['course_id'],
@@ -186,20 +206,32 @@ class TreeController extends Controller
     public function toggle(Request $request)
     {
         try {
-            // دعم إدخال السنة + الفصل مع إبقاء التوافق مع الحقل القديم studied_semester.
             $request->validate([
                 'course_id' => 'required|exists:courses,id',
                 'studied_year' => 'nullable|integer|min:1|max:6',
                 'studied_term' => 'nullable|integer|in:1,2,3',
-                'studied_semester' => 'nullable|integer|min:1|max:18'
+                'studied_semester' => 'nullable|integer|min:1|max:18',
             ]);
 
             $userId = Auth::id();
             $courseId = $request->course_id;
-
             $user = Auth::user();
 
-            $course = Course::with('prerequisites')
+            $course = Course::query()
+                ->select([
+                    'courses.id',
+                    'courses.name',
+                    'courses.code',
+                    'courses.credit_hours',
+                    'courses.minimum_passed_hours',
+                    'courses.major_id',
+                    'courses.study_plan_version',
+                ])
+                ->with([
+                    'prerequisites' => function ($query) {
+                        $query->select('courses.id', 'courses.name');
+                    },
+                ])
                 ->where('id', $courseId)
                 ->where(function ($query) use ($user) {
                     $query->where(function ($majorScope) use ($user) {
@@ -219,95 +251,99 @@ class TreeController extends Controller
                 ], 403);
             }
 
-            // 1. فحص التواجد مباشرة من الجدول الوسيط (أسرع وأضمن طريقة)
             $exists = DB::table('course_user')
                 ->where('user_id', $userId)
                 ->where('course_id', $courseId)
                 ->exists();
 
             if ($exists) {
-                // المادة موجودة -> نقوم بحذفها (إلغاء الاجتياز)
                 DB::table('course_user')
                     ->where('user_id', $userId)
                     ->where('course_id', $courseId)
                     ->delete();
 
+                self::flushCourseTreeCache();
+
                 return response()->json(['status' => 'removed']);
             }
-            else {
-                // المادة غير موجودة -> نفحص المتطلبات قبل إضافتها
-                $passedHours = (int) DB::table('course_user')
-                    ->join('courses', 'courses.id', '=', 'course_user.course_id')
-                    ->where('course_user.user_id', $userId)
-                    ->sum('courses.credit_hours');
 
-                $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
-                if ($minimumPassedHours !== null && $passedHours < $minimumPassedHours) {
-                    return response()->json([
-                        'status' => 'error',
-                        'msg' => "هذه المادة تتطلب إنهاء {$minimumPassedHours} ساعة معتمدة. الساعات الحالية: {$passedHours}.",
-                    ], 422);
-                }
+            $passedHours = (int) DB::table('course_user')
+                ->join('courses', 'courses.id', '=', 'course_user.course_id')
+                ->where('course_user.user_id', $userId)
+                ->sum('courses.credit_hours');
 
-                // جلب مصفوفة بأرقام المواد التي اجتازها الطالب
-                $passedIds = DB::table('course_user')
-                    ->where('user_id', $userId)
-                    ->pluck('course_id')
-                    ->toArray();
+            $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
+            if ($minimumPassedHours !== null && $passedHours < $minimumPassedHours) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => "هذه المادة تتطلب إنهاء {$minimumPassedHours} ساعة معتمدة. الساعات الحالية: {$passedHours}.",
+                ], 422);
+            }
 
-                $missingPrereqs = [];
-                foreach ($course->prerequisites as $prereq) {
-                    if (!in_array($prereq->id, $passedIds)) {
-                        $missingPrereqs[] = $prereq->name;
-                    }
-                }
+            $passedIds = DB::table('course_user')
+                ->where('user_id', $userId)
+                ->pluck('course_id')
+                ->toArray();
 
-                if (empty($missingPrereqs)) {
-                    // المنطق الأساسي: إن وصلت سنة+فصل نحولهم إلى 1..12، وإلا نعتمد studied_semester.
-                    $studiedYear = $request->input('studied_year');
-                    $studiedTerm = $request->input('studied_term');
-
-                    if (!is_null($studiedYear) && !is_null($studiedTerm)) {
-                        $targetSemester = (($studiedYear - 1) * 3) + $studiedTerm;
-                    } else {
-                        // fallback للتوافق مع الإرسال القديم.
-                        $targetSemester = (int) ($request->studied_semester ?? $course->semester ?? 1);
-
-                        if (is_null($studiedYear) || is_null($studiedTerm)) {
-                            $legacySemester = max(1, min(12, $targetSemester));
-                            $studiedYear = (int) ceil($legacySemester / 2);
-                            $studiedTerm = $legacySemester % 2 === 0 ? 2 : 1;
-                        }
-                    }
-
-                    $targetSemester = max(1, min(18, (int) $targetSemester));
-                    $studiedYear = max(1, min(6, (int) $studiedYear));
-                    $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
-
-                    DB::table('course_user')->insert([
-                        'user_id' => $userId,
-                        'course_id' => $courseId,
-                        'studied_semester' => $targetSemester, // حفظ الفصل المُخصص هنا
-                        'studied_year' => $studiedYear,
-                        'studied_term' => $studiedTerm,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    
-                    return response()->json(['status' => 'added']);
-                }
-                else {
-                    return response()->json([
-                        'status' => 'error',
-                        'msg' => 'عذراً، يجب إنهاء المتطلبات السابقة: ' . implode(' ، ', $missingPrereqs)
-                    ], 422);
+            $missingPrereqs = [];
+            foreach ($course->prerequisites as $prereq) {
+                if (!in_array($prereq->id, $passedIds, true)) {
+                    $missingPrereqs[] = $prereq->name;
                 }
             }
-        }
-        catch (\Exception $e) {
-            // إرجاع تفاصيل الخطأ بدقة في حال حدوثه للفرونت إند
+
+            if (!empty($missingPrereqs)) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'عذراً، يجب إنهاء المتطلبات السابقة: ' . implode(' ، ', $missingPrereqs),
+                ], 422);
+            }
+
+            $studiedYear = $request->input('studied_year');
+            $studiedTerm = $request->input('studied_term');
+
+            if (!is_null($studiedYear) && !is_null($studiedTerm)) {
+                $targetSemester = (($studiedYear - 1) * 3) + $studiedTerm;
+            } else {
+                $targetSemester = (int) ($request->studied_semester ?? $course->semester ?? 1);
+
+                if (is_null($studiedYear) || is_null($studiedTerm)) {
+                    $legacySemester = max(1, min(12, $targetSemester));
+                    $studiedYear = (int) ceil($legacySemester / 2);
+                    $studiedTerm = $legacySemester % 2 === 0 ? 2 : 1;
+                }
+            }
+
+            $targetSemester = max(1, min(18, (int) $targetSemester));
+            $studiedYear = max(1, min(6, (int) $studiedYear));
+            $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
+
+            DB::table('course_user')->updateOrInsert(
+                [
+                    'user_id' => $userId,
+                    'course_id' => $courseId,
+                ],
+                [
+                    'studied_semester' => $targetSemester,
+                    'studied_year' => $studiedYear,
+                    'studied_term' => $studiedTerm,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
+            self::flushCourseTreeCache();
+
+            return response()->json(['status' => 'added']);
+        } catch (\Throwable $e) {
+            Log::error('Tree toggle failed', [
+                'user_id' => Auth::id(),
+                'course_id' => $request->input('course_id'),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
-                'message' => 'Error: ' . $e->getMessage() . ' | Line: ' . $e->getLine()
+                'message' => 'تعذر تحديث حالة المادة الآن. حاول مرة أخرى.',
             ], 500);
         }
     }
@@ -318,43 +354,68 @@ class TreeController extends Controller
      */
     public function toggleSingleCart(Request $request)
     {
-        $request->validate([
-            'course_id' => 'required|exists:courses,id'
-        ]);
+        try {
+            $request->validate([
+                'course_id' => 'required|exists:courses,id',
+            ]);
 
-        $user = Auth::user();
-        $courseId = $request->course_id;
-        $course = Course::where('id', $courseId)
-            ->where(function ($query) use ($user) {
-                $query->where(function ($majorScope) use ($user) {
-                    $majorScope->where('major_id', $user->major_id)
-                        ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
-                })->orWhere(function ($universityScope) use ($user) {
-                    $universityScope->whereNull('major_id')
-                        ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
-                });
-            })
-            ->firstOrFail();
+            $user = Auth::user();
+            $courseId = $request->course_id;
+            $course = Course::query()
+                ->select([
+                    'courses.id',
+                    'courses.major_id',
+                    'courses.study_plan_version',
+                    'courses.credit_hours',
+                    'courses.minimum_passed_hours',
+                ])
+                ->where('id', $courseId)
+                ->where(function ($query) use ($user) {
+                    $query->where(function ($majorScope) use ($user) {
+                        $majorScope->where('major_id', $user->major_id)
+                            ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                    })->orWhere(function ($universityScope) use ($user) {
+                        $universityScope->whereNull('major_id')
+                            ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                    });
+                })
+                ->firstOrFail();
 
-        $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
-        $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
+            $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
+            $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
 
-        if ($minimumPassedHours !== null && $passedHours < $minimumPassedHours) {
+            if ($minimumPassedHours !== null && $passedHours < $minimumPassedHours) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "هذه المادة تتطلب إنهاء {$minimumPassedHours} ساعة معتمدة. الساعات الحالية: {$passedHours}.",
+                ], 422);
+            }
+
+            if ($user->cartCourses()->where('course_id', $courseId)->exists()) {
+                $user->cartCourses()->detach($courseId);
+
+                return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
+            }
+
+            DB::table('user_carts')->insertOrIgnore([
+                'user_id' => Auth::id(),
+                'course_id' => $courseId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى التسجيل التجريبي بنجاح.']);
+        } catch (\Throwable $e) {
+            Log::error('Tree cart toggle failed', [
+                'user_id' => Auth::id(),
+                'course_id' => $request->input('course_id'),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'status' => 'error',
-                'message' => "هذه المادة تتطلب إنهاء {$minimumPassedHours} ساعة معتمدة. الساعات الحالية: {$passedHours}.",
-            ], 422);
-        }
-
-        // التحقق مما إذا كانت المادة موجودة في التسجيل التجريبي مسبقاً
-        if ($user->cartCourses()->where('course_id', $courseId)->exists()) {
-            // إزالة المادة من التسجيل التجريبي
-            $user->cartCourses()->detach($courseId);
-            return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
-        } else {
-            // إضافة المادة إلى التسجيل التجريبي
-            $user->cartCourses()->attach($courseId);
-            return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى التسجيل التجريبي بنجاح.']);
+                'message' => 'تعذر تحديث التسجيل التجريبي الآن. حاول مرة أخرى.',
+            ], 500);
         }
     }
 }
