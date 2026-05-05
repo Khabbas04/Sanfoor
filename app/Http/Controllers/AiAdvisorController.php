@@ -639,39 +639,74 @@ class AiAdvisorController extends Controller
             throw new \Exception('No Gemini API keys configured');
         }
 
+        // Prioritize working models: gemini-2.5-flash first (known to work), fallback to others
         $models = array_values(array_filter([
-            config('services.gemini.model'),
-            'gemini-2.0-flash-lite',
             'gemini-2.5-flash',
+            'gemini-2.0-flash-lite',
+            config('services.gemini.model'),
         ]));
 
         $lastError = 'Unknown Gemini error';
+        $quotaExhaustedModels = [];
 
         foreach ($apiKeys as $keyIndex => $apiKey) {
-            foreach ($models as $model) {
+            foreach ($models as $modelIndex => $model) {
+                // Skip models already marked as quota-exhausted for this key
+                if (isset($quotaExhaustedModels["{$keyIndex}:{$model}"])) {
+                    continue;
+                }
+
                 $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
                 try {
                     $requestContents = $contents;
                     $fullText = '';
+                    $backoffMs = 100;
 
                     for ($pass = 0; $pass <= 2; $pass++) {
-                        $response = Http::withoutVerifying()
-                            ->connectTimeout(8)
-                            ->timeout(60)
-                            ->retry(1, 250)
-                            ->withHeaders(['Content-Type' => 'application/json'])
-                            ->post($url, [
-                                'contents' => $requestContents,
-                                'generationConfig' => [
-                                    'responseMimeType' => 'application/json',
-                                    'temperature' => 0.35,
-                                ],
-                            ]);
+                        for ($retryCount = 0; $retryCount < 3; $retryCount++) {
+                            try {
+                                $response = Http::withoutVerifying()
+                                    ->connectTimeout(8)
+                                    ->timeout(45)
+                                    ->withHeaders(['Content-Type' => 'application/json'])
+                                    ->post($url, [
+                                        'contents' => $requestContents,
+                                        'generationConfig' => [
+                                            'responseMimeType' => 'application/json',
+                                            'temperature' => 0.35,
+                                        ],
+                                    ]);
 
-                        if (!$response->successful()) {
-                            $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP {$response->status()}";
-                            continue 2;
+                                // Handle rate limiting (429) and server overload (503)
+                                if ($response->status() === 429) {
+                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP 429 (quota exhausted)";
+                                    $quotaExhaustedModels["{$keyIndex}:{$model}"] = true;
+                                    break 3; // Skip to next model
+                                } elseif ($response->status() === 503) {
+                                    if ($retryCount < 2) {
+                                        usleep($backoffMs * 1000);
+                                        $backoffMs *= 2;
+                                        continue; // Retry with backoff
+                                    }
+                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP 503 (high demand)";
+                                    continue 3; // Try next model
+                                }
+
+                                if (!$response->successful()) {
+                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP {$response->status()}";
+                                    continue 3; // Try next model
+                                }
+
+                                break; // Success, exit retry loop
+                            } catch (\Exception $e) {
+                                if ($retryCount < 2) {
+                                    usleep($backoffMs * 1000);
+                                    $backoffMs *= 2;
+                                    continue;
+                                }
+                                throw $e;
+                            }
                         }
 
                         $candidate = $response->json('candidates.0');
@@ -679,7 +714,7 @@ class AiAdvisorController extends Controller
 
                         if (!is_string($chunk) || trim($chunk) === '') {
                             $lastError = "key#" . ($keyIndex + 1) . " {$model}: empty candidate text";
-                            continue 2;
+                            continue 3;
                         }
 
                         $fullText .= $chunk;
@@ -703,7 +738,7 @@ class AiAdvisorController extends Controller
             }
         }
 
-        throw new \Exception("Gemini failed across models. {$lastError}");
+        throw new \Exception("Gemini API failed across all models and keys. Last error: {$lastError}");
     }
 
     private function parseAIResponse(string $rawText): array
