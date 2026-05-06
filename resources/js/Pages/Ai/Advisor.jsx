@@ -48,6 +48,25 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     return <ReactMarkdown>{txt}</ReactMarkdown>;
 };
 
+const AI_PREVIEW_LIMIT = 420;
+const getAiPreview = (text, limit = AI_PREVIEW_LIMIT) => {
+    const raw = typeof text === 'string' ? text : String(text ?? '');
+    const clean = raw.trim();
+    if (clean.length <= limit) {
+        return { text: clean, trimmed: false };
+    }
+    const slice = clean.slice(0, limit);
+    const cutAt = Math.max(
+        slice.lastIndexOf('\n'),
+        slice.lastIndexOf('؟'),
+        slice.lastIndexOf('!'),
+        slice.lastIndexOf('.'),
+        slice.lastIndexOf('،')
+    );
+    const clipped = (cutAt > 140 ? slice.slice(0, cutAt + 1) : slice).trim();
+    return { text: `${clipped} …`, trimmed: true };
+};
+
 // Reusable button used to add or remove suggested courses from the simulator cart.
 const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' }) => {
     const rm = variant === 'remove';
@@ -308,6 +327,11 @@ const Actions = ({ msg, onRegen, onFeedback, isLast }) => {
 // ========== ChatMessage ==========
 const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRegen, onFb, onFollow }) => {
     const u = msg.role === 'user';
+    const [expanded, setExpanded] = useState(false);
+    const safeContent = typeof msg.content === 'string' ? msg.content : String(msg.content ?? '');
+    const preview = useMemo(() => getAiPreview(safeContent), [safeContent]);
+    const showToggle = !u && !msg.isAnimating && preview.trimmed;
+    const displayText = msg.isAnimating ? preview.text : (expanded ? safeContent : preview.text);
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
@@ -316,7 +340,27 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                 <div className={`group/m ${u ? 'bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white rounded-2xl rounded-se-sm shadow-lg shadow-indigo-200/20 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
-                            <div className="sfr-md text-[12.5px] font-medium"><Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/></div>
+                            <div className="sfr-ai-shell">
+                                <div className="sfr-ai-card">
+                                    <div className="sfr-ai-header">
+                                        <span className="sfr-ai-title">✨ رد سنفور المختصر</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="sfr-ai-chip">مختصر</span>
+                                            <span className="sfr-ai-chip">مفيد</span>
+                                            <span className="sfr-ai-chip">مرتب</span>
+                                        </div>
+                                    </div>
+                                    <div className="sfr-ai-divider" />
+                                    <div className="sfr-md text-[12.5px] font-medium">
+                                        <Typewriter content={displayText} isAnimating={msg.isAnimating && !expanded} onScroll={scroll} onComplete={onDone}/>
+                                    </div>
+                                    {showToggle && (
+                                        <button onClick={() => setExpanded(v => !v)} className="sfr-ai-more">
+                                            {expanded ? 'عرض أقل' : 'عرض المزيد'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                             {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-indigo-100/40 sfr-fade-up"><p className="text-[9px] font-black text-indigo-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
                             {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
                             {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
@@ -624,7 +668,9 @@ export default function Advisor() {
             @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
             .sfr-md p { margin-bottom: .4rem; line-height: 1.8; }
             .sfr-md p:last-child { margin-bottom: 0; }
-            .sfr-md strong { color: #312e81; font-weight: 900; }
+            .sfr-md p:first-child { background: rgba(99,102,241,.10); border-right: 3px solid #4338ca; padding: .35rem .5rem; border-radius: 10px; }
+            .sfr-md strong { color: #1e1b4b; font-weight: 900; background: rgba(253,224,71,.35); padding: 0 .2rem; border-radius: 6px; }
+            .sfr-md em { color: #0f766e; font-style: normal; font-weight: 800; }
             .sfr-md ul { list-style: none; padding-right: .15rem; margin-bottom: .4rem; }
             .sfr-md li { position: relative; padding-right: 1.1rem; margin-bottom: .25rem; line-height: 1.75; }
             .sfr-md li::before { content: ""; position: absolute; right: .1rem; top: .65em; width: 4px; height: 4px; background: var(--sfr-primary); border-radius: 50%; }
@@ -636,6 +682,14 @@ export default function Advisor() {
             .sfr-glow { animation: sfr-glow 3s infinite; }
             .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .15s; cursor: pointer; }
             .sfr-action-btn:hover { background: #f1f5f9; }
+            .sfr-ai-shell { background: linear-gradient(135deg, rgba(253,230,138,.6), rgba(199,210,254,.55), rgba(167,243,208,.55)); padding: 1px; border-radius: 18px; }
+            .sfr-ai-card { background: rgba(255,255,255,.96); border-radius: 18px; padding: .75rem .85rem; box-shadow: 0 14px 30px -24px rgba(15,23,42,.5); }
+            .sfr-ai-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+            .sfr-ai-title { font-size: 10px; font-weight: 900; color: #1e1b4b; background: linear-gradient(90deg, #eef2ff, #fef3c7); padding: 3px 8px; border-radius: 999px; }
+            .sfr-ai-chip { font-size: 8px; font-weight: 800; color: #0f172a; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 6px; border-radius: 999px; }
+            .sfr-ai-divider { height: 1px; background: linear-gradient(90deg, rgba(99,102,241,.2), rgba(251,191,36,.3), rgba(16,185,129,.2)); margin: .45rem 0 .55rem; }
+            .sfr-ai-more { margin-top: .5rem; padding: .3rem .6rem; font-size: 9px; font-weight: 900; color: #3730a3; background: #eef2ff; border-radius: 999px; transition: all .2s; }
+            .sfr-ai-more:hover { background: #e0e7ff; transform: translateY(-1px); }
         ` }} />
 
         <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
