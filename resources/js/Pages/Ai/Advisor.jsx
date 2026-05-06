@@ -537,8 +537,22 @@ export default function Advisor() {
 
     const fb = useCallback(async(mid,r)=>{try{await axios.post(route('ai.advisor.feedback'),{message_id:mid,rating:r});}catch{}},[]);
     
+    const maxCartHours = Math.min(18, st?.max_allowed_hours ?? 18);
+
     // 🆕 تحديث دالة الـ Toggle لتدعم الساعات الديناميكية
     const toggle = useCallback(async(cid, cn, chours = 0)=>{
+        const hoursToAdd = Number(chours) || 0;
+        const isAlreadyAdded = !!added[cid];
+        if (!isAlreadyAdded && hoursToAdd > 0 && (cartHours + hoursToAdd) > maxCartHours) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'الحد الأقصى للتسجيل التجريبي',
+                text: `لا يمكن تجاوز ${maxCartHours} ساعة. احذف مادة أولاً ثم جرّب الإضافة.`,
+                ...swal,
+            });
+            return;
+        }
+
         setLoadId(cid);
         try{
             const r = await axios.post(route('cart.toggle.single'),{course_id:cid});
@@ -561,7 +575,7 @@ export default function Advisor() {
         }finally{
             setLoadId(null);
         }
-    },[]);
+    },[added, cartHours, maxCartHours]);
 
     const delChat = useCallback(async(id,e)=>{e.stopPropagation();const r=await Swal.fire({title:'حذف المحادثة؟',icon:'warning',showCancelButton:true,confirmButtonText:'احذف',cancelButtonText:'لا',...swal});if(r.isConfirmed){try{await axios.delete(route('ai.advisor.delete',id));setChats(p=>p.filter(c=>c.id!==id));if(activeId===id)newChat();}catch{}}},[activeId,newChat]);
     const delAll = useCallback(async()=>{if(!chats.length)return;const r=await Swal.fire({title:`حذف ${chats.length} محادثة؟`,icon:'warning',showCancelButton:true,confirmButtonText:'احذف الكل',cancelButtonText:'لا',...swal});if(r.isConfirmed){try{await axios.delete(route('ai.advisor.delete.all'));setChats([]);newChat();}catch{}}},[chats.length,newChat]);
