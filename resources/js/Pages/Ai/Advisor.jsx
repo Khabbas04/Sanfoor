@@ -330,6 +330,82 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
     );
 };
 
+// ========== Result Panel (Command-first) ==========
+const ResultPanel = ({ result, lastAction, added, loading, onToggle, onFollow, isBusy, onRegen, onDone, scroll }) => {
+    const hasResult = !!result;
+    const replyText = result?.content && result.content.trim()
+        ? result.content
+        : 'جاهز أعطيك نتيجة واضحة — اختر أمر ذكي أو اكتب طلبك بالأسفل.';
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-500">نتيجة سنفور</span>
+                    {lastAction && <span className="text-[12px] font-black text-slate-800 truncate max-w-[240px] md:max-w-[420px]">{lastAction}</span>}
+                </div>
+                <button onClick={onRegen} disabled={!hasResult || isBusy}
+                    className="px-3 py-1.5 text-[10px] font-black rounded-lg border border-slate-200/70 bg-slate-50 text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition-all">
+                    🔄 إعادة توليد
+                </button>
+            </div>
+
+            {!hasResult && (
+                <div className="py-10 text-center text-slate-400 font-bold text-[11px]">
+                    اختر أمر من الأعلى — النتيجة ستظهر هنا.
+                </div>
+            )}
+
+            {hasResult && (
+                <div>
+                    <div className="sfr-md text-[12.5px] font-medium">
+                        <Typewriter content={replyText} isAnimating={result.isAnimating} onScroll={scroll} onComplete={onDone} />
+                    </div>
+
+                    {isBusy && (
+                        <div className="mt-3 text-[9px] text-slate-400 font-bold animate-pulse">⏳ جاري تجهيز الرد...</div>
+                    )}
+
+                    {!result.isAnimating && result.suggested_courses?.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-teal-100/40 sfr-fade-up">
+                            <p className="text-[9px] font-black text-teal-600 mb-2">✨ مواد مقترحة:</p>
+                            <div className="space-y-1.5">
+                                {result.suggested_courses.map(c => (
+                                    <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!result.isAnimating && result.courses_to_remove?.length > 0 && (
+                        <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up">
+                            <p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p>
+                            <div className="space-y-1.5">
+                                {result.courses_to_remove.map(c => (
+                                    <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!result.isAnimating && result.interactive_widget && (
+                        <Widget widget={result.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow} />
+                    )}
+
+                    {!result.isAnimating && result.follow_up_suggestions?.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up">
+                            <div className="flex flex-wrap gap-1.5">
+                                {result.follow_up_suggestions.map((q, i) => (
+                                    <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-teal-50 hover:text-teal-700 transition-all active:scale-95">{q}</button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ========== ProgressRing ==========
 const Ring = ({pct, size=40, s=3.5}) => {
     const r=(size-s)/2, c=2*Math.PI*r;
@@ -408,6 +484,7 @@ export default function Advisor() {
     const [sidebar, setSidebar] = useState(false);
     const [regenning, setRegenning] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const [lastAction, setLastAction] = useState('');
 
     // 🆕 State الساعات الديناميكية
     const [cartHours, setCartHours] = useState(st?.cart_hours || 0);
@@ -464,7 +541,7 @@ export default function Advisor() {
             clearTimeout(typewriterTimeoutRef.current);
             typewriterTimeoutRef.current = null;
         }
-        setActiveId(null); setMsgs([welcome]); setInput(''); setGenerating(false); setTyping(false); setSidebar(false); setTimeout(() => inputRef.current?.focus(), 100); }, [welcome]);
+        setActiveId(null); setMsgs([welcome]); setInput(''); setGenerating(false); setTyping(false); setSidebar(false); setLastAction(''); setTimeout(() => inputRef.current?.focus(), 100); }, [welcome]);
 
     const loadChat = useCallback(async (id) => {
         if (activeId === id) { setSidebar(false); return; }
@@ -480,9 +557,11 @@ export default function Advisor() {
         finally { setLoadingChat(false); setTimeout(scroll, 150); }
     }, [activeId, scroll]);
 
-    const send = useCallback(async (text) => {
+    const send = useCallback(async (text, meta = {}) => {
         const t = text?.trim(); 
         if (!t || generating || typing) return;
+
+        setLastAction(meta.label || t);
 
         // معالجة الأوامر السحرية
         if (t.startsWith('/')) {
@@ -490,7 +569,7 @@ export default function Advisor() {
             if (matchedCmd) {
                 setShowCommandMenu(false);
                 setCommandFilter('');
-                send(matchedCmd.message);
+                send(matchedCmd.message, { label: matchedCmd.label });
                 return;
             }
         }
@@ -518,7 +597,7 @@ export default function Advisor() {
         finally { setTyping(false); }
     }, [activeId, generating, typing, magicCommands]);
 
-    const handleSend = e => { e.preventDefault(); send(input); };
+    const handleSend = e => { e.preventDefault(); send(input, { label: input }); };
     const stop = useCallback(() => finish(), [finish]);
     
     const regen = useCallback(async () => {
@@ -595,6 +674,7 @@ export default function Advisor() {
     },[chats]);
     const addedCount = useMemo(() => Object.values(added).filter(Boolean).length, [added]);
     const lastAi = useMemo(() => { for(let i=msgs.length-1;i>=0;i--)if(msgs[i].role==='ai'&&msgs[i].id!=='welcome')return msgs[i].id; return null; }, [msgs]);
+    const lastAiMsg = useMemo(() => { for(let i=msgs.length-1;i>=0;i--)if(msgs[i].role==='ai'&&msgs[i].id!=='welcome')return msgs[i]; return null; }, [msgs]);
 
     const ChatItem = ({c}) => (
         <div className="relative group/i">
@@ -657,15 +737,15 @@ export default function Advisor() {
 
         {/* === Mobile === */}
         <div className="lg:hidden sticky top-2 z-30 flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
-            <button onClick={()=>setSidebar(true)} className="flex items-center gap-1.5 p-2.5 bg-white rounded-xl border border-slate-200/70 shadow-sm active:scale-95 text-[11px] font-black text-slate-600"><svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>المحادثات</button>
-            <button onClick={newChat} className="flex-1 bg-indigo-700 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97]">✨ محادثة جديدة</button>
+            <button onClick={()=>setSidebar(true)} className="flex items-center gap-1.5 p-2.5 bg-white rounded-xl border border-slate-200/70 shadow-sm active:scale-95 text-[11px] font-black text-slate-600"><svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>سجل النتائج</button>
+            <button onClick={newChat} className="flex-1 bg-teal-700 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97]">✨ جلسة جديدة</button>
         </div>
-        {sidebar&&<div className="lg:hidden fixed inset-0 z-50 flex"><div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={()=>setSidebar(false)}/><div className="relative w-[80%] max-w-[280px] bg-white h-full shadow-2xl overflow-y-auto p-4 space-y-3 sfr-scrollbar"><div className="flex items-center justify-between"><h3 className="font-black text-slate-700 text-[13px]">📂 المحادثات</h3><button onClick={()=>setSidebar(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">✕</button></div>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[11px] py-8">📭 فارغ</p>}</div></div>}
+        {sidebar&&<div className="lg:hidden fixed inset-0 z-50 flex"><div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={()=>setSidebar(false)}/><div className="relative w-[80%] max-w-[280px] bg-white h-full shadow-2xl overflow-y-auto p-4 space-y-3 sfr-scrollbar"><div className="flex items-center justify-between"><h3 className="font-black text-slate-700 text-[13px]">📂 سجل النتائج</h3><button onClick={()=>setSidebar(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">✕</button></div>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[11px] py-8">📭 فارغ</p>}</div></div>}
 
         {/* === Sidebar === */}
         <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
-            <button onClick={newChat} className="w-full bg-indigo-700 hover:bg-indigo-600 text-white p-3 rounded-2xl font-black text-[13px] shadow-md shadow-indigo-300/20 flex items-center justify-center gap-2.5 active:scale-[.97] group transition-all">
-                <span className="group-hover:rotate-12 transition-transform">✨</span> محادثة جديدة
+            <button onClick={newChat} className="w-full bg-teal-700 hover:bg-teal-600 text-white p-3 rounded-2xl font-black text-[13px] shadow-md shadow-teal-300/20 flex items-center justify-center gap-2.5 active:scale-[.97] group transition-all">
+                <span className="group-hover:rotate-12 transition-transform">✨</span> جلسة جديدة
             </button>
 
             {/* Student Info Card */}
@@ -688,7 +768,7 @@ export default function Advisor() {
             {/* Chat History */}
             <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
                 <div className="p-2.5 border-b border-slate-100/80 shrink-0 flex items-center justify-between">
-                    <h3 className="font-black text-slate-600 text-[10px]">📂 المحادثات</h3>
+                    <h3 className="font-black text-slate-600 text-[10px]">📂 سجل النتائج</h3>
                     {chats.length>0&&<button onClick={delAll} className="text-[8px] text-red-400 hover:text-red-600 font-bold transition-colors">مسح الكل</button>}
                 </div>
                 <div className="flex-1 overflow-y-auto p-1.5 sfr-scrollbar">
@@ -727,12 +807,44 @@ export default function Advisor() {
             </div>
 
             {/* Messages */}
-            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-gradient-to-b from-white to-slate-50/80 sfr-scrollbar">
-                {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-indigo-400"><div className="w-7 h-7 border-[3px] border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
-                <div className="space-y-3">
-                    {msgs.map(m=><Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id===lastAi} onRegen={regen} onFb={fb} onFollow={send}/>)}
-                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-teal-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-teal-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-teal-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-teal-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-teal-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
-                </div>)}<div className="h-2"/>
+            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-4 bg-gradient-to-b from-white to-slate-50/80 sfr-scrollbar">
+                {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-teal-500"><div className="w-7 h-7 border-[3px] border-teal-100 border-t-teal-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
+                <div className="space-y-4">
+                    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div>
+                                <p className="text-[9px] font-black text-slate-500">أوامر سنفور الذكية</p>
+                                <p className="text-[12px] font-black text-slate-800">اختصر الوقت بلمسة واحدة</p>
+                            </div>
+                            <span className="text-[9px] font-black text-teal-700 bg-teal-50 px-2 py-1 rounded-full">جاهزة الآن</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {cmds.map((cmd, i) => (
+                                <button key={i} onClick={() => send(cmd.text, { label: cmd.text })} className={`sfr-cmd-card sfr-cmd-${cmd.tone} flex items-start gap-2.5 group`}>
+                                    <span className="text-lg shrink-0 mt-0.5">{cmd.icon}</span>
+                                    <div>
+                                        <p className="text-[12px] font-black text-slate-800 leading-snug">{cmd.text}</p>
+                                        <p className="text-[9px] font-bold text-slate-500 mt-0.5">{cmd.desc}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <ResultPanel
+                        result={lastAiMsg}
+                        lastAction={lastAction}
+                        added={added}
+                        loading={loadId}
+                        onToggle={toggle}
+                        onFollow={(q) => send(q, { label: q })}
+                        isBusy={typing || generating || loadingChat}
+                        onRegen={regen}
+                        onDone={finish}
+                        scroll={scroll}
+                    />
+                </div>)}
+                <div className="h-2"/>
             </div>
 
             {generating&&<div className="absolute bottom-[80px] left-1/2 -translate-x-1/2 z-30 sfr-fade-up"><button onClick={stop} className="bg-slate-900 hover:bg-red-600 text-white px-4 py-1.5 rounded-full text-[9px] font-black shadow-xl flex items-center gap-1.5 transition-all active:scale-95"><span className="w-1.5 h-1.5 bg-white rounded-sm"/>إيقاف</button></div>}
@@ -753,7 +865,7 @@ export default function Advisor() {
                                             setShowCommandMenu(false);
                                             setCommandFilter('');
                                             setInput('');
-                                            send(c.message);
+                                            send(c.message, { label: c.label });
                                         }}
                                         className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-indigo-50 transition-all text-right group active:scale-[0.98]"
                                     >
@@ -776,23 +888,7 @@ export default function Advisor() {
                     </div>
                 )}
 
-                {/* الأوامر السريعة المربوطة بالـ Widgets (تظهر فقط بالبداية) */}
-                {msgs.length < 3 && !typing && !activeId && !generating && !showCommandMenu && (
-                    <div className="px-3 py-3 border-b border-slate-100/50">
-                        <p className="text-[9px] font-black text-slate-500 mb-2 px-1">⚡ أوامر سريعة — كل واحد يفتح أداة تفاعلية مختلفة:</p>
-                        <div className="grid grid-cols-2 gap-2">
-                            {cmds.map((cmd, i) => (
-                                <button key={i} onClick={() => send(cmd.text)} className={`sfr-cmd-card sfr-cmd-${cmd.tone} flex items-start gap-2.5 group`}>
-                                    <span className="text-lg shrink-0 mt-0.5">{cmd.icon}</span>
-                                    <div>
-                                        <p className="text-[11px] font-black text-slate-800 leading-snug">{cmd.text}</p>
-                                        <p className="text-[8px] font-bold text-slate-500 mt-0.5">{cmd.desc}</p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                {/* الأوامر السريعة مدمجة في لوحة النتائج بالأعلى */}
                 <div className="p-2.5 md:p-3">
                     <form onSubmit={handleSend} className="relative flex items-center">
                         <input 
