@@ -313,11 +313,11 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
                 {u ? <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white">{name?.charAt(0)||'أ'}</div>
                     : <div className="w-8 h-8 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
-                <div className={`group/m ${u ? 'bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white rounded-2xl rounded-se-sm shadow-lg shadow-indigo-200/20 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
+                <div className={`group/m ${u ? 'bg-gradient-to-tr from-teal-600 to-cyan-600 text-white rounded-2xl rounded-se-sm shadow-lg shadow-teal-200/30 p-3.5' : 'bg-white border border-slate-200/70 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
                             <div className="sfr-md text-[12.5px] font-medium"><Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/></div>
-                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-indigo-100/40 sfr-fade-up"><p className="text-[9px] font-black text-indigo-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
+                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-teal-100/40 sfr-fade-up"><p className="text-[9px] font-black text-teal-600 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
                             {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
                             {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
                             {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-all active:scale-95">{q}</button>)}</div></div>}
@@ -582,10 +582,10 @@ export default function Advisor() {
     },[newChat,generating,stop,showCommandMenu]);
 
     const cmds = [
-        { text: "قارن لي أفضل المواد المتاحة", icon: "📊", desc: "بطاقات مقارنة", color: "indigo" },
-        { text: "شو أولويتي هالفصل؟", icon: "🗳️", desc: "استطلاع سريع", color: "violet" },
-        { text: "كم ساعة أسجل هالفصل؟", icon: "⏱️", desc: "سلايدر الساعات", color: "teal" },
-        { text: "راجع التسجيل التجريبي وقيّمه", icon: "📋", desc: "مراجعة تفاعلية", color: "slate" },
+        { text: "قارن لي أفضل المواد المتاحة", icon: "📊", desc: "بطاقات مقارنة", tone: "teal" },
+        { text: "شو أولويتي هالفصل؟", icon: "🗳️", desc: "استطلاع سريع", tone: "amber" },
+        { text: "كم ساعة أسجل هالفصل؟", icon: "⏱️", desc: "سلايدر الساعات", tone: "sky" },
+        { text: "راجع التسجيل التجريبي وقيّمه", icon: "📋", desc: "مراجعة تفاعلية", tone: "rose" },
     ];
 
     const grouped = useMemo(() => {
@@ -614,7 +614,21 @@ export default function Advisor() {
             <link rel="canonical" href={`${siteUrl}/ai-advisor`} />
         </Head>
         <style dangerouslySetInnerHTML={{ __html: `
-            :root { --sfr-primary: #4338ca; --sfr-accent: #7c3aed; }
+            :root { --sfr-primary: #0f766e; --sfr-accent: #f59e0b; --sfr-ink: #0f172a; --sfr-soft: #f0fdfa; }
+            .sfr-shell { background: radial-gradient(1200px 500px at 90% -10%, rgba(14,116,144,.18), transparent 60%), radial-gradient(900px 500px at -10% 10%, rgba(245,158,11,.12), transparent 60%), #f8fafc; }
+            .sfr-chat { background: #ffffff; border: 1px solid rgba(15,23,42,.08); box-shadow: 0 12px 40px rgba(15,23,42,.08); }
+            .sfr-header { background: linear-gradient(90deg, #ecfeff 0%, #fff7ed 60%); }
+            .sfr-badge { background: #0f766e; color: #fff; }
+            .sfr-pill { background: #ecfeff; color: #0f766e; border: 1px solid rgba(15,118,110,.18); }
+            .sfr-md h3 { font-size: 12px; font-weight: 900; color: #0f766e; margin: .5rem 0 .3rem; background: rgba(14,116,144,.08); padding: 4px 8px; border-radius: 10px; display: inline-block; }
+            .sfr-md h4 { font-size: 11px; font-weight: 900; color: #0f172a; margin: .4rem 0 .2rem; }
+            .sfr-md hr { border: 0; border-top: 1px dashed #e2e8f0; margin: .5rem 0; }
+            .sfr-cmd-card { border-radius: 14px; border: 1px solid rgba(15,23,42,.08); padding: 12px; text-align: right; transition: all .2s; background: #fff; }
+            .sfr-cmd-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(15,23,42,.08); }
+            .sfr-cmd-teal { background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%); border-color: rgba(13,148,136,.18); }
+            .sfr-cmd-amber { background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%); border-color: rgba(245,158,11,.22); }
+            .sfr-cmd-sky { background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%); border-color: rgba(14,116,144,.18); }
+            .sfr-cmd-rose { background: linear-gradient(180deg, #fff1f2 0%, #ffffff 100%); border-color: rgba(244,63,94,.18); }
             .sfr-scrollbar::-webkit-scrollbar { width: 3px; }
             .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(165,180,252,.3); border-radius: 10px; }
             .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(165,180,252,.5); }
@@ -624,10 +638,10 @@ export default function Advisor() {
             @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
             .sfr-md p { margin-bottom: .4rem; line-height: 1.8; }
             .sfr-md p:last-child { margin-bottom: 0; }
-            .sfr-md strong { color: #312e81; font-weight: 900; }
+            .sfr-md strong { color: #0f766e; font-weight: 900; }
             .sfr-md ul { list-style: none; padding-right: .15rem; margin-bottom: .4rem; }
             .sfr-md li { position: relative; padding-right: 1.1rem; margin-bottom: .25rem; line-height: 1.75; }
-            .sfr-md li::before { content: ""; position: absolute; right: .1rem; top: .65em; width: 4px; height: 4px; background: var(--sfr-primary); border-radius: 50%; }
+            .sfr-md li::before { content: ""; position: absolute; right: .1rem; top: .65em; width: 5px; height: 5px; background: var(--sfr-accent); border-radius: 50%; box-shadow: 0 0 0 2px rgba(245,158,11,.15); }
             @keyframes sfr-su { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
             .sfr-slide-up { animation: sfr-su .25s ease-out forwards; }
             @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
@@ -638,7 +652,7 @@ export default function Advisor() {
             .sfr-action-btn:hover { background: #f1f5f9; }
         ` }} />
 
-        <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
+        <div className="py-2.5 md:py-5 pb-5 lg:pb-0 sfr-shell min-h-screen font-t" dir="rtl">
         <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
         {/* === Mobile === */}
@@ -686,26 +700,26 @@ export default function Advisor() {
         </div>
 
         {/* === Chat === */}
-        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col h-[calc(100dvh-150px)] sm:h-[calc(100dvh-140px)] lg:h-[calc(100vh-64px)] min-h-[420px] overflow-hidden relative">
+        <div className="sfr-chat rounded-[22px] flex flex-col h-[calc(100dvh-150px)] sm:h-[calc(100dvh-140px)] lg:h-[calc(100vh-64px)] min-h-[420px] overflow-hidden relative">
             {/* Header */}
-            <div className="px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between z-20">
+            <div className="px-4 py-3 border-b border-slate-100/70 sfr-header shrink-0 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <div className="w-10 h-10 bg-white border-2 border-indigo-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
+                        <div className="w-10 h-10 bg-white border-2 border-teal-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"/>
                     </div>
                     <div>
-                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className="text-[7px] bg-indigo-700 text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase">AI</span></h2>
-                        <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':'bg-emerald-400'} animate-pulse`}/>{typing?'يحلل سؤالك...':generating?'يكتب الرد...':'جاهز لمساعدتك'}</p>
+                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className="text-[7px] sfr-badge px-1.5 py-0.5 rounded font-black tracking-wider uppercase">AI</span></h2>
+                        <p className="text-[9px] font-bold text-slate-500 flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':'bg-emerald-400'} animate-pulse`}/>{typing?'يحلل سؤالك...':generating?'يكتب الرد...':'جاهز لمساعدتك'}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
                     {isMobileViewport && (
-                        <button onClick={newChat} className="md:hidden bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-lg text-[10px] font-black active:scale-95 transition-all">✨ جديدة</button>
+                        <button onClick={newChat} className="md:hidden sfr-pill px-2.5 py-1.5 rounded-lg text-[10px] font-black active:scale-95 transition-all">✨ جديدة</button>
                     )}
                     {st&&<div className="hidden md:flex items-center gap-2">
-                        {st.gpa&&<div className="bg-slate-50 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-indigo-700">{st.gpa}</p></div>}
-                        {st.progress_percent!=null&&<div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100"><Ring pct={st.progress_percent} size={24} s={2.5}/><span className="text-[10px] font-black text-slate-700">{st.progress_percent}%</span></div>}
+                        {st.gpa&&<div className="bg-white/70 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-teal-700">{st.gpa}</p></div>}
+                        {st.progress_percent!=null&&<div className="flex items-center gap-1.5 bg-white/70 rounded-lg px-2.5 py-1.5 border border-slate-100"><Ring pct={st.progress_percent} size={24} s={2.5}/><span className="text-[10px] font-black text-slate-700">{st.progress_percent}%</span></div>}
                         {/* 🆕 تحديث الساعات في Header لتكون ديناميكية */}
                         {addedCount>0&&<div className="bg-emerald-50 rounded-lg px-2.5 py-1.5 border border-emerald-100"><span className="text-[10px] font-black text-emerald-700">🛒 {addedCount} مواد • {cartHours}س</span></div>}
                     </div>}
@@ -713,11 +727,11 @@ export default function Advisor() {
             </div>
 
             {/* Messages */}
-            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-[#fafbfc] sfr-scrollbar">
+            <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-gradient-to-b from-white to-slate-50/80 sfr-scrollbar">
                 {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-indigo-400"><div className="w-7 h-7 border-[3px] border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                 <div className="space-y-3">
                     {msgs.map(m=><Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id===lastAi} onRegen={regen} onFb={fb} onFollow={send}/>)}
-                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-indigo-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
+                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-teal-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-teal-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-teal-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-teal-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-teal-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
                 </div>)}<div className="h-2"/>
             </div>
 
@@ -727,8 +741,8 @@ export default function Advisor() {
             <div className="bg-white border-t border-slate-100/70 z-20 pb-[env(safe-area-inset-bottom)]">
                 {/* 🆕 قائمة الأوامر السحرية (تظهر عند كتابة /) */}
                 {showCommandMenu && (
-                    <div className="px-3 py-2 border-b border-indigo-100/50 bg-gradient-to-b from-indigo-50/50 to-white max-h-[240px] overflow-y-auto">
-                        <p className="text-[9px] font-[800] text-indigo-500 mb-2 px-1 flex items-center gap-1.5">⚡ أوامر سريعة — اكتب <kbd className="bg-indigo-100 px-1 py-0.5 rounded text-[8px] font-mono">/</kbd> ثم اسم الأمر:</p>
+                    <div className="px-3 py-2 border-b border-slate-100 bg-gradient-to-b from-teal-50/60 to-white max-h-[240px] overflow-y-auto">
+                        <p className="text-[9px] font-[800] text-teal-600 mb-2 px-1 flex items-center gap-1.5">⚡ أوامر سريعة — اكتب <kbd className="bg-teal-100 px-1 py-0.5 rounded text-[8px] font-mono">/</kbd> ثم اسم الأمر:</p>
                         <div className="space-y-1">
                             {magicCommands
                                 .filter(c => !commandFilter || c.cmd.includes(commandFilter) || c.label.includes(commandFilter))
@@ -746,12 +760,12 @@ export default function Advisor() {
                                         <span className="text-lg shrink-0 group-hover:scale-110 transition-transform">{c.icon}</span>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[11px] font-[800] text-indigo-700">{c.label}</span>
-                                                <span className="text-[9px] font-mono text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded">{c.cmd}</span>
+                                                <span className="text-[11px] font-[800] text-teal-700">{c.label}</span>
+                                                <span className="text-[9px] font-mono text-teal-500 bg-teal-50 px-1.5 py-0.5 rounded">{c.cmd}</span>
                                             </div>
                                             <p className="text-[9px] text-slate-400 font-bold truncate mt-0.5">{c.message}</p>
                                         </div>
-                                        <span className="text-slate-300 text-[10px] shrink-0 group-hover:text-indigo-500 transition-colors">↵</span>
+                                        <span className="text-slate-300 text-[10px] shrink-0 group-hover:text-teal-600 transition-colors">↵</span>
                                     </button>
                                 ))
                             }
@@ -765,14 +779,14 @@ export default function Advisor() {
                 {/* الأوامر السريعة المربوطة بالـ Widgets (تظهر فقط بالبداية) */}
                 {msgs.length < 3 && !typing && !activeId && !generating && !showCommandMenu && (
                     <div className="px-3 py-3 border-b border-slate-100/50">
-                        <p className="text-[9px] font-black text-slate-400 mb-2 px-1">⚡ أوامر سريعة — كل واحد يفتح أداة تفاعلية مختلفة:</p>
+                        <p className="text-[9px] font-black text-slate-500 mb-2 px-1">⚡ أوامر سريعة — كل واحد يفتح أداة تفاعلية مختلفة:</p>
                         <div className="grid grid-cols-2 gap-2">
                             {cmds.map((cmd, i) => (
-                                <button key={i} onClick={() => send(cmd.text)} className={`flex items-start gap-2.5 p-3 bg-${cmd.color}-50/50 border border-${cmd.color}-200/40 rounded-xl text-right hover:bg-${cmd.color}-100/50 hover:border-${cmd.color}-300/50 transition-all active:scale-[.98] group`}>
+                                <button key={i} onClick={() => send(cmd.text)} className={`sfr-cmd-card sfr-cmd-${cmd.tone} flex items-start gap-2.5 group`}>
                                     <span className="text-lg shrink-0 mt-0.5">{cmd.icon}</span>
                                     <div>
-                                        <p className={`text-[11px] font-black text-${cmd.color}-700 leading-snug`}>{cmd.text}</p>
-                                        <p className={`text-[8px] font-bold text-${cmd.color}-400 mt-0.5`}>{cmd.desc}</p>
+                                        <p className="text-[11px] font-black text-slate-800 leading-snug">{cmd.text}</p>
+                                        <p className="text-[8px] font-bold text-slate-500 mt-0.5">{cmd.desc}</p>
                                     </div>
                                 </button>
                             ))}
@@ -798,10 +812,10 @@ export default function Advisor() {
                                 }
                             }} 
                             placeholder="اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..." 
-                            className="w-full bg-slate-50/70 border-2 border-slate-200/50 rounded-xl py-3 pr-4 pl-14 text-slate-800 placeholder-slate-400/60 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 focus:bg-white transition-all font-bold text-[12.5px]" 
+                            className="w-full bg-white border-2 border-slate-200/60 rounded-xl py-3 pr-4 pl-14 text-slate-800 placeholder-slate-400/60 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-teal-400 transition-all font-bold text-[12.5px]" 
                             disabled={typing||loadingChat||generating}
                         />
-                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating} className="absolute left-2 w-9 h-9 bg-indigo-700 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
+                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating} className="absolute left-2 w-9 h-9 bg-teal-700 hover:bg-teal-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
                         </button>
                     </form>
