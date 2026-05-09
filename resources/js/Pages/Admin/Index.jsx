@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
@@ -192,6 +192,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
 
     const [selectedIds, setSelectedIds] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [prerequisiteQuery, setPrerequisiteQuery] = useState('');
     const [activeMajorFilter, setActiveMajorFilter] = useState('');
     const [activePlanFilter, setActivePlanFilter] = useState('');
     const [editingCourse, setEditingCourse] = useState(null);
@@ -307,6 +308,47 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         });
     }, [safeCourses, editingCourse, data.major_id, data.study_plan_version]);
 
+    const selectedPrerequisiteIds = useMemo(
+        () => (Array.isArray(data.prerequisite_ids) ? data.prerequisite_ids.map((id) => String(id)) : []),
+        [data.prerequisite_ids]
+    );
+
+    const filteredPrerequisites = useMemo(() => {
+        const query = prerequisiteQuery.trim().toLowerCase();
+        if (!query) return availablePrerequisites;
+
+        return availablePrerequisites.filter((course) =>
+            String(course.name || '').toLowerCase().includes(query) ||
+            String(course.code || '').toLowerCase().includes(query)
+        );
+    }, [availablePrerequisites, prerequisiteQuery]);
+
+    const selectedPrerequisites = useMemo(() => {
+        const byId = new Map(availablePrerequisites.map((course) => [String(course.id), course]));
+        return selectedPrerequisiteIds.map((id) => byId.get(String(id))).filter(Boolean);
+    }, [availablePrerequisites, selectedPrerequisiteIds]);
+
+    useEffect(() => {
+        if (!selectedPrerequisiteIds.length) return;
+
+        const allowed = new Set(availablePrerequisites.map((course) => String(course.id)));
+        const next = selectedPrerequisiteIds.filter((id) => allowed.has(String(id)));
+
+        if (next.length !== selectedPrerequisiteIds.length) {
+            setData('prerequisite_ids', next);
+        }
+    }, [availablePrerequisites, selectedPrerequisiteIds, setData]);
+
+    const togglePrerequisite = (id) => {
+        const value = String(id);
+        const exists = selectedPrerequisiteIds.includes(value);
+        const next = exists
+            ? selectedPrerequisiteIds.filter((pid) => pid !== value)
+            : [...selectedPrerequisiteIds, value];
+
+        setData('prerequisite_ids', next);
+    };
+
     const handleManualSubmit = (e) => {
         e.preventDefault();
         clearErrors();
@@ -349,7 +391,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             type: course.type,
             study_plan_version: String(course.study_plan_version || 12),
             semester: course.semester || 1,
-            prerequisite_ids: Array.isArray(course.prerequisites) ? course.prerequisites.map((p) => p.id) : [],
+            prerequisite_ids: Array.isArray(course.prerequisites) ? course.prerequisites.map((p) => String(p.id)) : [],
             description: course.description || '',
         });
 
@@ -1039,27 +1081,80 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                             </div>
                                         </div>
                                         
-                                        <div className="flex flex-col gap-1.5 mt-2">
-                                            <span className="text-[11px] font-bold text-slate-700">تفتح بعد اجتياز (المتطلب السابق):</span>
-                                            <select
-                                                multiple
-                                                className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500 bg-slate-50 min-h-[120px]"
-                                                value={data.prerequisite_ids}
-                                                onChange={(e) => {
-                                                    const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                                                    setData('prerequisite_ids', selected);
-                                                }}
-                                            >
-                                                {availablePrerequisites.length === 0 && (
-                                                    <option value="" disabled>-- لا توجد متطلبات متاحة --</option>
-                                                )}
-                                                {availablePrerequisites.map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
-                                                ))}
-                                            </select>
-                                            <p className="text-[10px] font-bold text-slate-400">يمكنك اختيار أكثر من متطلب بالضغط على Ctrl/⌘ أثناء الاختيار.</p>
-                                            {errors.prerequisite_ids && (
-                                                <p className="text-[11px] font-bold text-rose-500">{errors.prerequisite_ids}</p>
+                                        <div className="flex flex-col gap-2 mt-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-bold text-slate-700">المتطلبات السابقة:</span>
+                                                <span className="text-[10px] font-black text-slate-400">{selectedPrerequisiteIds.length} محددة</span>
+                                            </div>
+                                            <div className="bg-slate-50/60 border border-slate-200 rounded-2xl p-3 space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                                                        <input
+                                                            type="text"
+                                                            value={prerequisiteQuery}
+                                                            onChange={(e) => setPrerequisiteQuery(e.target.value)}
+                                                            placeholder="ابحث بالرمز أو الاسم..."
+                                                            className="w-full pr-8 rounded-xl border-slate-200 focus:ring-indigo-500 text-sm font-bold bg-white"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setData('prerequisite_ids', [])}
+                                                        disabled={selectedPrerequisiteIds.length === 0}
+                                                        className="px-3 py-2 rounded-xl text-[11px] font-black border border-slate-200 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                                                    >
+                                                        تفريغ
+                                                    </button>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedPrerequisites.length > 0 ? selectedPrerequisites.map((course) => (
+                                                        <button
+                                                            key={course.id}
+                                                            type="button"
+                                                            onClick={() => togglePrerequisite(course.id)}
+                                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black hover:bg-indigo-100"
+                                                        >
+                                                            {course.name} ({course.code})
+                                                            <span className="text-[11px]">✕</span>
+                                                        </button>
+                                                    )) : (
+                                                        <span className="text-[10px] font-bold text-slate-400">لم يتم اختيار متطلبات بعد.</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="max-h-48 overflow-y-auto pr-1 space-y-2">
+                                                    {filteredPrerequisites.length > 0 ? filteredPrerequisites.map((course) => {
+                                                        const checked = selectedPrerequisiteIds.includes(String(course.id));
+                                                        return (
+                                                            <label
+                                                                key={course.id}
+                                                                className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 cursor-pointer transition-colors ${checked ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-200 hover:border-indigo-200'}`}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={checked}
+                                                                        onChange={() => togglePrerequisite(course.id)}
+                                                                        className="rounded-md border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                                                    />
+                                                                    <div>
+                                                                        <p className="text-[12px] font-bold text-slate-700">{course.name}</p>
+                                                                        <p className="text-[10px] font-black text-slate-400 font-mono" dir="ltr">{course.code}</p>
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-slate-400">فصل {course.semester || 1}</span>
+                                                            </label>
+                                                        );
+                                                    }) : (
+                                                        <div className="text-[11px] font-bold text-slate-400 text-center py-3">لا توجد نتائج مطابقة.</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-slate-400">اختر المتطلبات من القائمة، ويمكن إزالة أي متطلب بالضغط عليه.</p>
+                                            {(errors.prerequisite_ids || errors.prerequisite_id) && (
+                                                <p className="text-[11px] font-bold text-rose-500">{errors.prerequisite_ids || errors.prerequisite_id}</p>
                                             )}
                                         </div>
                                     </div>

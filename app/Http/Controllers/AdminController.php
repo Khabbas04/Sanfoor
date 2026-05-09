@@ -457,14 +457,15 @@ class AdminController extends Controller
             'major_id'        => 'nullable|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
             'semester'        => 'required|integer|min:1|max:12',
+            'prerequisite_id' => 'nullable|integer|exists:courses,id',
             'prerequisite_ids' => 'nullable|array',
             'prerequisite_ids.*' => 'integer|exists:courses,id',
             'description'     => 'nullable|string',
         ]);
 
         $prerequisiteIds = $validated['prerequisite_ids'] ?? [];
-        if ($request->filled('prerequisite_id')) {
-            $prerequisiteIds[] = $request->input('prerequisite_id');
+        if (!empty($validated['prerequisite_id'])) {
+            $prerequisiteIds[] = $validated['prerequisite_id'];
         }
         $prerequisiteIds = collect($prerequisiteIds)
             ->filter()
@@ -532,14 +533,15 @@ class AdminController extends Controller
             'major_id'        => 'nullable|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
             'semester'        => 'required|integer|min:1|max:12',
+            'prerequisite_id' => 'nullable|integer|exists:courses,id',
             'prerequisite_ids' => 'nullable|array',
             'prerequisite_ids.*' => 'integer|exists:courses,id',
             'description'     => 'nullable|string',
         ]);
 
         $prerequisiteIds = $validated['prerequisite_ids'] ?? [];
-        if ($request->filled('prerequisite_id')) {
-            $prerequisiteIds[] = $request->input('prerequisite_id');
+        if (!empty($validated['prerequisite_id'])) {
+            $prerequisiteIds[] = $validated['prerequisite_id'];
         }
         $prerequisiteIds = collect($prerequisiteIds)
             ->filter()
