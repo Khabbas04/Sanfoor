@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
@@ -37,6 +38,7 @@ class AdminController extends Controller
     public function dashboard()
     {
         $today = now()->toDateString();
+        $notesEnabled = Schema::hasTable('admin_notes');
 
         $demandReport = Course::whereHas('cartUsers') 
             ->withCount('cartUsers')
@@ -83,15 +85,19 @@ class AdminController extends Controller
                 ];
             });
 
-        $adminNotes = AdminNote::with('user:id,name,email')
-            ->orderByDesc('note_date')
-            ->orderByDesc('updated_at')
-            ->take(25)
-            ->get();
+        $adminNotes = $notesEnabled
+            ? AdminNote::with('user:id,name,email')
+                ->orderByDesc('note_date')
+                ->orderByDesc('updated_at')
+                ->take(25)
+                ->get()
+            : collect();
 
-        $myAdminNote = AdminNote::where('user_id', Auth::id())
-            ->where('note_date', $today)
-            ->first();
+        $myAdminNote = $notesEnabled
+            ? AdminNote::where('user_id', Auth::id())
+                ->where('note_date', $today)
+                ->first()
+            : null;
 
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
@@ -117,6 +123,7 @@ class AdminController extends Controller
             'logs' => AdminLog::with('user:id,name,email')->latest()->take(25)->get(),
             'adminNotes' => $adminNotes,
             'myAdminNote' => $myAdminNote,
+            'notesEnabled' => $notesEnabled,
         ]);
     }
 
@@ -128,12 +135,26 @@ class AdminController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
 
+        if (!Schema::hasTable('admin_notes')) {
+            return redirect()->back()->with([
+                'message' => 'جدول الملاحظات غير موجود. شغّل migrate لتفعيل الملاحظات.',
+                'type' => 'error',
+            ]);
+        }
+
         $data = $request->validate([
             'note' => ['required', 'string', 'max:1500'],
         ]);
 
         $note = trim($data['note']);
         $today = now()->toDateString();
+
+        if ($note === '') {
+            return redirect()->back()->with([
+                'message' => 'الرجاء كتابة ملاحظة واضحة قبل الحفظ.',
+                'type' => 'error',
+            ]);
+        }
 
         AdminNote::updateOrCreate(
             [
@@ -145,7 +166,10 @@ class AdminController extends Controller
             ]
         );
 
-        return redirect()->back();
+        return redirect()->route('admin.dashboard')->with([
+            'message' => 'تم حفظ الملاحظة بنجاح.',
+            'type' => 'success',
+        ]);
     }
 
     /**

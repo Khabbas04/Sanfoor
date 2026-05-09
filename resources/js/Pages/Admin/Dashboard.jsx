@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
@@ -71,7 +71,7 @@ const translations = {
     },
 };
 
-export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -112,7 +112,12 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
     const handleNoteSubmit = (event) => {
         event.preventDefault();
-        postNote(route('admin.notes.store'), { preserveScroll: true });
+        postNote(route('admin.notes.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                router.reload({ only: ['adminNotes', 'myAdminNote'] });
+            },
+        });
     };
 
     const getStatusBadge = (s) => {
@@ -225,6 +230,11 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <form onSubmit={handleNoteSubmit} className="space-y-3">
                             <label className={`text-[11px] font-black ${subtext} uppercase tracking-widest block`}>{t.myNote}</label>
+                            {!notesEnabled && (
+                                <div className={`text-[11px] font-black rounded-xl border px-3 py-2 ${isDark ? 'border-rose-700 bg-rose-900/30 text-rose-300' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                                    ملاحظات الأدمن غير مفعّلة حالياً. شغّل `php artisan migrate` لإنشاء الجدول.
+                                </div>
+                            )}
                             <textarea
                                 value={noteData.note}
                                 onChange={(e) => setNoteData('note', e.target.value)}
@@ -239,7 +249,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             <div className="flex items-center gap-3">
                                 <button
                                     type="submit"
-                                    disabled={noteProcessing || !noteData.note.trim()}
+                                    disabled={noteProcessing || !noteData.note.trim() || !notesEnabled}
                                     className="px-5 py-2.5 rounded-xl text-[12px] font-black bg-indigo-600 text-white hover:bg-indigo-700 transition-all disabled:opacity-50"
                                 >
                                     {noteProcessing ? '...' : (safeMyNote ? t.updateNote : t.saveNote)}
