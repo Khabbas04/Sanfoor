@@ -1078,6 +1078,53 @@ export default function Tree({
         }));
     }, [levelBands, nodeDimensions.height]);
 
+    const getCourseLevel = useCallback((courseId) => {
+        const course = flowCourses.find((item) => item.id.toString() === courseId.toString());
+        return Math.max(1, parseInt(course?.semester, 10) || 1);
+    }, [flowCourses]);
+
+    const arrangeLevelPositions = useCallback((targetLevel, sourcePositions = {}) => {
+        const targetCourses = flowCourses
+            .filter((course) => Math.max(1, parseInt(course.semester, 10) || 1) === targetLevel)
+            .sort((a, b) => {
+                const posA = sourcePositions[a.id.toString()] || layoutSeedPositions.get(a.id.toString()) || { x: 0, y: 0 };
+                const posB = sourcePositions[b.id.toString()] || layoutSeedPositions.get(b.id.toString()) || { x: 0, y: 0 };
+                if ((posA.x ?? 0) !== (posB.x ?? 0)) return (posA.x ?? 0) - (posB.x ?? 0);
+                return String(a.code || '').localeCompare(String(b.code || '')) || String(a.name || '').localeCompare(String(b.name || ''));
+            });
+
+        if (targetCourses.length === 0) return sourcePositions;
+
+        const band = levelBands.get(String(targetLevel));
+        const nextPositions = { ...sourcePositions };
+        const laneSpacing = Math.max(nodeDimensions.width + 34, 220);
+        const centerX = band ? ((band.minX + band.maxX) / 2) : 0;
+        const centerY = band ? Math.round(band.centerY / nodeSnapGrid[1]) * nodeSnapGrid[1] : Math.round(((targetLevel - 1) * (nodeDimensions.height + 110)) / nodeSnapGrid[1]) * nodeSnapGrid[1];
+        const totalWidth = (targetCourses.length - 1) * laneSpacing;
+        const startX = centerX - (totalWidth / 2);
+
+        targetCourses.forEach((course, index) => {
+            nextPositions[course.id.toString()] = {
+                x: Math.round((startX + (index * laneSpacing)) / nodeSnapGrid[0]) * nodeSnapGrid[0],
+                y: centerY,
+            };
+        });
+
+        return nextPositions;
+    }, [flowCourses, layoutSeedPositions, levelBands, nodeDimensions.width, nodeDimensions.height, nodeSnapGrid]);
+
+    const autoArrangeAllLevels = useCallback(() => {
+        if (!canEditTreePositions) return;
+
+        const basePositions = { ...nodePositions, ...draftNodePositions };
+        const levels = Array.from(new Set(flowCourses.map((course) => Math.max(1, parseInt(course.semester, 10) || 1)))).sort((a, b) => a - b);
+        const arranged = levels.reduce((positions, level) => arrangeLevelPositions(level, positions), basePositions);
+
+        setNodePositions(arranged);
+        setDraftNodePositions(arranged);
+        setHasUnsavedNodeMoves(true);
+    }, [canEditTreePositions, flowCourses, nodePositions, draftNodePositions, arrangeLevelPositions]);
+
     // 🛡️ حدود الحركة — يمنع الطالب من الضياع بالفراغ الأبيض
     const translateExtent = useMemo(() => {
         const nodeWidth = nodeDimensions.width;
@@ -1138,20 +1185,18 @@ export default function Tree({
         };
 
         const droppedPosition = clampNodeToLevelBand(node.id, node.position);
-        const finalPosition = resolveNonOverlappingPosition(node.id, droppedPosition, basePositions);
+        const level = getCourseLevel(node.id);
+        const finalPosition = {
+            ...basePositions,
+            [node.id.toString()]: droppedPosition,
+        };
+        const arrangedLevelPositions = arrangeLevelPositions(level, finalPosition);
 
-        setNodePositions((prev) => ({
-            ...prev,
-            [node.id.toString()]: finalPosition,
-        }));
-
-        setDraftNodePositions((prev) => ({
-            ...prev,
-            [node.id.toString()]: finalPosition,
-        }));
+        setNodePositions(arrangedLevelPositions);
+        setDraftNodePositions(arrangedLevelPositions);
 
         setHasUnsavedNodeMoves(true);
-    }, [canEditTreePositions, positionEditMode, nodePositions, draftNodePositions, clampNodeToLevelBand, resolveNonOverlappingPosition]);
+    }, [canEditTreePositions, positionEditMode, nodePositions, draftNodePositions, clampNodeToLevelBand, arrangeLevelPositions, getCourseLevel]);
 
     const handleTargetYearChange = (yearValue) => {
         const year = parseInt(yearValue, 10) || 1;
@@ -2298,6 +2343,15 @@ export default function Tree({
                                 <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                             ))}
 
+                            {canEditTreePositions && (
+                                <button
+                                    onClick={autoArrangeAllLevels}
+                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                                >
+                                    ↔️ ترتيب المستويات
+                                </button>
+                            )}
+
                             <div className="relative shrink-0">
                                 <select
                                     value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
@@ -2432,16 +2486,18 @@ export default function Tree({
                                         className="absolute left-0 right-0"
                                         style={{ top: `${band.top}px`, height: `${band.height}px` }}
                                     >
-                                        <div className={`absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-[1.25rem] border ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/70 bg-white/25'} backdrop-blur-[1px]`} style={{ height: `${Math.max(52, band.height - 8)}px` }} />
+                                        <div className={`absolute inset-x-2 top-1/2 -translate-y-1/2 rounded-[1.4rem] border shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ${isDark ? 'border-white/10 bg-gradient-to-b from-white/[0.05] via-white/[0.03] to-white/[0.02]' : 'border-slate-200/70 bg-gradient-to-b from-white/30 via-white/20 to-white/10'} backdrop-blur-[1px]`} style={{ height: `${Math.max(58, band.height - 4)}px` }} />
+                                        <div className={`absolute inset-x-0 top-1/2 -translate-y-1/2 h-px ${isDark ? 'bg-white/10' : 'bg-slate-200/60'}`} />
                                         <button
                                             type="button"
                                             onClick={() => focusLevelInFlow(band.level)}
-                                            className={`pointer-events-auto absolute top-1/2 -translate-y-1/2 ${isMobile ? 'left-2' : 'left-4'} px-3 py-1.5 rounded-full text-[11px] font-[900] shadow-md border ${isDark ? 'bg-slate-950/80 text-white border-white/10' : 'bg-white/95 text-slate-800 border-slate-200'}`}
+                                            className={`pointer-events-auto absolute top-1/2 -translate-y-1/2 ${isMobile ? 'left-2' : 'left-4'} px-3.5 py-1.5 rounded-full text-[11px] font-[900] shadow-md border ${isDark ? 'bg-slate-950/85 text-white border-white/10' : 'bg-white/95 text-slate-800 border-slate-200'}`}
                                         >
                                             Level {band.level}
                                         </button>
-                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isMobile ? 'right-2' : 'right-4'} text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                            {levelBands.get(band.level.toString()) ? `${band.count} مواد` : ''}
+                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isMobile ? 'right-2' : 'right-4'} flex items-center gap-2`}>
+                                            <span className={`text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{band.count} مواد</span>
+                                            <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black border ${isDark ? 'bg-white/6 text-slate-200 border-white/10' : 'bg-white/90 text-slate-600 border-slate-200'}`}>fixed lane</span>
                                         </div>
                                     </div>
                                 ))}
