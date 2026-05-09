@@ -110,9 +110,23 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
         setNoteData('note', safeMyNote?.note || '');
     }, [safeMyNote?.note, setNoteData]);
 
+    const notesStoreUrl = (() => {
+        if (typeof route === 'function') {
+            try {
+                if (route().has && route().has('admin.notes.store')) {
+                    return route('admin.notes.store');
+                }
+            } catch (error) {
+                return '/admin/notes';
+            }
+        }
+
+        return '/admin/notes';
+    })();
+
     const handleNoteSubmit = (event) => {
         event.preventDefault();
-        postNote(route('admin.notes.store'), {
+        postNote(notesStoreUrl, {
             preserveScroll: true,
             onSuccess: () => {
                 router.reload({ only: ['adminNotes', 'myAdminNote'] });
