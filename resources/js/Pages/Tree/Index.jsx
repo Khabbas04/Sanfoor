@@ -396,10 +396,14 @@ export default function Tree({
         const minX = mainPositionValues.length > 0
             ? Math.min(...mainPositionValues.map((pos) => pos.x))
             : fallbackX;
+        const maxX = mainPositionValues.length > 0
+            ? Math.max(...mainPositionValues.map((pos) => pos.x))
+            : fallbackX;
 
         // Place university requirement nodes below the main graph (so they appear "under the flow")
         const startY = maxY + nodeDimensions.height + 120;
         const gapX = nodeDimensions.width + 26;
+        const gapY = nodeDimensions.height + 26;
         const sortedUniversity = [...universityReqCourses].sort((a, b) => {
             const codeA = String(a.code || '');
             const codeB = String(b.code || '');
@@ -407,12 +411,17 @@ export default function Tree({
             return String(a.name || '').localeCompare(String(b.name || ''));
         });
 
+        const columnCount = Math.min(3, Math.max(1, sortedUniversity.length));
+        const mainCenterX = minX + ((maxX - minX) / 2);
+        const gridWidth = (columnCount - 1) * gapX;
+        const startX = mainCenterX - (gridWidth / 2);
+
         const universityPositions = new Map(
             sortedUniversity.map((course, index) => [
                 course.id.toString(),
                 {
-                    x: minX + (index * gapX),
-                    y: startY,
+                    x: startX + ((index % columnCount) * gapX),
+                    y: startY + (Math.floor(index / columnCount) * gapY),
                 },
             ])
         );
