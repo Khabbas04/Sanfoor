@@ -381,6 +381,40 @@ export default function Tree({
         return snapped;
     }, [nodeDimensions.width, nodeDimensions.height, nodeSnapGrid, snapPositionToGrid]);
 
+    const layoutSeedPositions = useMemo(() => {
+        if (!Array.isArray(flowCourses) || flowCourses.length === 0) {
+            return new Map();
+        }
+
+        const layoutNodes = flowCourses.map((course) => ({
+            id: course.id.toString(),
+            position: { x: 0, y: 0 },
+            data: {
+                semester: parseInt(course.semester) || 1,
+                code: course.code || '',
+            },
+        }));
+
+        const layoutEdges = [];
+        const flowIds = new Set(flowCourses.map((course) => course.id));
+
+        flowCourses.forEach((course) => {
+            course.prerequisites?.forEach((prereq) => {
+                if (!flowIds.has(prereq.id)) return;
+                layoutEdges.push({
+                    id: `layout-${prereq.id}-${course.id}`,
+                    source: prereq.id.toString(),
+                    target: course.id.toString(),
+                });
+            });
+        });
+
+        return new Map(
+            getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
+                .map((node) => [node.id, node.position])
+        );
+    }, [flowCourses, nodeDimensions]);
+
     const levelBands = useMemo(() => {
         const bands = new Map();
 
@@ -431,40 +465,6 @@ export default function Tree({
             ...nodePositions,
         });
     }, [flowCourses, levelBands, nodeDimensions.width, nodeSnapGrid, nodePositions, resolveNonOverlappingPosition, snapPositionToGrid]);
-
-    const layoutSeedPositions = useMemo(() => {
-        if (!Array.isArray(flowCourses) || flowCourses.length === 0) {
-            return new Map();
-        }
-
-        const layoutNodes = flowCourses.map((course) => ({
-            id: course.id.toString(),
-            position: { x: 0, y: 0 },
-            data: {
-                semester: parseInt(course.semester) || 1,
-                code: course.code || '',
-            },
-        }));
-
-        const layoutEdges = [];
-        const flowIds = new Set(flowCourses.map((course) => course.id));
-
-        flowCourses.forEach((course) => {
-            course.prerequisites?.forEach((prereq) => {
-                if (!flowIds.has(prereq.id)) return;
-                layoutEdges.push({
-                    id: `layout-${prereq.id}-${course.id}`,
-                    source: prereq.id.toString(),
-                    target: course.id.toString(),
-                });
-            });
-        });
-
-        return new Map(
-            getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
-                .map((node) => [node.id, node.position])
-        );
-    }, [flowCourses, nodeDimensions]);
 
     useEffect(() => {
         if (!Array.isArray(flowCourses) || flowCourses.length === 0) return;
