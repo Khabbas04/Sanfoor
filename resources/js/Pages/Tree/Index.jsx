@@ -390,12 +390,16 @@ export default function Tree({
         const minY = mainPositionValues.length > 0
             ? Math.min(...mainPositionValues.map((pos) => pos.y))
             : 0;
-        const maxX = mainPositionValues.length > 0
-            ? Math.max(...mainPositionValues.map((pos) => pos.x))
+        const maxY = mainPositionValues.length > 0
+            ? Math.max(...mainPositionValues.map((pos) => pos.y))
+            : 0;
+        const minX = mainPositionValues.length > 0
+            ? Math.min(...mainPositionValues.map((pos) => pos.x))
             : fallbackX;
 
-        const anchorX = maxX + nodeDimensions.width + 160;
-        const gapY = nodeDimensions.height + 26;
+        // Place university requirement nodes below the main graph (so they appear "under the flow")
+        const startY = maxY + nodeDimensions.height + 120;
+        const gapX = nodeDimensions.width + 26;
         const sortedUniversity = [...universityReqCourses].sort((a, b) => {
             const codeA = String(a.code || '');
             const codeB = String(b.code || '');
@@ -407,8 +411,8 @@ export default function Tree({
             sortedUniversity.map((course, index) => [
                 course.id.toString(),
                 {
-                    x: anchorX,
-                    y: minY + index * gapY,
+                    x: minX + (index * gapX),
+                    y: startY,
                 },
             ])
         );
@@ -2371,7 +2375,7 @@ export default function Tree({
                                     <div className={`transition-all duration-300 ease-out overflow-hidden ${showUniversityPanel ? 'max-h-[65vh] opacity-100' : 'max-h-0 opacity-0'}`}>
                                         <div className="px-4 pb-4">
                                             <p className={`text-[10px] font-bold mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                مواد الجامعة منفصلة عن مواد التخصص ولا تؤثر على ترتيب الشجرة.
+                                                متطلبات الجامعة محسوبة ضمن الخطة وتؤثر على الساعات والتخطيط — يمكنك إضافتها أو تمييزها كمُنَجزة.
                                             </p>
 
                                             <div className="hidden md:block">
