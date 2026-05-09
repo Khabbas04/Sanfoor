@@ -2386,16 +2386,36 @@ export default function Tree({
                                                             </tr>
                                                         </thead>
                                                         <tbody className={`${isDark ? 'text-slate-200' : 'text-slate-700'} font-bold`}>
-                                                            {universityCourses.map((course) => (
-                                                                <tr key={course.id} className={`${isDark ? 'border-white/5' : 'border-slate-100'} border-t`}>
-                                                                    <td className="px-4 py-2">{course.name}</td>
-                                                                    <td className="px-4 py-2 font-mono" dir="ltr">{course.code}</td>
-                                                                    <td className="px-4 py-2">{course.credit_hours}</td>
-                                                                    <td className="px-4 py-2">
-                                                                        {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
+                                                                {universityCourses.map((course) => (
+                                                                    <tr
+                                                                        key={course.id}
+                                                                        onClick={() => { setSelectedCourse(course); if (isMobile) setIsSidebarOpen(true); fitViewSmart(200); }}
+                                                                        className={`${isDark ? 'border-white/5' : 'border-slate-100'} border-t hover:bg-slate-50/40 cursor-pointer`}
+                                                                    >
+                                                                        <td className="px-4 py-2">{course.name}</td>
+                                                                        <td className="px-4 py-2 font-mono" dir="ltr">{course.code}</td>
+                                                                        <td className="px-4 py-2">{course.credit_hours}</td>
+                                                                        <td className="px-4 py-2 flex items-center gap-2">
+                                                                            <div className="flex-1">
+                                                                                {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
+                                                                            </div>
+                                                                            <div className="flex gap-2">
+                                                                                <button
+                                                                                    onClick={(e) => { e.stopPropagation(); toggleCart(course); }}
+                                                                                    className="px-2 py-1 rounded-md text-[11px] font-[800] bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                                                                >
+                                                                                    {cartIds.includes(course.id) ? 'حذف' : 'أضف'}
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={(e) => { e.stopPropagation(); togglePassed(course.id); }}
+                                                                                    className="px-2 py-1 rounded-md text-[11px] font-[800] bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                                                                >
+                                                                                    {passedIds.includes(course.id) ? 'إلغاء' : 'تعيين'}
+                                                                                </button>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -2403,7 +2423,11 @@ export default function Tree({
 
                                             <div className="grid grid-cols-1 gap-2 md:hidden">
                                                 {universityCourses.map((course) => (
-                                                    <div key={course.id} className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white'}`}>
+                                                    <div
+                                                        key={course.id}
+                                                        onClick={() => { setSelectedCourse(course); if (isMobile) setIsSidebarOpen(true); fitViewSmart(200); }}
+                                                        className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white'} cursor-pointer`}
+                                                    >
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div>
                                                                 <p className="text-[12px] font-black">{course.name}</p>
@@ -2411,8 +2435,14 @@ export default function Tree({
                                                             </div>
                                                             <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>{course.credit_hours} س</span>
                                                         </div>
-                                                        <div className={`mt-2 text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                            الحالة: {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
+                                                        <div className="mt-2 text-[10px] font-bold flex items-center justify-between">
+                                                            <div className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                                الحالة: {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <button onClick={(e) => { e.stopPropagation(); toggleCart(course); }} className="px-3 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-[800]">{cartIds.includes(course.id) ? 'حذف' : 'أضف'}</button>
+                                                                <button onClick={(e) => { e.stopPropagation(); togglePassed(course.id); }} className="px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-[800]">{passedIds.includes(course.id) ? 'إلغاء' : 'تعيين'}</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
