@@ -274,33 +274,6 @@ export default function Tree({
         [universityCourses]
     );
 
-    const adminLevelStats = useMemo(() => {
-        if (!canEditTreePositions || flowCourses.length === 0) return [];
-
-        const grouped = new Map();
-        flowCourses.forEach((course) => {
-            const level = Math.max(1, parseInt(course.semester, 10) || 1);
-            if (!grouped.has(level)) {
-                grouped.set(level, {
-                    level,
-                    count: 0,
-                    totalHours: 0,
-                    passedCount: 0,
-                    cartCount: 0,
-                });
-            }
-
-            const entry = grouped.get(level);
-            entry.count += 1;
-            entry.totalHours += Number(course.credit_hours || 0);
-            if (passedIds.includes(course.id)) entry.passedCount += 1;
-            if (cartIds.includes(course.id)) entry.cartCount += 1;
-        });
-
-        return Array.from(grouped.values()).sort((a, b) => a.level - b.level);
-    }, [canEditTreePositions, flowCourses, passedIds, cartIds]);
-
-
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
         flowInstance.fitView({ padding: flowView.fitPadding, duration });
@@ -458,13 +431,33 @@ export default function Tree({
         const maxX = band.maxX + bandPadding;
         const centerY = Math.round(band.centerY / nodeSnapGrid[1]) * nodeSnapGrid[1];
 
-        return resolveNonOverlappingPosition(courseId, {
-            x: Math.min(maxX, Math.max(minX, snapped.x)),
-            y: centerY,
-        }, {
-            ...nodePositions,
-        });
-    }, [flowCourses, levelBands, nodeDimensions.width, nodeSnapGrid, nodePositions, resolveNonOverlappingPosition, snapPositionToGrid]);
+        const occupiedEntries = Object.entries({ ...nodePositions, ...draftNodePositions })
+            .filter(([existingId]) => existingId !== courseId.toString())
+            .map(([existingId, pos]) => ({
+                id: existingId,
+                x: Number(pos?.x) || 0,
+                y: Number(pos?.y) || centerY,
+            }))
+            .filter((entry) => Math.abs(entry.y - centerY) <= (nodeDimensions.height / 2));
+
+        const collidesAtX = (x) => occupiedEntries.some((entry) => Math.abs(x - entry.x) < (nodeDimensions.width + 18));
+
+        const baseX = Math.min(maxX, Math.max(minX, snapped.x));
+        if (!collidesAtX(baseX)) {
+            return { x: baseX, y: centerY };
+        }
+
+        const step = nodeSnapGrid[0];
+        const maxRadius = 30;
+        for (let radius = 1; radius <= maxRadius; radius += 1) {
+            const left = Math.max(minX, baseX - (radius * step));
+            const right = Math.min(maxX, baseX + (radius * step));
+            if (!collidesAtX(left)) return { x: left, y: centerY };
+            if (!collidesAtX(right)) return { x: right, y: centerY };
+        }
+
+        return { x: baseX, y: centerY };
+    }, [flowCourses, levelBands, nodeDimensions.height, nodeDimensions.width, nodeSnapGrid, nodePositions, draftNodePositions, snapPositionToGrid]);
 
     useEffect(() => {
         if (!Array.isArray(flowCourses) || flowCourses.length === 0) return;
@@ -1074,6 +1067,16 @@ export default function Tree({
             maxZoom: flowView.maxZoom,
         });
     }, [flowInstance, nodes, flowView.minZoom, flowView.maxZoom]);
+
+    const flowLevelBands = useMemo(() => {
+        const ordered = Array.from(levelBands.values()).sort((a, b) => a.level - b.level);
+        return ordered.map((band, index) => ({
+            ...band,
+            top: band.centerY - (nodeDimensions.height / 2) - 16,
+            height: nodeDimensions.height + 32,
+            zIndex: 10 + index,
+        }));
+    }, [levelBands, nodeDimensions.height]);
 
     // 🛡️ حدود الحركة — يمنع الطالب من الضياع بالفراغ الأبيض
     const translateExtent = useMemo(() => {
@@ -2384,39 +2387,6 @@ export default function Tree({
                             )}
                         </div>
 
-                        {canEditTreePositions && adminLevelStats.length > 0 && !isFullScreen && (
-                            <div className="absolute top-14 right-3 z-20 hidden lg:block" dir="rtl">
-                                <div className="w-[310px] rounded-2xl border border-slate-200/70 bg-white/95 shadow-lg backdrop-blur-md overflow-hidden">
-                                    <div className="px-3.5 py-2.5 border-b border-slate-200/70 bg-slate-50/80 flex items-center justify-between">
-                                        <p className="text-[11px] font-[900] text-slate-700">مستويات الخطة (Levels)</p>
-                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">{adminLevelStats.length} مستوى</span>
-                                    </div>
-                                        <div className="px-3.5 pt-2 text-[10px] font-bold text-slate-500">
-                                            اسحب المواد داخل نطاق المستوى نفسه فقط. الانتقال العمودي بين المستويات مقفول.
-                                        </div>
-                                    <div className="max-h-[280px] overflow-y-auto p-2.5 space-y-2">
-                                        {adminLevelStats.map((item) => (
-                                            <button
-                                                key={`level-${item.level}`}
-                                                type="button"
-                                                onClick={() => focusLevelInFlow(item.level)}
-                                                className="w-full text-right rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors px-3 py-2"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-[11px] font-[900] text-slate-800">Level {item.level}</span>
-                                                    <span className="text-[10px] font-black text-slate-500">{item.count} مواد • {item.totalHours} س</span>
-                                                </div>
-                                                <div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                                                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100">منجز: {item.passedCount}</span>
-                                                    <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">تجريبي: {item.cartCount}</span>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         <ReactFlow
                             nodes={nodes}
                             edges={edges}
@@ -2453,6 +2423,30 @@ export default function Tree({
                                 gap={28} size={1.2} variant="dots" opacity={0.6}
                             />
                         </ReactFlow>
+
+                        {canEditTreePositions && flowLevelBands.length > 0 && (
+                            <div className="absolute inset-0 z-20 pointer-events-none" dir="rtl">
+                                {flowLevelBands.map((band) => (
+                                    <div
+                                        key={`flow-band-${band.level}`}
+                                        className="absolute left-0 right-0"
+                                        style={{ top: `${band.top}px`, height: `${band.height}px` }}
+                                    >
+                                        <div className={`absolute inset-x-3 top-1/2 -translate-y-1/2 rounded-[1.25rem] border ${isDark ? 'border-white/10 bg-white/[0.03]' : 'border-slate-200/70 bg-white/25'} backdrop-blur-[1px]`} style={{ height: `${Math.max(52, band.height - 8)}px` }} />
+                                        <button
+                                            type="button"
+                                            onClick={() => focusLevelInFlow(band.level)}
+                                            className={`pointer-events-auto absolute top-1/2 -translate-y-1/2 ${isMobile ? 'left-2' : 'left-4'} px-3 py-1.5 rounded-full text-[11px] font-[900] shadow-md border ${isDark ? 'bg-slate-950/80 text-white border-white/10' : 'bg-white/95 text-slate-800 border-slate-200'}`}
+                                        >
+                                            Level {band.level}
+                                        </button>
+                                        <div className={`absolute top-1/2 -translate-y-1/2 ${isMobile ? 'right-2' : 'right-4'} text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                            {levelBands.get(band.level.toString()) ? `${band.count} مواد` : ''}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {universityCourses.length > 0 && !isFullScreen && (
                             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-1.5rem)] md:w-[min(980px,90%)] pointer-events-none" dir="rtl">
