@@ -381,6 +381,57 @@ export default function Tree({
         return snapped;
     }, [nodeDimensions.width, nodeDimensions.height, nodeSnapGrid, snapPositionToGrid]);
 
+    const levelBands = useMemo(() => {
+        const bands = new Map();
+
+        flowCourses.forEach((course) => {
+            const level = Math.max(1, parseInt(course.semester, 10) || 1);
+            const key = level.toString();
+            const position = nodePositions[course.id.toString()] || layoutSeedPositions.get(course.id.toString());
+            if (!position) return;
+
+            if (!bands.has(key)) {
+                bands.set(key, {
+                    level,
+                    minX: position.x,
+                    maxX: position.x,
+                    centerY: position.y,
+                    count: 0,
+                });
+            }
+
+            const band = bands.get(key);
+            band.minX = Math.min(band.minX, position.x);
+            band.maxX = Math.max(band.maxX, position.x);
+            band.centerY = band.count === 0 ? position.y : ((band.centerY * band.count) + position.y) / (band.count + 1);
+            band.count += 1;
+        });
+
+        return bands;
+    }, [flowCourses, layoutSeedPositions, nodePositions]);
+
+    const clampNodeToLevelBand = useCallback((courseId, droppedPosition) => {
+        const level = Math.max(1, parseInt(flowCourses.find((course) => course.id.toString() === courseId.toString())?.semester, 10) || 1);
+        const band = levelBands.get(level.toString());
+        const snapped = snapPositionToGrid(droppedPosition);
+
+        if (!band) {
+            return snapped;
+        }
+
+        const bandPadding = nodeDimensions.width + 24;
+        const minX = band.minX - bandPadding;
+        const maxX = band.maxX + bandPadding;
+        const centerY = Math.round(band.centerY / nodeSnapGrid[1]) * nodeSnapGrid[1];
+
+        return resolveNonOverlappingPosition(courseId, {
+            x: Math.min(maxX, Math.max(minX, snapped.x)),
+            y: centerY,
+        }, {
+            ...nodePositions,
+        });
+    }, [flowCourses, levelBands, nodeDimensions.width, nodeSnapGrid, nodePositions, resolveNonOverlappingPosition, snapPositionToGrid]);
+
     const layoutSeedPositions = useMemo(() => {
         if (!Array.isArray(flowCourses) || flowCourses.length === 0) {
             return new Map();
@@ -1083,20 +1134,21 @@ export default function Tree({
             ...draftNodePositions,
         };
 
-        const droppedPosition = resolveNonOverlappingPosition(node.id, node.position, basePositions);
+        const droppedPosition = clampNodeToLevelBand(node.id, node.position);
+        const finalPosition = resolveNonOverlappingPosition(node.id, droppedPosition, basePositions);
 
         setNodePositions((prev) => ({
             ...prev,
-            [node.id.toString()]: droppedPosition,
+            [node.id.toString()]: finalPosition,
         }));
 
         setDraftNodePositions((prev) => ({
             ...prev,
-            [node.id.toString()]: droppedPosition,
+            [node.id.toString()]: finalPosition,
         }));
 
         setHasUnsavedNodeMoves(true);
-    }, [canEditTreePositions, positionEditMode, nodePositions, draftNodePositions, resolveNonOverlappingPosition]);
+    }, [canEditTreePositions, positionEditMode, nodePositions, draftNodePositions, clampNodeToLevelBand, resolveNonOverlappingPosition]);
 
     const handleTargetYearChange = (yearValue) => {
         const year = parseInt(yearValue, 10) || 1;
@@ -2339,6 +2391,9 @@ export default function Tree({
                                         <p className="text-[11px] font-[900] text-slate-700">مستويات الخطة (Levels)</p>
                                         <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">{adminLevelStats.length} مستوى</span>
                                     </div>
+                                        <div className="px-3.5 pt-2 text-[10px] font-bold text-slate-500">
+                                            اسحب المواد داخل نطاق المستوى نفسه فقط. الانتقال العمودي بين المستويات مقفول.
+                                        </div>
                                     <div className="max-h-[280px] overflow-y-auto p-2.5 space-y-2">
                                         {adminLevelStats.map((item) => (
                                             <button
