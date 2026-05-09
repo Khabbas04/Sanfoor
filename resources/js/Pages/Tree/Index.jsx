@@ -2358,18 +2358,23 @@ export default function Tree({
                                     <button
                                         type="button"
                                         onClick={() => setShowUniversityPanel((prev) => !prev)}
-                                        className="w-full flex items-center justify-between px-4 py-3 gap-3"
+                                        className="w-full flex items-center justify-between px-4 py-3 gap-3 hover:shadow-lg transition-shadow rounded-2xl"
+                                        aria-expanded={showUniversityPanel}
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-base">🎓</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg ${isDark ? 'bg-white/6' : 'bg-indigo-50'}`}>
+                                                🎓
+                                            </div>
                                             <div className="text-right">
-                                                <p className="text-[12px] font-black">متطلبات الجامعة</p>
-                                                <p className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{universityCourses.length} مادة • {universityHours} ساعة</p>
+                                                <p className="text-[13px] font-black">متطلبات الجامعة</p>
+                                                <p className={`text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{universityCourses.length} مادة • {universityHours} ساعة</p>
                                             </div>
                                         </div>
-                                        <span className={`text-[11px] font-black px-2 py-1 rounded-lg ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>
-                                            {showUniversityPanel ? 'إخفاء' : 'عرض'}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button className={`px-3 py-1 rounded-md text-[12px] font-[800] ${isDark ? 'bg-white/6 text-white' : 'bg-white text-slate-700'} border border-white/6`} aria-label="toggle-university-panel">
+                                                {showUniversityPanel ? 'إخفاء' : 'عرض'}
+                                            </button>
+                                        </div>
                                     </button>
 
                                     <div className={`transition-all duration-300 ease-out overflow-hidden ${showUniversityPanel ? 'max-h-[65vh] opacity-100' : 'max-h-0 opacity-0'}`}>
@@ -2396,25 +2401,25 @@ export default function Tree({
                                                                         onClick={() => { setSelectedCourse(course); if (isMobile) setIsSidebarOpen(true); fitViewSmart(200); }}
                                                                         className={`${isDark ? 'border-white/5' : 'border-slate-100'} border-t hover:bg-slate-50/40 cursor-pointer`}
                                                                     >
-                                                                        <td className="px-4 py-2">{course.name}</td>
-                                                                        <td className="px-4 py-2 font-mono" dir="ltr">{course.code}</td>
-                                                                        <td className="px-4 py-2">{course.credit_hours}</td>
-                                                                        <td className="px-4 py-2 flex items-center gap-2">
-                                                                            <div className="flex-1">
-                                                                                {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
-                                                                            </div>
-                                                                            <div className="flex gap-2">
+                                                                        <td className="px-4 py-3 font-[900]">{course.name}</td>
+                                                                        <td className="px-4 py-3 font-mono text-[12px]" dir="ltr">{course.code}</td>
+                                                                        <td className="px-4 py-3 text-[13px]">{course.credit_hours}</td>
+                                                                        <td className="px-4 py-3 flex items-center gap-3 justify-end">
+                                                                            <div className="text-[12px] text-slate-500 flex-1 text-right">{getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}</div>
+                                                                            <div className="flex items-center gap-2">
                                                                                 <button
                                                                                     onClick={(e) => { e.stopPropagation(); toggleCart(course); }}
-                                                                                    className="px-2 py-1 rounded-md text-[11px] font-[800] bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                                                                    title={cartIds.includes(course.id) ? 'إزالة من التسجيل التجريبي' : 'أضف للتسجيل التجريبي'}
+                                                                                    className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${cartIds.includes(course.id) ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-white text-indigo-700 border border-slate-100'}`}
                                                                                 >
-                                                                                    {cartIds.includes(course.id) ? 'حذف' : 'أضف'}
+                                                                                    {cartIds.includes(course.id) ? '✖' : '＋'}
                                                                                 </button>
                                                                                 <button
                                                                                     onClick={(e) => { e.stopPropagation(); togglePassed(course.id); }}
-                                                                                    className="px-2 py-1 rounded-md text-[11px] font-[800] bg-emerald-50 text-emerald-700 border border-emerald-100"
+                                                                                    title={passedIds.includes(course.id) ? 'إلغاء علامة منجزة' : 'تحديد كمُنَجزة'}
+                                                                                    className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${passedIds.includes(course.id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-white text-emerald-600 border border-slate-100'}`}
                                                                                 >
-                                                                                    {passedIds.includes(course.id) ? 'إلغاء' : 'تعيين'}
+                                                                                    {passedIds.includes(course.id) ? '✓' : '✓'}
                                                                                 </button>
                                                                             </div>
                                                                         </td>
@@ -2430,22 +2435,19 @@ export default function Tree({
                                                     <div
                                                         key={course.id}
                                                         onClick={() => { setSelectedCourse(course); if (isMobile) setIsSidebarOpen(true); fitViewSmart(200); }}
-                                                        className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white'} cursor-pointer`}
+                                                        className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white'} cursor-pointer hover:shadow-md transition-shadow`}
                                                     >
                                                         <div className="flex items-start justify-between gap-3">
                                                             <div>
-                                                                <p className="text-[12px] font-black">{course.name}</p>
-                                                                <p className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} font-mono`} dir="ltr">{course.code}</p>
+                                                                <p className="text-[13px] font-[900]">{course.name}</p>
+                                                                <p className={`text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} font-mono`} dir="ltr">{course.code}</p>
                                                             </div>
-                                                            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>{course.credit_hours} س</span>
-                                                        </div>
-                                                        <div className="mt-2 text-[10px] font-bold flex items-center justify-between">
-                                                            <div className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                                الحالة: {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                <button onClick={(e) => { e.stopPropagation(); toggleCart(course); }} className="px-3 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-[800]">{cartIds.includes(course.id) ? 'حذف' : 'أضف'}</button>
-                                                                <button onClick={(e) => { e.stopPropagation(); togglePassed(course.id); }} className="px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] font-[800]">{passedIds.includes(course.id) ? 'إلغاء' : 'تعيين'}</button>
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <span className={`text-[11px] font-black px-2 py-1 rounded-lg ${isDark ? 'bg-white/6 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>{course.credit_hours} س</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button onClick={(e) => { e.stopPropagation(); toggleCart(course); }} title={cartIds.includes(course.id) ? 'إزالة من التسجيل التجريبي' : 'أضف للتسجيل التجريبي'} className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${cartIds.includes(course.id) ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-white text-indigo-700 border border-slate-100'}`}>{cartIds.includes(course.id) ? '✖' : '＋'}</button>
+                                                                    <button onClick={(e) => { e.stopPropagation(); togglePassed(course.id); }} title={passedIds.includes(course.id) ? 'إلغاء علامة منجزة' : 'تحديد كمُنَجزة'} className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm ${passedIds.includes(course.id) ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-white text-emerald-600 border border-slate-100'}`}>✓</button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
