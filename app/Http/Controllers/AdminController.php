@@ -7,6 +7,7 @@ use App\Models\Major;
 use App\Models\College;
 use App\Models\User;
 use App\Models\AdminLog;
+use App\Models\AdminNote;
 use App\Models\IssueReport;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,6 +36,8 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
+        $today = now()->toDateString();
+
         $demandReport = Course::whereHas('cartUsers') 
             ->withCount('cartUsers')
             ->orderBy('cart_users_count', 'desc')
@@ -80,6 +83,16 @@ class AdminController extends Controller
                 ];
             });
 
+        $adminNotes = AdminNote::with('user:id,name,email')
+            ->orderByDesc('note_date')
+            ->orderByDesc('updated_at')
+            ->take(25)
+            ->get();
+
+        $myAdminNote = AdminNote::where('user_id', Auth::id())
+            ->where('note_date', $today)
+            ->first();
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
@@ -102,7 +115,37 @@ class AdminController extends Controller
             'issueSummary' => $issueSummary,
             'recentIssues' => IssueReport::with('user:id,name,email')->latest()->take(6)->get(),
             'logs' => AdminLog::with('user:id,name,email')->latest()->take(25)->get(),
+            'adminNotes' => $adminNotes,
+            'myAdminNote' => $myAdminNote,
         ]);
+    }
+
+    /**
+     * حفظ ملاحظة الأدمن اليومية.
+     */
+    public function storeAdminNote(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->isAdminOrOwner(), 403);
+
+        $data = $request->validate([
+            'note' => ['required', 'string', 'max:1500'],
+        ]);
+
+        $note = trim($data['note']);
+        $today = now()->toDateString();
+
+        AdminNote::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'note_date' => $today,
+            ],
+            [
+                'note' => $note,
+            ]
+        );
+
+        return redirect()->back();
     }
 
     /**

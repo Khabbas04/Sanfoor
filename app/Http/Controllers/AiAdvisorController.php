@@ -652,13 +652,12 @@ class AiAdvisorController extends Controller
         ]));
 
         $lastError = 'Unknown Gemini error';
-        $quotaExhaustedModels = [];
 
         foreach ($apiKeys as $keyIndex => $apiKey) {
+            $keyQuotaExhausted = false;
             foreach ($models as $modelIndex => $model) {
-                // Skip models already marked as quota-exhausted for this key
-                if (isset($quotaExhaustedModels["{$keyIndex}:{$model}"])) {
-                    continue;
+                if ($keyQuotaExhausted) {
+                    break;
                 }
 
                 $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
@@ -686,8 +685,8 @@ class AiAdvisorController extends Controller
                                 // Handle rate limiting (429) and server overload (503)
                                 if ($response->status() === 429) {
                                     $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP 429 (quota exhausted)";
-                                    $quotaExhaustedModels["{$keyIndex}:{$model}"] = true;
-                                    break 3; // Skip to next model
+                                    $keyQuotaExhausted = true;
+                                    break 3; // Move to next API key
                                 } elseif ($response->status() === 503) {
                                     if ($retryCount < 2) {
                                         usleep($backoffMs * 1000);

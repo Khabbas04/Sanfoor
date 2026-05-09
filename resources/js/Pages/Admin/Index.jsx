@@ -193,6 +193,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
     const [selectedIds, setSelectedIds] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeMajorFilter, setActiveMajorFilter] = useState('');
+    const [activePlanFilter, setActivePlanFilter] = useState('');
     const [editingCourse, setEditingCourse] = useState(null);
     const [csvPreview, setCsvPreview] = useState(null);
     const [isParsingCsv, setIsParsingCsv] = useState(false);
@@ -249,12 +250,21 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
     const kpi = useMemo(() => ({
         totalCourses: safeCourses.length,
         filteredCourses: safeCourses.filter(c => {
-            if (!activeMajorFilter) return true;
-            if (activeMajorFilter === 'general') return c.major_id === null;
-            return c.major_id == activeMajorFilter;
+            const matchesMajor = !activeMajorFilter
+                ? true
+                : activeMajorFilter === 'general'
+                    ? c.major_id === null
+                    : c.major_id == activeMajorFilter;
+            const matchesPlan = !activePlanFilter
+                ? true
+                : String(c.study_plan_version || '12') === String(activePlanFilter);
+            const matchesQuery = !searchQuery
+                ? true
+                : (String(c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || String(c.code || '').toLowerCase().includes(searchQuery.toLowerCase()));
+            return matchesMajor && matchesPlan && matchesQuery;
         }).length,
         selectedCount: selectedIds.length,
-    }), [safeCourses, activeMajorFilter, selectedIds.length]);
+    }), [safeCourses, activeMajorFilter, activePlanFilter, searchQuery, selectedIds.length]);
 
   // ✅ تم إلغاء فلتر الجامعة لعرض كافة الكليات فوراً
 const filteredManualColleges = safeColleges; 
@@ -270,14 +280,18 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             if (activeMajorFilter === 'general') result = result.filter(c => c.major_id === null);
             else result = result.filter(c => c.major_id == activeMajorFilter);
         }
+        if (activePlanFilter) {
+            result = result.filter(c => String(c.study_plan_version || '12') === String(activePlanFilter));
+        }
         if (searchQuery) {
+            const query = searchQuery.toLowerCase();
             result = result.filter(c =>
-                c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                c.code.toLowerCase().includes(searchQuery.toLowerCase())
+                String(c.name || '').toLowerCase().includes(query) ||
+                String(c.code || '').toLowerCase().includes(query)
             );
         }
         return result;
-    }, [searchQuery, safeCourses, activeMajorFilter]);
+    }, [searchQuery, safeCourses, activeMajorFilter, activePlanFilter]);
 
     const availablePrerequisites = useMemo(() => {
         const selectedMajor = data.major_id ? String(data.major_id) : null;
@@ -1053,6 +1067,18 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                             <option value="">🌍 عرض كل المواد (النظام كامل)</option>
                                             <option value="general">🏛️ متطلبات الجامعة الإجبارية والاختيارية</option>
                                             {safeMajors.map(m => <option key={m.id} value={m.id}>🎓 {m.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex-1 w-full">
+                                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-2">تصفية حسب الخطة</label>
+                                        <select
+                                            className="w-full rounded-xl border-slate-200 focus:ring-indigo-500 text-sm font-bold text-amber-800 bg-amber-50/60 border-transparent cursor-pointer"
+                                            value={activePlanFilter}
+                                            onChange={e => setActivePlanFilter(e.target.value)}
+                                        >
+                                            <option value="">🧭 عرض كل الخطط</option>
+                                            <option value="12">🟦 خطة 12</option>
+                                            <option value="11">🟨 خطة 11</option>
                                         </select>
                                     </div>
                                     <div className="flex-1 w-full relative">

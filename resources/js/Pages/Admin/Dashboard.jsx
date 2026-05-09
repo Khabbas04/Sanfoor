@@ -1,5 +1,5 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import React, { useEffect } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
@@ -28,6 +28,15 @@ const translations = {
         majorCourses: 'مادة تخصص', statsTracker: 'Stats Tracker',
         admins: 'أدمن',
         openSettings: 'فتح الإعدادات',
+        adminNotesTitle: 'ملاحظات الأدمنز اليومية',
+        adminNotesHint: 'اكتب ملحوظتك بعد إنهاء المهام اليوم.',
+        myNote: 'ملاحظتي اليوم',
+        notePlaceholder: 'اكتب ملاحظتك... ماذا تم اليوم؟',
+        saveNote: 'حفظ الملاحظة',
+        updateNote: 'تحديث الملاحظة',
+        noteSaved: 'تم حفظ الملاحظة',
+        notesTimeline: 'آخر الملاحظات',
+        noNotesYet: 'لا توجد ملاحظات مسجلة بعد.',
     },
     en: {
         title: 'Admin Control Center', subtitle: 'Operational dashboard: stats, reports, log, and quick controls.',
@@ -50,10 +59,19 @@ const translations = {
         majorCourses: 'major courses', statsTracker: 'Stats',
         admins: 'Admins',
         openSettings: 'Open Settings',
+        adminNotesTitle: 'Daily Admin Notes',
+        adminNotesHint: 'Leave a short note once you finish today.',
+        myNote: 'My note today',
+        notePlaceholder: 'Write your note... what got done?',
+        saveNote: 'Save note',
+        updateNote: 'Update note',
+        noteSaved: 'Note saved',
+        notesTimeline: 'Recent notes',
+        noNotesYet: 'No notes logged yet.',
     },
 };
 
-export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [] }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -65,6 +83,8 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeDemandReport = Array.isArray(demandReport) ? demandReport : [];
     const safeRecentIssues = Array.isArray(recentIssues) ? recentIssues : [];
     const safeLogs = Array.isArray(logs) ? logs : [];
+    const safeNotes = Array.isArray(adminNotes) ? adminNotes : [];
+    const safeMyNote = myAdminNote || null;
 
     const safeStudentsCount = Number(safeStats.students_count || 0);
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
@@ -74,6 +94,26 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const heading = isDark ? 'text-slate-100' : 'text-slate-800';
     const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
     const logRow = isDark ? 'border-slate-700 bg-slate-800/30 hover:border-indigo-500/40' : 'border-slate-200 hover:border-indigo-200';
+
+    const {
+        data: noteData,
+        setData: setNoteData,
+        post: postNote,
+        processing: noteProcessing,
+        errors: noteErrors,
+        recentlySuccessful: noteSaved,
+    } = useForm({
+        note: safeMyNote?.note || '',
+    });
+
+    useEffect(() => {
+        setNoteData('note', safeMyNote?.note || '');
+    }, [safeMyNote?.note, setNoteData]);
+
+    const handleNoteSubmit = (event) => {
+        event.preventDefault();
+        postNote(route('admin.notes.store'), { preserveScroll: true });
+    };
 
     const getStatusBadge = (s) => {
         if (s === 'open') return isDark ? 'bg-rose-900/40 text-rose-400' : 'bg-rose-100 text-rose-700';
@@ -173,6 +213,61 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                         >
                             ⚙️ {t.openSettings}
                         </Link>
+                    </div>
+                </div>
+
+                {/* Admin Notes */}
+                <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+                        <h3 className={`text-lg font-black ${heading} flex items-center gap-2`}>📝 {t.adminNotesTitle}</h3>
+                        <span className={`text-xs font-bold ${subtext}`}>{t.adminNotesHint}</span>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <form onSubmit={handleNoteSubmit} className="space-y-3">
+                            <label className={`text-[11px] font-black ${subtext} uppercase tracking-widest block`}>{t.myNote}</label>
+                            <textarea
+                                value={noteData.note}
+                                onChange={(e) => setNoteData('note', e.target.value)}
+                                placeholder={t.notePlaceholder}
+                                rows={6}
+                                maxLength={1500}
+                                className={`w-full rounded-2xl border px-4 py-3 text-sm font-bold focus:ring-indigo-500 ${isDark ? 'bg-slate-900/40 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-700 placeholder:text-slate-400'}`}
+                            />
+                            {noteErrors.note && (
+                                <p className="text-[11px] font-bold text-rose-500">{noteErrors.note}</p>
+                            )}
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={noteProcessing || !noteData.note.trim()}
+                                    className="px-5 py-2.5 rounded-xl text-[12px] font-black bg-indigo-600 text-white hover:bg-indigo-700 transition-all disabled:opacity-50"
+                                >
+                                    {noteProcessing ? '...' : (safeMyNote ? t.updateNote : t.saveNote)}
+                                </button>
+                                {noteSaved && (
+                                    <span className={`text-[11px] font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{t.noteSaved}</span>
+                                )}
+                            </div>
+                        </form>
+                        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                            <p className={`text-[11px] font-black ${subtext} uppercase tracking-widest`}>{t.notesTimeline}</p>
+                            {safeNotes.length > 0 ? safeNotes.map((note) => {
+                                const updatedAt = note.updated_at || note.created_at || note.note_date;
+                                const dateLabel = note.note_date || note.updated_at || note.created_at;
+
+                                return (
+                                    <div key={note.id} className={`p-3.5 border rounded-xl transition-colors ${logRow}`}>
+                                        <p className="text-[11px] font-black text-indigo-500 mb-1">
+                                            {note.user?.name || 'Admin'} • {dateLabel ? new Date(dateLabel).toLocaleDateString() : ''}
+                                        </p>
+                                        <p className={`text-[13px] font-bold leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{note.note}</p>
+                                        <p className={`text-[10px] font-black mt-1.5 ${subtext}`}>{updatedAt ? new Date(updatedAt).toLocaleString() : ''}</p>
+                                    </div>
+                                );
+                            }) : (
+                                <p className={`text-sm font-bold py-6 text-center ${subtext}`}>{t.noNotesYet}</p>
+                            )}
+                        </div>
                     </div>
                 </div>
 
