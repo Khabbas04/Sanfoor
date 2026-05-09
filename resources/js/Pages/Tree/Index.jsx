@@ -253,6 +253,11 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile, isLandscapeMobile]);
 
+    const universityCourses = useMemo(
+        () => (Array.isArray(courses) ? courses.filter((course) => course.type === 'university_req') : []),
+        [courses]
+    );
+
 
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
@@ -339,7 +344,10 @@ export default function Tree({
             return new Map();
         }
 
-        const layoutNodes = courses.map((course) => ({
+        const mainCourses = courses.filter((course) => course.type !== 'university_req');
+        const universityReqCourses = courses.filter((course) => course.type === 'university_req');
+
+        const layoutNodes = mainCourses.map((course) => ({
             id: course.id.toString(),
             position: { x: 0, y: 0 },
             data: {
@@ -349,8 +357,11 @@ export default function Tree({
         }));
 
         const layoutEdges = [];
-        courses.forEach((course) => {
+        const mainCourseIds = new Set(mainCourses.map((course) => course.id));
+
+        mainCourses.forEach((course) => {
             course.prerequisites?.forEach((prereq) => {
+                if (!mainCourseIds.has(prereq.id)) return;
                 layoutEdges.push({
                     id: `layout-${prereq.id}-${course.id}`,
                     source: prereq.id.toString(),
@@ -359,10 +370,44 @@ export default function Tree({
             });
         });
 
-        return new Map(
+        const mainPositions = new Map(
             getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
                 .map((node) => [node.id, node.position])
         );
+
+        if (universityReqCourses.length === 0) {
+            return mainPositions;
+        }
+
+        const mainPositionValues = Array.from(mainPositions.values());
+        const fallbackX = 0;
+        const minY = mainPositionValues.length > 0
+            ? Math.min(...mainPositionValues.map((pos) => pos.y))
+            : 0;
+        const maxX = mainPositionValues.length > 0
+            ? Math.max(...mainPositionValues.map((pos) => pos.x))
+            : fallbackX;
+
+        const anchorX = maxX + nodeDimensions.width + 160;
+        const gapY = nodeDimensions.height + 26;
+        const sortedUniversity = [...universityReqCourses].sort((a, b) => {
+            const codeA = String(a.code || '');
+            const codeB = String(b.code || '');
+            if (codeA && codeB && codeA !== codeB) return codeA.localeCompare(codeB);
+            return String(a.name || '').localeCompare(String(b.name || ''));
+        });
+
+        const universityPositions = new Map(
+            sortedUniversity.map((course, index) => [
+                course.id.toString(),
+                {
+                    x: anchorX,
+                    y: minY + index * gapY,
+                },
+            ])
+        );
+
+        return new Map([...mainPositions, ...universityPositions]);
     }, [courses, nodeDimensions]);
 
     useEffect(() => {
@@ -2212,6 +2257,13 @@ export default function Tree({
                                     </button>
                                 </>
                             )}
+                            </div>
+                        )}
+
+                        {universityCourses.length > 0 && !isFullScreen && (
+                            <div className="absolute top-16 right-4 z-20 hidden md:flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200/70 bg-white/90 text-slate-700 text-[11px] font-black shadow-md">
+                                <span>🎓 متطلبات الجامعة</span>
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black">{universityCourses.length}</span>
                             </div>
                         )}
 
