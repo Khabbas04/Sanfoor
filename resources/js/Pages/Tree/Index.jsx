@@ -254,6 +254,16 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile, isLandscapeMobile]);
 
+    const flowCourses = useMemo(
+        () => (Array.isArray(courses) ? courses.filter((course) => course.type !== 'university_req') : []),
+        [courses]
+    );
+
+    const flowCourseIds = useMemo(
+        () => new Set(flowCourses.map((course) => course.id)),
+        [flowCourses]
+    );
+
     const universityCourses = useMemo(
         () => (Array.isArray(courses) ? courses.filter((course) => course.type === 'university_req') : []),
         [courses]
@@ -263,6 +273,32 @@ export default function Tree({
         () => universityCourses.reduce((sum, course) => sum + Number(course.credit_hours || 0), 0),
         [universityCourses]
     );
+
+    const adminLevelStats = useMemo(() => {
+        if (!canEditTreePositions || flowCourses.length === 0) return [];
+
+        const grouped = new Map();
+        flowCourses.forEach((course) => {
+            const level = Math.max(1, parseInt(course.semester, 10) || 1);
+            if (!grouped.has(level)) {
+                grouped.set(level, {
+                    level,
+                    count: 0,
+                    totalHours: 0,
+                    passedCount: 0,
+                    cartCount: 0,
+                });
+            }
+
+            const entry = grouped.get(level);
+            entry.count += 1;
+            entry.totalHours += Number(course.credit_hours || 0);
+            if (passedIds.includes(course.id)) entry.passedCount += 1;
+            if (cartIds.includes(course.id)) entry.cartCount += 1;
+        });
+
+        return Array.from(grouped.values()).sort((a, b) => a.level - b.level);
+    }, [canEditTreePositions, flowCourses, passedIds, cartIds]);
 
 
     const fitViewSmart = useCallback((duration = 260) => {
@@ -346,14 +382,11 @@ export default function Tree({
     }, [nodeDimensions.width, nodeDimensions.height, nodeSnapGrid, snapPositionToGrid]);
 
     const layoutSeedPositions = useMemo(() => {
-        if (!Array.isArray(courses) || courses.length === 0) {
+        if (!Array.isArray(flowCourses) || flowCourses.length === 0) {
             return new Map();
         }
 
-        const mainCourses = courses.filter((course) => course.type !== 'university_req');
-        const universityReqCourses = courses.filter((course) => course.type === 'university_req');
-
-        const layoutNodes = mainCourses.map((course) => ({
+        const layoutNodes = flowCourses.map((course) => ({
             id: course.id.toString(),
             position: { x: 0, y: 0 },
             data: {
@@ -363,11 +396,11 @@ export default function Tree({
         }));
 
         const layoutEdges = [];
-        const mainCourseIds = new Set(mainCourses.map((course) => course.id));
+        const flowIds = new Set(flowCourses.map((course) => course.id));
 
-        mainCourses.forEach((course) => {
+        flowCourses.forEach((course) => {
             course.prerequisites?.forEach((prereq) => {
-                if (!mainCourseIds.has(prereq.id)) return;
+                if (!flowIds.has(prereq.id)) return;
                 layoutEdges.push({
                     id: `layout-${prereq.id}-${course.id}`,
                     source: prereq.id.toString(),
@@ -376,55 +409,21 @@ export default function Tree({
             });
         });
 
-        const mainPositions = new Map(
+        return new Map(
             getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
                 .map((node) => [node.id, node.position])
         );
-
-        if (universityReqCourses.length === 0) {
-            return mainPositions;
-        }
-
-        const mainPositionValues = Array.from(mainPositions.values());
-        const fallbackX = 0;
-        const minY = mainPositionValues.length > 0
-            ? Math.min(...mainPositionValues.map((pos) => pos.y))
-            : 0;
-        const maxX = mainPositionValues.length > 0
-            ? Math.max(...mainPositionValues.map((pos) => pos.x))
-            : fallbackX;
-
-        const anchorX = maxX + nodeDimensions.width + 160;
-        const gapY = nodeDimensions.height + 26;
-        const sortedUniversity = [...universityReqCourses].sort((a, b) => {
-            const codeA = String(a.code || '');
-            const codeB = String(b.code || '');
-            if (codeA && codeB && codeA !== codeB) return codeA.localeCompare(codeB);
-            return String(a.name || '').localeCompare(String(b.name || ''));
-        });
-
-        const universityPositions = new Map(
-            sortedUniversity.map((course, index) => [
-                course.id.toString(),
-                {
-                    x: anchorX,
-                    y: minY + index * gapY,
-                },
-            ])
-        );
-
-        return new Map([...mainPositions, ...universityPositions]);
-    }, [courses, nodeDimensions]);
+    }, [flowCourses, nodeDimensions]);
 
     useEffect(() => {
-        if (!Array.isArray(courses) || courses.length === 0) return;
+        if (!Array.isArray(flowCourses) || flowCourses.length === 0) return;
 
-        const currentIds = new Set(courses.map((course) => course.id.toString()));
+        const currentIds = new Set(flowCourses.map((course) => course.id.toString()));
 
         setNodePositions((prev) => {
             const next = { ...prev };
 
-            courses.forEach((course) => {
+            flowCourses.forEach((course) => {
                 const courseId = course.id.toString();
                 if (next[courseId]) return;
 
@@ -450,7 +449,7 @@ export default function Tree({
 
             return next;
         });
-    }, [courses, layoutSeedPositions]);
+    }, [flowCourses, layoutSeedPositions]);
 
     const startPositionEditMode = useCallback(() => {
         setNodePositionsBeforeEdit({ ...nodePositions });
@@ -831,16 +830,17 @@ export default function Tree({
         const initialNodes = [];
         const initialEdges = [];
 
-        const backwardIds = selectedCourse ? Array.from(getBackwardPath(selectedCourse.id)) : [];
-        const forwardIds = selectedCourse ? Array.from(getForwardPath(selectedCourse.id)) : [];
+        const selectedCourseInFlow = Boolean(selectedCourse && flowCourseIds.has(selectedCourse.id));
+        const backwardIds = selectedCourseInFlow ? Array.from(getBackwardPath(selectedCourse.id)) : [];
+        const forwardIds = selectedCourseInFlow ? Array.from(getForwardPath(selectedCourse.id)) : [];
         const connectedIds = [...new Set([...backwardIds, ...forwardIds])];
 
-        courses.forEach((course) => {
+        flowCourses.forEach((course) => {
             const status = getStatus(course);
             const isHourLocked = status === 'locked' && isLockedByHours(course);
             const depth = getCourseDepth(course.id);
             const isCriticalPath = depth >= 2 && status !== 'passed';
-            const unlocksCount = courses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
+            const unlocksCount = flowCourses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
             const isBottleneck = unlocksCount >= 3 && status !== 'passed';
             const difficultyLevel = Number(course.difficulty_level ?? 3);
             const difficultyBand = difficultyLevel <= 2 ? 'easy' : (difficultyLevel === 3 ? 'balanced' : 'heavy');
@@ -848,6 +848,7 @@ export default function Tree({
             const isElective = course.type === 'elective';
             const isSupporting = course.type === 'supporting';
             const isUniversityReq = course.type === 'university_req';
+            const levelNumber = Math.max(1, parseInt(course.semester, 10) || 1);
             const hasDescription = course.description && course.description.trim() !== '';
 
             // 🆕 دالة الحصول على لون الصعوبة
@@ -890,7 +891,7 @@ export default function Tree({
             if (filterMode === 'balanced' && difficultyBand !== 'balanced') isFilteredOut = true;
             if (filterMode === 'heavy' && difficultyBand !== 'heavy') isFilteredOut = true;
 
-            const isDimmed = isFilteredOut || (selectedCourse && !connectedIds.includes(course.id));
+            const isDimmed = isFilteredOut || (selectedCourseInFlow && !connectedIds.includes(course.id));
             const isSelected = selectedCourse?.id === course.id;
             const isBackward = backwardIds.includes(course.id) && !isSelected;
             const isForward = forwardIds.includes(course.id) && !isSelected;
@@ -907,6 +908,9 @@ export default function Tree({
             if (isElective) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>`;
             if (isSupporting) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">مساندة</span>`;
             if (isUniversityReq) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">جامعة</span>`;
+            const levelBadgeHtml = canEditTreePositions
+                ? `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(15,23,42,0.38);color:#f8fafc;">L${levelNumber}</span>`
+                : '';
 
             const nodeHtml = `
                 <div class="sn-node-hover" style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.3s ease-out;${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;box-shadow:${!isDimmed && !ringStyle.includes('box-shadow') ? '0 4px 12px rgba(0,0,0,0.06)' : ''};">
@@ -919,6 +923,7 @@ export default function Tree({
                                 ${hasDescription ? '<span style="margin-right:3px; font-size:10px; animation: pulse 2s infinite;" title="يوجد لمحة عن المادة">📝</span>' : ''}
                             </span>
                             <div style="display:flex; gap:3px;">
+                                ${levelBadgeHtml}
                                 ${typeLabelHtml}
                                 <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};">${course.credit_hours} س</span>
                             </div>
@@ -956,11 +961,12 @@ export default function Tree({
 
             if (course.prerequisites) {
                 course.prerequisites.forEach((prereq) => {
+                    if (!flowCourseIds.has(prereq.id)) return;
                     const isSourceDone = passedIds.includes(prereq.id);
                     const isBackwardEdge = backwardIds.includes(prereq.id) && backwardIds.includes(course.id);
                     const isForwardEdge = forwardIds.includes(prereq.id) && forwardIds.includes(course.id);
                     const isActivePath = isBackwardEdge || isForwardEdge;
-                    const prereqCourse = courses.find(c => c.id === prereq.id);
+                    const prereqCourse = flowCourses.find(c => c.id === prereq.id);
                     const prereqDifficultyLevel = Number(prereqCourse?.difficulty_level ?? 3);
                     const prereqDifficultyBand = prereqDifficultyLevel <= 2 ? 'easy' : (prereqDifficultyLevel === 3 ? 'balanced' : 'heavy');
 
@@ -982,7 +988,7 @@ export default function Tree({
                         style: {
                             stroke: edgeColor,
                             strokeWidth: edgeWidth,
-                            opacity: (selectedCourse && !isActivePath) || edgeFilteredOut ? 0.08 : 1,
+                            opacity: (selectedCourseInFlow && !isActivePath) || edgeFilteredOut ? 0.08 : 1,
                             transition: 'all 0.5s ease',
                         },
                         markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
@@ -992,7 +998,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
+    }, [flowCourses, flowCourseIds, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -1002,6 +1008,21 @@ export default function Tree({
         setNodes(initialNodes);
         setEdges(initialEdges);
     }, [buildGraph]);
+
+    const focusLevelInFlow = useCallback((level) => {
+        if (!flowInstance || !Array.isArray(nodes) || nodes.length === 0) return;
+
+        const targetNodes = nodes.filter((node) => (parseInt(node?.data?.semester, 10) || 1) === level);
+        if (targetNodes.length === 0) return;
+
+        flowInstance.fitView({
+            nodes: targetNodes,
+            padding: 0.28,
+            duration: 260,
+            minZoom: flowView.minZoom,
+            maxZoom: flowView.maxZoom,
+        });
+    }, [flowInstance, nodes, flowView.minZoom, flowView.maxZoom]);
 
     // 🛡️ حدود الحركة — يمنع الطالب من الضياع بالفراغ الأبيض
     const translateExtent = useMemo(() => {
@@ -1031,7 +1052,7 @@ export default function Tree({
     }, [isMobile, compareMode, compareCourse]);
 
     const onNodeClick = useCallback((e, node) => {
-        const course = courses.find(c => c.id === parseInt(node.id));
+        const course = flowCourses.find(c => c.id === parseInt(node.id));
         if (!course) return;
 
         if (compareMode) {
@@ -1052,7 +1073,7 @@ export default function Tree({
         setTargetSemester(yearTermToSemester(next.year, next.term));
         setActiveTab('details');
         if (isMobile && !isFullScreen) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
+    }, [flowCourses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -2300,7 +2321,7 @@ export default function Tree({
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span><div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">متطلبات الجامعة: تظهر كقائمة أسفل الشجرة</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
                                         <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
                                         <div className="rounded-2xl border border-violet-500/15 bg-violet-500/10 p-2.5 text-right">
                                             <p className="text-[10px] font-[900] text-violet-700 mb-0.5">المقارنة بين مادتين</p>
@@ -2310,6 +2331,36 @@ export default function Tree({
                                 </div>
                             )}
                         </div>
+
+                        {canEditTreePositions && adminLevelStats.length > 0 && !isFullScreen && (
+                            <div className="absolute top-14 right-3 z-20 hidden lg:block" dir="rtl">
+                                <div className="w-[310px] rounded-2xl border border-slate-200/70 bg-white/95 shadow-lg backdrop-blur-md overflow-hidden">
+                                    <div className="px-3.5 py-2.5 border-b border-slate-200/70 bg-slate-50/80 flex items-center justify-between">
+                                        <p className="text-[11px] font-[900] text-slate-700">مستويات الخطة (Levels)</p>
+                                        <span className="text-[10px] font-black text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">{adminLevelStats.length} مستوى</span>
+                                    </div>
+                                    <div className="max-h-[280px] overflow-y-auto p-2.5 space-y-2">
+                                        {adminLevelStats.map((item) => (
+                                            <button
+                                                key={`level-${item.level}`}
+                                                type="button"
+                                                onClick={() => focusLevelInFlow(item.level)}
+                                                className="w-full text-right rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/40 transition-colors px-3 py-2"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] font-[900] text-slate-800">Level {item.level}</span>
+                                                    <span className="text-[10px] font-black text-slate-500">{item.count} مواد • {item.totalHours} س</span>
+                                                </div>
+                                                <div className="mt-1 flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100">منجز: {item.passedCount}</span>
+                                                    <span className="px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-100">تجريبي: {item.cartCount}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <ReactFlow
                             nodes={nodes}
