@@ -211,7 +211,7 @@ export default function AdminIndex({ courses, universities, colleges, majors, lo
         difficulty_level: 3,
         minimum_passed_hours: '',
         type: 'compulsory', // الأنواع: compulsory, elective, supporting, university_req
-        prerequisite_id: '',
+        prerequisite_ids: [],
         study_plan_version: '12',
         semester: 1, // هذا هو مستوى العقدة (Node Level)
         description: '', 
@@ -321,7 +321,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         } else {
             post(route('admin.courses.store'), {
                 onSuccess: () => {
-                    reset('name', 'code', 'prerequisite_id', 'description', 'minimum_passed_hours', 'difficulty_level');
+                    reset('name', 'code', 'prerequisite_ids', 'description', 'minimum_passed_hours', 'difficulty_level');
                     setData('study_plan_version', '12');
                     Swal.fire({ icon: 'success', title: 'تمت الإضافة', text: 'تم حفظ المادة بنجاح', timer: 1500, showConfirmButton: false });
                 }
@@ -349,7 +349,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             type: course.type,
             study_plan_version: String(course.study_plan_version || 12),
             semester: course.semester || 1,
-            prerequisite_id: course.prerequisites?.length > 0 ? course.prerequisites[0].id : '',
+            prerequisite_ids: Array.isArray(course.prerequisites) ? course.prerequisites.map((p) => p.id) : [],
             description: course.description || '',
         });
 
@@ -364,7 +364,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
 
     const cancelEdit = () => {
         setEditingCourse(null);
-        reset('id', 'name', 'code', 'prerequisite_id', 'semester', 'description', 'minimum_passed_hours', 'difficulty_level');
+        reset('id', 'name', 'code', 'prerequisite_ids', 'semester', 'description', 'minimum_passed_hours', 'difficulty_level');
         clearErrors();
     };
 
@@ -1041,10 +1041,26 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                         
                                         <div className="flex flex-col gap-1.5 mt-2">
                                             <span className="text-[11px] font-bold text-slate-700">تفتح بعد اجتياز (المتطلب السابق):</span>
-                                            <select className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500 bg-slate-50" value={data.prerequisite_id} onChange={e => setData('prerequisite_id', e.target.value)}>
-                                                <option value="">-- بدون متطلب سابق --</option>
-                                                {availablePrerequisites.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                            <select
+                                                multiple
+                                                className="w-full rounded-xl border-slate-200 text-sm font-bold focus:ring-indigo-500 bg-slate-50 min-h-[120px]"
+                                                value={data.prerequisite_ids}
+                                                onChange={(e) => {
+                                                    const selected = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                                                    setData('prerequisite_ids', selected);
+                                                }}
+                                            >
+                                                {availablePrerequisites.length === 0 && (
+                                                    <option value="" disabled>-- لا توجد متطلبات متاحة --</option>
+                                                )}
+                                                {availablePrerequisites.map(c => (
+                                                    <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                                                ))}
                                             </select>
+                                            <p className="text-[10px] font-bold text-slate-400">يمكنك اختيار أكثر من متطلب بالضغط على Ctrl/⌘ أثناء الاختيار.</p>
+                                            {errors.prerequisite_ids && (
+                                                <p className="text-[11px] font-bold text-rose-500">{errors.prerequisite_ids}</p>
+                                            )}
                                         </div>
                                     </div>
 

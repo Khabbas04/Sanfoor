@@ -457,16 +457,30 @@ class AdminController extends Controller
             'major_id'        => 'nullable|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
             'semester'        => 'required|integer|min:1|max:12',
-            'prerequisite_id' => 'nullable|exists:courses,id',
+            'prerequisite_ids' => 'nullable|array',
+            'prerequisite_ids.*' => 'integer|exists:courses,id',
             'description'     => 'nullable|string',
         ]);
 
-        if (!empty($validated['prerequisite_id'])) {
-            $prerequisite = Course::find($validated['prerequisite_id']);
-            if (!$prerequisite || $prerequisite->major_id != $validated['major_id'] || (int) $prerequisite->study_plan_version !== (int) $validated['study_plan_version']) {
-                return redirect()->back()->withErrors([
-                    'prerequisite_id' => 'المتطلب السابق يجب أن يكون من نفس التخصص ونفس رقم الخطة.',
-                ])->withInput();
+        $prerequisiteIds = $validated['prerequisite_ids'] ?? [];
+        if ($request->filled('prerequisite_id')) {
+            $prerequisiteIds[] = $request->input('prerequisite_id');
+        }
+        $prerequisiteIds = collect($prerequisiteIds)
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($prerequisiteIds->isNotEmpty()) {
+            $prerequisites = Course::whereIn('id', $prerequisiteIds)->get(['id', 'major_id', 'study_plan_version']);
+
+            foreach ($prerequisites as $prerequisite) {
+                if ($prerequisite->major_id != $validated['major_id'] || (int) $prerequisite->study_plan_version !== (int) $validated['study_plan_version']) {
+                    return redirect()->back()->withErrors([
+                        'prerequisite_ids' => 'المتطلبات السابقة يجب أن تكون من نفس التخصص ونفس رقم الخطة.',
+                    ])->withInput();
+                }
             }
         }
 
@@ -483,8 +497,8 @@ class AdminController extends Controller
             'description'  => $validated['description'],
         ]);
 
-        if (!empty($validated['prerequisite_id'])) {
-            $course->prerequisites()->attach($validated['prerequisite_id']);
+        if ($prerequisiteIds->isNotEmpty()) {
+            $course->prerequisites()->attach($prerequisiteIds->all());
         }
 
         $this->logAction('ADD_COURSE', "تم إضافة المادة وربط المتطلب: {$course->name} ({$course->code})");
@@ -518,22 +532,36 @@ class AdminController extends Controller
             'major_id'        => 'nullable|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
             'semester'        => 'required|integer|min:1|max:12',
-            'prerequisite_id' => 'nullable|exists:courses,id',
+            'prerequisite_ids' => 'nullable|array',
+            'prerequisite_ids.*' => 'integer|exists:courses,id',
             'description'     => 'nullable|string',
         ]);
 
-        if (!empty($validated['prerequisite_id']) && (int) $validated['prerequisite_id'] === (int) $course->id) {
+        $prerequisiteIds = $validated['prerequisite_ids'] ?? [];
+        if ($request->filled('prerequisite_id')) {
+            $prerequisiteIds[] = $request->input('prerequisite_id');
+        }
+        $prerequisiteIds = collect($prerequisiteIds)
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($prerequisiteIds->contains((int) $course->id)) {
             return redirect()->back()->withErrors([
-                'prerequisite_id' => 'لا يمكن ربط المادة بنفسها كمتطلب.',
+                'prerequisite_ids' => 'لا يمكن ربط المادة بنفسها كمتطلب.',
             ])->withInput();
         }
 
-        if (!empty($validated['prerequisite_id'])) {
-            $prerequisite = Course::find($validated['prerequisite_id']);
-            if (!$prerequisite || $prerequisite->major_id != $validated['major_id'] || (int) $prerequisite->study_plan_version !== (int) $validated['study_plan_version']) {
-                return redirect()->back()->withErrors([
-                    'prerequisite_id' => 'المتطلب السابق يجب أن يكون من نفس التخصص ونفس رقم الخطة.',
-                ])->withInput();
+        if ($prerequisiteIds->isNotEmpty()) {
+            $prerequisites = Course::whereIn('id', $prerequisiteIds)->get(['id', 'major_id', 'study_plan_version']);
+
+            foreach ($prerequisites as $prerequisite) {
+                if ($prerequisite->major_id != $validated['major_id'] || (int) $prerequisite->study_plan_version !== (int) $validated['study_plan_version']) {
+                    return redirect()->back()->withErrors([
+                        'prerequisite_ids' => 'المتطلبات السابقة يجب أن تكون من نفس التخصص ونفس رقم الخطة.',
+                    ])->withInput();
+                }
             }
         }
 
@@ -550,8 +578,8 @@ class AdminController extends Controller
             'description'  => $validated['description'],
         ]);
 
-        if (!empty($validated['prerequisite_id'])) {
-            $course->prerequisites()->sync([$validated['prerequisite_id']]);
+        if ($prerequisiteIds->isNotEmpty()) {
+            $course->prerequisites()->sync($prerequisiteIds->all());
         } else {
             $course->prerequisites()->detach(); 
         }
