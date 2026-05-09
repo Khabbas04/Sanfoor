@@ -139,7 +139,6 @@ export default function Tree({
     const [compareFirstCourse, setCompareFirstCourse] = useState(null);
     const [compareCourse, setCompareCourse] = useState(null);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
-    const [showUniversityPanel, setShowUniversityPanel] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
     const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 720);
     const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
@@ -254,16 +253,6 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile, isLandscapeMobile]);
 
-    const universityCourses = useMemo(
-        () => (Array.isArray(courses) ? courses.filter((course) => course.type === 'university_req') : []),
-        [courses]
-    );
-
-    const universityHours = useMemo(
-        () => universityCourses.reduce((sum, course) => sum + Number(course.credit_hours || 0), 0),
-        [universityCourses]
-    );
-
 
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
@@ -350,10 +339,7 @@ export default function Tree({
             return new Map();
         }
 
-        const mainCourses = courses.filter((course) => course.type !== 'university_req');
-        const universityReqCourses = courses.filter((course) => course.type === 'university_req');
-
-        const layoutNodes = mainCourses.map((course) => ({
+        const layoutNodes = courses.map((course) => ({
             id: course.id.toString(),
             position: { x: 0, y: 0 },
             data: {
@@ -363,11 +349,8 @@ export default function Tree({
         }));
 
         const layoutEdges = [];
-        const mainCourseIds = new Set(mainCourses.map((course) => course.id));
-
-        mainCourses.forEach((course) => {
+        courses.forEach((course) => {
             course.prerequisites?.forEach((prereq) => {
-                if (!mainCourseIds.has(prereq.id)) return;
                 layoutEdges.push({
                     id: `layout-${prereq.id}-${course.id}`,
                     source: prereq.id.toString(),
@@ -376,44 +359,10 @@ export default function Tree({
             });
         });
 
-        const mainPositions = new Map(
+        return new Map(
             getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
                 .map((node) => [node.id, node.position])
         );
-
-        if (universityReqCourses.length === 0) {
-            return mainPositions;
-        }
-
-        const mainPositionValues = Array.from(mainPositions.values());
-        const fallbackX = 0;
-        const minY = mainPositionValues.length > 0
-            ? Math.min(...mainPositionValues.map((pos) => pos.y))
-            : 0;
-        const maxX = mainPositionValues.length > 0
-            ? Math.max(...mainPositionValues.map((pos) => pos.x))
-            : fallbackX;
-
-        const anchorX = maxX + nodeDimensions.width + 160;
-        const gapY = nodeDimensions.height + 26;
-        const sortedUniversity = [...universityReqCourses].sort((a, b) => {
-            const codeA = String(a.code || '');
-            const codeB = String(b.code || '');
-            if (codeA && codeB && codeA !== codeB) return codeA.localeCompare(codeB);
-            return String(a.name || '').localeCompare(String(b.name || ''));
-        });
-
-        const universityPositions = new Map(
-            sortedUniversity.map((course, index) => [
-                course.id.toString(),
-                {
-                    x: anchorX,
-                    y: minY + index * gapY,
-                },
-            ])
-        );
-
-        return new Map([...mainPositions, ...universityPositions]);
     }, [courses, nodeDimensions]);
 
     useEffect(() => {
@@ -2347,81 +2296,6 @@ export default function Tree({
                                 gap={28} size={1.2} variant="dots" opacity={0.6}
                             />
                         </ReactFlow>
-
-                        {universityCourses.length > 0 && !isFullScreen && (
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 w-[calc(100%-1.5rem)] md:w-[min(980px,90%)] pointer-events-none" dir="rtl">
-                                <div className={`pointer-events-auto rounded-2xl border shadow-xl backdrop-blur-md ${isDark ? 'border-white/10 bg-slate-950/80 text-slate-100' : 'border-slate-200/70 bg-white/90 text-slate-700'}`}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowUniversityPanel((prev) => !prev)}
-                                        className="w-full flex items-center justify-between px-4 py-3 gap-3"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-base">🎓</span>
-                                            <div className="text-right">
-                                                <p className="text-[12px] font-black">متطلبات الجامعة</p>
-                                                <p className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{universityCourses.length} مادة • {universityHours} ساعة</p>
-                                            </div>
-                                        </div>
-                                        <span className={`text-[11px] font-black px-2 py-1 rounded-lg ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>
-                                            {showUniversityPanel ? 'إخفاء' : 'عرض'}
-                                        </span>
-                                    </button>
-
-                                    <div className={`transition-all duration-300 ease-out overflow-hidden ${showUniversityPanel ? 'max-h-[65vh] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                        <div className="px-4 pb-4">
-                                            <p className={`text-[10px] font-bold mb-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                مواد الجامعة منفصلة عن مواد التخصص ولا تؤثر على ترتيب الشجرة.
-                                            </p>
-
-                                            <div className="hidden md:block">
-                                                <div className={`rounded-xl border overflow-hidden ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white'}`}>
-                                                    <table className="w-full text-right text-[11px]">
-                                                        <thead className={`${isDark ? 'bg-white/5 text-slate-300' : 'bg-slate-50 text-slate-500'} font-black`}>
-                                                            <tr>
-                                                                <th className="px-4 py-2">المادة</th>
-                                                                <th className="px-4 py-2">الرمز</th>
-                                                                <th className="px-4 py-2">الساعات</th>
-                                                                <th className="px-4 py-2">الحالة</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className={`${isDark ? 'text-slate-200' : 'text-slate-700'} font-bold`}>
-                                                            {universityCourses.map((course) => (
-                                                                <tr key={course.id} className={`${isDark ? 'border-white/5' : 'border-slate-100'} border-t`}>
-                                                                    <td className="px-4 py-2">{course.name}</td>
-                                                                    <td className="px-4 py-2 font-mono" dir="ltr">{course.code}</td>
-                                                                    <td className="px-4 py-2">{course.credit_hours}</td>
-                                                                    <td className="px-4 py-2">
-                                                                        {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 gap-2 md:hidden">
-                                                {universityCourses.map((course) => (
-                                                    <div key={course.id} className={`rounded-xl border p-3 ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-white'}`}>
-                                                        <div className="flex items-start justify-between gap-3">
-                                                            <div>
-                                                                <p className="text-[12px] font-black">{course.name}</p>
-                                                                <p className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} font-mono`} dir="ltr">{course.code}</p>
-                                                            </div>
-                                                            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${isDark ? 'bg-white/10 text-slate-200' : 'bg-slate-100 text-slate-600'}`}>{course.credit_hours} س</span>
-                                                        </div>
-                                                        <div className={`mt-2 text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                            الحالة: {getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'cart' ? 'تجريبية' : getStatus(course) === 'available' ? 'متاحة' : 'مغلقة'}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {/* Floating toast while picking second course */}
                         {compareMode && compareFirstCourse && !compareCourse && (
