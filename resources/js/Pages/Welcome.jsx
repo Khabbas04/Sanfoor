@@ -322,9 +322,9 @@ export default function Welcome({ auth }) {
                                 dir="ltr"
                                 className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-[11px] sm:text-xs font-black tracking-[0.12em] text-white/80 backdrop-blur-md transition-all duration-300 hover:border-cyan-300/40 hover:bg-white/15 hover:text-cyan-100"
                             >
-                                <span className="text-cyan-200">{creatorName}</span>
-                                <span className="h-1 w-1 rounded-full bg-cyan-300"></span>
                                 <span className="text-white/55">CREATED BY</span>
+                                <span className="h-1 w-1 rounded-full bg-cyan-300"></span>
+                                <span className="text-cyan-200">{creatorName}</span>
                             </a>
                         </div>
 
