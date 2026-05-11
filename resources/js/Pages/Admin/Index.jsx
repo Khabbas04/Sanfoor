@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
@@ -328,6 +328,14 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         return selectedPrerequisiteIds.map((id) => byId.get(String(id))).filter(Boolean);
     }, [availablePrerequisites, selectedPrerequisiteIds]);
 
+    const refreshCourseBoard = useCallback(() => {
+        router.reload({
+            only: ['courses', 'logs'],
+            preserveState: true,
+            preserveScroll: true,
+        });
+    }, []);
+
     useEffect(() => {
         if (!selectedPrerequisiteIds.length) return;
 
@@ -357,6 +365,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
             put(route('admin.courses.update', editingCourse.id), {
                 onSuccess: () => {
                     cancelEdit();
+                    refreshCourseBoard();
                     Swal.fire({ icon: 'success', title: 'تم التعديل', text: 'تم تحديث المادة بنجاح', timer: 1500, showConfirmButton: false });
                 }
             });
@@ -365,6 +374,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 onSuccess: () => {
                     reset('name', 'code', 'prerequisite_ids', 'description', 'minimum_passed_hours', 'difficulty_level');
                     setData('study_plan_version', '12');
+                    refreshCourseBoard();
                     Swal.fire({ icon: 'success', title: 'تمت الإضافة', text: 'تم حفظ المادة بنجاح', timer: 1500, showConfirmButton: false });
                 }
             });
@@ -416,7 +426,10 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         }).then((result) => {
             if (result.isConfirmed) {
                 router.delete(route('admin.courses.destroy', id), {
-                    onSuccess: () => Swal.fire('تم الحذف!', 'تم تنظيف السجل بنجاح.', 'success')
+                    onSuccess: () => {
+                        refreshCourseBoard();
+                        Swal.fire('تم الحذف!', 'تم تنظيف السجل بنجاح.', 'success');
+                    }
                 });
             }
         });
@@ -606,6 +619,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                 setCsvPreview(null);
                 setEditablePreviewRows([]);
                 setShowImportPreview(false);
+                refreshCourseBoard();
                 Swal.fire({
                     icon: 'success',
                     title: successTitle,
@@ -705,7 +719,7 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
         }).then((result) => {
             if (result.isConfirmed) {
                 router.post(route('admin.courses.bulk_delete'), { ids: selectedIds }, {
-                    onSuccess: () => { setSelectedIds([]); Swal.fire('تم الحذف!', 'تم تنظيف السجلات بنجاح.', 'success'); }
+                    onSuccess: () => { setSelectedIds([]); refreshCourseBoard(); Swal.fire('تم الحذف!', 'تم تنظيف السجلات بنجاح.', 'success'); }
                 });
             }
         });
