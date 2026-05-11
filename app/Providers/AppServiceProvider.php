@@ -5,6 +5,11 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Database\Eloquent\Events\Created as EloquentCreated;
+use Illuminate\Database\Eloquent\Events\Updated as EloquentUpdated;
+use Illuminate\Database\Eloquent\Events\Deleted as EloquentDeleted;
+use App\Models\AdminLog;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Manager\SocialiteWasCalled;
@@ -52,6 +57,97 @@ class AppServiceProvider extends ServiceProvider
                 'subject' => $subject,
                 'htmlContent' => $html,
             ]);
+        });
+
+        // Global Eloquent event listeners to capture DB changes as owner-only logs.
+        Event::listen(EloquentCreated::class, function ($event) {
+            try {
+                $model = $event->model ?? null;
+                if (!$model) return;
+                $class = get_class($model);
+                // Avoid logging admin logs themselves to prevent recursion
+                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote')) return;
+
+                $meta = [
+                    'event' => 'created',
+                    'model' => $class,
+                    'id' => $model->getKey(),
+                    'attributes' => $model->getAttributes(),
+                    'route' => request()->path() ?? null,
+                    'ip' => request()->ip() ?? null,
+                    'user_agent' => request()->header('User-Agent') ?? null,
+                ];
+
+                AdminLog::create([
+                    'user_id' => auth()->id() ?: null,
+                    'action' => 'MODEL_CREATED',
+                    'details' => "Created {$class} id=" . ($model->getKey() ?? 'null'),
+                    'ip_address' => request()->ip() ?? null,
+                    'owner_only' => true,
+                    'meta' => json_encode($meta),
+                ]);
+            } catch (\Throwable $e) {
+                // swallow errors to avoid breaking requests
+            }
+        });
+
+        Event::listen(EloquentUpdated::class, function ($event) {
+            try {
+                $model = $event->model ?? null;
+                if (!$model) return;
+                $class = get_class($model);
+                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote')) return;
+
+                $meta = [
+                    'event' => 'updated',
+                    'model' => $class,
+                    'id' => $model->getKey(),
+                    'changes' => $model->getChanges(),
+                    'original' => $model->getOriginal(),
+                    'route' => request()->path() ?? null,
+                    'ip' => request()->ip() ?? null,
+                    'user_agent' => request()->header('User-Agent') ?? null,
+                ];
+
+                AdminLog::create([
+                    'user_id' => auth()->id() ?: null,
+                    'action' => 'MODEL_UPDATED',
+                    'details' => "Updated {$class} id=" . ($model->getKey() ?? 'null'),
+                    'ip_address' => request()->ip() ?? null,
+                    'owner_only' => true,
+                    'meta' => json_encode($meta),
+                ]);
+            } catch (\Throwable $e) {
+            }
+        });
+
+        Event::listen(EloquentDeleted::class, function ($event) {
+            try {
+                $model = $event->model ?? null;
+                if (!$model) return;
+                $class = get_class($model);
+                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote')) return;
+
+                $meta = [
+                    'event' => 'deleted',
+                    'model' => $class,
+                    'id' => $model->getKey(),
+                    'attributes' => $model->getAttributes(),
+                    'route' => request()->path() ?? null,
+                    'ip' => request()->ip() ?? null,
+                    'user_agent' => request()->header('User-Agent') ?? null,
+                ];
+
+                AdminLog::create([
+                    'user_id' => auth()->id() ?: null,
+                    'action' => 'MODEL_DELETED',
+                    'details' => "Deleted {$class} id=" . ($model->getKey() ?? 'null'),
+                    'ip_address' => request()->ip() ?? null,
+                    'owner_only' => true,
+                    'meta' => json_encode($meta),
+                ]);
+            } catch (\Throwable $e) {
+            }
         });
     }
 }

@@ -11,7 +11,7 @@ class AdminLog extends Model
     use HasFactory;
 
     // 🔥 هذا السطر هو الحل للمشكلة 🔥
-    protected $fillable = ['user_id', 'action', 'details', 'ip_address'];
+    protected $fillable = ['user_id', 'action', 'details', 'ip_address', 'owner_only', 'meta'];
 
     // علاقة عشان نعرف مين الأدمن صاحب الحركة
     public function user(): BelongsTo

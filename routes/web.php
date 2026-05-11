@@ -279,6 +279,9 @@ Route::middleware('auth')->group(function () {
             Route::post('/admins/promote', [AdminManagerController::class, 'promote'])->name('admins.promote');
             Route::put('/admins/{user}/role', [AdminManagerController::class, 'updateRole'])->name('admins.update_role');
             Route::delete('/admins/{user}', [AdminManagerController::class, 'destroy'])->name('admins.destroy');
+            // Owner-only audit logs UI + polling API
+            Route::get('/owner-logs', [AdminController::class, 'ownerLogsPage'])->name('owner.logs');
+            Route::get('/api/owner-logs', [AdminController::class, 'apiOwnerLogs'])->name('api.owner_logs');
         });
 
         // Student issue management in the admin panel.

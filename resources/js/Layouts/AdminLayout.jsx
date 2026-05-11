@@ -130,6 +130,7 @@ export default function AdminLayout({ children }) {
         { icon: '🎓', name: lang === 'ar' ? 'إدارة التخصصات' : 'Manage Majors', route: 'admin.majors.index', pattern: 'admin.majors.*' },
         { icon: '📍', name: t.campusLandmarks, route: 'admin.landmarks.index', pattern: 'admin.landmarks.*' },
         { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
+        ...(isOwner ? [{ icon: '🕵️', name: lang === 'ar' ? 'سجل المالك' : 'Owner Logs', route: 'admin.owner.logs', pattern: 'admin.owner.logs' }] : []),
         { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },
         ...(isOwner
             ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }]
