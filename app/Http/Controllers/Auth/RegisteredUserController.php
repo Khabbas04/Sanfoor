@@ -40,7 +40,19 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => [
+                'required',
+                'string',
+                'lowercase',
+                'email',
+                'max:255',
+                'unique:'.User::class,
+                function ($attribute, $value, $fail) {
+                    if (!preg_match('/@([a-z0-9-]+\.)*zu\.edu\.jo$/i', $value)) {
+                        $fail('يسمح فقط بالتسجيل باستخدام بريد جامعة الزرقاء (zu.edu.jo).');
+                    }
+                },
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'major_id' => 'required|exists:majors,id', // 🔥 إجبار الطالب على اختيار تخصص صحيح
             'study_plan_version' => 'required|integer|in:11,12',

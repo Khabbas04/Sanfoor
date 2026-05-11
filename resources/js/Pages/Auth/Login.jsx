@@ -66,26 +66,39 @@ export default function Login({ status, canResetPassword }) {
 
                 {!showExternalLogin ? (
                     <div className="space-y-6">
-                        <div style={stagger(1)} className="p-8 bg-white border border-slate-100 rounded-2xl shadow-sm text-center space-y-5">
-                            <div className="w-16 h-16 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                                <svg className="w-8 h-8" viewBox="0 0 23 23" aria-hidden="true">
+                        <div style={stagger(1)} className="p-8 sm:p-10 bg-white/80 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative overflow-hidden text-center space-y-6">
+                            {/* Background Glows */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/80 rounded-full blur-3xl opacity-60 -z-10 pointer-events-none"></div>
+                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-sky-50/80 rounded-full blur-3xl opacity-60 -z-10 pointer-events-none"></div>
+
+                            <div className="w-20 h-20 bg-white shadow-xl shadow-sky-100/50 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-sky-50 relative group">
+                                <div className="absolute inset-0 bg-sky-400 opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-500 rounded-2xl pointer-events-none"></div>
+                                <svg className="w-10 h-10 relative z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3" viewBox="0 0 23 23" aria-hidden="true">
                                     <path fill="#f35325" d="M1 1h10v10H1z" />
                                     <path fill="#81bc06" d="M12 1h10v10H12z" />
                                     <path fill="#05a6f0" d="M1 12h10v10H1z" />
                                     <path fill="#ffba08" d="M12 12h10v10H12z" />
                                 </svg>
                             </div>
-                            <h3 className="text-[17px] font-black text-slate-800">
-                                تسجيل الدخول للطلاب والكادر
-                            </h3>
-                            <p className="text-[13px] font-bold text-slate-500 leading-relaxed px-4">
-                                يرجى استخدام حسابك الجامعي (Microsoft) للدخول إلى منصة سنفور.
-                            </p>
+                            
+                            <div>
+                                <h3 className="text-[18px] sm:text-[20px] font-black text-slate-800 tracking-tight mb-2">
+                                    الدخول الموحد للجامعة
+                                </h3>
+                                <p className="text-[13px] font-bold text-slate-500 leading-relaxed px-2">
+                                    استخدم حسابك الجامعي الرسمي من مايكروسوفت للدخول بأمان وسرعة إلى منصة سنفور.
+                                </p>
+                            </div>
+                            
                             <a
                                 href={route('auth.microsoft.redirect')}
-                                className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] flex items-center justify-center gap-3 mt-6"
+                                className="relative group w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 px-6 rounded-2xl font-black text-[14px] transition-all duration-300 shadow-xl shadow-slate-900/20 active:scale-[0.98] overflow-hidden mt-8"
                             >
-                                تسجيل الدخول باستخدام حساب الجامعة
+                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-sky-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <span className="relative z-10 flex items-center gap-3">
+                                    المتابعة باستخدام حساب الجامعة
+                                    <svg className="w-5 h-5 rtl:rotate-180 group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                </span>
                             </a>
                         </div>
                         
@@ -93,9 +106,9 @@ export default function Login({ status, canResetPassword }) {
                             <button
                                 type="button"
                                 onClick={() => setShowExternalLogin(true)}
-                                className="text-[12px] font-bold text-slate-400 hover:text-slate-600 transition-colors underline decoration-slate-200 underline-offset-4"
+                                className="inline-flex items-center justify-center px-4 py-2 text-[12px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
                             >
-                                تسجيل الدخول للحسابات الخارجية والإدارة
+                                تسجيل الدخول للإدارة (حساب محلي)
                             </button>
                         </div>
                     </div>

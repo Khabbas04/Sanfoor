@@ -40,9 +40,9 @@ class MicrosoftAuthController extends Controller
 
             if ($email === '' || !$isZuDomain) {
                 return redirect()->route('login')->with([
-                    'message' => 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo',
+                    'message' => 'يسمح فقط ببريد جامعة الزرقاء: zu.edu.jo',
                     'type' => 'error',
-                    'status' => 'يسمح فقط ببريد جامعة الزيتونة: zu.edu.jo',
+                    'status' => 'يسمح فقط ببريد جامعة الزرقاء: zu.edu.jo',
                 ]);
             }
 
