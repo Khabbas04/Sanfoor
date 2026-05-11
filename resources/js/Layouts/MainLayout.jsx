@@ -3,6 +3,7 @@ import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/Ai/AiWidget';
+import { motion } from 'framer-motion';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false }) {
@@ -344,10 +345,16 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                 </div>
             )}
 
-            {/* Routed page content is rendered inside the shared layout shell. */}
-            <main className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'} animate-fade-in-up`}>
+            {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
+            <motion.main 
+                key={page.url}
+                initial={{ opacity: 0, filter: 'blur(12px)', y: 10 }}
+                animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}
+            >
                 {children}
-            </main>
+            </motion.main>
 
             {/* The floating AI assistant is available only for signed-in users. */}
             {auth.user && !isAdvisorRoute && !shouldHideAiWidget && <AiWidget user={auth.user} />}

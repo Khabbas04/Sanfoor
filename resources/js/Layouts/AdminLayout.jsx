@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
+import { motion } from 'framer-motion';
 
 // AdminLayout wraps all admin pages with a shared sidebar, header, and logout flow.
 export default function AdminLayout({ children }) {
@@ -326,14 +327,20 @@ export default function AdminLayout({ children }) {
 
                 {/* Children Content */}
                 <div className="p-5 md:p-10 flex-1">
-                    <div className="animate-fade-in-up max-w-[1600px] mx-auto">
+                    <motion.div 
+                        key={currentRouteName}
+                        initial={{ opacity: 0, filter: 'blur(12px)', y: 10 }}
+                        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                        className="max-w-[1600px] mx-auto"
+                    >
                         {message && (
                             <div className={`mb-6 px-4 py-3 rounded-2xl border text-sm font-black ${flashClass}`}>
                                 {message}
                             </div>
                         )}
                         {children}
-                    </div>
+                    </motion.div>
                 </div>
 
                 <footer className={`px-5 md:px-10 pb-6 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
