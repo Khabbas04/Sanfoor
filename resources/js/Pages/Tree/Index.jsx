@@ -35,6 +35,63 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
+    // Some plans arrive with all courses in the same semester value.
+    // In that case, derive a visual level from prerequisite depth so the graph
+    // becomes layered (compact/square-ish) instead of one ultra-wide row.
+    const nodeIds = new Set(nodes.map((node) => node.id));
+    const rawSemesters = nodes
+        .map((node) => parseInt(node.data?.semester, 10))
+        .filter((value) => !Number.isNaN(value) && value > 0);
+    const uniqueRawSemesters = new Set(rawSemesters);
+    const shouldDeriveLevels = nodes.length >= 16 && uniqueRawSemesters.size <= 2;
+
+    const layoutSemesterById = new Map();
+
+    if (shouldDeriveLevels) {
+        const indegree = new Map();
+        const nextById = new Map();
+        const depth = new Map();
+
+        nodes.forEach((node) => {
+            indegree.set(node.id, 0);
+            nextById.set(node.id, []);
+            depth.set(node.id, 1);
+        });
+
+        edges.forEach((edge) => {
+            if (!nodeIds.has(edge.source) || !nodeIds.has(edge.target)) return;
+            nextById.get(edge.source)?.push(edge.target);
+            indegree.set(edge.target, (indegree.get(edge.target) || 0) + 1);
+        });
+
+        const queue = [];
+        indegree.forEach((value, id) => {
+            if (value === 0) queue.push(id);
+        });
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            const currentDepth = depth.get(current) || 1;
+            const nextNodes = nextById.get(current) || [];
+
+            nextNodes.forEach((nextId) => {
+                depth.set(nextId, Math.max(depth.get(nextId) || 1, currentDepth + 1));
+                indegree.set(nextId, (indegree.get(nextId) || 1) - 1);
+                if ((indegree.get(nextId) || 0) === 0) {
+                    queue.push(nextId);
+                }
+            });
+        }
+
+        nodes.forEach((node) => {
+            layoutSemesterById.set(node.id, depth.get(node.id) || 1);
+        });
+    } else {
+        nodes.forEach((node) => {
+            layoutSemesterById.set(node.id, parseInt(node.data?.semester, 10) || 1);
+        });
+    }
+
     dagreGraph.setGraph({
         rankdir: direction,
         ranksep,
@@ -43,8 +100,8 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
     });
 
     const sortedNodes = [...nodes].sort((a, b) => {
-        const semA = parseInt(a.data?.semester) || 1;
-        const semB = parseInt(b.data?.semester) || 1;
+        const semA = layoutSemesterById.get(a.id) || 1;
+        const semB = layoutSemesterById.get(b.id) || 1;
         if (semA !== semB) return semA - semB;
         const codeA = a.data?.code || '';
         const codeB = b.data?.code || '';
@@ -59,7 +116,7 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
         dagreGraph.setEdge(edge.source, edge.target, { weight: 2 });
     });
 
-    const semesters = sortedNodes.map(n => parseInt(n.data?.semester) || 1).filter(s => !isNaN(s));
+    const semesters = sortedNodes.map((n) => layoutSemesterById.get(n.id) || 1).filter((s) => !Number.isNaN(s));
     if (semesters.length > 0) {
         const minSem = Math.min(...semesters);
         const maxSem = Math.max(...semesters);
@@ -73,7 +130,7 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
         }
 
         sortedNodes.forEach((node) => {
-            const sem = parseInt(node.data?.semester) || 1;
+            const sem = layoutSemesterById.get(node.id) || 1;
             const prevAnchor = `anchor-sem-${sem - 1}`;
             dagreGraph.setEdge(prevAnchor, node.id, { weight: 1 });
         });
