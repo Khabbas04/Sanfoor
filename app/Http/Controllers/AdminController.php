@@ -336,6 +336,7 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/OwnerLogs', [
             'ownerLogs' => AdminLog::with('user:id,name,email')->where('owner_only', true)->latest()->take(200)->get(),
+            'logs' => AdminLog::with('user:id,name,email')->where('owner_only', false)->latest()->take(200)->get(),
         ]);
     }
 
