@@ -22,7 +22,7 @@ export default function GlobalLoader() {
                         return prev + Math.random() * 10;
                     });
                 }, 100);
-            }, 100);
+            }, 5000); // 5 seconds delay
         };
 
         const handleFinish = () => {

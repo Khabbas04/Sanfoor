@@ -9,7 +9,6 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
-import confetti from 'canvas-confetti';
 
 // Resolve the deployment URL once for canonical metadata on the tree page.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -1207,13 +1206,6 @@ export default function Tree({
             });
 
             if (response.data.status === 'added') {
-                confetti({
-                    particleCount: 120,
-                    spread: 80,
-                    origin: { y: 0.6 },
-                    colors: ['#10b981', '#34d399', '#059669', '#f59e0b', '#fbbf24'],
-                    zIndex: 10000
-                });
                 setPassedIds(p => [...p, courseId]);
                 const updatedCart = cartIds.filter(id => id !== courseId);
                 setCartIds(updatedCart);
