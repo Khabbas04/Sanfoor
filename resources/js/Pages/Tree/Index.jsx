@@ -364,13 +364,13 @@ export default function Tree({
         try {
             setIsPrinting(true);
             const nodesBounds = getRectOfNodes(flowInstance.getNodes());
-            
+
             const padding = 150;
             const exportScale = 2; // For professional high-res quality
-            
+
             const width = nodesBounds.width + padding * 2;
             const height = nodesBounds.height + padding * 2;
-            
+
             const transform = getTransformForBounds(
                 nodesBounds,
                 width,
@@ -397,15 +397,15 @@ export default function Tree({
             });
 
             elementsToHide.forEach(el => el.style.display = '');
-            
+
             // Trigger download instead of window.print()
             const link = document.createElement('a');
             link.download = `study_plan_${major_name || 'plan'}.png`;
             link.href = dataUrl;
             link.click();
-            
+
             setIsPrinting(false);
-            
+
             Swal.fire({
                 icon: 'success',
                 title: 'تم التصدير بنجاح!',
@@ -1084,13 +1084,13 @@ export default function Tree({
                     const prereqDifficultyBand = prereqDifficultyLevel <= 2 ? 'easy' : (prereqDifficultyLevel === 3 ? 'balanced' : 'heavy');
 
                     const palette = [
-                        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', 
-                        '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', 
+                        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981',
+                        '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
                         '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
                     ];
                     // Pick a specific color for all edges originating from this prerequisite
                     const sourceColor = palette[prereq.id % palette.length];
-                    
+
                     let edgeColor = sourceColor;
                     let edgeWidth = isActivePath ? 3.5 : (isSourceDone ? 2.5 : 2);
                     let isAnimated = (isSourceDone && status !== 'passed') || isActivePath;
@@ -1111,7 +1111,7 @@ export default function Tree({
                         id: `e${prereq.id}-${course.id}`,
                         source: prereq.id.toString(),
                         target: course.id.toString(),
-                        type: 'bezier',
+                        type: 'smoothstep',
                         zIndex: isActivePath ? 1000 : (isSourceDone ? 10 : 0),
                         animated: isAnimated,
                         style: {
@@ -1773,18 +1773,18 @@ export default function Tree({
                             </div>
                         </div>
                         {selectedCourse.difficulty_level && (
-                        <div className={`group relative rounded-xl p-3 text-center backdrop-blur-sm border overflow-visible ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
-                            <p className={`text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}`}>الصعوبة</p>
-                            <p className={`text-2xl font-[900] leading-none ${selectedCourse.difficulty_level >= 4 ? 'text-rose-400' : selectedCourse.difficulty_level === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{selectedCourse.difficulty_level}</p>
-                            <p className={`text-[8px] font-bold mt-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-white/30' : selectedCourse.difficulty_level === 3 ? 'text-white/30' : 'text-white/30'}`}>/5</p>
-                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
-                                <div className="relative rounded-xl border px-3 py-2 text-right shadow-2xl backdrop-blur-md bg-slate-950/95 border-slate-700/80">
-                                    <p className={`text-[10px] font-[900] mb-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-200' : selectedCourse.difficulty_level === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>ما معنى الصعوبة؟</p>
-                                    <p className="text-[10px] font-bold leading-snug text-white/75">هذا الرقم يشرح ثقل المادة الدراسي: خفيف، متوسط، أو مكثف حسب الجهد المتوقع.</p>
-                                    <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-slate-700/80 bg-slate-950/95"></span>
+                            <div className={`group relative rounded-xl p-3 text-center backdrop-blur-sm border overflow-visible ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
+                                <p className={`text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}`}>الصعوبة</p>
+                                <p className={`text-2xl font-[900] leading-none ${selectedCourse.difficulty_level >= 4 ? 'text-rose-400' : selectedCourse.difficulty_level === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{selectedCourse.difficulty_level}</p>
+                                <p className={`text-[8px] font-bold mt-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-white/30' : selectedCourse.difficulty_level === 3 ? 'text-white/30' : 'text-white/30'}`}>/5</p>
+                                <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                                    <div className="relative rounded-xl border px-3 py-2 text-right shadow-2xl backdrop-blur-md bg-slate-950/95 border-slate-700/80">
+                                        <p className={`text-[10px] font-[900] mb-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-200' : selectedCourse.difficulty_level === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>ما معنى الصعوبة؟</p>
+                                        <p className="text-[10px] font-bold leading-snug text-white/75">هذا الرقم يشرح ثقل المادة الدراسي: خفيف، متوسط، أو مكثف حسب الجهد المتوقع.</p>
+                                        <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-slate-700/80 bg-slate-950/95"></span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
                         )}
                     </div>
                 )}
@@ -2083,7 +2083,8 @@ export default function Tree({
                 <link rel="canonical" href={`${siteUrl}/tree`} />
             </Head>
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @keyframes sn-scale { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
                 @keyframes sn-slide-r { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
                 @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
@@ -2112,56 +2113,56 @@ export default function Tree({
             {/* ═══ HEADER ═══ */}
             {!isFullScreen && (
                 <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
-                {isLandscapeMobile ? (
-                    <div className="px-1">
-                        <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
-                    </div>
-                ) : (
-                    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
-                        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
-                        <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
+                    {isLandscapeMobile ? (
+                        <div className="px-1">
+                            <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                        </div>
+                    ) : (
+                        <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                            <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
+                            <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
 
-                        <div className="relative z-10 p-4 sm:p-6">
-                            <div className="text-center max-w-2xl mx-auto">
-                                <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                            <div className="relative z-10 p-4 sm:p-6">
+                                <div className="text-center max-w-2xl mx-auto">
+                                    <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    <div className="flex justify-between items-center gap-3">
+                        <div className="flex items-center gap-3">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
+                                {isSidebarOpen ? '✕' : '☰'}
+                            </button>
+
+                            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
+                                <span>{major_name && `${major_name} • `}{student_name}</span>
+                                <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
+                                    خطة {study_plan_version}
+                                </span>
+                            </p>
+                        </div>
+
+                        {/* 🆕 Header مع Mini Stats */}
+                        <div className="hidden md:flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
+                                {miniStats.criticalCount > 0 && (
+                                    <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
+                                )}
+                            </div>
+                            <div className="flex flex-col items-end w-56">
+                                <div className="flex justify-between w-full mb-1.5 items-center">
+                                    <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
+                                    <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
+                                </div>
+                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
+                                </div>
                             </div>
                         </div>
-                    </section>
-                )}
-
-                <div className="flex justify-between items-center gap-3">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
-                            {isSidebarOpen ? '✕' : '☰'}
-                        </button>
-
-                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
-                            <span>{major_name && `${major_name} • `}{student_name}</span>
-                            <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
-                                خطة {study_plan_version}
-                            </span>
-                        </p>
                     </div>
-
-                    {/* 🆕 Header مع Mini Stats */}
-                    <div className="hidden md:flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
-                            {miniStats.criticalCount > 0 && (
-                                <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
-                            )}
-                        </div>
-                        <div className="flex flex-col items-end w-56">
-                            <div className="flex justify-between w-full mb-1.5 items-center">
-                                <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
-                                <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 </div>
             )}
 
@@ -2176,244 +2177,244 @@ export default function Tree({
                     <div className={`
                     absolute lg:relative bg-slate-900/70 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 lg:z-10 flex flex-col overflow-hidden transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]
                     ${isMobile && !isLandscapeMobile
-                        ? `bottom-0 left-0 right-0 h-[82%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
-                        : `${isLandscapeMobile ? 'top-0 right-0 h-full w-[320px] sm:w-[360px]' : 'top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px]'} rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : `translate-x-full ${isLandscapeMobile ? '' : 'lg:translate-x-0'}`}`
-                    }
+                            ? `bottom-0 left-0 right-0 h-[82%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
+                            : `${isLandscapeMobile ? 'top-0 right-0 h-full w-[320px] sm:w-[360px]' : 'top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px]'} rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : `translate-x-full ${isLandscapeMobile ? '' : 'lg:translate-x-0'}`}`
+                        }
                 `}>
 
-                    <div className="flex p-2.5 gap-2 bg-white/5 border-b border-white/10 shrink-0">
-                        {isMobile && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setSelectedCourse(null);
-                                    setIsSidebarOpen(false);
-                                }}
-                                className="w-9 h-9 rounded-xl bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
-                            >
-                                ✕
-                            </button>
-                        )}
-                        <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
-                        <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
-                            🪄 التخطيط
-                            {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
-                        </button>
-                        <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
-                        <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
-                    </div>
-
-                    <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
-
-                        {/* ═══ DETAILS TAB ═══ */}
-                        {activeTab === 'details' && renderDetailsPanel()}
-
-                        {/* ═══ SIMULATOR TAB ═══ */}
-                        {activeTab === 'simulator' && (
-                            <div className="space-y-5 sn-card-enter">
-                                {!showAiSettings ? (
-                                    <button onClick={() => setShowAiSettings(true)} className="w-full bg-gradient-to-l from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl shadow-indigo-200/30 flex items-center justify-center gap-3 active:scale-[0.97] transition-all relative overflow-hidden group">
-                                        <div className="absolute inset-0 bg-gradient-to-l from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <span className="text-2xl relative z-10">🪄</span>
-                                        <div className="text-right relative z-10"><p className="text-[13px]">توليد جدول ذكي</p><p className="text-[10px] text-indigo-200/60 font-bold">دع الخوارزمية تخطط فصلك القادم</p></div>
-                                    </button>
-                                ) : (
-                                    <div className="bg-indigo-50/70 border border-indigo-100 p-5 rounded-[1.25rem] space-y-4">
-                                        <div className="flex justify-between items-center"><h3 className="font-[800] text-indigo-800 text-[13px]">⚙️ إعدادات التوليد</h3><button onClick={() => setShowAiSettings(false)} className="text-slate-400 text-[11px] font-bold hover:text-rose-500 transition-colors">✕ إلغاء</button></div>
-                                        <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الساعات المستهدفة:</label><div className="flex bg-white rounded-xl p-1 border border-indigo-100/60 shadow-sm">{[12, 15, 18].map(h => (<button key={h} onClick={() => setTargetHours(h)} className={`flex-1 py-2 text-[12px] font-[800] rounded-lg transition-all ${targetHours === h ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>{h} ساعة</button>))}</div></div>
-                                        <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">نمط الصعوبة:</label><div className="space-y-2">{[{ id: 'heavy', icon: '🏋️', label: 'مكثف (صعوبة فعلية أعلى)' }, { id: 'balanced', icon: '⚖️', label: 'متوازن (صعوبة وسط)' }, { id: 'light', icon: '🏖️', label: 'خفيف (صعوبة أقل)' }].map(p => (<button key={p.id} onClick={() => setSchedulePace(p.id)} className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center gap-2.5 shadow-sm ${schedulePace === p.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'}`}><span>{p.icon}</span><span className="text-[12px] font-bold">{p.label}</span></button>))}</div></div>
-                                        <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الأولوية:</label><div className="grid grid-cols-3 gap-2">{[{ id: 'major', label: 'مواد تخصص' }, { id: 'graduation', label: 'تسريع تخرج' }, { id: 'gpa', label: 'حماية المعدل' }].map(f => (<button key={f.id} onClick={() => setSmartFocus(f.id)} className={`py-2 text-[11px] font-[800] rounded-lg border transition-all ${smartFocus === f.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}>{f.label}</button>))}</div></div>
-                                        <label className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5 cursor-pointer"><div><p className="text-[11px] font-[800] text-slate-700">توازن الحمل</p><p className="text-[10px] font-bold text-slate-400">تقليل المواد عالية الرسوب والصعوبة</p></div><button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-12 h-7 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}><span className={`block w-5 h-5 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-5'}`} /></button></label>
-                                        <button onClick={executeSmartSchedule} className="w-full bg-indigo-700 hover:bg-indigo-800 text-white py-3 rounded-xl font-[800] text-[13px] shadow-lg hover:-translate-y-0.5 active:scale-[0.97] transition-all">🚀 توليد الآن</button>
-                                    </div>
-                                )}
-
-                                <button onClick={() => setShow4YearPlan(true)} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all ring-1 ring-inset ring-white/10 relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-gradient-to-l from-indigo-600/0 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    <span className="text-2xl relative z-10">🤖</span>
-                                    <div className="text-right relative z-10"><p className="text-[13px] text-indigo-200">خطة تخرج كاملة (محاكاة)</p><p className="text-[10px] text-slate-400 font-bold">توزيع المواد المتبقية على كل الفصول</p></div>
+                        <div className="flex p-2.5 gap-2 bg-white/5 border-b border-white/10 shrink-0">
+                            {isMobile && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedCourse(null);
+                                        setIsSidebarOpen(false);
+                                    }}
+                                    className="w-9 h-9 rounded-xl bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
+                                >
+                                    ✕
                                 </button>
+                            )}
+                            <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
+                            <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
+                                🪄 التخطيط
+                                {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
+                            </button>
+                            <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
+                            <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
+                        </div>
 
-                                <div className="bg-gradient-to-bl from-slate-900 to-indigo-950 p-5 rounded-[1.25rem] text-white shadow-xl relative overflow-hidden">
-                                    <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/15 rounded-full blur-2xl" />
-                                    <div className="relative z-10">
-                                        <div className="flex justify-between items-end mb-3"><p className="font-[800] text-base">الجدول المقترح</p><div className="text-right"><span className={`text-3xl font-[900] leading-none ${totalCartCredits > 18 ? 'text-rose-400' : 'text-amber-400'}`}>{totalCartCredits}</span><span className="text-slate-400 text-[10px] font-bold mr-1">/ 18 س</span></div></div>
-                                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${totalCartCredits > 18 ? 'bg-rose-500' : 'bg-gradient-to-l from-indigo-400 to-indigo-500'}`} style={{ width: `${Math.min((totalCartCredits / 18) * 100, 100)}%` }} /></div>
+                        <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
+
+                            {/* ═══ DETAILS TAB ═══ */}
+                            {activeTab === 'details' && renderDetailsPanel()}
+
+                            {/* ═══ SIMULATOR TAB ═══ */}
+                            {activeTab === 'simulator' && (
+                                <div className="space-y-5 sn-card-enter">
+                                    {!showAiSettings ? (
+                                        <button onClick={() => setShowAiSettings(true)} className="w-full bg-gradient-to-l from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl shadow-indigo-200/30 flex items-center justify-center gap-3 active:scale-[0.97] transition-all relative overflow-hidden group">
+                                            <div className="absolute inset-0 bg-gradient-to-l from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <span className="text-2xl relative z-10">🪄</span>
+                                            <div className="text-right relative z-10"><p className="text-[13px]">توليد جدول ذكي</p><p className="text-[10px] text-indigo-200/60 font-bold">دع الخوارزمية تخطط فصلك القادم</p></div>
+                                        </button>
+                                    ) : (
+                                        <div className="bg-indigo-50/70 border border-indigo-100 p-5 rounded-[1.25rem] space-y-4">
+                                            <div className="flex justify-between items-center"><h3 className="font-[800] text-indigo-800 text-[13px]">⚙️ إعدادات التوليد</h3><button onClick={() => setShowAiSettings(false)} className="text-slate-400 text-[11px] font-bold hover:text-rose-500 transition-colors">✕ إلغاء</button></div>
+                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الساعات المستهدفة:</label><div className="flex bg-white rounded-xl p-1 border border-indigo-100/60 shadow-sm">{[12, 15, 18].map(h => (<button key={h} onClick={() => setTargetHours(h)} className={`flex-1 py-2 text-[12px] font-[800] rounded-lg transition-all ${targetHours === h ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>{h} ساعة</button>))}</div></div>
+                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">نمط الصعوبة:</label><div className="space-y-2">{[{ id: 'heavy', icon: '🏋️', label: 'مكثف (صعوبة فعلية أعلى)' }, { id: 'balanced', icon: '⚖️', label: 'متوازن (صعوبة وسط)' }, { id: 'light', icon: '🏖️', label: 'خفيف (صعوبة أقل)' }].map(p => (<button key={p.id} onClick={() => setSchedulePace(p.id)} className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center gap-2.5 shadow-sm ${schedulePace === p.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'}`}><span>{p.icon}</span><span className="text-[12px] font-bold">{p.label}</span></button>))}</div></div>
+                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الأولوية:</label><div className="grid grid-cols-3 gap-2">{[{ id: 'major', label: 'مواد تخصص' }, { id: 'graduation', label: 'تسريع تخرج' }, { id: 'gpa', label: 'حماية المعدل' }].map(f => (<button key={f.id} onClick={() => setSmartFocus(f.id)} className={`py-2 text-[11px] font-[800] rounded-lg border transition-all ${smartFocus === f.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}>{f.label}</button>))}</div></div>
+                                            <label className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5 cursor-pointer"><div><p className="text-[11px] font-[800] text-slate-700">توازن الحمل</p><p className="text-[10px] font-bold text-slate-400">تقليل المواد عالية الرسوب والصعوبة</p></div><button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-12 h-7 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}><span className={`block w-5 h-5 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-5'}`} /></button></label>
+                                            <button onClick={executeSmartSchedule} className="w-full bg-indigo-700 hover:bg-indigo-800 text-white py-3 rounded-xl font-[800] text-[13px] shadow-lg hover:-translate-y-0.5 active:scale-[0.97] transition-all">🚀 توليد الآن</button>
+                                        </div>
+                                    )}
+
+                                    <button onClick={() => setShow4YearPlan(true)} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all ring-1 ring-inset ring-white/10 relative overflow-hidden group">
+                                        <div className="absolute inset-0 bg-gradient-to-l from-indigo-600/0 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <span className="text-2xl relative z-10">🤖</span>
+                                        <div className="text-right relative z-10"><p className="text-[13px] text-indigo-200">خطة تخرج كاملة (محاكاة)</p><p className="text-[10px] text-slate-400 font-bold">توزيع المواد المتبقية على كل الفصول</p></div>
+                                    </button>
+
+                                    <div className="bg-gradient-to-bl from-slate-900 to-indigo-950 p-5 rounded-[1.25rem] text-white shadow-xl relative overflow-hidden">
+                                        <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/15 rounded-full blur-2xl" />
+                                        <div className="relative z-10">
+                                            <div className="flex justify-between items-end mb-3"><p className="font-[800] text-base">الجدول المقترح</p><div className="text-right"><span className={`text-3xl font-[900] leading-none ${totalCartCredits > 18 ? 'text-rose-400' : 'text-amber-400'}`}>{totalCartCredits}</span><span className="text-slate-400 text-[10px] font-bold mr-1">/ 18 س</span></div></div>
+                                            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${totalCartCredits > 18 ? 'bg-rose-500' : 'bg-gradient-to-l from-indigo-400 to-indigo-500'}`} style={{ width: `${Math.min((totalCartCredits / 18) * 100, 100)}%` }} /></div>
+                                        </div>
                                     </div>
-                                </div>
 
-                                {workloadAnalysis && (<div className={`p-3.5 rounded-xl border font-bold text-[12px] leading-relaxed shadow-sm ${workloadAnalysis.cls}`}>{workloadAnalysis.msg}</div>)}
+                                    {workloadAnalysis && (<div className={`p-3.5 rounded-xl border font-bold text-[12px] leading-relaxed shadow-sm ${workloadAnalysis.cls}`}>{workloadAnalysis.msg}</div>)}
 
-                                {/* 🆕 مؤشر صحة التسجيل التجريبي */}
-                                {cartHealthAnalysis && (
-                                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-[1.25rem] space-y-3">
-                                        <h4 className="font-[800] text-slate-700 text-[12px] flex items-center gap-2">📊 تحليل تركيبة التسجيل التجريبي</h4>
-                                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
-                                            {cartHealthAnalysis.compPct > 0 && <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${cartHealthAnalysis.compPct}%` }} />}
-                                            {cartHealthAnalysis.elecPct > 0 && <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${cartHealthAnalysis.elecPct}%` }} />}
+                                    {/* 🆕 مؤشر صحة التسجيل التجريبي */}
+                                    {cartHealthAnalysis && (
+                                        <div className="bg-slate-50 border border-slate-200 p-4 rounded-[1.25rem] space-y-3">
+                                            <h4 className="font-[800] text-slate-700 text-[12px] flex items-center gap-2">📊 تحليل تركيبة التسجيل التجريبي</h4>
+                                            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+                                                {cartHealthAnalysis.compPct > 0 && <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${cartHealthAnalysis.compPct}%` }} />}
+                                                {cartHealthAnalysis.elecPct > 0 && <div className="h-full bg-amber-400 transition-all duration-500" style={{ width: `${cartHealthAnalysis.elecPct}%` }} />}
+                                            </div>
+                                            <div className="flex justify-between text-[9px] font-bold">
+                                                <span className="text-indigo-600 flex items-center gap-1"><span className="w-2 h-2 bg-indigo-500 rounded-sm" /> إجباري: {cartHealthAnalysis.compulsory}</span>
+                                                <span className="text-amber-600 flex items-center gap-1"><span className="w-2 h-2 bg-amber-400 rounded-sm" /> اختياري/أخرى: {cartHealthAnalysis.elective + cartHealthAnalysis.supporting}</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2 pt-1">
+                                                <div className="bg-white border border-slate-100 rounded-xl p-2.5 text-center"><p className="text-[8px] font-bold text-slate-400">مواد حرجة</p><p className={`text-lg font-[900] leading-tight ${cartHealthAnalysis.criticalInCart > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{cartHealthAnalysis.criticalInCart}</p></div>
+                                                <div className="bg-white border border-slate-100 rounded-xl p-2.5 text-center"><p className="text-[8px] font-bold text-slate-400">مواد تتأثر</p><p className="text-lg font-[900] text-violet-600 leading-tight">{cartHealthAnalysis.totalImpactScore}</p></div>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-[9px] font-bold">
-                                            <span className="text-indigo-600 flex items-center gap-1"><span className="w-2 h-2 bg-indigo-500 rounded-sm" /> إجباري: {cartHealthAnalysis.compulsory}</span>
-                                            <span className="text-amber-600 flex items-center gap-1"><span className="w-2 h-2 bg-amber-400 rounded-sm" /> اختياري/أخرى: {cartHealthAnalysis.elective + cartHealthAnalysis.supporting}</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 pt-1">
-                                            <div className="bg-white border border-slate-100 rounded-xl p-2.5 text-center"><p className="text-[8px] font-bold text-slate-400">مواد حرجة</p><p className={`text-lg font-[900] leading-tight ${cartHealthAnalysis.criticalInCart > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{cartHealthAnalysis.criticalInCart}</p></div>
-                                            <div className="bg-white border border-slate-100 rounded-xl p-2.5 text-center"><p className="text-[8px] font-bold text-slate-400">مواد تتأثر</p><p className="text-lg font-[900] text-violet-600 leading-tight">{cartHealthAnalysis.totalImpactScore}</p></div>
-                                        </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {cartIds.length > 0 ? (
-                                    <div className="space-y-2.5 pb-8">
-                                        <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); setSmartMetaByCourseId({}); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
-                                        {coursesWithDifficulty.filter(c => cartIds.includes(c.id)).map(c => (
-                                            <div key={c.id} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center group hover:border-indigo-200 transition-colors">
-                                                <div className="min-w-0 flex-1 ml-3">
-                                                    <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code} • سنة {c.recommended_year} • صعوبة {Math.round(c.difficulty_score)}%</p>
-                                                    {smartMetaByCourseId[c.id] ? (
-                                                        <div className="mt-1.5 flex flex-wrap gap-1">
-                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${(smartMetaByCourseId[c.id].confidence || 0) >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (smartMetaByCourseId[c.id].confidence || 0) >= 55 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>ثقة {Math.round(smartMetaByCourseId[c.id].confidence || 0)}%</span>
-                                                            <span className="text-[9px] font-black px-2 py-0.5 rounded-md border bg-sky-50 text-sky-700 border-sky-200">بيانات {Math.round(smartMetaByCourseId[c.id].dataConfidence || 0)}%</span>
-                                                        </div>
-                                                    ) : null}
+                                    {cartIds.length > 0 ? (
+                                        <div className="space-y-2.5 pb-8">
+                                            <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); setSmartMetaByCourseId({}); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
+                                            {coursesWithDifficulty.filter(c => cartIds.includes(c.id)).map(c => (
+                                                <div key={c.id} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center group hover:border-indigo-200 transition-colors">
+                                                    <div className="min-w-0 flex-1 ml-3">
+                                                        <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code} • سنة {c.recommended_year} • صعوبة {Math.round(c.difficulty_score)}%</p>
+                                                        {smartMetaByCourseId[c.id] ? (
+                                                            <div className="mt-1.5 flex flex-wrap gap-1">
+                                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${(smartMetaByCourseId[c.id].confidence || 0) >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (smartMetaByCourseId[c.id].confidence || 0) >= 55 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>ثقة {Math.round(smartMetaByCourseId[c.id].confidence || 0)}%</span>
+                                                                <span className="text-[9px] font-black px-2 py-0.5 rounded-md border bg-sky-50 text-sky-700 border-sky-200">بيانات {Math.round(smartMetaByCourseId[c.id].dataConfidence || 0)}%</span>
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
                                                 </div>
-                                                <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
+                                            ))}
+                                        </div>
+                                    ) : (<div className="text-center py-8"><div className="text-3xl mb-2 opacity-30">🛒</div><p className="text-[12px] font-bold text-slate-400 font-i">أضف مواد من الشجرة لاستكشاف العبء.</p></div>)}
+                                </div>
+                            )}
+
+                            {/* ═══ SEMESTERS TAB ═══ */}
+                            {activeTab === 'semesters' && (
+                                <div className="space-y-5 sn-card-enter">
+                                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 p-4 rounded-[1.25rem] border border-emerald-100/60 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-emerald-200/50">📚</div>
+                                            <div><h3 className="text-[13px] font-[900] text-emerald-900">سجلك الأكاديمي</h3><p className="text-[10px] font-bold text-emerald-700/70">توزيع المواد المنجزة حسب الفصول</p></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
+                                        <button onClick={() => setActiveSemesterTab('all')} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === 'all' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>🌐 الكل ({passedIds.length})</button>
+                                        {semesterRecord.sortedKeys.map(key => {
+                                            const item = semesterRecord.grouped[key];
+                                            const termLabel = item.term === 1 ? 'الأول' : item.term === 2 ? 'الثاني' : 'الصيفي';
+                                            return (
+                                                <button key={key} onClick={() => setActiveSemesterTab(key)} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === key ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
+                                                    السنة {item.year} - {termLabel}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="space-y-2.5 pb-8">
+                                        {recordDisplayedCourses.map((c, idx) => (
+                                            <div key={`${activeSemesterTab}-${c.id}`} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-emerald-200 transition-colors animate-slideDown" style={{ animationDelay: `${idx * 40}ms` }}>
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-100 shrink-0">{c.credit_hours}س</div>
+                                                    <div className="min-w-0 truncate pr-2"><h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4><p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code}</p></div>
+                                                </div>
+                                                <div className="shrink-0 flex flex-col items-end gap-1 pl-1">
+                                                    <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{c.pivot?.grade ? `${c.pivot.grade}%` : 'ناجح'}</span>
+                                                    <span className="px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                        سنة {c.localYear} - {c.localTerm === 1 ? 'الأول' : c.localTerm === 2 ? 'الثاني' : 'الصيفي'}
+                                                    </span>
+                                                </div>
                                             </div>
                                         ))}
+                                        {recordDisplayedCourses.length === 0 && (<div className="text-center py-10 opacity-60"><div className="text-3xl mb-2">📭</div><p className="text-[12px] font-bold text-slate-500">لا يوجد مواد مسجلة.</p></div>)}
                                     </div>
-                                ) : (<div className="text-center py-8"><div className="text-3xl mb-2 opacity-30">🛒</div><p className="text-[12px] font-bold text-slate-400 font-i">أضف مواد من الشجرة لاستكشاف العبء.</p></div>)}
-                            </div>
-                        )}
+                                    <div className="mt-4 pt-4 border-t border-slate-200/60"><Link href={route('calculator.index')} className="w-full bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 py-3 rounded-xl font-[800] text-[12px] transition-all flex items-center justify-center gap-2 shadow-sm">تعديل العلامات والفصول في الحاسبة ⚙️</Link></div>
+                                </div>
+                            )}
 
-                        {/* ═══ SEMESTERS TAB ═══ */}
-                        {activeTab === 'semesters' && (
-                            <div className="space-y-5 sn-card-enter">
-                                <div className="bg-gradient-to-br from-emerald-50 to-teal-50/30 p-4 rounded-[1.25rem] border border-emerald-100/60 shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-emerald-200/50">📚</div>
-                                        <div><h3 className="text-[13px] font-[900] text-emerald-900">سجلك الأكاديمي</h3><p className="text-[10px] font-bold text-emerald-700/70">توزيع المواد المنجزة حسب الفصول</p></div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1">
-                                    <button onClick={() => setActiveSemesterTab('all')} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === 'all' ? 'bg-slate-900 text-white shadow-md' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>🌐 الكل ({passedIds.length})</button>
-                                    {semesterRecord.sortedKeys.map(key => {
-                                        const item = semesterRecord.grouped[key];
-                                        const termLabel = item.term === 1 ? 'الأول' : item.term === 2 ? 'الثاني' : 'الصيفي';
-                                        return (
-                                            <button key={key} onClick={() => setActiveSemesterTab(key)} className={`px-4 py-2 rounded-xl text-[11px] font-[800] whitespace-nowrap transition-all shadow-sm ${activeSemesterTab === key ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
-                                                السنة {item.year} - {termLabel}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                <div className="space-y-2.5 pb-8">
-                                    {recordDisplayedCourses.map((c, idx) => (
-                                        <div key={`${activeSemesterTab}-${c.id}`} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-emerald-200 transition-colors animate-slideDown" style={{ animationDelay: `${idx * 40}ms` }}>
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-100 shrink-0">{c.credit_hours}س</div>
-                                                <div className="min-w-0 truncate pr-2"><h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4><p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code}</p></div>
+                            {activeTab === 'university' && (
+                                <div className="space-y-5 sn-card-enter">
+                                    <div className="relative overflow-hidden bg-gradient-to-br from-cyan-50 via-sky-50/90 to-white p-4 rounded-[1.25rem] border border-cyan-100/80 shadow-sm">
+                                        <div className="pointer-events-none absolute -left-8 -top-10 w-28 h-28 rounded-full bg-cyan-200/45 blur-2xl" />
+                                        <div className="pointer-events-none absolute -right-6 -bottom-8 w-24 h-24 rounded-full bg-sky-200/50 blur-2xl" />
+
+                                        <div className="relative flex items-center gap-3">
+                                            <div className="w-11 h-11 bg-gradient-to-br from-cyan-500 to-sky-500 text-white rounded-2xl flex items-center justify-center text-lg shadow-md shadow-cyan-200/60">🎓</div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-[13px] font-[900] text-cyan-950 truncate">متطلبات الجامعة</h3>
+                                                <p className="text-[10px] font-bold text-cyan-800/80">قائمة متابعة الإنجاز</p>
                                             </div>
-                                            <div className="shrink-0 flex flex-col items-end gap-1 pl-1">
-                                                <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{c.pivot?.grade ? `${c.pivot.grade}%` : 'ناجح'}</span>
-                                                <span className="px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
-                                                    سنة {c.localYear} - {c.localTerm === 1 ? 'الأول' : c.localTerm === 2 ? 'الثاني' : 'الصيفي'}
-                                                </span>
+                                            <span className="shrink-0 px-2.5 py-1 rounded-lg bg-white/80 border border-cyan-100 text-[10px] font-black text-cyan-800 shadow-sm">
+                                                {universityCompletionPct}%
+                                            </span>
+                                        </div>
+
+                                        <div className="relative mt-4 grid grid-cols-3 gap-2.5">
+                                            <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
+                                                <p className="text-[9px] font-black text-slate-500">منجز</p>
+                                                <p className="text-[14px] font-[900] text-emerald-700 leading-tight">{universityPassedCount}</p>
+                                            </div>
+                                            <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
+                                                <p className="text-[9px] font-black text-slate-500">متبقي</p>
+                                                <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max(sortedUniversityCourses.length - universityPassedCount, 0)}</p>
+                                            </div>
+                                            <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
+                                                <p className="text-[9px] font-black text-slate-500">الساعات</p>
+                                                <p className="text-[14px] font-[900] text-cyan-800 leading-tight">{universityHours}</p>
                                             </div>
                                         </div>
-                                    ))}
-                                    {recordDisplayedCourses.length === 0 && (<div className="text-center py-10 opacity-60"><div className="text-3xl mb-2">📭</div><p className="text-[12px] font-bold text-slate-500">لا يوجد مواد مسجلة.</p></div>)}
-                                </div>
-                                <div className="mt-4 pt-4 border-t border-slate-200/60"><Link href={route('calculator.index')} className="w-full bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 py-3 rounded-xl font-[800] text-[12px] transition-all flex items-center justify-center gap-2 shadow-sm">تعديل العلامات والفصول في الحاسبة ⚙️</Link></div>
-                            </div>
-                        )}
 
-                        {activeTab === 'university' && (
-                            <div className="space-y-5 sn-card-enter">
-                                <div className="relative overflow-hidden bg-gradient-to-br from-cyan-50 via-sky-50/90 to-white p-4 rounded-[1.25rem] border border-cyan-100/80 shadow-sm">
-                                    <div className="pointer-events-none absolute -left-8 -top-10 w-28 h-28 rounded-full bg-cyan-200/45 blur-2xl" />
-                                    <div className="pointer-events-none absolute -right-6 -bottom-8 w-24 h-24 rounded-full bg-sky-200/50 blur-2xl" />
-
-                                    <div className="relative flex items-center gap-3">
-                                        <div className="w-11 h-11 bg-gradient-to-br from-cyan-500 to-sky-500 text-white rounded-2xl flex items-center justify-center text-lg shadow-md shadow-cyan-200/60">🎓</div>
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="text-[13px] font-[900] text-cyan-950 truncate">متطلبات الجامعة</h3>
-                                            <p className="text-[10px] font-bold text-cyan-800/80">قائمة متابعة الإنجاز</p>
-                                        </div>
-                                        <span className="shrink-0 px-2.5 py-1 rounded-lg bg-white/80 border border-cyan-100 text-[10px] font-black text-cyan-800 shadow-sm">
-                                            {universityCompletionPct}%
-                                        </span>
-                                    </div>
-
-                                    <div className="relative mt-4 grid grid-cols-3 gap-2.5">
-                                        <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
-                                            <p className="text-[9px] font-black text-slate-500">منجز</p>
-                                            <p className="text-[14px] font-[900] text-emerald-700 leading-tight">{universityPassedCount}</p>
-                                        </div>
-                                        <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
-                                            <p className="text-[9px] font-black text-slate-500">متبقي</p>
-                                            <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max(sortedUniversityCourses.length - universityPassedCount, 0)}</p>
-                                        </div>
-                                        <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
-                                            <p className="text-[9px] font-black text-slate-500">الساعات</p>
-                                            <p className="text-[14px] font-[900] text-cyan-800 leading-tight">{universityHours}</p>
+                                        <div className="relative mt-3">
+                                            <div className="flex items-center justify-between text-[10px] font-black text-cyan-900 mb-1.5">
+                                                <span>{universityPassedCount} / {sortedUniversityCourses.length}</span>
+                                                <span>نسبة الإنجاز</span>
+                                            </div>
+                                            <div className="w-full h-2.5 rounded-full bg-cyan-100 overflow-hidden ring-1 ring-cyan-100/70">
+                                                <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPct}%` }} />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="relative mt-3">
-                                        <div className="flex items-center justify-between text-[10px] font-black text-cyan-900 mb-1.5">
-                                            <span>{universityPassedCount} / {sortedUniversityCourses.length}</span>
-                                            <span>نسبة الإنجاز</span>
-                                        </div>
-                                        <div className="w-full h-2.5 rounded-full bg-cyan-100 overflow-hidden ring-1 ring-cyan-100/70">
-                                            <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPct}%` }} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2.5 pb-8">
-                                    {sortedUniversityCourses.length === 0 ? (
-                                        <div className="text-center py-10 opacity-60">
-                                            <div className="text-3xl mb-2">📭</div>
-                                            <p className="text-[12px] font-bold text-slate-500">لا يوجد متطلبات جامعة في الخطة الحالية.</p>
-                                        </div>
-                                    ) : sortedUniversityCourses.map((course) => {
-                                        const isPassed = passedIds.includes(course.id);
-                                        return (
-                                            <label key={course.id} className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm cursor-pointer transition-all ${isPassed ? 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200' : 'bg-white border-slate-200 hover:border-cyan-200 hover:shadow-md'}`}>
-                                                <div className="flex items-start gap-3 min-w-0">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isPassed}
-                                                        onChange={() => togglePassed(course.id)}
-                                                        className="peer sr-only"
-                                                    />
-                                                    <span className={`mt-0.5 h-5 w-5 rounded-[0.55rem] border flex items-center justify-center transition-all duration-200 shadow-sm ${isPassed ? 'bg-emerald-600 border-emerald-600 shadow-emerald-200/70' : 'bg-white border-slate-300 group-hover:border-cyan-400'} peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white`}>
-                                                        <svg
-                                                            viewBox="0 0 16 16"
-                                                            className={`w-3.5 h-3.5 transition-all duration-200 ${isPassed ? 'text-white opacity-100 scale-100' : 'text-transparent opacity-0 scale-75'}`}
-                                                            fill="none"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <path d="M3.5 8.3L6.5 11.2L12.5 5.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                                                        </svg>
-                                                    </span>
-                                                    <div className="min-w-0">
-                                                        <p className={`text-[12px] font-[900] truncate transition-colors ${isPassed ? 'text-emerald-800' : 'text-slate-800 group-hover:text-cyan-800'}`}>{course.name}</p>
-                                                        <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono tracking-wide" dir="ltr">{course.code}</p>
+                                    <div className="space-y-2.5 pb-8">
+                                        {sortedUniversityCourses.length === 0 ? (
+                                            <div className="text-center py-10 opacity-60">
+                                                <div className="text-3xl mb-2">📭</div>
+                                                <p className="text-[12px] font-bold text-slate-500">لا يوجد متطلبات جامعة في الخطة الحالية.</p>
+                                            </div>
+                                        ) : sortedUniversityCourses.map((course) => {
+                                            const isPassed = passedIds.includes(course.id);
+                                            return (
+                                                <label key={course.id} className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm cursor-pointer transition-all ${isPassed ? 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200' : 'bg-white border-slate-200 hover:border-cyan-200 hover:shadow-md'}`}>
+                                                    <div className="flex items-start gap-3 min-w-0">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isPassed}
+                                                            onChange={() => togglePassed(course.id)}
+                                                            className="peer sr-only"
+                                                        />
+                                                        <span className={`mt-0.5 h-5 w-5 rounded-[0.55rem] border flex items-center justify-center transition-all duration-200 shadow-sm ${isPassed ? 'bg-emerald-600 border-emerald-600 shadow-emerald-200/70' : 'bg-white border-slate-300 group-hover:border-cyan-400'} peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white`}>
+                                                            <svg
+                                                                viewBox="0 0 16 16"
+                                                                className={`w-3.5 h-3.5 transition-all duration-200 ${isPassed ? 'text-white opacity-100 scale-100' : 'text-transparent opacity-0 scale-75'}`}
+                                                                fill="none"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <path d="M3.5 8.3L6.5 11.2L12.5 5.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                                                            </svg>
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <p className={`text-[12px] font-[900] truncate transition-colors ${isPassed ? 'text-emerald-800' : 'text-slate-800 group-hover:text-cyan-800'}`}>{course.name}</p>
+                                                            <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono tracking-wide" dir="ltr">{course.code}</p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="shrink-0 text-right">
-                                                    <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border shadow-sm ${isPassed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{course.credit_hours} س</span>
-                                                    <p className={`text-[9px] font-bold mt-1.5 ${isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>{isPassed ? 'منجزة' : 'غير منجزة'}</p>
-                                                </div>
-                                            </label>
-                                        );
-                                    })}
+                                                    <div className="shrink-0 text-right">
+                                                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border shadow-sm ${isPassed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{course.credit_hours} س</span>
+                                                        <p className={`text-[9px] font-bold mt-1.5 ${isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>{isPassed ? 'منجزة' : 'غير منجزة'}</p>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -2439,63 +2440,63 @@ export default function Tree({
 
                         {!isFullScreen && (
                             <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
-                            {[
-                                { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
-                                { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }
-                            ].map(f => (
-                                <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
-                            ))}
+                                {[
+                                    { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
+                                    { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }
+                                ].map(f => (
+                                    <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
+                                ))}
 
-                            <div className="relative shrink-0">
-                                <select
-                                    value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
-                                    onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
-                                    className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
-                                >
-                                    <option value="all">🎚️ كل الصعوبات</option>
-                                    <option value="easy">🌿 خفيف</option>
-                                    <option value="balanced">⚖️ متوسط</option>
-                                    <option value="heavy">🔥 صعب</option>
-                                </select>
-                                <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400 text-[10px]">⌄</span>
-                            </div>
+                                <div className="relative shrink-0">
+                                    <select
+                                        value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
+                                        onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
+                                        className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
+                                    >
+                                        <option value="all">🎚️ كل الصعوبات</option>
+                                        <option value="easy">🌿 خفيف</option>
+                                        <option value="balanced">⚖️ متوسط</option>
+                                        <option value="heavy">🔥 صعب</option>
+                                    </select>
+                                    <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400 text-[10px]">⌄</span>
+                                </div>
 
-                            <button
-                                onClick={handlePrint}
-                                disabled={isPrinting}
-                                className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
-                                title="طباعة الخطة الشجرية"
-                            >
-                                {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
-                            </button>
-
-                            {canEditTreePositions && !positionEditMode && (
                                 <button
-                                    onClick={startPositionEditMode}
-                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm"
+                                    onClick={handlePrint}
+                                    disabled={isPrinting}
+                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
+                                    title="طباعة الخطة الشجرية"
                                 >
-                                    {isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد'}
+                                    {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
                                 </button>
-                            )}
 
-                            {canEditTreePositions && positionEditMode && (
-                                <>
+                                {canEditTreePositions && !positionEditMode && (
                                     <button
-                                        onClick={cancelPositionEditMode}
-                                        disabled={isSavingNodePositions}
-                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)] disabled:opacity-50"
+                                        onClick={startPositionEditMode}
+                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm"
                                     >
-                                        ✖️ إلغاء
+                                        {isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد'}
                                     </button>
-                                    <button
-                                        onClick={saveAllNodePositions}
-                                        disabled={isSavingNodePositions || !hasUnsavedNodeMoves}
-                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] disabled:opacity-50"
-                                    >
-                                        {isSavingNodePositions ? '⏳ جاري الحفظ...' : '💾 حفظ الترتيب'}
-                                    </button>
-                                </>
-                            )}
+                                )}
+
+                                {canEditTreePositions && positionEditMode && (
+                                    <>
+                                        <button
+                                            onClick={cancelPositionEditMode}
+                                            disabled={isSavingNodePositions}
+                                            className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)] disabled:opacity-50"
+                                        >
+                                            ✖️ إلغاء
+                                        </button>
+                                        <button
+                                            onClick={saveAllNodePositions}
+                                            disabled={isSavingNodePositions || !hasUnsavedNodeMoves}
+                                            className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] disabled:opacity-50"
+                                        >
+                                            {isSavingNodePositions ? '⏳ جاري الحفظ...' : '💾 حفظ الترتيب'}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
 
@@ -2619,69 +2620,69 @@ export default function Tree({
                                     </div>
 
                                     <div className="overflow-y-auto max-h-[calc(90vh-4.5rem)] p-4 sm:p-6 space-y-5 hide-scrollbar">
-                                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                        {[
-                                            { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
-                                            { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
-                                        ].map((entry, index) => {
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                            {[
+                                                { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
+                                                { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
+                                            ].map((entry, index) => {
 
-                                            const { course, label, tone } = entry;
-                                            const courseDifficulty = Number(course.difficulty_level || 3);
-                                            const courseImpact = getTotalImpact(course.id);
-                                            const coursePriority = getCoursePriority(course);
-                                            const difficultyLabel = courseDifficulty >= 4 ? 'مكثّف' : courseDifficulty === 3 ? 'متوازن' : 'خفيف';
-                                            const statusLabel = getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'available' ? 'متاحة' : 'مقفلة';
+                                                const { course, label, tone } = entry;
+                                                const courseDifficulty = Number(course.difficulty_level || 3);
+                                                const courseImpact = getTotalImpact(course.id);
+                                                const coursePriority = getCoursePriority(course);
+                                                const difficultyLabel = courseDifficulty >= 4 ? 'مكثّف' : courseDifficulty === 3 ? 'متوازن' : 'خفيف';
+                                                const statusLabel = getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'available' ? 'متاحة' : 'مقفلة';
 
-                                            return (
-                                                <div
-                                                    key={course.id}
-                                                    className={`text-right rounded-2xl border p-4 sm:p-5 ${tone === 'indigo' ? 'bg-indigo-500/8 border-indigo-400/20' : 'bg-violet-500/8 border-violet-400/20'}`}
-                                                >
-                                                    <div className="flex items-start justify-between gap-3 mb-4">
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className={`text-[9px] font-[900] uppercase tracking-wider mb-2 ${tone === 'indigo' ? 'text-indigo-300' : 'text-violet-300'}`}>{label}</p>
-                                                            <p className="text-[16px] sm:text-[18px] font-[900] text-white leading-snug">{course.name}</p>
-                                                            <p className="mt-1 text-[10px] text-white/45 font-bold">{course.code} • {course.credit_hours} ساعات • {course.type === 'compulsory' ? 'إجباري' : course.type === 'elective' ? 'اختياري' : course.type === 'supporting' ? 'مساندة' : 'جامعة'}</p>
+                                                return (
+                                                    <div
+                                                        key={course.id}
+                                                        className={`text-right rounded-2xl border p-4 sm:p-5 ${tone === 'indigo' ? 'bg-indigo-500/8 border-indigo-400/20' : 'bg-violet-500/8 border-violet-400/20'}`}
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3 mb-4">
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className={`text-[9px] font-[900] uppercase tracking-wider mb-2 ${tone === 'indigo' ? 'text-indigo-300' : 'text-violet-300'}`}>{label}</p>
+                                                                <p className="text-[16px] sm:text-[18px] font-[900] text-white leading-snug">{course.name}</p>
+                                                                <p className="mt-1 text-[10px] text-white/45 font-bold">{course.code} • {course.credit_hours} ساعات • {course.type === 'compulsory' ? 'إجباري' : course.type === 'elective' ? 'اختياري' : course.type === 'supporting' ? 'مساندة' : 'جامعة'}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                                                            <span className={`text-[9px] font-[800] px-2 py-1 rounded-full border ${getStatus(course) === 'passed' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20' : getStatus(course) === 'available' ? 'bg-sky-500/15 text-sky-300 border-sky-400/20' : 'bg-rose-500/15 text-rose-300 border-rose-400/20'}`}>{statusLabel}</span>
+                                                            {getCourseDepth(course.id) >= 2 && (
+                                                                <span className="text-[9px] font-[800] px-2 py-1 rounded-full border bg-rose-500/10 text-rose-200 border-rose-400/20">في المسار الحرج</span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="grid grid-cols-3 gap-2.5">
+                                                            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
+                                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">الصعوبة</p>
+                                                                <p className="text-[18px] font-[900] text-white leading-none">{courseDifficulty}</p>
+                                                                <p className={`text-[9px] font-[800] mt-1 ${courseDifficulty >= 4 ? 'text-rose-200' : courseDifficulty === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>{difficultyLabel}</p>
+                                                            </div>
+                                                            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
+                                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">التأثير</p>
+                                                                <p className="text-[18px] font-[900] text-white leading-none">{courseImpact}</p>
+                                                                <p className="text-[9px] font-[800] mt-1 text-white/45">مادة تتأثر</p>
+                                                            </div>
+                                                            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
+                                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">الأولوية</p>
+                                                                <p className="text-[18px] font-[900] text-white leading-none">{coursePriority}%</p>
+                                                                <p className="text-[9px] font-[800] mt-1 text-white/45">ترتيبك</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                            <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(5, coursePriority))}%` }} />
                                                         </div>
                                                     </div>
+                                                );
+                                            })}
 
-                                                    <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                                                        <span className={`text-[9px] font-[800] px-2 py-1 rounded-full border ${getStatus(course) === 'passed' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20' : getStatus(course) === 'available' ? 'bg-sky-500/15 text-sky-300 border-sky-400/20' : 'bg-rose-500/15 text-rose-300 border-rose-400/20'}`}>{statusLabel}</span>
-                                                        {getCourseDepth(course.id) >= 2 && (
-                                                            <span className="text-[9px] font-[800] px-2 py-1 rounded-full border bg-rose-500/10 text-rose-200 border-rose-400/20">في المسار الحرج</span>
-                                                        )}
-                                                    </div>
+                                        </div>
 
-                                                    <div className="grid grid-cols-3 gap-2.5">
-                                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                            <p className="text-[8px] font-[900] text-white/45 mb-0.5">الصعوبة</p>
-                                                            <p className="text-[18px] font-[900] text-white leading-none">{courseDifficulty}</p>
-                                                            <p className={`text-[9px] font-[800] mt-1 ${courseDifficulty >= 4 ? 'text-rose-200' : courseDifficulty === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>{difficultyLabel}</p>
-                                                        </div>
-                                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                            <p className="text-[8px] font-[900] text-white/45 mb-0.5">التأثير</p>
-                                                            <p className="text-[18px] font-[900] text-white leading-none">{courseImpact}</p>
-                                                            <p className="text-[9px] font-[800] mt-1 text-white/45">مادة تتأثر</p>
-                                                        </div>
-                                                        <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                            <p className="text-[8px] font-[900] text-white/45 mb-0.5">الأولوية</p>
-                                                            <p className="text-[18px] font-[900] text-white leading-none">{coursePriority}%</p>
-                                                            <p className="text-[9px] font-[800] mt-1 text-white/45">ترتيبك</p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                        <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(5, coursePriority))}%` }} />
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-
-                                      </div>
-
-                                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3">
-                                          <h4 className="text-[12px] font-[900] text-white/60 flex items-center gap-2">📊 الخلاصة</h4>
-                                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3">
+                                            <h4 className="text-[12px] font-[900] text-white/60 flex items-center gap-2">📊 الخلاصة</h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                                                 {(() => {
                                                     const firstDifficulty = Number(compareFirstCourse.difficulty_level || 3);
                                                     const secondDifficulty = Number(compareCourse.difficulty_level || 3);
