@@ -879,8 +879,12 @@ export default function Tree({
         const initialEdges = [];
 
         const backwardIds = selectedCourse ? Array.from(getBackwardPath(selectedCourse.id)) : [];
-        const forwardIds = selectedCourse ? Array.from(getForwardPath(selectedCourse.id)) : [];
-        const connectedIds = [...new Set([...backwardIds, ...forwardIds])];
+        const forwardIds = selectedCourse
+            ? flowCourses
+                .filter((c) => c.prerequisites?.some((p) => p.id === selectedCourse.id))
+                .map((c) => c.id)
+            : [];
+        const connectedIds = [...new Set([...(selectedCourse ? [selectedCourse.id] : []), ...backwardIds, ...forwardIds])];
 
         flowCourses.forEach((course) => {
             const status = getStatus(course);
@@ -1006,7 +1010,7 @@ export default function Tree({
                     if (!flowCourseIds.has(prereq.id)) return;
                     const isSourceDone = passedIds.includes(prereq.id);
                     const isBackwardEdge = backwardIds.includes(prereq.id) && backwardIds.includes(course.id);
-                    const isForwardEdge = forwardIds.includes(prereq.id) && forwardIds.includes(course.id);
+                    const isForwardEdge = Boolean(selectedCourse) && prereq.id === selectedCourse.id && forwardIds.includes(course.id);
                     const isActivePath = isBackwardEdge || isForwardEdge;
                     const prereqCourse = flowCourses.find(c => c.id === prereq.id);
                     const prereqDifficultyLevel = Number(prereqCourse?.difficulty_level ?? 3);
