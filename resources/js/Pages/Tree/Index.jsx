@@ -297,9 +297,9 @@ export default function Tree({
     const nodeDimensions = useMemo(() => (
         isMobile
             ? (isLandscapeMobile
-                ? { width: 170, height: 78, ranksep: 90, nodesep: 30 }
-                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 110, nodesep: 35 })
-            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 170, nodesep: 80 }
+                ? { width: 170, height: 78, ranksep: 58, nodesep: 18 }
+                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 })
+            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
     ), [isMobile, isLandscapeMobile]);
 
     const flowView = useMemo(() => (
@@ -1111,7 +1111,7 @@ export default function Tree({
                         id: `e${prereq.id}-${course.id}`,
                         source: prereq.id.toString(),
                         target: course.id.toString(),
-                        type: 'straight', // Straight lines prevent routing overlaps
+                        type: 'bezier',
                         zIndex: isActivePath ? 1000 : (isSourceDone ? 10 : 0),
                         animated: isAnimated,
                         style: {
