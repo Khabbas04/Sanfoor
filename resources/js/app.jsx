@@ -54,6 +54,9 @@ createInertiaApp({
         );
 
         pagePromise.then((module) => {
+            // Prevent recursive wrapping on router.reload() which causes the layout to unmount and flash
+            if (module.default.__hasCrossfadeLayout) return;
+            
             const originalLayout = module.default.layout;
             
             // Apply the global crossfade layout to every page, 
@@ -62,6 +65,8 @@ createInertiaApp({
                 const element = originalLayout ? originalLayout(page) : page;
                 return layoutFunction(element);
             };
+            
+            module.default.__hasCrossfadeLayout = true;
         });
 
         return pagePromise;
