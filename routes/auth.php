@@ -14,10 +14,14 @@ use Illuminate\Support\Facades\Route;
 // Guest-only authentication flows.
 Route::middleware('guest')->group(function () {
     // Registration routes.
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
+    // Registration is strictly via Microsoft SSO for students.
+    Route::get('register', function () {
+        return redirect()->route('login');
+    })->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // رابط سري لتسجيل الحسابات الخارجية (الإدارة)
+    Route::get('admin-secret-register', [RegisteredUserController::class, 'create'])->name('register.secret');
+    Route::post('admin-secret-register', [RegisteredUserController::class, 'store']);
 
     // Login routes.
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
