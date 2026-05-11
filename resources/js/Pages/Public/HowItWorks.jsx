@@ -103,8 +103,8 @@ export default function HowItWorks() {
                                 </>
                             ) : (
                                 <>
-                                    <Link href={route('register')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
-                                        إنشاء حساب جديد
+                                    <Link href={route('login')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
+                                        ابدأ الآن
                                     </Link>
                                     <Link href={route('login')} className="px-6 py-3 rounded-xl border border-white/25 text-white font-black text-sm hover:bg-white/10 transition-colors">
                                         تسجيل الدخول

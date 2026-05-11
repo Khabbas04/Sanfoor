@@ -340,8 +340,8 @@ export default function Welcome({ auth }) {
                             ) : (
                                 <>
                                     <MagneticButton>
-                                        <Link href={route('register')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-slate-900 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
-                                            <span>ابدأ مجاناً</span>
+                                        <Link href={route('login')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-slate-900 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
+                                            <span>ابدأ الآن</span>
                                             <span className="text-xl group-hover:-translate-x-1.5 transition-transform duration-300">←</span>
                                         </Link>
                                     </MagneticButton>
@@ -639,13 +639,13 @@ export default function Welcome({ auth }) {
                             </p>
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                                 <MagneticButton>
-                                    <Link href={route('register')} className="shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-indigo-700 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
-                                        إنشاء حساب مجاني
-                                    </Link>
+                                    <a href={route('auth.microsoft.redirect')} className="shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-indigo-700 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
+                                        تسجيل الدخول (Microsoft)
+                                    </a>
                                 </MagneticButton>
                                 <MagneticButton>
                                     <Link href={route('login')} className="flex items-center justify-center gap-2 px-8 py-[1.15rem] sm:py-5 text-white/90 text-base font-bold rounded-2xl border border-white/20 hover:bg-white/10 transition-all w-full sm:w-auto backdrop-blur-sm">
-                                        تسجيل الدخول
+                                        دخول الحسابات الخارجية
                                     </Link>
                                 </MagneticButton>
                             </div>

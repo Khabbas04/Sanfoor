@@ -13,6 +13,7 @@ export default function Login({ status, canResetPassword }) {
 
     const [showPw, setShowPw] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [showExternalLogin, setShowExternalLogin] = useState(false);
     useEffect(() => { setTimeout(() => setMounted(true), 80); }, []);
 
     const submit = (e) => {
@@ -63,144 +64,154 @@ export default function Login({ status, canResetPassword }) {
                     </div>
                 )}
 
-                <form onSubmit={submit} className="space-y-5">
-                    {/* ── Email ── */}
-                    <div style={stagger(1)}>
-                        <label htmlFor="email" className={labelCls}>البريد الإلكتروني</label>
-                        <div className="relative">
-                            <div className={iconContainerCls}>✉️</div>
-                            <input
-                                id="email"
-                                type="email"
-                                value={data.email}
-                                dir="ltr"
-                                autoComplete="username"
-                                autoFocus
-                                placeholder="example@email.com"
-                                onChange={(e) => setData('email', e.target.value)}
-                                className={`${inputCls} text-left`}
-                                required
-                            />
+                {!showExternalLogin ? (
+                    <div className="space-y-6">
+                        <div style={stagger(1)} className="p-8 bg-white border border-slate-100 rounded-2xl shadow-sm text-center space-y-5">
+                            <div className="w-16 h-16 bg-sky-50 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                                <svg className="w-8 h-8" viewBox="0 0 23 23" aria-hidden="true">
+                                    <path fill="#f35325" d="M1 1h10v10H1z" />
+                                    <path fill="#81bc06" d="M12 1h10v10H12z" />
+                                    <path fill="#05a6f0" d="M1 12h10v10H1z" />
+                                    <path fill="#ffba08" d="M12 12h10v10H12z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-[17px] font-black text-slate-800">
+                                تسجيل الدخول للطلاب والكادر
+                            </h3>
+                            <p className="text-[13px] font-bold text-slate-500 leading-relaxed px-4">
+                                يرجى استخدام حسابك الجامعي (Microsoft) للدخول إلى منصة سنفور.
+                            </p>
+                            <a
+                                href={route('auth.microsoft.redirect')}
+                                className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] flex items-center justify-center gap-3 mt-6"
+                            >
+                                تسجيل الدخول باستخدام حساب الجامعة
+                            </a>
                         </div>
-                        <InputError message={errors.email} className="mt-1.5" />
-                    </div>
-
-                    {/* ── Password ── */}
-                    <div style={stagger(2)}>
-                        <div className="flex items-center justify-between mb-2">
-                            <label htmlFor="password" className="text-[12px] font-black text-slate-700">كلمة المرور</label>
-                            {canResetPassword && (
-                                <Link
-                                    href={route('password.request')}
-                                    className="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
-                                >
-                                    نسيت كلمة المرور؟
-                                </Link>
-                            )}
-                        </div>
-                        <div className="relative">
-                            <div className={iconContainerCls}>🔑</div>
-                            <input
-                                id="password"
-                                type={showPw ? 'text' : 'password'}
-                                value={data.password}
-                                autoComplete="current-password"
-                                placeholder="••••••••"
-                                onChange={(e) => setData('password', e.target.value)}
-                                className={`${inputCls} pl-12 pr-12`}
-                                required
-                            />
+                        
+                        <div className="text-center pt-2" style={stagger(2)}>
                             <button
                                 type="button"
-                                onClick={() => setShowPw(!showPw)}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors p-0.5"
-                                tabIndex={-1}
+                                onClick={() => setShowExternalLogin(true)}
+                                className="text-[12px] font-bold text-slate-400 hover:text-slate-600 transition-colors underline decoration-slate-200 underline-offset-4"
                             >
-                                {showPw ? '🙈' : '👁️'}
+                                تسجيل الدخول للحسابات الخارجية والإدارة
                             </button>
                         </div>
-                        <InputError message={errors.password} className="mt-1.5" />
                     </div>
-
-                    {/* ── Remember Me ── */}
-                    <div className="pt-1" style={stagger(3)}>
-                        <label className="flex items-center gap-2.5 cursor-pointer group w-fit">
-                            <div className="relative flex items-center">
-                                <Checkbox
-                                    name="remember"
-                                    checked={data.remember}
-                                    onChange={(e) => setData('remember', e.target.checked)}
-                                    className="rounded-md border-slate-200 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                ) : (
+                    <form onSubmit={submit} className="space-y-5 bg-white p-6 border border-slate-100 rounded-2xl shadow-sm">
+                        <h3 className="text-[15px] font-black text-slate-800 text-center mb-4" style={stagger(0)}>
+                            دخول الحسابات الخارجية
+                        </h3>
+                        
+                        {/* ── Email ── */}
+                        <div style={stagger(1)}>
+                            <label htmlFor="email" className={labelCls}>البريد الإلكتروني</label>
+                            <div className="relative">
+                                <div className={iconContainerCls}>✉️</div>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    value={data.email}
+                                    dir="ltr"
+                                    autoComplete="username"
+                                    autoFocus
+                                    placeholder="example@email.com"
+                                    onChange={(e) => setData('email', e.target.value)}
+                                    className={`${inputCls} text-left`}
+                                    required
                                 />
                             </div>
-                            <span className="text-[12px] font-bold text-slate-500 group-hover:text-slate-700 transition-colors select-none">
-                                تذكرني في المرات القادمة
-                            </span>
-                        </label>
-                    </div>
-
-                    {/* ── Submit Button ── */}
-                    <div className="pt-4" style={stagger(4)}>
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                        >
-                            {processing ? (
-                                <>
-                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    جاري التحقق...
-                                </>
-                            ) : (
-                                <>
-                                    تسجيل الدخول
-                                    <svg className="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                </>
-                            )}
-                        </button>
-                    </div>
-
-                    <div className="pt-3" style={stagger(5)}>
-                        <div className="relative my-2">
-                            <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-slate-200" />
-                            </div>
-                            <div className="relative flex justify-center text-[11px] font-bold text-slate-400">
-                                <span className="bg-white px-3">أو</span>
-                            </div>
+                            <InputError message={errors.email} className="mt-1.5" />
                         </div>
 
-                        <a
-                            href={route('auth.microsoft.redirect')}
-                            className="w-full mt-3 border-2 border-slate-200 hover:border-sky-400 bg-white hover:bg-sky-50 text-slate-700 py-3.5 rounded-xl font-black text-[13px] transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center gap-3"
-                        >
-                            <svg className="w-5 h-5" viewBox="0 0 23 23" aria-hidden="true">
-                                <path fill="#f35325" d="M1 1h10v10H1z" />
-                                <path fill="#81bc06" d="M12 1h10v10H12z" />
-                                <path fill="#05a6f0" d="M1 12h10v10H1z" />
-                                <path fill="#ffba08" d="M12 12h10v10H12z" />
-                            </svg>
-                            متابعة باستخدام Microsoft
-                        </a>
+                        {/* ── Password ── */}
+                        <div style={stagger(2)}>
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="password" className="text-[12px] font-black text-slate-700">كلمة المرور</label>
+                                {canResetPassword && (
+                                    <Link
+                                        href={route('password.request')}
+                                        className="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
+                                    >
+                                        نسيت كلمة المرور؟
+                                    </Link>
+                                )}
+                            </div>
+                            <div className="relative">
+                                <div className={iconContainerCls}>🔑</div>
+                                <input
+                                    id="password"
+                                    type={showPw ? 'text' : 'password'}
+                                    value={data.password}
+                                    autoComplete="current-password"
+                                    placeholder="••••••••"
+                                    onChange={(e) => setData('password', e.target.value)}
+                                    className={`${inputCls} pl-12 pr-12`}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPw(!showPw)}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors p-0.5"
+                                    tabIndex={-1}
+                                >
+                                    {showPw ? '🙈' : '👁️'}
+                                </button>
+                            </div>
+                            <InputError message={errors.password} className="mt-1.5" />
+                        </div>
 
-                        <p className="mt-2 text-[11px] font-bold text-slate-400 text-center">
-                            إذا حسابك مربوط بـ Microsoft، لازم تسجّل الدخول من زر Microsoft وليس بكلمة مرور محلية.
-                        </p>
-                    </div>
+                        {/* ── Remember Me ── */}
+                        <div className="pt-1" style={stagger(3)}>
+                            <label className="flex items-center gap-2.5 cursor-pointer group w-fit">
+                                <div className="relative flex items-center">
+                                    <Checkbox
+                                        name="remember"
+                                        checked={data.remember}
+                                        onChange={(e) => setData('remember', e.target.checked)}
+                                        className="rounded-md border-slate-200 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <span className="text-[12px] font-bold text-slate-500 group-hover:text-slate-700 transition-colors select-none">
+                                    تذكرني في المرات القادمة
+                                </span>
+                            </label>
+                        </div>
 
-                    {/* ── Register Link ── */}
-                    <div className="text-center pt-6 border-t border-slate-100" style={stagger(6)}>
-                        <p className="text-[13px] font-bold text-slate-500">
-                            لا تملك حساباً بعد؟{' '}
-                            <Link
-                                href={route('register')}
-                                className="text-indigo-600 font-black hover:text-indigo-800 underline decoration-indigo-200 underline-offset-4 transition-colors ml-1"
+                        {/* ── Submit Button ── */}
+                        <div className="pt-4" style={stagger(4)}>
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                             >
-                                أنشئ حساباً جديداً
-                            </Link>
-                        </p>
-                    </div>
-                </form>
+                                {processing ? (
+                                    <>
+                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        جاري التحقق...
+                                    </>
+                                ) : (
+                                    <>
+                                        تسجيل الدخول
+                                        <svg className="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="text-center pt-4 border-t border-slate-100" style={stagger(5)}>
+                            <button
+                                type="button"
+                                onClick={() => setShowExternalLogin(false)}
+                                className="text-[12px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                العودة إلى تسجيل دخول الطلاب (Microsoft)
+                            </button>
+                        </div>
+                    </form>
+                )}
             </div>
         </GuestLayout>
     );

@@ -236,11 +236,11 @@ export default function About() {
                             سجّل الآن وابدأ ببناء خطتك الدراسية بطريقة أوضح، أسرع، وأكثر ذكاء.
                         </p>
                         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                            <Link href={route('register')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
-                                إنشاء حساب جديد
-                            </Link>
+                            <a href={route('auth.microsoft.redirect')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
+                                ابدأ الآن (Microsoft)
+                            </a>
                             <Link href={route('login')} className="px-6 py-3 rounded-xl border border-white/25 text-white font-black text-sm hover:bg-white/10 transition-colors">
-                                تسجيل الدخول
+                                دخول الحسابات الخارجية
                             </Link>
                         </div>
                     </section>
