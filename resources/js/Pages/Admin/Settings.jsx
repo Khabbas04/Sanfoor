@@ -40,6 +40,7 @@ const translations = {
         logs: 'سجل العمليات',
         demand: 'تحليل الطلب',
         viewPage: 'فتح الصفحة',
+        createAdminAccount: 'إنشاء حساب إدارة جديد (سري)',
     },
     en: {
         title: 'Admin Settings',
@@ -74,6 +75,7 @@ const translations = {
         logs: 'Activity Log',
         demand: 'Demand Analysis',
         viewPage: 'Open Page',
+        createAdminAccount: 'Create New Admin (Secret)',
     },
 };
 
@@ -145,6 +147,7 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
 
         if (isOwner) {
             actions.unshift({ title: t.manageAdmins, href: route('admin.admins.index'), icon: '👑' });
+            actions.push({ title: t.createAdminAccount, href: route('register.secret'), icon: '🔑' });
         }
 
         return actions;
