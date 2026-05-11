@@ -1096,7 +1096,8 @@ export default function Tree({
                         id: `e${prereq.id}-${course.id}`,
                         source: prereq.id.toString(),
                         target: course.id.toString(),
-                        type: 'smoothstep',
+                        type: 'bezier',
+                        zIndex: isActivePath ? 1000 : 0,
                         animated: isAnimated,
                         style: {
                             stroke: edgeColor,
