@@ -410,7 +410,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <p className="text-slate-500 text-[11px] font-bold tracking-wide">
                             &copy; {new Date().getFullYear()} {lang === 'ar' ? 'سنفور' : 'Sanfoor'}.
                         </p>
-                        <div className="flex items-center gap-1.5 text-[11px] font-black tracking-widest text-slate-500 uppercase">
+                        <div className="flex items-center justify-end gap-1.5 text-[11px] font-black tracking-widest text-slate-500 uppercase" dir="ltr">
                             Developed by 
                             <a 
                                 href="https://www.linkedin.com/in/asem-alkhabbas-667471371/" 
