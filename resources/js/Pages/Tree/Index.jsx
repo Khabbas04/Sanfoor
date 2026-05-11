@@ -1083,8 +1083,16 @@ export default function Tree({
                     const prereqDifficultyLevel = Number(prereqCourse?.difficulty_level ?? 3);
                     const prereqDifficultyBand = prereqDifficultyLevel <= 2 ? 'easy' : (prereqDifficultyLevel === 3 ? 'balanced' : 'heavy');
 
-                    let edgeColor = isActivePath ? (isForwardEdge ? '#a855f7' : '#d97706') : (isSourceDone ? '#10b981' : '#cbd5e1');
-                    let edgeWidth = isActivePath ? 3.5 : (isSourceDone ? 2.5 : 1.5);
+                    const palette = [
+                        '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', 
+                        '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', 
+                        '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
+                    ];
+                    // Pick a specific color for all edges originating from this prerequisite
+                    const sourceColor = palette[prereq.id % palette.length];
+                    
+                    let edgeColor = sourceColor;
+                    let edgeWidth = isActivePath ? 3.5 : (isSourceDone ? 2.5 : 2);
                     let isAnimated = (isSourceDone && status !== 'passed') || isActivePath;
                     let edgeFilteredOut = false;
                     if (filterMode === 'available' && status !== 'available') edgeFilteredOut = true;
@@ -1092,17 +1100,24 @@ export default function Tree({
                     if (filterMode === 'balanced' && (difficultyBand !== 'balanced' || prereqDifficultyBand !== 'balanced')) edgeFilteredOut = true;
                     if (filterMode === 'heavy' && (difficultyBand !== 'heavy' || prereqDifficultyBand !== 'heavy')) edgeFilteredOut = true;
 
+                    let finalOpacity = 1;
+                    if ((selectedCourse && !isActivePath) || edgeFilteredOut) {
+                        finalOpacity = 0.08;
+                    } else if (!isSourceDone && !isActivePath) {
+                        finalOpacity = 0.45; // slightly dimmed if not done, but color still visible
+                    }
+
                     initialEdges.push({
                         id: `e${prereq.id}-${course.id}`,
                         source: prereq.id.toString(),
                         target: course.id.toString(),
                         type: 'bezier',
-                        zIndex: isActivePath ? 1000 : 0,
+                        zIndex: isActivePath ? 1000 : (isSourceDone ? 10 : 0),
                         animated: isAnimated,
                         style: {
                             stroke: edgeColor,
                             strokeWidth: edgeWidth,
-                            opacity: (selectedCourse && !isActivePath) || edgeFilteredOut ? 0.08 : 1,
+                            opacity: finalOpacity,
                             transition: 'all 0.5s ease',
                         },
                         markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
