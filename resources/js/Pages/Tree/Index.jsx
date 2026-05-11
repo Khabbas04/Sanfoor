@@ -356,6 +356,17 @@ export default function Tree({
         flowInstance.fitView({ padding: flowView.fitPadding, duration });
     }, [flowInstance, flowView.fitPadding]);
 
+    const handlePrint = useCallback(() => {
+        if (flowInstance) {
+            flowInstance.fitView({ padding: 0.05, duration: 300 });
+            setTimeout(() => {
+                window.print();
+            }, 400);
+        } else {
+            window.print();
+        }
+    }, [flowInstance]);
+
     const toggleFullScreen = useCallback(() => {
         setIsFullScreen((prev) => !prev);
         if (isMobile) setIsSidebarOpen(false);
@@ -2014,6 +2025,15 @@ export default function Tree({
                 @media (hover: hover) and (pointer: fine) {
                     .sn-node-hover:hover { transform: scale(1.05) !important; box-shadow: 0 12px 32px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.08) !important; z-index: 40; }
                 }
+                @media print {
+                    @page { size: landscape; margin: 0; }
+                    body * { visibility: hidden; }
+                    #app, main { height: 100vh !important; width: 100vw !important; overflow: hidden !important; }
+                    .react-flow, .react-flow * { visibility: visible; }
+                    .react-flow { position: absolute !important; left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; background: white !important; z-index: 9999 !important; }
+                    .react-flow__panel, .react-flow__controls, .react-flow__background { display: none !important; }
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                }
             ` }} />
 
             {/* ═══ HEADER ═══ */}
@@ -2366,6 +2386,14 @@ export default function Tree({
                                 </select>
                                 <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400 text-[10px]">⌄</span>
                             </div>
+
+                            <button
+                                onClick={handlePrint}
+                                className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50"
+                                title="طباعة الخطة الشجرية"
+                            >
+                                🖨️ طباعة
+                            </button>
 
                             {canEditTreePositions && !positionEditMode && (
                                 <button
