@@ -18,10 +18,10 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
    CONSTANTS & LAYOUT ENGINE
    ═══════════════════════════════════════════════════════════ */
 
-const DESKTOP_NODE_WIDTH = 180;
-const DESKTOP_NODE_HEIGHT = 68;
-const MOBILE_NODE_WIDTH = 150;
-const MOBILE_NODE_HEIGHT = 62;
+const DESKTOP_NODE_WIDTH = 200;
+const DESKTOP_NODE_HEIGHT = 88;
+const MOBILE_NODE_WIDTH = 160;
+const MOBILE_NODE_HEIGHT = 76;
 
 // Shared SweetAlert theme so all tree interactions feel visually consistent.
 const swalTheme = {
@@ -30,7 +30,7 @@ const swalTheme = {
 };
 
 // Build a readable DAG layout for course nodes before rendering with React Flow.
-const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 76, nodesep: 22 }) => {
+const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }) => {
     const { width, height, ranksep, nodesep } = dimensions;
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
@@ -240,9 +240,9 @@ export default function Tree({
     const nodeDimensions = useMemo(() => (
         isMobile
             ? (isLandscapeMobile
-                ? { width: 160, height: 64, ranksep: 52, nodesep: 14 }
-                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 62, nodesep: 16 })
-            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 78, nodesep: 22 }
+                ? { width: 170, height: 78, ranksep: 58, nodesep: 18 }
+                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 })
+            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
     ), [isMobile, isLandscapeMobile]);
 
     const flowView = useMemo(() => (
@@ -850,10 +850,10 @@ export default function Tree({
             const difficultyInfo = getDifficultyColor(course.difficulty_level);
 
             const themes = {
-                passed: { bg: 'background:#eaf6ff', border: 'border:1.4px solid #3b82f6', badgeBg: '#dbeafe', textColor: '#0f172a', statusLabel: 'منجز', statusIcon: '✓' },
-                cart: { bg: 'background:#fff4e5', border: 'border:1.4px solid #f59e0b', badgeBg: '#ffedd5', textColor: '#0f172a', statusLabel: 'تجريبي', statusIcon: '◔' },
-                available: { bg: 'background:#eef6ff', border: 'border:1.4px solid #60a5fa', badgeBg: '#dbeafe', textColor: '#0f172a', statusLabel: 'متاح', statusIcon: '○' },
-                locked: { bg: 'background:#f8fafc', border: 'border:1.3px solid #94a3b8', badgeBg: '#e2e8f0', textColor: '#334155', statusLabel: 'مغلق', statusIcon: '•' },
+                passed: { bg: 'background:linear-gradient(135deg,#059669,#10b981)', border: 'border:1.5px solid rgba(16,185,129,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'منجز', statusIcon: '✅' },
+                cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'تجريبي', statusIcon: '🛒' },
+                available: { bg: 'background:linear-gradient(135deg,#4338ca,#6366f1)', border: 'border:1.5px solid rgba(99,102,241,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'متاح', statusIcon: '🔓' },
+                locked: { bg: 'background:#f8fafc', border: 'border:1.5px solid #cbd5e1', badgeBg: 'rgba(148,163,184,0.15)', textColor: '#64748b', statusLabel: 'مغلق', statusIcon: '🔒' },
             };
             const t = themes[status];
             const statusIcon = isHourLocked ? '⏳' : t.statusIcon;
@@ -861,16 +861,17 @@ export default function Tree({
 
             let finalBorder = t.border;
             if (isElective || isUniversityReq) {
-                finalBorder = status === 'locked' ? 'border:1.6px dashed #94a3b8' : 'border:1.6px dashed #ef4444';
+                if (status === 'locked') finalBorder = 'border: 2.5px dashed #94a3b8';
+                else finalBorder = 'border: 2.5px dashed #ffffff';
             }
 
-            let shapeStyle = 'border-radius:8px;';
+            let shapeStyle = 'border-radius:16px;';
             if (isSupporting) {
-                shapeStyle = 'border-radius:8px;';
+                shapeStyle = 'border-radius:50px;';
             } else if (isElective) {
-                shapeStyle = 'border-radius:8px;';
+                shapeStyle = 'border-radius:4px 24px 4px 24px;';
             } else if (isUniversityReq) {
-                shapeStyle = 'border-radius:8px;';
+                shapeStyle = 'border-radius:4px;';
             }
 
             let isFilteredOut = false;
@@ -885,37 +886,42 @@ export default function Tree({
             const isForward = forwardIds.includes(course.id) && !isSelected;
 
             let ringStyle = '';
-            if (isSelected) ringStyle = 'box-shadow:0 0 0 2px #1d4ed8;z-index:50;';
-            else if (isBackward || isForward) ringStyle = 'box-shadow:0 0 0 1.5px #0f172a;';
-            else if (!isDimmed) ringStyle = 'box-shadow:0 1px 2px rgba(0,0,0,0.08);';
+            if (isSelected) ringStyle = 'box-shadow:0 0 0 3px #fff,0 0 0 6px #4f46e5,0 12px 40px rgba(79,70,229,0.35);transform:scale(1.08);z-index:50;';
+            else if (isBackward) ringStyle = 'box-shadow:0 0 0 2.5px #fbbf24,0 8px 24px rgba(245,158,11,0.25);';
+            else if (isForward) ringStyle = 'box-shadow:0 0 0 2.5px #c084fc,0 8px 24px rgba(192,132,252,0.25);';
+            else if (!isDimmed) ringStyle = 'box-shadow:0 4px 16px rgba(0,0,0,0.08);';
 
-            const dimStyle = isDimmed ? 'opacity:0.38;filter:grayscale(0.45);' : '';
+            const dimStyle = isDimmed ? 'opacity:0.25;filter:grayscale(1);' : '';
 
             let typeLabelHtml = '';
-            if (isElective) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:#fee2e2;color:#991b1b;border:1px dashed #ef4444;">اختياري</span>`;
-            if (isSupporting) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:#e2e8f0;color:#334155;border:1px solid #94a3b8;">مساندة</span>`;
-            if (isUniversityReq) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:#fef3c7;color:#92400e;border:1px dashed #f59e0b;">جامعة</span>`;
+            if (isElective) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>`;
+            if (isSupporting) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">مساندة</span>`;
+            if (isUniversityReq) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">جامعة</span>`;
 
             const nodeHtml = `
-                <div class="sn-node-hover" style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.2s ease-out;${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;">
-                    <div style="padding:6px 8px;display:flex;flex-direction:column;height:100%;justify-content:space-between;position:relative;z-index:1;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
-                            <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:4px;background:${t.badgeBg};color:${t.textColor};display:flex;align-items:center;gap:2px;letter-spacing:0;">
+                <div class="sn-node-hover" style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.3s ease-out;${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;box-shadow:${!isDimmed && !ringStyle.includes('box-shadow') ? '0 4px 12px rgba(0,0,0,0.06)' : ''};">
+                    <div style="position:absolute;top:-12px;right:-12px;width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:50%;filter:blur(12px);"></div>
+                    
+                    <div style="padding:8px 10px;display:flex;flex-direction:column;height:100%;justify-content:space-between;position:relative;z-index:1;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};backdrop-filter:blur(4px);display:flex;align-items:center;gap:3px;letter-spacing:0.3px;">
                                 ${statusIcon} ${statusLabel}
+                                ${hasDescription ? '<span style="margin-right:3px; font-size:10px; animation: pulse 2s infinite;" title="يوجد لمحة عن المادة">📝</span>' : ''}
                             </span>
-                            <div style="display:flex;gap:3px;">
+                            <div style="display:flex; gap:3px;">
                                 ${typeLabelHtml}
+                                <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};">${course.credit_hours} س</span>
                             </div>
                         </div>
-                        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:1px 2px;">
-                            <h3 style="font-weight:800;font-size:${titleFontSize};color:${t.textColor};line-height:${titleLineHeight};text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${course.name}</h3>
+                        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2px 4px;">
+                            <h3 style="font-weight:900;font-size:${titleFontSize};color:${t.textColor};line-height:${titleLineHeight};text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:${status !== 'locked' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};">${course.name}</h3>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:4px;background:#ffffffaa;color:${t.textColor};border:1px solid #cbd5e1;">${course.code}</span>
-                            <span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:4px;background:#ffffffaa;color:${t.textColor};border:1px solid #cbd5e1;">${course.credit_hours} س</span>
+                            <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
+                            ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
                     </div>
-                    ${isCriticalPath ? `<div style="position:absolute;top:0;left:0;right:0;height:3px;background:#ef4444;z-index:20;pointer-events:none;" title="هذه مادة على المسار الحرج"></div>` : ''}
+                    ${isCriticalPath ? `<div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ef4444 0%,#fb7185 50%,#f43f5e 100%);box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset,0 2px 10px rgba(239,68,68,0.25);z-index:20;pointer-events:none;" title="هذه مادة على المسار الحرج"></div>` : ''}
                 </div>
             `;
 
@@ -962,15 +968,15 @@ export default function Tree({
                         id: `e${prereq.id}-${course.id}`,
                         source: prereq.id.toString(),
                         target: course.id.toString(),
-                        type: 'step',
-                        animated: false,
+                        type: 'smoothstep',
+                        animated: isAnimated,
                         style: {
-                            stroke: isActivePath ? '#111827' : (isSourceDone ? '#334155' : '#94a3b8'),
-                            strokeWidth: isActivePath ? 2.2 : 1.5,
+                            stroke: edgeColor,
+                            strokeWidth: edgeWidth,
                             opacity: (selectedCourse && !isActivePath) || edgeFilteredOut ? 0.08 : 1,
-                            transition: 'all 0.25s ease',
+                            transition: 'all 0.5s ease',
                         },
-                        markerEnd: { type: MarkerType.ArrowClosed, color: '#111827' },
+                        markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
                     });
                 });
             }
@@ -2414,9 +2420,9 @@ export default function Tree({
                         >
                             <Controls position="bottom-left" className={`hidden md:block border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
                             <Background
-                                color={isDark ? '#263244' : '#e2e8f0'}
-                                style={{ backgroundColor: isDark ? '#0b1220' : '#ffffff' }}
-                                gap={18} size={0.8} variant="lines" opacity={0.22}
+                                color={isDark ? '#334155' : '#cbd5e1'}
+                                style={{ backgroundColor: isDark ? '#0a0f18' : '#fafcff' }}
+                                gap={28} size={1.2} variant="dots" opacity={0.6}
                             />
                         </ReactFlow>
 
