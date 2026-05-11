@@ -2239,8 +2239,18 @@ export default function Tree({
                                                         type="checkbox"
                                                         checked={isPassed}
                                                         onChange={() => togglePassed(course.id)}
-                                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                        className="peer sr-only"
                                                     />
+                                                    <span className={`mt-0.5 h-5 w-5 rounded-[0.55rem] border flex items-center justify-center transition-all duration-200 shadow-sm ${isPassed ? 'bg-emerald-600 border-emerald-600 shadow-emerald-200/70' : 'bg-white border-slate-300 group-hover:border-cyan-400'} peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white`}>
+                                                        <svg
+                                                            viewBox="0 0 16 16"
+                                                            className={`w-3.5 h-3.5 transition-all duration-200 ${isPassed ? 'text-white opacity-100 scale-100' : 'text-transparent opacity-0 scale-75'}`}
+                                                            fill="none"
+                                                            aria-hidden="true"
+                                                        >
+                                                            <path d="M3.5 8.3L6.5 11.2L12.5 5.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                                                        </svg>
+                                                    </span>
                                                     <div className="min-w-0">
                                                         <p className={`text-[12px] font-[900] truncate transition-colors ${isPassed ? 'text-emerald-800' : 'text-slate-800 group-hover:text-cyan-800'}`}>{course.name}</p>
                                                         <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono tracking-wide" dir="ltr">{course.code}</p>
