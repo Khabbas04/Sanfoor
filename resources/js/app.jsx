@@ -6,6 +6,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { LanguageProvider } from '@/Contexts/LanguageContext';
 import { ThemeProvider } from '@/Contexts/ThemeContext';
+import GlobalLoader from '@/Components/GlobalLoader';
 
 // Resolve the application name used in browser titles.
 const appName = import.meta.env.VITE_APP_NAME || 'Sanfoor';
@@ -31,14 +32,13 @@ createInertiaApp({
         root.render(
             <ThemeProvider>
                 <LanguageProvider>
+                    <GlobalLoader />
                     <App {...props} />
                 </LanguageProvider>
             </ThemeProvider>
         );
     },
 
-    // Show Inertia navigation progress feedback between page transitions.
-    progress: {
-        color: '#4B5563',
-    },
+    // Disable the default Inertia progress bar since we use GlobalLoader.
+    progress: false,
 });
