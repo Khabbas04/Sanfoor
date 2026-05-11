@@ -2183,22 +2183,43 @@ export default function Tree({
 
                         {activeTab === 'university' && (
                             <div className="space-y-5 sn-card-enter">
-                                <div className="bg-gradient-to-br from-cyan-50 to-sky-50/40 p-4 rounded-[1.25rem] border border-cyan-100/70 shadow-sm">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-cyan-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-cyan-200/50">🎓</div>
-                                        <div className="flex-1">
-                                            <h3 className="text-[13px] font-[900] text-cyan-900">متطلبات الجامعة (أونلاين)</h3>
-                                            <p className="text-[10px] font-bold text-cyan-700/80">حدد المواد المنجزة عبر checkbox فقط - دون الظهور في الشجرة</p>
+                                <div className="relative overflow-hidden bg-gradient-to-br from-cyan-50 via-sky-50/90 to-white p-4 rounded-[1.25rem] border border-cyan-100/80 shadow-sm">
+                                    <div className="pointer-events-none absolute -left-8 -top-10 w-28 h-28 rounded-full bg-cyan-200/45 blur-2xl" />
+                                    <div className="pointer-events-none absolute -right-6 -bottom-8 w-24 h-24 rounded-full bg-sky-200/50 blur-2xl" />
+
+                                    <div className="relative flex items-center gap-3">
+                                        <div className="w-11 h-11 bg-gradient-to-br from-cyan-500 to-sky-500 text-white rounded-2xl flex items-center justify-center text-lg shadow-md shadow-cyan-200/60">🎓</div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-[13px] font-[900] text-cyan-950 truncate">متطلبات الجامعة</h3>
+                                            <p className="text-[10px] font-bold text-cyan-800/80">قائمة متابعة الإنجاز</p>
+                                        </div>
+                                        <span className="shrink-0 px-2.5 py-1 rounded-lg bg-white/80 border border-cyan-100 text-[10px] font-black text-cyan-800 shadow-sm">
+                                            {universityCompletionPct}%
+                                        </span>
+                                    </div>
+
+                                    <div className="relative mt-4 grid grid-cols-3 gap-2.5">
+                                        <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
+                                            <p className="text-[9px] font-black text-slate-500">منجز</p>
+                                            <p className="text-[14px] font-[900] text-emerald-700 leading-tight">{universityPassedCount}</p>
+                                        </div>
+                                        <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
+                                            <p className="text-[9px] font-black text-slate-500">متبقي</p>
+                                            <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max(sortedUniversityCourses.length - universityPassedCount, 0)}</p>
+                                        </div>
+                                        <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
+                                            <p className="text-[9px] font-black text-slate-500">الساعات</p>
+                                            <p className="text-[14px] font-[900] text-cyan-800 leading-tight">{universityHours}</p>
                                         </div>
                                     </div>
 
-                                    <div className="mt-3">
-                                        <div className="flex items-center justify-between text-[10px] font-black text-cyan-800 mb-1.5">
-                                            <span>{universityPassedCount} / {sortedUniversityCourses.length} منجز</span>
-                                            <span>{universityHours} ساعة</span>
+                                    <div className="relative mt-3">
+                                        <div className="flex items-center justify-between text-[10px] font-black text-cyan-900 mb-1.5">
+                                            <span>{universityPassedCount} / {sortedUniversityCourses.length}</span>
+                                            <span>نسبة الإنجاز</span>
                                         </div>
-                                        <div className="w-full h-2 rounded-full bg-cyan-100 overflow-hidden">
-                                            <div className="h-full bg-gradient-to-r from-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPct}%` }} />
+                                        <div className="w-full h-2.5 rounded-full bg-cyan-100 overflow-hidden ring-1 ring-cyan-100/70">
+                                            <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPct}%` }} />
                                         </div>
                                     </div>
                                 </div>
@@ -2212,7 +2233,7 @@ export default function Tree({
                                     ) : sortedUniversityCourses.map((course) => {
                                         const isPassed = passedIds.includes(course.id);
                                         return (
-                                            <label key={course.id} className={`flex items-center justify-between gap-3 p-3.5 rounded-xl border shadow-sm cursor-pointer transition-all ${isPassed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 hover:border-cyan-200'}`}>
+                                            <label key={course.id} className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm cursor-pointer transition-all ${isPassed ? 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200' : 'bg-white border-slate-200 hover:border-cyan-200 hover:shadow-md'}`}>
                                                 <div className="flex items-start gap-3 min-w-0">
                                                     <input
                                                         type="checkbox"
@@ -2221,13 +2242,13 @@ export default function Tree({
                                                         className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                                                     />
                                                     <div className="min-w-0">
-                                                        <p className={`text-[12px] font-[900] truncate ${isPassed ? 'text-emerald-800' : 'text-slate-800'}`}>{course.name}</p>
-                                                        <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono" dir="ltr">{course.code}</p>
+                                                        <p className={`text-[12px] font-[900] truncate transition-colors ${isPassed ? 'text-emerald-800' : 'text-slate-800 group-hover:text-cyan-800'}`}>{course.name}</p>
+                                                        <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono tracking-wide" dir="ltr">{course.code}</p>
                                                     </div>
                                                 </div>
                                                 <div className="shrink-0 text-right">
-                                                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-black border ${isPassed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{course.credit_hours} س</span>
-                                                    <p className={`text-[9px] font-bold mt-1 ${isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>{isPassed ? 'منجزة' : 'غير منجزة'}</p>
+                                                    <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border shadow-sm ${isPassed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{course.credit_hours} س</span>
+                                                    <p className={`text-[9px] font-bold mt-1.5 ${isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>{isPassed ? 'منجزة' : 'غير منجزة'}</p>
                                                 </div>
                                             </label>
                                         );
