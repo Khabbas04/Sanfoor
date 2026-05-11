@@ -510,41 +510,6 @@ export default function Tree({
         }
     }, [canEditTreePositions, draftNodePositions, nodePositionsBeforeEdit]);
 
-    // إعادة ترتيب تلقائية باستخدام dagre -> يملأ nodePositions و draftNodePositions
-    const relayout = useCallback(() => {
-        if (!Array.isArray(flowCourses) || flowCourses.length === 0) return;
-
-        const layoutNodes = flowCourses.map(c => ({ id: String(c.id), data: { semester: c.semester || 1, code: c.code || '', title: c.name } }));
-        const layoutEdges = [];
-        flowCourses.forEach((course) => {
-            course.prerequisites?.forEach((pr) => {
-                if (!flowCourseIds.has(pr.id)) return;
-                layoutEdges.push({ source: String(pr.id), target: String(course.id) });
-            });
-        });
-
-        const layouted = getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions);
-
-        setNodePositions((prev) => {
-            const next = { ...prev };
-            layouted.forEach(n => {
-                next[n.id] = { x: n.position.x, y: n.position.y };
-            });
-            return next;
-        });
-
-        setDraftNodePositions((prev) => {
-            const next = { ...prev };
-            layouted.forEach(n => {
-                next[n.id] = { x: n.position.x, y: n.position.y };
-            });
-            return next;
-        });
-
-        setHasUnsavedNodeMoves(true);
-        setTimeout(() => fitViewSmart(220), 120);
-    }, [flowCourses, flowCourseIds, nodeDimensions, setNodePositions, setDraftNodePositions, fitViewSmart]);
-
     useEffect(() => {
         const onResize = () => {
             setViewportWidth(window.innerWidth);
@@ -2096,13 +2061,6 @@ export default function Tree({
                                 ✕
                             </button>
                         )}
-                            {/* Desktop actions: relayout & save */}
-                            <div className="hidden lg:flex items-center gap-2 ml-auto">
-                                <button onClick={() => relayout()} className="px-3 py-2 rounded-xl bg-cyan-600 text-white text-[13px] font-[800] hover:bg-cyan-500 transition">إعادة ترتيب تلقائية</button>
-                                {canEditTreePositions && (
-                                    <button onClick={() => saveAllNodePositions()} className="px-3 py-2 rounded-xl bg-white/10 text-white text-[13px] font-[800] hover:bg-white/20 transition">حفظ المواضع</button>
-                                )}
-                            </div>
                         <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
                         <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
                             🪄 التخطيط
@@ -2284,7 +2242,7 @@ export default function Tree({
                                 <div className="rounded-2xl border border-slate-200 p-3 bg-white shadow-sm">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="text-[12px] font-[900] text-slate-800">المادة الحرة (3 س)</p>
+                                            <p className="text-[12px] font-[900] text-slate-800">المادة الحرة (3 سعات)</p>
                                             <p className="text-[10px] text-slate-400 mt-0.5">علم فقط إذا أنجزت المادة</p>
                                         </div>
                                         <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${freeElectivePassed ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600'} cursor-pointer`}>
