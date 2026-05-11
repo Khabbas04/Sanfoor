@@ -8,33 +8,40 @@ export default function GlobalLoader() {
     useEffect(() => {
         let timeoutId;
         let progressInterval;
+        let activeRequests = 0;
 
         const handleStart = () => {
-            // Show loader slightly delayed to avoid flash on instant loads
-            timeoutId = setTimeout(() => {
-                setLoading(true);
-                setProgress(0);
-                
-                // Simulate progress
-                progressInterval = setInterval(() => {
-                    setProgress(prev => {
-                        if (prev >= 90) return prev;
-                        return prev + Math.random() * 10;
-                    });
-                }, 100);
-            }, 5000); // 5 seconds delay
+            activeRequests++;
+            if (activeRequests === 1) {
+                // Show loader slightly delayed to avoid flash on instant loads
+                timeoutId = setTimeout(() => {
+                    setLoading(true);
+                    setProgress(0);
+                    
+                    // Simulate progress
+                    progressInterval = setInterval(() => {
+                        setProgress(prev => {
+                            if (prev >= 90) return prev;
+                            return prev + Math.random() * 10;
+                        });
+                    }, 100);
+                }, 5000); // 5 seconds delay
+            }
         };
 
         const handleFinish = () => {
-            clearTimeout(timeoutId);
-            setProgress(100);
-            
-            // Wait for 100% animation to finish before fading out
-            setTimeout(() => {
-                setLoading(false);
+            activeRequests = Math.max(0, activeRequests - 1);
+            if (activeRequests === 0) {
+                clearTimeout(timeoutId);
                 clearInterval(progressInterval);
-                setTimeout(() => setProgress(0), 400); // reset after fade out
-            }, 300);
+                setProgress(100);
+                
+                // Wait for 100% animation to finish before fading out
+                setTimeout(() => {
+                    setLoading(false);
+                    setTimeout(() => setProgress(0), 400); // reset after fade out
+                }, 300);
+            }
         };
 
         // Inertia event listeners
