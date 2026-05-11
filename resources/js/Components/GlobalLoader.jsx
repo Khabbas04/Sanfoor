@@ -99,7 +99,7 @@ export default function GlobalLoader() {
                 <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
                     <div 
                         className="h-full bg-gradient-to-r from-cyan-400 via-indigo-500 to-violet-500 rounded-full transition-all duration-300 ease-out relative"
-                        style={{ width: \`\${progress}%\` }}
+                        style={{ width: `${progress}%` }}
                     >
                         <div className="absolute top-0 right-0 bottom-0 left-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGc+PHBhdGggZD0iTTQwIDBMMCA0MEg0MEwwIDBaIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiLz48L2c+PC9zdmc+')] bg-[length:20px_20px] animate-[shimmer_1s_linear_infinite]"></div>
                     </div>
