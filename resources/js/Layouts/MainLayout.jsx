@@ -410,7 +410,17 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <p className="text-slate-500 text-[11px] font-bold tracking-wide">
                             &copy; {new Date().getFullYear()} {lang === 'ar' ? 'سنفور' : 'Sanfoor'}.
                         </p>
-                        <p className="text-slate-500 text-[11px] font-bold tracking-wide">AI Academic Platform</p>
+                        <div className="flex items-center gap-1.5 text-[11px] font-black tracking-widest text-slate-500 uppercase">
+                            Developed by 
+                            <a 
+                                href="https://www.linkedin.com/in/asem-alkhabbas-667471371/" 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                className="text-indigo-400 hover:text-indigo-300 transition-all border-b border-indigo-400/30 hover:border-indigo-400 pb-0.5"
+                            >
+                                Asem Alkhabbas
+                            </a>
+                        </div>
                     </div>
                 </div>
             </footer>

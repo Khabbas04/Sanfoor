@@ -124,12 +124,6 @@ font-family:'Cairo',sans-serif;
 </head>
 
 <body class="antialiased text-slate-900">
-
-@inertia
-
-<footer class="border-t border-white/10 bg-[#050B14] px-4 py-4 text-center text-sm font-semibold text-slate-200 shadow-[0_-8px_30px_rgba(0,0,0,0.25)]">
-Developed by <a href="{{ $creatorLinkedIn }}" class="font-black text-indigo-400 transition hover:text-indigo-300 hover:underline" rel="me noopener" target="_blank">{{ $creatorName }}</a>
-</footer>
-
+    @inertia
 </body>
 </html>
