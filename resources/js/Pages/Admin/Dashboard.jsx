@@ -86,6 +86,31 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeNotes = Array.isArray(adminNotes) ? adminNotes : [];
     const safeMyNote = myAdminNote || null;
 
+    useEffect(() => {
+        const refreshDashboard = () => {
+            router.reload({
+                only: ['stats', 'platform', 'demandReport', 'issueSummary', 'recentIssues', 'logs', 'onlineUsers', 'adminNotes', 'myAdminNote', 'notesEnabled'],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        };
+
+        const timer = window.setInterval(refreshDashboard, 15000);
+
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                refreshDashboard();
+            }
+        };
+
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+    }, []);
+
     const safeStudentsCount = Number(safeStats.students_count || 0);
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
