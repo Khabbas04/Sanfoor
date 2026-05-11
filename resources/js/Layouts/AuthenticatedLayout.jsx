@@ -4,7 +4,6 @@ import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
@@ -171,14 +170,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 </header>
             )}
 
-            <motion.main
-                key={usePage().url}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, ease: 'linear' }}
-            >
-                {children}
-            </motion.main>
+            <main>{children}</main>
 
             <footer className="border-t border-gray-200 bg-white py-4 text-center">
                 <p className="text-[11px] font-black uppercase tracking-[0.12em] text-gray-400">By Asem Alkhabbas</p>

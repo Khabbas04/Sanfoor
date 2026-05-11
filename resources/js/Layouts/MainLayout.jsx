@@ -3,7 +3,6 @@ import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/Ai/AiWidget';
-import { motion } from 'framer-motion';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false }) {
@@ -346,15 +345,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             )}
 
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
-            <motion.main 
-                key={page.url}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, ease: 'linear' }}
-                className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}
-            >
+            <main className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}>
                 {children}
-            </motion.main>
+            </main>
 
             {/* The floating AI assistant is available only for signed-in users. */}
             {auth.user && !isAdvisorRoute && !shouldHideAiWidget && <AiWidget user={auth.user} />}
