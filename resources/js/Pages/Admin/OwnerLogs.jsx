@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Head, usePage } from '@inertiajs/inertia-react';
+import { Head } from '@inertiajs/react';
 import axios from 'axios';
 
 export default function OwnerLogs({ ownerLogs: initialLogs }) {
