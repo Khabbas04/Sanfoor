@@ -150,41 +150,5 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable $e) {
             }
         });
-
-        // Listen to raw DB queries and record data-changing statements (INSERT/UPDATE/DELETE)
-        DB::listen(function ($query) {
-            try {
-                $sql = $query->sql ?? '';
-                // Only capture write queries
-                if (!preg_match('/\b(insert|update|delete)\b/i', $sql)) return;
-
-                // Avoid logging admin_logs table operations to prevent recursion
-                if (stripos($sql, 'admin_logs') !== false) return;
-
-                $bindings = $query->bindings ?? [];
-                $time = $query->time ?? null;
-
-                $meta = [
-                    'event' => 'db_query',
-                    'sql' => $sql,
-                    'bindings' => $bindings,
-                    'time' => $time,
-                    'connection' => method_exists($query, 'connection') ? $query->connection->getName() : null,
-                    'route' => request()->path() ?? null,
-                    'ip' => request()->ip() ?? null,
-                ];
-
-                AdminLog::create([
-                    'user_id' => auth()->id() ?: null,
-                    'action' => 'DB_WRITE',
-                    'details' => Str::limit($sql, 400),
-                    'ip_address' => request()->ip() ?? null,
-                    'owner_only' => true,
-                    'meta' => json_encode($meta),
-                ]);
-            } catch (\Throwable $e) {
-                // ignore
-            }
-        });
     }
 }

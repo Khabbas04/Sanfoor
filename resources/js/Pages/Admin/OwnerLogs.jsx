@@ -11,12 +11,6 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
     const lastId = useRef(ownerLogs.length ? ownerLogs[0].id : 0);
 
     useEffect(() => {
-        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-            Notification.requestPermission();
-        }
-    }, []);
-
-    useEffect(() => {
         // update lastId from ownerLogs
         if (ownerLogs && ownerLogs.length) {
             lastId.current = Math.max(...ownerLogs.map(l => l.id));
@@ -34,20 +28,6 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
                 if (newLogs.length) {
                     // prepend newest owner logs
                     setOwnerLogs(prev => [...newLogs.reverse(), ...prev].slice(0, 2000));
-
-                    // show browser notifications for each new entry
-                    newLogs.forEach(n => {
-                        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-                            const title = n.action || 'Owner Log';
-                            const body = n.details || (n.meta ? JSON.stringify(n.meta) : '');
-                            try {
-                                new Notification(title, { body: body.slice(0, 300) });
-                            } catch (e) {
-                                // ignore
-                            }
-                        }
-                    });
-
                     // update lastId
                     lastId.current = Math.max(...newLogs.map(l => l.id), lastId.current);
                 }
