@@ -103,5 +103,3 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
         </AdminLayout>
     );
 }
-
-OwnerLogs.layout = page => <AdminLayout children={page} />;
