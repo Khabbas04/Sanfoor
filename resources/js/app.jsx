@@ -16,18 +16,23 @@ const layoutFunction = (page) => {
     const key = typeof window !== 'undefined' ? window.location.pathname : page.type.name;
     
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                key={key}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: 'easeInOut' }}
-                className="w-full min-h-screen flex flex-col"
-            >
-                {page}
-            </motion.div>
-        </AnimatePresence>
+        // Use a CSS grid to overlap the old and new pages during the transition.
+        // This prevents vertical stacking and eliminates the "white screen" flash!
+        <div className="w-full min-h-screen grid" style={{ gridTemplateColumns: '1fr', gridTemplateRows: '1fr' }}>
+            <AnimatePresence>
+                <motion.div
+                    key={key}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35, ease: 'easeInOut' }}
+                    style={{ gridColumn: 1, gridRow: 1 }}
+                    className="w-full h-full flex flex-col"
+                >
+                    {page}
+                </motion.div>
+            </AnimatePresence>
+        </div>
     );
 };
 
@@ -49,8 +54,14 @@ createInertiaApp({
         );
 
         pagePromise.then((module) => {
-            // Apply the global crossfade layout to every page automatically
-            module.default.layout = layoutFunction;
+            const originalLayout = module.default.layout;
+            
+            // Apply the global crossfade layout to every page, 
+            // PRESERVING the existing layout (like Tree page) if it has one!
+            module.default.layout = (page) => {
+                const element = originalLayout ? originalLayout(page) : page;
+                return layoutFunction(element);
+            };
         });
 
         return pagePromise;
