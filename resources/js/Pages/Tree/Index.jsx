@@ -150,7 +150,6 @@ export default function Tree({
     const [isSavingNodePositions, setIsSavingNodePositions] = useState(false);
     const [flowInstance, setFlowInstance] = useState(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
-    const [freeElectivePassed, setFreeElectivePassed] = useState(false);
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
@@ -293,18 +292,7 @@ export default function Tree({
         return Math.round((universityPassedCount / sortedUniversityCourses.length) * 100);
     }, [sortedUniversityCourses.length, universityPassedCount]);
 
-    const FREE_ELECTIVE_CREDITS = 3;
-    const universityHoursWithFree = useMemo(() => universityHours + (freeElectivePassed ? FREE_ELECTIVE_CREDITS : 0), [universityHours, freeElectivePassed]);
-
-    const universityPassedCountWithFree = useMemo(() => {
-        return universityPassedCount + (freeElectivePassed ? 1 : 0);
-    }, [universityPassedCount, freeElectivePassed]);
-
-    const universityCompletionPctWithFree = useMemo(() => {
-        const total = sortedUniversityCourses.length + (freeElectivePassed ? 1 : 0);
-        if (total === 0) return 0;
-        return Math.round((universityPassedCountWithFree / total) * 100);
-    }, [sortedUniversityCourses.length, universityPassedCountWithFree, freeElectivePassed]);
+    // University aggregates (no free elective)
 
 
     const fitViewSmart = useCallback((duration = 260) => {
@@ -579,9 +567,7 @@ export default function Tree({
         const calculated = courses
             .filter(c => passedIds.includes(c.id))
             .reduce((acc, c) => acc + (c.credit_hours || 0), 0);
-        const withFree = calculated + (freeElectivePassed ? FREE_ELECTIVE_CREDITS : 0);
-
-        return withFree > 0 ? withFree : Number(total_passed_hours || 0) + (freeElectivePassed ? FREE_ELECTIVE_CREDITS : 0);
+        return calculated > 0 ? calculated : Number(total_passed_hours || 0);
     }, [courses, passedIds, total_passed_hours]);
 
     const isLockedByHours = useCallback((course) => {
@@ -2216,41 +2202,26 @@ export default function Tree({
                                     <div className="relative mt-4 grid grid-cols-3 gap-2.5">
                                         <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
                                             <p className="text-[9px] font-black text-slate-500">منجز</p>
-                                            <p className="text-[14px] font-[900] text-emerald-700 leading-tight">{universityPassedCountWithFree}</p>
+                                            <p className="text-[14px] font-[900] text-emerald-700 leading-tight">{universityPassedCount}</p>
                                         </div>
                                         <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
                                             <p className="text-[9px] font-black text-slate-500">متبقي</p>
-                                            <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max((sortedUniversityCourses.length + (freeElectivePassed ? 1 : 0)) - universityPassedCountWithFree, 0)}</p>
+                                            <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max(sortedUniversityCourses.length - universityPassedCount, 0)}</p>
                                         </div>
                                         <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
                                             <p className="text-[9px] font-black text-slate-500">الساعات</p>
-                                            <p className="text-[14px] font-[900] text-cyan-800 leading-tight">{universityHoursWithFree}</p>
+                                            <p className="text-[14px] font-[900] text-cyan-800 leading-tight">{universityHours}</p>
                                         </div>
                                     </div>
 
                                     <div className="relative mt-3">
                                         <div className="flex items-center justify-between text-[10px] font-black text-cyan-900 mb-1.5">
-                                            <span>{universityPassedCountWithFree} / {sortedUniversityCourses.length + (freeElectivePassed ? 1 : 0)}</span>
+                                            <span>{universityPassedCount} / {sortedUniversityCourses.length}</span>
                                             <span>نسبة الإنجاز</span>
                                         </div>
                                         <div className="w-full h-2.5 rounded-full bg-cyan-100 overflow-hidden ring-1 ring-cyan-100/70">
-                                            <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPctWithFree}%` }} />
+                                            <div className="h-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPct}%` }} />
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* Free elective checkbox (generic, no course selection) */}
-                                <div className="rounded-2xl border border-slate-200 p-3 bg-white shadow-sm">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="text-[12px] font-[900] text-slate-800">المادة الحرة (3 س)</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">علم فقط إذا أنجزت المادة</p>
-                                        </div>
-                                        <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${freeElectivePassed ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600'} cursor-pointer`}>
-                                            <input type="checkbox" className="sr-only peer" checked={freeElectivePassed} onChange={() => setFreeElectivePassed(p => !p)} />
-                                            <span className={`inline-block w-4 h-4 rounded-sm border ${freeElectivePassed ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-300'}`} />
-                                            <span className="text-[12px] font-[800]">منجزة</span>
-                                        </label>
                                     </div>
                                 </div>
 
