@@ -253,6 +253,45 @@ export default function Tree({
             : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
     ), [isMobile, isLandscapeMobile]);
 
+    const flowCourses = useMemo(
+        () => (Array.isArray(courses) ? courses.filter((course) => course.type !== 'university_req') : []),
+        [courses]
+    );
+
+    const flowCourseIds = useMemo(
+        () => new Set(flowCourses.map((course) => course.id)),
+        [flowCourses]
+    );
+
+    const universityCourses = useMemo(
+        () => (Array.isArray(courses) ? courses.filter((course) => course.type === 'university_req') : []),
+        [courses]
+    );
+
+    const sortedUniversityCourses = useMemo(() => {
+        return [...universityCourses].sort((a, b) => {
+            const codeA = String(a?.code || '');
+            const codeB = String(b?.code || '');
+            if (codeA !== codeB) return codeA.localeCompare(codeB);
+            return String(a?.name || '').localeCompare(String(b?.name || ''));
+        });
+    }, [universityCourses]);
+
+    const universityHours = useMemo(
+        () => sortedUniversityCourses.reduce((sum, course) => sum + Number(course.credit_hours || 0), 0),
+        [sortedUniversityCourses]
+    );
+
+    const universityPassedCount = useMemo(
+        () => sortedUniversityCourses.filter((course) => passedIds.includes(course.id)).length,
+        [sortedUniversityCourses, passedIds]
+    );
+
+    const universityCompletionPct = useMemo(() => {
+        if (sortedUniversityCourses.length === 0) return 0;
+        return Math.round((universityPassedCount / sortedUniversityCourses.length) * 100);
+    }, [sortedUniversityCourses.length, universityPassedCount]);
+
 
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
@@ -335,11 +374,11 @@ export default function Tree({
     }, [nodeDimensions.width, nodeDimensions.height, nodeSnapGrid, snapPositionToGrid]);
 
     const layoutSeedPositions = useMemo(() => {
-        if (!Array.isArray(courses) || courses.length === 0) {
+        if (!Array.isArray(flowCourses) || flowCourses.length === 0) {
             return new Map();
         }
 
-        const layoutNodes = courses.map((course) => ({
+        const layoutNodes = flowCourses.map((course) => ({
             id: course.id.toString(),
             position: { x: 0, y: 0 },
             data: {
@@ -349,8 +388,9 @@ export default function Tree({
         }));
 
         const layoutEdges = [];
-        courses.forEach((course) => {
+        flowCourses.forEach((course) => {
             course.prerequisites?.forEach((prereq) => {
+                if (!flowCourseIds.has(prereq.id)) return;
                 layoutEdges.push({
                     id: `layout-${prereq.id}-${course.id}`,
                     source: prereq.id.toString(),
@@ -363,17 +403,17 @@ export default function Tree({
             getLayoutedElements(layoutNodes, layoutEdges, 'TB', nodeDimensions)
                 .map((node) => [node.id, node.position])
         );
-    }, [courses, nodeDimensions]);
+    }, [flowCourses, flowCourseIds, nodeDimensions]);
 
     useEffect(() => {
-        if (!Array.isArray(courses) || courses.length === 0) return;
+        if (!Array.isArray(flowCourses) || flowCourses.length === 0) return;
 
-        const currentIds = new Set(courses.map((course) => course.id.toString()));
+        const currentIds = new Set(flowCourses.map((course) => course.id.toString()));
 
         setNodePositions((prev) => {
             const next = { ...prev };
 
-            courses.forEach((course) => {
+            flowCourses.forEach((course) => {
                 const courseId = course.id.toString();
                 if (next[courseId]) return;
 
@@ -399,7 +439,7 @@ export default function Tree({
 
             return next;
         });
-    }, [courses, layoutSeedPositions]);
+    }, [flowCourses, layoutSeedPositions]);
 
     const startPositionEditMode = useCallback(() => {
         setNodePositionsBeforeEdit({ ...nodePositions });
@@ -784,12 +824,12 @@ export default function Tree({
         const forwardIds = selectedCourse ? Array.from(getForwardPath(selectedCourse.id)) : [];
         const connectedIds = [...new Set([...backwardIds, ...forwardIds])];
 
-        courses.forEach((course) => {
+        flowCourses.forEach((course) => {
             const status = getStatus(course);
             const isHourLocked = status === 'locked' && isLockedByHours(course);
             const depth = getCourseDepth(course.id);
             const isCriticalPath = depth >= 2 && status !== 'passed';
-            const unlocksCount = courses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
+            const unlocksCount = flowCourses.filter(c => c.prerequisites?.some(p => p.id === course.id)).length;
             const isBottleneck = unlocksCount >= 3 && status !== 'passed';
             const difficultyLevel = Number(course.difficulty_level ?? 3);
             const difficultyBand = difficultyLevel <= 2 ? 'easy' : (difficultyLevel === 3 ? 'balanced' : 'heavy');
@@ -905,11 +945,12 @@ export default function Tree({
 
             if (course.prerequisites) {
                 course.prerequisites.forEach((prereq) => {
+                    if (!flowCourseIds.has(prereq.id)) return;
                     const isSourceDone = passedIds.includes(prereq.id);
                     const isBackwardEdge = backwardIds.includes(prereq.id) && backwardIds.includes(course.id);
                     const isForwardEdge = forwardIds.includes(prereq.id) && forwardIds.includes(course.id);
                     const isActivePath = isBackwardEdge || isForwardEdge;
-                    const prereqCourse = courses.find(c => c.id === prereq.id);
+                    const prereqCourse = flowCourses.find(c => c.id === prereq.id);
                     const prereqDifficultyLevel = Number(prereqCourse?.difficulty_level ?? 3);
                     const prereqDifficultyBand = prereqDifficultyLevel <= 2 ? 'easy' : (prereqDifficultyLevel === 3 ? 'balanced' : 'heavy');
 
@@ -941,7 +982,7 @@ export default function Tree({
         });
 
         return { initialNodes, initialEdges };
-    }, [courses, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
+    }, [flowCourses, flowCourseIds, passedIds, cartIds, selectedCourse, filterMode, getStatus, getCourseDepth, getBackwardPath, getForwardPath, nodeDimensions, isMobile, isLandscapeMobile, canEditTreePositions, positionEditMode, nodePositions, layoutSeedPositions]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -980,7 +1021,7 @@ export default function Tree({
     }, [isMobile, compareMode, compareCourse]);
 
     const onNodeClick = useCallback((e, node) => {
-        const course = courses.find(c => c.id === parseInt(node.id));
+        const course = flowCourses.find(c => c.id === parseInt(node.id));
         if (!course) return;
 
         if (compareMode) {
@@ -1001,7 +1042,7 @@ export default function Tree({
         setTargetSemester(yearTermToSemester(next.year, next.term));
         setActiveTab('details');
         if (isMobile && !isFullScreen) setIsSidebarOpen(true);
-    }, [courses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
+    }, [flowCourses, legacyPlanSemesterToYearTerm, yearTermToSemester, isMobile, isFullScreen, compareFirstCourse, compareMode]);
 
     const onNodeDragStop = useCallback((event, node) => {
         if (!canEditTreePositions || !positionEditMode) return;
@@ -2012,6 +2053,7 @@ export default function Tree({
                             {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
                         </button>
                         <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
+                        <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
                     </div>
 
                     <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
@@ -2136,6 +2178,61 @@ export default function Tree({
                                     {recordDisplayedCourses.length === 0 && (<div className="text-center py-10 opacity-60"><div className="text-3xl mb-2">📭</div><p className="text-[12px] font-bold text-slate-500">لا يوجد مواد مسجلة.</p></div>)}
                                 </div>
                                 <div className="mt-4 pt-4 border-t border-slate-200/60"><Link href={route('calculator.index')} className="w-full bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 py-3 rounded-xl font-[800] text-[12px] transition-all flex items-center justify-center gap-2 shadow-sm">تعديل العلامات والفصول في الحاسبة ⚙️</Link></div>
+                            </div>
+                        )}
+
+                        {activeTab === 'university' && (
+                            <div className="space-y-5 sn-card-enter">
+                                <div className="bg-gradient-to-br from-cyan-50 to-sky-50/40 p-4 rounded-[1.25rem] border border-cyan-100/70 shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-cyan-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-cyan-200/50">🎓</div>
+                                        <div className="flex-1">
+                                            <h3 className="text-[13px] font-[900] text-cyan-900">متطلبات الجامعة (أونلاين)</h3>
+                                            <p className="text-[10px] font-bold text-cyan-700/80">حدد المواد المنجزة عبر checkbox فقط - دون الظهور في الشجرة</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3">
+                                        <div className="flex items-center justify-between text-[10px] font-black text-cyan-800 mb-1.5">
+                                            <span>{universityPassedCount} / {sortedUniversityCourses.length} منجز</span>
+                                            <span>{universityHours} ساعة</span>
+                                        </div>
+                                        <div className="w-full h-2 rounded-full bg-cyan-100 overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-cyan-500 to-sky-500 transition-all duration-500" style={{ width: `${universityCompletionPct}%` }} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2.5 pb-8">
+                                    {sortedUniversityCourses.length === 0 ? (
+                                        <div className="text-center py-10 opacity-60">
+                                            <div className="text-3xl mb-2">📭</div>
+                                            <p className="text-[12px] font-bold text-slate-500">لا يوجد متطلبات جامعة في الخطة الحالية.</p>
+                                        </div>
+                                    ) : sortedUniversityCourses.map((course) => {
+                                        const isPassed = passedIds.includes(course.id);
+                                        return (
+                                            <label key={course.id} className={`flex items-center justify-between gap-3 p-3.5 rounded-xl border shadow-sm cursor-pointer transition-all ${isPassed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 hover:border-cyan-200'}`}>
+                                                <div className="flex items-start gap-3 min-w-0">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isPassed}
+                                                        onChange={() => togglePassed(course.id)}
+                                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                                    />
+                                                    <div className="min-w-0">
+                                                        <p className={`text-[12px] font-[900] truncate ${isPassed ? 'text-emerald-800' : 'text-slate-800'}`}>{course.name}</p>
+                                                        <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono" dir="ltr">{course.code}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="shrink-0 text-right">
+                                                    <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-black border ${isPassed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{course.credit_hours} س</span>
+                                                    <p className={`text-[9px] font-bold mt-1 ${isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>{isPassed ? 'منجزة' : 'غير منجزة'}</p>
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </div>
