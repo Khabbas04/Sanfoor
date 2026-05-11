@@ -579,8 +579,9 @@ export default function Tree({
         const calculated = courses
             .filter(c => passedIds.includes(c.id))
             .reduce((acc, c) => acc + (c.credit_hours || 0), 0);
+        const withFree = calculated + (freeElectivePassed ? FREE_ELECTIVE_CREDITS : 0);
 
-        return calculated > 0 ? calculated : Number(total_passed_hours || 0);
+        return withFree > 0 ? withFree : Number(total_passed_hours || 0) + (freeElectivePassed ? FREE_ELECTIVE_CREDITS : 0);
     }, [courses, passedIds, total_passed_hours]);
 
     const isLockedByHours = useCallback((course) => {
