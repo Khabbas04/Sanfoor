@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { LanguageProvider } from '@/Contexts/LanguageContext';
 import { ThemeProvider } from '@/Contexts/ThemeContext';
 import GlobalLoader from '@/Components/GlobalLoader';
+import PageTransition from '@/Components/PageTransition';
 
 // Resolve the application name used in browser titles.
 const appName = import.meta.env.VITE_APP_NAME || 'Sanfoor';
@@ -32,6 +33,7 @@ createInertiaApp({
         root.render(
             <ThemeProvider>
                 <LanguageProvider>
+                    <PageTransition />
                     <GlobalLoader />
                     <App {...props} />
                 </LanguageProvider>

@@ -173,9 +173,9 @@ export default function AuthenticatedLayout({ header, children }) {
 
             <motion.main
                 key={usePage().url}
-                initial={{ opacity: 0, filter: 'blur(12px)', y: 10 }}
-                animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, ease: 'linear' }}
             >
                 {children}
             </motion.main>

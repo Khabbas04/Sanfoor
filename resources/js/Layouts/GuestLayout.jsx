@@ -5,11 +5,10 @@ import { motion } from 'framer-motion';
 export default function GuestLayout({ children }) {
     const { lang } = useLanguage();
 
-    return (
         <motion.div 
-            initial={{ opacity: 0, filter: 'blur(12px)', scale: 0.98 }}
-            animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, ease: 'linear' }}
             className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden selection:bg-indigo-100 selection:text-indigo-700" 
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
         >

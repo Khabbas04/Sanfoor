@@ -329,9 +329,9 @@ export default function AdminLayout({ children }) {
                 <div className="p-5 md:p-10 flex-1">
                     <motion.div 
                         key={currentRouteName}
-                        initial={{ opacity: 0, filter: 'blur(12px)', y: 10 }}
-                        animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, ease: 'linear' }}
                         className="max-w-[1600px] mx-auto"
                     >
                         {message && (

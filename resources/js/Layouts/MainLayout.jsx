@@ -348,9 +348,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
             <motion.main 
                 key={page.url}
-                initial={{ opacity: 0, filter: 'blur(12px)', y: 10 }}
-                animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-                transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, ease: 'linear' }}
                 className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}
             >
                 {children}
