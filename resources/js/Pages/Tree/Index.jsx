@@ -2284,7 +2284,7 @@ export default function Tree({
                                 <div className="rounded-2xl border border-slate-200 p-3 bg-white shadow-sm">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="min-w-0">
-                                            <p className="text-[12px] font-[900] text-slate-800">المادة الحرة (3 سعات)</p>
+                                            <p className="text-[12px] font-[900] text-slate-800">المادة الحرة (3 س)</p>
                                             <p className="text-[10px] text-slate-400 mt-0.5">علم فقط إذا أنجزت المادة</p>
                                         </div>
                                         <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${freeElectivePassed ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600'} cursor-pointer`}>
