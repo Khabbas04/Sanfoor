@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import ReactFlow, { Controls, Background, MarkerType, useNodesState, useEdgesState } from 'reactflow';
+import ReactFlow, { Controls, Background, MarkerType, useNodesState, useEdgesState, getRectOfNodes, getTransformForBounds } from 'reactflow';
 import dagre from 'dagre';
+import { toPng } from 'html-to-image';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -356,16 +357,72 @@ export default function Tree({
         flowInstance.fitView({ padding: flowView.fitPadding, duration });
     }, [flowInstance, flowView.fitPadding]);
 
-    const handlePrint = useCallback(() => {
-        if (flowInstance) {
-            flowInstance.fitView({ padding: 0.05, duration: 300 });
-            setTimeout(() => {
-                window.print();
-            }, 400);
-        } else {
-            window.print();
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const handlePrint = useCallback(async () => {
+        if (!flowInstance) return;
+        try {
+            setIsPrinting(true);
+            const nodesBounds = getRectOfNodes(flowInstance.getNodes());
+            
+            const padding = 150;
+            const exportScale = 2; // For professional high-res quality
+            
+            const width = nodesBounds.width + padding * 2;
+            const height = nodesBounds.height + padding * 2;
+            
+            const transform = getTransformForBounds(
+                nodesBounds,
+                width,
+                height,
+                0.1,
+                2
+            );
+
+            // Hide the background dots for a cleaner print
+            const elementsToHide = document.querySelectorAll('.react-flow__background');
+            elementsToHide.forEach(el => el.style.display = 'none');
+
+            const dataUrl = await toPng(document.querySelector('.react-flow__viewport'), {
+                backgroundColor: '#ffffff',
+                width: width,
+                height: height,
+                style: {
+                    width: `${width}px`,
+                    height: `${height}px`,
+                    transform: `translate(${transform[0]}px, ${transform[1]}px) scale(${transform[2]})`,
+                    transformOrigin: 'top left'
+                },
+                pixelRatio: exportScale,
+            });
+
+            elementsToHide.forEach(el => el.style.display = '');
+            
+            // Trigger download instead of window.print()
+            const link = document.createElement('a');
+            link.download = `study_plan_${major_name || 'plan'}.png`;
+            link.href = dataUrl;
+            link.click();
+            
+            setIsPrinting(false);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'تم التصدير بنجاح!',
+                text: 'تم حفظ الخطة كصورة احترافية بدقة عالية.',
+                ...swalTheme
+            });
+        } catch (error) {
+            console.error('Print failed', error);
+            setIsPrinting(false);
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ في التصدير',
+                text: 'حدث خطأ أثناء محاولة حفظ الصورة.',
+                ...swalTheme
+            });
         }
-    }, [flowInstance]);
+    }, [flowInstance, major_name]);
 
     const toggleFullScreen = useCallback(() => {
         setIsFullScreen((prev) => !prev);
@@ -2027,11 +2084,11 @@ export default function Tree({
                 }
                 @media print {
                     @page { size: landscape; margin: 0; }
+                    body { background: white !important; }
                     body * { visibility: hidden; }
-                    #app, main { height: 100vh !important; width: 100vw !important; overflow: hidden !important; }
-                    .react-flow, .react-flow * { visibility: visible; }
-                    .react-flow { position: absolute !important; left: 0 !important; top: 0 !important; width: 100vw !important; height: 100vh !important; background: white !important; z-index: 9999 !important; }
-                    .react-flow__panel, .react-flow__controls, .react-flow__background { display: none !important; }
+                    #print-container, #print-container * { visibility: visible !important; }
+                    #print-container { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: white; z-index: 999999; }
+                    #print-container img { max-width: 100%; max-height: 100vh; object-fit: contain; }
                     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
             ` }} />
@@ -2389,10 +2446,11 @@ export default function Tree({
 
                             <button
                                 onClick={handlePrint}
-                                className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50"
+                                disabled={isPrinting}
+                                className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
                                 title="طباعة الخطة الشجرية"
                             >
-                                🖨️ طباعة
+                                {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
                             </button>
 
                             {canEditTreePositions && !positionEditMode && (
