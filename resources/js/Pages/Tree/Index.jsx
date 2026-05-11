@@ -150,7 +150,7 @@ export default function Tree({
     const [isSavingNodePositions, setIsSavingNodePositions] = useState(false);
     const [flowInstance, setFlowInstance] = useState(null);
     const [isFullScreen, setIsFullScreen] = useState(false);
-    const [freeElectiveId, setFreeElectiveId] = useState(null);
+    const [freeElectivePassed, setFreeElectivePassed] = useState(false);
 
     const isMobile = viewportWidth < 1024;
     const isPortraitMobile = isMobile && viewportHeight > viewportWidth;
@@ -293,24 +293,18 @@ export default function Tree({
         return Math.round((universityPassedCount / sortedUniversityCourses.length) * 100);
     }, [sortedUniversityCourses.length, universityPassedCount]);
 
-    const freeElectiveCourse = useMemo(() => {
-        if (!freeElectiveId) return null;
-        return Array.isArray(courses) ? courses.find((c) => c.id === Number(freeElectiveId)) || null : null;
-    }, [courses, freeElectiveId]);
-
     const FREE_ELECTIVE_CREDITS = 3;
-
-    const universityHoursWithFree = useMemo(() => universityHours + (freeElectiveId ? FREE_ELECTIVE_CREDITS : 0), [universityHours, freeElectiveId]);
+    const universityHoursWithFree = useMemo(() => universityHours + (freeElectivePassed ? FREE_ELECTIVE_CREDITS : 0), [universityHours, freeElectivePassed]);
 
     const universityPassedCountWithFree = useMemo(() => {
-        return universityPassedCount + (freeElectiveId && passedIds.includes(Number(freeElectiveId)) ? 1 : 0);
-    }, [universityPassedCount, freeElectiveId, passedIds]);
+        return universityPassedCount + (freeElectivePassed ? 1 : 0);
+    }, [universityPassedCount, freeElectivePassed]);
 
     const universityCompletionPctWithFree = useMemo(() => {
-        const total = sortedUniversityCourses.length + (freeElectiveId ? 1 : 0);
+        const total = sortedUniversityCourses.length + (freeElectivePassed ? 1 : 0);
         if (total === 0) return 0;
         return Math.round((universityPassedCountWithFree / total) * 100);
-    }, [sortedUniversityCourses.length, universityPassedCountWithFree, freeElectiveId]);
+    }, [sortedUniversityCourses.length, universityPassedCountWithFree, freeElectivePassed]);
 
 
     const fitViewSmart = useCallback((duration = 260) => {
@@ -2225,7 +2219,7 @@ export default function Tree({
                                         </div>
                                         <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
                                             <p className="text-[9px] font-black text-slate-500">متبقي</p>
-                                            <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max((sortedUniversityCourses.length + (freeElectiveId ? 1 : 0)) - universityPassedCountWithFree, 0)}</p>
+                                            <p className="text-[14px] font-[900] text-amber-700 leading-tight">{Math.max((sortedUniversityCourses.length + (freeElectivePassed ? 1 : 0)) - universityPassedCountWithFree, 0)}</p>
                                         </div>
                                         <div className="rounded-xl border border-cyan-100/80 bg-white/85 p-2.5 text-center shadow-sm">
                                             <p className="text-[9px] font-black text-slate-500">الساعات</p>
@@ -2235,7 +2229,7 @@ export default function Tree({
 
                                     <div className="relative mt-3">
                                         <div className="flex items-center justify-between text-[10px] font-black text-cyan-900 mb-1.5">
-                                            <span>{universityPassedCountWithFree} / {sortedUniversityCourses.length + (freeElectiveId ? 1 : 0)}</span>
+                                            <span>{universityPassedCountWithFree} / {sortedUniversityCourses.length + (freeElectivePassed ? 1 : 0)}</span>
                                             <span>نسبة الإنجاز</span>
                                         </div>
                                         <div className="w-full h-2.5 rounded-full bg-cyan-100 overflow-hidden ring-1 ring-cyan-100/70">
@@ -2244,32 +2238,19 @@ export default function Tree({
                                     </div>
                                 </div>
 
-                                {/* Free elective selector */}
+                                {/* Free elective checkbox (generic, no course selection) */}
                                 <div className="rounded-2xl border border-slate-200 p-3 bg-white shadow-sm">
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="min-w-0">
                                             <p className="text-[12px] font-[900] text-slate-800">المادة الحرة (3 سعات)</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">اختر مادة واحدة من أي كلية</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">علم فقط إذا أنجزت المادة</p>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <select value={freeElectiveId || ''} onChange={(e) => setFreeElectiveId(e.target.value ? Number(e.target.value) : null)} className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-200">
-                                                <option value="">— اختر المادة —</option>
-                                                {Array.isArray(courses) && courses.filter(c => c.type !== 'university_req').map(c => (
-                                                    <option key={c.id} value={c.id}>{`${c.name} · ${c.code} · ${c.credit_hours || FREE_ELECTIVE_CREDITS}س`}</option>
-                                                ))}
-                                            </select>
-                                            {freeElectiveId ? (
-                                                <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${passedIds.includes(Number(freeElectiveId)) ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600'} cursor-pointer`}>
-                                                    <input type="checkbox" className="sr-only peer" checked={passedIds.includes(Number(freeElectiveId))} onChange={() => togglePassed(Number(freeElectiveId))} />
-                                                    <span className={`inline-block w-4 h-4 rounded-sm border ${passedIds.includes(Number(freeElectiveId)) ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-300'}`} />
-                                                    <span className="text-[12px] font-[800]">منجزة</span>
-                                                </label>
-                                            ) : null}
-                                        </div>
+                                        <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${freeElectivePassed ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-600'} cursor-pointer`}>
+                                            <input type="checkbox" className="sr-only peer" checked={freeElectivePassed} onChange={() => setFreeElectivePassed(p => !p)} />
+                                            <span className={`inline-block w-4 h-4 rounded-sm border ${freeElectivePassed ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-slate-300'}`} />
+                                            <span className="text-[12px] font-[800]">منجزة</span>
+                                        </label>
                                     </div>
-                                    {freeElectiveCourse ? (
-                                        <div className="mt-3 text-[11px] text-slate-600 font-bold">{freeElectiveCourse.name} — <span className="font-mono">{freeElectiveCourse.code}</span></div>
-                                    ) : null}
                                 </div>
 
                                 <div className="space-y-2.5 pb-8">
