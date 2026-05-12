@@ -2166,6 +2166,122 @@ export default function Tree({
                 </div>
             )}
 
+            {/* ═══ TREE TOOLBAR (OUTSIDE FLOW) ═══ */}
+            {!isFullScreen && (
+                <div className="bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 p-2 md:px-5 flex justify-between items-center z-20 relative w-full overflow-visible shadow-sm" dir="rtl">
+                    
+                    {/* Filters (Scrollable on small screens) */}
+                    <div className="flex-1 overflow-x-auto hide-scrollbar">
+                        <div className="flex gap-1.5 flex-nowrap min-w-max items-center py-1">
+                            <div className="flex items-center gap-1.5 bg-slate-900/95 p-1.5 rounded-xl shadow-md border border-slate-700/30">
+                                {[
+                                    { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
+                                    { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }
+                                ].map(f => (
+                                    <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
+                                ))}
+
+                                <div className="relative shrink-0">
+                                    <select
+                                        value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
+                                        onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
+                                        className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
+                                    >
+                                        <option value="all">🎚️ كل الصعوبات</option>
+                                        <option value="easy">🌿 خفيف</option>
+                                        <option value="balanced">⚖️ متوسط</option>
+                                        <option value="heavy">🔥 صعب</option>
+                                    </select>
+                                    <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400 text-[10px]">⌄</span>
+                                </div>
+
+                                <button
+                                    onClick={handlePrint}
+                                    disabled={isPrinting}
+                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
+                                    title="طباعة الخطة الشجرية"
+                                >
+                                    {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
+                                </button>
+
+                                {canEditTreePositions && !positionEditMode && (
+                                    <button
+                                        onClick={startPositionEditMode}
+                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50"
+                                    >
+                                        {isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد'}
+                                    </button>
+                                )}
+
+                                {canEditTreePositions && positionEditMode && (
+                                    <>
+                                        <button
+                                            onClick={cancelPositionEditMode}
+                                            disabled={isSavingNodePositions}
+                                            className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)] disabled:opacity-50 hover:bg-rose-600"
+                                        >
+                                            ✖️ إلغاء
+                                        </button>
+                                        <button
+                                            onClick={saveAllNodePositions}
+                                            disabled={isSavingNodePositions || !hasUnsavedNodeMoves}
+                                            className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] disabled:opacity-50 hover:bg-emerald-600"
+                                        >
+                                            {isSavingNodePositions ? '⏳ جاري الحفظ...' : '💾 حفظ الترتيب'}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Legend Dropdown */}
+                    <div className="shrink-0 relative hidden md:block mr-3" dir="rtl">
+                        <button onClick={() => setLegendOpen(!legendOpen)} className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border ${legendOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                            🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
+                        </button>
+                        {legendOpen && (
+                            <div className="absolute top-[calc(100%+0.5rem)] left-0 w-80 bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
+                                <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
+                                    {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                        <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
+                                    ))}
+                                </div>
+                                <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الصعوبة</p>
+                                <div className="flex flex-col gap-2 pb-2 border-b border-slate-100 mb-2">
+                                    {[
+                                        { color: 'bg-emerald-500', title: 'خفيف', desc: 'عادةً من 1 إلى 2، ويكون الحمل الدراسي أخف.' },
+                                        { color: 'bg-amber-500', title: 'متوازن', desc: 'عادةً 3، ويعني مادة بعبء متوسط.' },
+                                        { color: 'bg-rose-500', title: 'مكثّف', desc: 'عادةً من 4 إلى 5، وتحتاج وقت ومجهود أعلى.' },
+                                    ].map(item => (
+                                        <div key={item.title} className="flex items-start justify-end gap-2">
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-[800] text-slate-700 leading-tight">{item.title}</p>
+                                                <p className="text-[9px] font-bold text-slate-400 leading-snug">{item.desc}</p>
+                                            </div>
+                                            <span className={`mt-0.5 w-3 h-3 rounded-full ${item.color} shadow-sm shrink-0`} />
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الرموز</p>
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span><div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
+                                    <div className="rounded-2xl border border-violet-500/15 bg-violet-500/10 p-2.5 text-right mt-2">
+                                        <p className="text-[10px] font-[900] text-violet-700 mb-0.5">المقارنة بين مادتين</p>
+                                        <p className="text-[9px] font-bold text-slate-500 leading-snug">1) افتح أي مادة ثم اضغط زر قارن. 2) اختر مادة ثانية من الشجرة لتظهر المقارنة في نافذة مستقلة.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <div className="flex-1 flex w-full h-full relative overflow-hidden">
                 {show4YearPlan && render4YearPlan()}
                 {isSidebarOpen && isMobile && !isLandscapeMobile && !isFullScreen && (
@@ -2438,112 +2554,8 @@ export default function Tree({
                             </div>
                         )}
 
-                        {!isFullScreen && (
-                            <div className={`absolute ${showRotateHint ? 'top-[4.3rem]' : isMobile ? (isLandscapeMobile ? 'top-1' : 'top-2') : 'top-3'} left-1/2 transform -translate-x-1/2 z-20 flex gap-1.5 bg-slate-900/90 backdrop-blur-xl p-1.5 rounded-xl shadow-2xl border border-slate-700/30 ${isMobile ? (isLandscapeMobile ? 'w-[calc(100%-0.5rem)]' : 'w-[calc(100%-0.75rem)]') + ' overflow-x-auto hide-scrollbar flex-nowrap justify-start' : 'flex-wrap justify-center max-w-[95%]'}`}>
-                                {[
-                                    { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
-                                    { id: 'available', label: '🔓 المتاح', mobileLabel: '🔓 المتاح', active: 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(79,70,229,0.4)]', dot: 'bg-indigo-300' }
-                                ].map(f => (
-                                    <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
-                                ))}
 
-                                <div className="relative shrink-0">
-                                    <select
-                                        value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
-                                        onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
-                                        className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
-                                    >
-                                        <option value="all">🎚️ كل الصعوبات</option>
-                                        <option value="easy">🌿 خفيف</option>
-                                        <option value="balanced">⚖️ متوسط</option>
-                                        <option value="heavy">🔥 صعب</option>
-                                    </select>
-                                    <span className="pointer-events-none absolute inset-y-0 left-2 flex items-center text-slate-400 text-[10px]">⌄</span>
-                                </div>
 
-                                <button
-                                    onClick={handlePrint}
-                                    disabled={isPrinting}
-                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
-                                    title="طباعة الخطة الشجرية"
-                                >
-                                    {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
-                                </button>
-
-                                {canEditTreePositions && !positionEditMode && (
-                                    <button
-                                        onClick={startPositionEditMode}
-                                        className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm"
-                                    >
-                                        {isMobile ? '🖱️ تعديل الترتيب' : '🖱️ تعديل أماكن المواد'}
-                                    </button>
-                                )}
-
-                                {canEditTreePositions && positionEditMode && (
-                                    <>
-                                        <button
-                                            onClick={cancelPositionEditMode}
-                                            disabled={isSavingNodePositions}
-                                            className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-rose-500 text-white shadow-[0_0_12px_rgba(244,63,94,0.35)] disabled:opacity-50"
-                                        >
-                                            ✖️ إلغاء
-                                        </button>
-                                        <button
-                                            onClick={saveAllNodePositions}
-                                            disabled={isSavingNodePositions || !hasUnsavedNodeMoves}
-                                            className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-emerald-500 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)] disabled:opacity-50"
-                                        >
-                                            {isSavingNodePositions ? '⏳ جاري الحفظ...' : '💾 حفظ الترتيب'}
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        )}
-
-                        {/* 🌳 دليل الشجرة — قابل للطي */}
-                        <div className="absolute top-14 left-3 z-20 hidden md:block" dir="rtl">
-                            <button onClick={() => setLegendOpen(!legendOpen)} className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-[800] transition-all shadow-md active:scale-95 ${legendOpen ? 'bg-slate-900 text-white' : 'bg-white/95 backdrop-blur-md text-slate-600 border border-slate-200/60 hover:bg-slate-50'}`}>
-                                🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
-                            </button>
-                            {legendOpen && (
-                                <div className="mt-2 bg-white/95 backdrop-blur-md p-3.5 rounded-xl shadow-lg border border-slate-200/60 flex flex-col gap-2" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
-                                        {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
-                                            <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
-                                        ))}
-                                    </div>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الصعوبة</p>
-                                    <div className="flex flex-col gap-2 pb-2 border-b border-slate-100 mb-2">
-                                        {[
-                                            { color: 'bg-emerald-500', title: 'خفيف', desc: 'عادةً من 1 إلى 2، ويكون الحمل الدراسي أخف.' },
-                                            { color: 'bg-amber-500', title: 'متوازن', desc: 'عادةً 3، ويعني مادة بعبء متوسط.' },
-                                            { color: 'bg-rose-500', title: 'مكثّف', desc: 'عادةً من 4 إلى 5، وتحتاج وقت ومجهود أعلى.' },
-                                        ].map(item => (
-                                            <div key={item.title} className="flex items-start justify-end gap-2">
-                                                <div className="text-right">
-                                                    <p className="text-[10px] font-[800] text-slate-700 leading-tight">{item.title}</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 leading-snug">{item.desc}</p>
-                                                </div>
-                                                <span className={`mt-0.5 w-3 h-3 rounded-full ${item.color} shadow-sm shrink-0`} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الرموز</p>
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span><div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
-                                        <div className="rounded-2xl border border-violet-500/15 bg-violet-500/10 p-2.5 text-right">
-                                            <p className="text-[10px] font-[900] text-violet-700 mb-0.5">المقارنة بين مادتين</p>
-                                            <p className="text-[9px] font-bold text-slate-500 leading-snug">1) افتح أي مادة ثم اضغط زر قارن. 2) اختر مادة ثانية من الشجرة لتظهر المقارنة في نافذة مستقلة.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
 
                         <ReactFlow
                             nodes={nodes}
