@@ -946,8 +946,8 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
                             
-                            {/* 🔥 تم التعديل هنا: max-h-[calc(100vh-100px)] و overflow-y-auto 🔥 */}
-                            <div id="course-action-form" className={`lg:col-span-4 bg-white p-6 rounded-[2rem] border shadow-[0_8px_30px_rgb(0,0,0,0.03)] sticky top-24 max-h-[calc(100vh-100px)] overflow-y-auto hide-scrollbar transition-all duration-300 z-10 ${editingCourse ? 'edit-mode-active bg-amber-50/10' : 'border-slate-200/80'}`}>
+                            {/* 🔥 تم التعديل هنا: جعل الخصائص التي تسبب التغطية تعمل على الشاشات الكبيرة فقط لتصبح متجاوبة 🔥 */}
+                            <div id="course-action-form" className={`lg:col-span-4 bg-white p-5 md:p-6 rounded-[2rem] border shadow-[0_8px_30px_rgb(0,0,0,0.03)] lg:sticky lg:top-24 lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto hide-scrollbar transition-all duration-300 z-10 ${editingCourse ? 'edit-mode-active bg-amber-50/10' : 'border-slate-200/80'}`}>
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-lg font-[900] text-slate-800 flex items-center gap-2">
                                         {editingCourse ? <><span className="text-amber-500">✏️</span> تعديل بيانات المادة</> : <><span className="text-indigo-600">✍️</span> إضافة مادة يدوياً</>}

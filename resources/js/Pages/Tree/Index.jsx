@@ -2171,8 +2171,8 @@ export default function Tree({
                 <div className="bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 p-2 md:px-5 flex justify-between items-center z-20 relative w-full overflow-visible shadow-sm" dir="rtl">
                     
                     {/* Filters (Scrollable on small screens) */}
-                    <div className="flex-1 overflow-x-auto hide-scrollbar">
-                        <div className="flex gap-1.5 flex-nowrap min-w-max items-center py-1">
+                    <div className="flex-1 overflow-x-auto hide-scrollbar flex md:justify-center">
+                        <div className="flex gap-1.5 flex-nowrap min-w-max items-center py-1 px-1">
                             <div className="flex items-center gap-1.5 bg-slate-900/95 p-1.5 rounded-xl shadow-md border border-slate-700/30">
                                 {[
                                     { id: 'none', label: '🌐 الخطة كاملة', mobileLabel: '🌐 الكل', active: 'bg-white text-slate-900 shadow-sm' },
