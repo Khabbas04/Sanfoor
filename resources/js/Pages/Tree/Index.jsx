@@ -2168,10 +2168,10 @@ export default function Tree({
 
             {/* ═══ TREE TOOLBAR (OUTSIDE FLOW) ═══ */}
             {!isFullScreen && (
-                <div className="bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 p-2 md:px-5 flex justify-between items-center z-20 relative w-full overflow-visible shadow-sm" dir="rtl">
+                <div className="bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 p-2 md:px-5 flex flex-col md:flex-row gap-2.5 md:gap-0 justify-between items-center z-20 relative w-full overflow-visible shadow-sm" dir="rtl">
                     
                     {/* Filters (Scrollable on small screens) */}
-                    <div className="flex-1 overflow-x-auto hide-scrollbar flex md:justify-center">
+                    <div className="w-full md:flex-1 overflow-x-auto hide-scrollbar flex md:justify-center">
                         <div className="flex gap-1.5 flex-nowrap min-w-max items-center py-1 px-1">
                             <div className="flex items-center gap-1.5 bg-slate-900/95 p-1.5 rounded-xl shadow-md border border-slate-700/30">
                                 {[
@@ -2236,12 +2236,12 @@ export default function Tree({
                     </div>
 
                     {/* Legend Dropdown */}
-                    <div className="shrink-0 relative hidden md:block mr-3" dir="rtl">
-                        <button onClick={() => setLegendOpen(!legendOpen)} className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border ${legendOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                    <div className="shrink-0 relative w-full md:w-auto md:mr-3" dir="rtl">
+                        <button onClick={() => setLegendOpen(!legendOpen)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border ${legendOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
                             🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
                         </button>
                         {legendOpen && (
-                            <div className="absolute top-[calc(100%+0.5rem)] left-0 w-80 bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
+                            <div className="absolute top-[calc(100%+0.5rem)] left-0 md:left-auto md:right-0 w-[calc(100vw-1rem)] md:w-80 max-w-sm bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50 origin-top" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
                                 <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
                                     {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (

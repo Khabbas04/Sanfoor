@@ -349,8 +349,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                 {children}
             </main>
 
-            {/* The floating AI assistant is available only for signed-in users. */}
-            {auth.user && !isAdvisorRoute && !shouldHideAiWidget && <AiWidget user={auth.user} />}
+            {/* The floating AI assistant is available only for signed-in users on the welcome page. */}
+            {auth.user && route().current('welcome') && !shouldHideAiWidget && <AiWidget user={auth.user} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
