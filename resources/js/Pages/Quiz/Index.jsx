@@ -81,7 +81,7 @@ export default function QuizIndex({ courses = [], recentAttempts = [] }) {
 
     const handleStart = (mode) => {
         if (!selectedCourse) return;
-        router.post(route('quiz.start'), {
+        router.post('/quiz/start', {
             course_id: selectedCourse.id,
             chapter_id: selectedChapter || null,
             mode,

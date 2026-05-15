@@ -218,11 +218,11 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                             </Link>
 
-                            <Link href={route('chapters.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(() => { try { return route().current('chapters.index'); } catch(e) { return false; } })() ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                            <Link href="/chapters" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(() => { try { return route().current('chapters.index'); } catch(e) { return window.location.pathname === '/chapters'; } })() ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">📖</span> {t.chapters}
                             </Link>
 
-                            <Link href={route('quiz.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(() => { try { return route().current('quiz.index') || route().current('quiz.start'); } catch(e) { return false; } })() ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                            <Link href="/quiz" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(() => { try { return route().current('quiz.index'); } catch(e) { return window.location.pathname.startsWith('/quiz'); } })() ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">❓</span> {t.quiz}
                             </Link>
 
@@ -332,8 +332,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <Link onClick={() => setMobileOpen(false)} href={route('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {t.tree}</Link>
                         <Link onClick={() => setMobileOpen(false)} href={route('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📈 {t.calc}</Link>
                         <Link onClick={() => setMobileOpen(false)} href={route('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
-                        <Link onClick={() => setMobileOpen(false)} href={route('chapters.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
-                        <Link onClick={() => setMobileOpen(false)} href={route('quiz.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
+                        <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
+                        <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
                         <Link onClick={() => setMobileOpen(false)} href={route('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-center shadow-lg shadow-indigo-500/30 hover:opacity-90 transition-opacity">🤖 {t.ai}</Link>
                         
                         {auth.user && (

@@ -172,7 +172,7 @@ export default function ChaptersIndex({ courses = [] }) {
                                             {/* Quiz CTA */}
                                             {course.questions_count > 0 && (
                                                 <Link
-                                                    href={route('quiz.index')}
+                                                    href="/quiz"
                                                     className="flex items-center justify-center gap-2 p-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-[800] text-[13px] shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all active:scale-[0.97] mt-2"
                                                 >
                                                     🧠 {t.goToQuiz} • {course.questions_count} {t.questions}

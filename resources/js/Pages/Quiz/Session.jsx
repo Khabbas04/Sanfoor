@@ -103,7 +103,7 @@ export default function QuizSession({ questions = [], course, chapter, mode = 'q
         if (isPractice) {
             // In practice mode, submit this single answer immediately
             setPracticeRevealed(true);
-            fetch(route('quiz.submit'), {
+            fetch('/quiz/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
                 body: JSON.stringify({
@@ -150,7 +150,7 @@ export default function QuizSession({ questions = [], course, chapter, mode = 'q
 
         setSubmitting(true);
         try {
-            const res = await fetch(route('quiz.submit'), {
+            const res = await fetch('/quiz/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
                 body: JSON.stringify({
@@ -195,7 +195,7 @@ export default function QuizSession({ questions = [], course, chapter, mode = 'q
                 <div className="text-center">
                     <div className="text-5xl mb-4">😕</div>
                     <p className={`text-lg font-bold ${subtext}`}>{t.noQuestions}</p>
-                    <button onClick={() => router.visit(route('quiz.index'))} className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-xl font-[800] text-sm">{t.backToQuiz}</button>
+                    <button onClick={() => router.visit('/quiz')} className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-xl font-[800] text-sm">{t.backToQuiz}</button>
                 </div>
             </div>
         );
@@ -239,7 +239,7 @@ export default function QuizSession({ questions = [], course, chapter, mode = 'q
                         </div>
 
                         <div className="flex gap-3 justify-center mt-8">
-                            <button onClick={() => router.visit(route('quiz.index'))} className={`px-6 py-3 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                            <button onClick={() => router.visit('/quiz')} className={`px-6 py-3 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
                                 {t.backToQuiz}
                             </button>
                             <button onClick={() => { setShowResult(false); setResults(null); setAnswers({}); setCurrentIndex(0); }} className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-[800] text-[12px] shadow-md">
@@ -422,7 +422,7 @@ export default function QuizSession({ questions = [], course, chapter, mode = 'q
                         </button>
                     ) : (
                         <button
-                            onClick={() => router.visit(route('quiz.index'))}
+                            onClick={() => router.visit('/quiz')}
                             className="px-5 py-3 rounded-xl text-[12px] font-[800] bg-indigo-600 text-white shadow-md transition-all"
                         >
                             {t.backToQuiz}
