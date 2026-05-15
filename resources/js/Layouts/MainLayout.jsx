@@ -7,7 +7,7 @@ import AiWidget from '@/Pages/Ai/AiWidget';
 // MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
     const page = usePage();
-    const { auth } = page.props;
+    const { auth = {} } = page.props || {};
     const isAdvisorRoute = route().current('ai.advisor');
 
     // Normalize role flags once so the layout can render the correct user actions.
@@ -169,42 +169,42 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     return (
         <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <Head>
-                {/* Load the main font and layout-scoped UI helper styles. */}
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
                 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
-                <style dangerouslySetInnerHTML={{ __html: `
-                    * { scroll-behavior: smooth; }
-                    ::selection { background: #e0e7ff; color: #312e81; }
-                    ::-webkit-scrollbar { width: 6px; }
-                    ::-webkit-scrollbar-track { background: transparent; }
-                    ::-webkit-scrollbar-thumb { background: ${isDark ? '#334155' : '#cbd5e1'}; border-radius: 10px; }
-                    ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
-                    
-                    @keyframes slideDownMenu {
-                        from { opacity: 0; transform: translateY(-10px) scale(0.98); }
-                        to { opacity: 1; transform: translateY(0) scale(1); }
-                    }
-                    @keyframes fadeInUp {
-                        from { opacity: 0; transform: translateY(20px); }
-                        to { opacity: 1; transform: translateY(0); }
-                    }
-                    .animate-dropdown { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-                    .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-                    
-                    .nav-capsule { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-                    .nav-scrolled {
-                        width: 95% !important;
-                        max-width: 1280px !important;
-                        top: 15px !important;
-                        border-radius: 2rem !important;
-                        background: ${isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)'} !important;
-                        backdrop-filter: blur(20px) !important;
-                        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15) !important;
-                        border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'} !important;
-                    }
-                ` }} />
             </Head>
+
+            <style dangerouslySetInnerHTML={{ __html: `
+                * { scroll-behavior: smooth; }
+                ::selection { background: #e0e7ff; color: #312e81; }
+                ::-webkit-scrollbar { width: 6px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: ${isDark ? '#334155' : '#cbd5e1'}; border-radius: 10px; }
+                ::-webkit-scrollbar-thumb:hover { background: #818cf8; }
+                
+                @keyframes slideDownMenu {
+                    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes fadeInUp {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-dropdown { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                
+                .nav-capsule { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+                .nav-scrolled {
+                    width: 95% !important;
+                    max-width: 1280px !important;
+                    top: 15px !important;
+                    border-radius: 2rem !important;
+                    background: ${isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.9)'} !important;
+                    backdrop-filter: blur(200px) !important;
+                    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15) !important;
+                    border: 1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'} !important;
+                }
+            ` }} />
 
             {/* Shared floating navbar used across the public-facing experience. */}
             {!shouldHideNav && (

@@ -52,8 +52,8 @@ export default function ChaptersIndex({ courses = [] }) {
         if (!search.trim()) return courses;
         const q = search.toLowerCase();
         return courses.filter(c =>
-            c.name.toLowerCase().includes(q) ||
-            c.code.toLowerCase().includes(q)
+            (c?.name || '').toLowerCase().includes(q) ||
+            (c?.code || '').toLowerCase().includes(q)
         );
     }, [courses, search]);
 
