@@ -93,6 +93,11 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
+        console.log('--- Inertia Debug [v5] ---');
+        console.log('Page Name:', props.initialPage.component);
+        console.log('Props Keys:', Object.keys(props.initialPage.props));
+        console.log('--------------------------');
+
         root.render(
             <ErrorBoundary>
                 <ThemeProvider>
