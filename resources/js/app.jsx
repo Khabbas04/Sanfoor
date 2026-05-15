@@ -63,7 +63,21 @@ createInertiaApp({
             // Apply the global crossfade layout to every page, 
             // PRESERVING the existing layout (like Tree page) if it has one!
             module.default.layout = (page) => {
-                const element = originalLayout ? originalLayout(page) : page;
+                if (!page) return null;
+                
+                let element;
+                if (typeof originalLayout === 'function') {
+                    // It's a function layout (like page => <Layout>{page}</Layout>)
+                    element = originalLayout(page);
+                } else if (originalLayout) {
+                    // It's a component layout (like LayoutComponent)
+                    const Layout = originalLayout;
+                    element = <Layout>{page}</Layout>;
+                } else {
+                    // No layout defined
+                    element = page;
+                }
+                
                 return layoutFunction(element);
             };
             

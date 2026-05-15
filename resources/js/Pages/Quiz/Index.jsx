@@ -111,12 +111,7 @@ export default function QuizIndex({ courses = [], recentAttempts = [] }) {
 
     return (
         <div className="min-h-screen" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-            <Head>
-                <title>{t.title} | سنفور</title>
-                <meta name="description" content={t.subtitle} />
-                <meta name="robots" content="noindex,nofollow,noarchive" />
-                <link rel="canonical" href={`${siteUrl}/quiz`} />
-            </Head>
+            <Head><title>{t.title} | سنفور</title><meta name="description" content={t.subtitle} /><meta name="robots" content="noindex,nofollow,noarchive" /><link rel="canonical" href={`${siteUrl}/quiz`} /></Head>
 
             <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
