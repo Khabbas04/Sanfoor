@@ -6,13 +6,14 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
-export default function QuizIndex({ courses = [], recentAttempts = [] }) {
+export default function QuizIndex({ courses, recentAttempts }) {
+    // Force props to be arrays even if null is sent from server
+    const safeCourses = Array.isArray(courses) ? courses : [];
+    const safeRecentAttempts = Array.isArray(recentAttempts) ? recentAttempts : [];
     const { isDark } = useTheme();
     const { lang } = useLanguage();
-    
+
     // Safety check for props
-    courses = courses || [];
-    recentAttempts = recentAttempts || [];
 
     const [search, setSearch] = useState('');
     const [selectedCourse, setSelectedCourse] = useState(null);
@@ -75,13 +76,13 @@ export default function QuizIndex({ courses = [], recentAttempts = [] }) {
     };
 
     const filteredCourses = useMemo(() => {
-        if (!search.trim()) return courses;
+        if (!search.trim()) return safeCourses;
         const q = search.toLowerCase();
-        return courses.filter(c => 
-            (c?.name || '').toLowerCase().includes(q) || 
+        return safeCourses.filter(c =>
+            (c?.name || '').toLowerCase().includes(q) ||
             (c?.code || '').toLowerCase().includes(q)
         );
-    }, [courses, search]);
+    }, [safeCourses, search]);
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const heading = isDark ? 'text-white' : 'text-slate-900';
@@ -113,7 +114,8 @@ export default function QuizIndex({ courses = [], recentAttempts = [] }) {
         <div className="min-h-screen" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <Head><title>{t.title} | سنفور</title><meta name="description" content={t.subtitle} /><meta name="robots" content="noindex,nofollow,noarchive" /><link rel="canonical" href={`${siteUrl}/quiz`} /></Head>
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-card { animation: fadeInUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
                 @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); } 50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.15); } }
@@ -278,11 +280,11 @@ export default function QuizIndex({ courses = [], recentAttempts = [] }) {
                             <h3 className={`text-[14px] font-[900] mb-4 flex items-center gap-2 ${heading}`}>
                                 📊 {t.recentResults}
                             </h3>
-                            {recentAttempts.length === 0 ? (
+                            {safeRecentAttempts.length === 0 ? (
                                 <p className={`text-[12px] font-bold text-center py-6 ${subtext}`}>{t.noAttempts}</p>
                             ) : (
                                 <div className="space-y-2.5 max-h-[400px] overflow-y-auto">
-                                    {recentAttempts.map(attempt => (
+                                    {safeRecentAttempts.map(attempt => (
                                         <div key={attempt.id} className={`p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-slate-900/40 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                                             <div className="flex items-center justify-between mb-1.5">
                                                 <span className={`text-[12px] font-[800] truncate ${heading}`}>{attempt.course?.name || ''}</span>

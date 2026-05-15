@@ -104,7 +104,8 @@ export default function Welcome({ auth }) {
                 />
             </Head>
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 /* ── HERO ENTRANCE ── */
                 @keyframes heroSlideUp {
                     0% { opacity: 0; transform: translateY(40px); }
@@ -471,12 +472,12 @@ export default function Welcome({ auth }) {
                                         {/* Nodes */}
                                         <TreeNode x="104" y="8" delay={0.4} color="#4f46e5" label="متطلب 1" />
                                         <TreeNode x="344" y="8" delay={0.5} color="#4f46e5" label="متطلب 2" />
-                                        
+
                                         <TreeNode x="44" y="95" delay={0.7} color="#10b981" label="منجزة ✓" />
                                         <TreeNode x="164" y="95" delay={0.8} color="#10b981" label="منجزة ✓" />
                                         <TreeNode x="284" y="95" delay={0.9} color="#06b6d4" label="متاحة" />
                                         <TreeNode x="404" y="95" delay={1.0} color="#06b6d4" label="متاحة" />
-                                        
+
                                         <TreeNode x="14" y="185" delay={1.2} color="#06b6d4" label="متاحة" />
                                         <TreeNode x="104" y="185" delay={1.25} color="#334155" label="مغلقة 🔒" />
                                         <TreeNode x="164" y="185" delay={1.3} color="#334155" label="مغلقة 🔒" />
@@ -496,10 +497,10 @@ export default function Welcome({ auth }) {
                 ════════════════════════════════════ */}
                 <section ref={aiRef} className="py-24 sm:py-32 bg-slate-50 relative overflow-hidden">
                     <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none" />
-                    
+
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-10 items-center">
-                            
+
                             {/* Text Info */}
                             <div className={`transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${aiIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-14'}`}>
                                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100 text-violet-700 text-xs font-bold mb-6 border border-violet-200">
@@ -527,7 +528,7 @@ export default function Welcome({ auth }) {
                             <div className={`relative transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] delay-200 ${aiIn ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-14'}`}>
                                 <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/20 to-indigo-500/20 rounded-[2.5rem] blur-3xl transform rotate-6"></div>
                                 <div className="relative bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl p-6 sm:p-8 flex flex-col gap-6" dir="rtl">
-                                    
+
                                     {/* Student Message */}
                                     {aiIn && (
                                         <div className="chat-msg-1 self-end bg-indigo-600 text-white p-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md">
@@ -545,9 +546,9 @@ export default function Welcome({ auth }) {
                                             </div>
                                             <p className="text-sm font-semibold leading-loose">
                                                 أهلاً بك! بناءً على خطتك، أنصحك بتنزيل:
-                                                <br/>
+                                                <br />
                                                 <strong className="text-indigo-600">1. برمجة متقدمة (3س):</strong> ضرورية لأنها تفتح 3 مواد للفصل القادم.
-                                                <br/>
+                                                <br />
                                                 <strong className="text-emerald-600">2. مهارات حياتية (3س):</strong> متطلب جامعة سهل يساعد برفع المعدل.
                                             </p>
                                         </div>
@@ -630,7 +631,7 @@ export default function Welcome({ auth }) {
                             <div className="inline-flex items-center justify-center w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white/5 border border-white/10 mb-8 backdrop-blur-md shadow-2xl p-4" style={{ animation: 'bounce-s 3s ease-in-out infinite' }}>
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
                             </div>
-                            
+
                             <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-5 leading-tight tracking-tight">
                                 جاهز تبدأ مشوارك <br className="hidden sm:block" />بأذكى طريقة؟
                             </h2>

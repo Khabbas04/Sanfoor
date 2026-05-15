@@ -6,10 +6,12 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
-export default function ChaptersIndex({ courses = [] }) {
+export default function ChaptersIndex({ courses }) {
+    // Force props to be arrays even if null is sent from server
+    const safeCourses = Array.isArray(courses) ? courses : [];
     const { isDark } = useTheme();
     const { lang } = useLanguage();
-    
+
     // Safety check for props
     courses = courses || [];
 
@@ -49,13 +51,13 @@ export default function ChaptersIndex({ courses = [] }) {
     };
 
     const filteredCourses = useMemo(() => {
-        if (!search.trim()) return courses;
+        if (!search.trim()) return safeCourses;
         const q = search.toLowerCase();
-        return courses.filter(c =>
+        return safeCourses.filter(c =>
             (c?.name || '').toLowerCase().includes(q) ||
             (c?.code || '').toLowerCase().includes(q)
         );
-    }, [courses, search]);
+    }, [safeCourses, search]);
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const cardHover = isDark ? 'hover:border-indigo-500/50 hover:bg-slate-800' : 'hover:border-indigo-300 hover:shadow-lg';
@@ -72,7 +74,8 @@ export default function ChaptersIndex({ courses = [] }) {
                 <link rel="canonical" href={`${siteUrl}/chapters`} />
             </Head>
 
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 .animate-card { animation: fadeInUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
                 @keyframes expandIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 2000px; } }
