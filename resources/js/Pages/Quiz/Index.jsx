@@ -9,6 +9,11 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 export default function QuizIndex({ courses = [], recentAttempts = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
+    
+    // Safety check for props
+    courses = courses || [];
+    recentAttempts = recentAttempts || [];
+
     const [search, setSearch] = useState('');
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [selectedChapter, setSelectedChapter] = useState(null);

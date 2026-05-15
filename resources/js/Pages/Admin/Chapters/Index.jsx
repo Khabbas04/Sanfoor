@@ -7,6 +7,14 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 export default function AdminChapters({ chapters = [], courses = [], majors = [], filters = {}, stats = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
+    
+    // Safety check for props that might be null
+    chapters = chapters || [];
+    courses = courses || [];
+    majors = majors || [];
+    filters = filters || {};
+    stats = stats || {};
+
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [localSearch, setLocalSearch] = useState(filters.search || '');
@@ -101,20 +109,20 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const handleSubmit = (e) => {
         e.preventDefault();
         if (editingId) {
-            put(route('admin.chapters.update', editingId), { preserveScroll: true, onSuccess: () => { setShowForm(false); reset(); setEditingId(null); } });
+            put(`/admin/chapters/${editingId}`, { preserveScroll: true, onSuccess: () => { setShowForm(false); reset(); setEditingId(null); } });
         } else {
-            post(route('admin.chapters.store'), { preserveScroll: true, onSuccess: () => { setShowForm(false); reset(); } });
+            post('/admin/chapters', { preserveScroll: true, onSuccess: () => { setShowForm(false); reset(); } });
         }
     };
 
-    const handleDelete = (id) => { if (confirm(t.confirmDelete)) router.delete(route('admin.chapters.destroy', id), { preserveScroll: true }); };
+    const handleDelete = (id) => { if (confirm(t.confirmDelete)) router.delete(`/admin/chapters/${id}`, { preserveScroll: true }); };
 
     const applyFilter = (params) => {
         const current = { ...filters, ...params };
         // Reset dependent filters when parent changes
         if ('major_id' in params) { delete current.course_id; }
         Object.keys(current).forEach(k => { if (!current[k]) delete current[k]; });
-        router.get(route('admin.chapters.index'), current, { preserveState: true, preserveScroll: true });
+        router.get('/admin/chapters', current, { preserveState: true, preserveScroll: true });
     };
 
     const handleSearchSubmit = (e) => { e.preventDefault(); applyFilter({ search: localSearch }); };

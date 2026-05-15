@@ -9,6 +9,10 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 export default function ChaptersIndex({ courses = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
+    
+    // Safety check for props
+    courses = courses || [];
+
     const [search, setSearch] = useState('');
     const [expandedCourse, setExpandedCourse] = useState(null);
 

@@ -116,6 +116,26 @@ export default function AdminLayout({ children }) {
         }
     };
 
+    const safeRoute = (name, params) => {
+        try {
+            return route(name, params);
+        } catch (e) {
+            console.warn(`Admin route "${name}" not found.`);
+            const map = {
+                'admin.dashboard': '/admin/dashboard',
+                'admin.courses': '/admin/courses',
+                'admin.chapters.index': '/admin/chapters',
+                'admin.questions.index': '/admin/questions',
+                'admin.structure': '/admin/structure',
+                'admin.students.index': '/admin/students',
+                'admin.logs': '/admin/logs',
+                'admin.settings': '/admin/settings',
+            };
+            return map[name] || '#';
+        }
+    };
+
+
     const currentRouteName = getCurrentRouteName();
     const currentPageTitle = t.pageTitles[currentRouteName] || t.defaultTitle;
 
@@ -257,8 +277,7 @@ export default function AdminLayout({ children }) {
                             </p>
                             {section.items.map((item, index) => {
                                 const active = isRouteActive(item.pattern);
-                                let href = '#';
-                                try { href = item.route === '#' ? '#' : route(item.route); } catch (e) { console.error(`Route ${item.route} not found`); }
+                                const href = item.route === '#' ? '#' : safeRoute(item.route);
 
                                 return (
                                     <Link
