@@ -218,11 +218,11 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                             </Link>
 
-                            <Link href={route('chapters.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('chapters.*') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                            <Link href={route('chapters.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(() => { try { return route().current('chapters.index'); } catch(e) { return false; } })() ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">📖</span> {t.chapters}
                             </Link>
 
-                            <Link href={route('quiz.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('quiz.*') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                            <Link href={route('quiz.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(() => { try { return route().current('quiz.index') || route().current('quiz.start'); } catch(e) { return false; } })() ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                 <span className="transition-transform group-hover:scale-110">❓</span> {t.quiz}
                             </Link>
 
