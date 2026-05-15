@@ -42,6 +42,8 @@ const appName = import.meta.env.VITE_APP_NAME || 'Sanfoor';
 // Use a stable fallback title when a page does not define its own title.
 const defaultTitle = 'سنفور | Sanfoor - المرشد الأكاديمي الذكي';
 
+import ErrorBoundary from '@/Components/ErrorBoundary';
+
 createInertiaApp({
     // Standardize the browser title format for all Inertia pages.
     title: (title) => (title ? `${title} | ${appName}` : defaultTitle),
@@ -92,12 +94,14 @@ createInertiaApp({
         const root = createRoot(el);
 
         root.render(
-            <ThemeProvider>
-                <LanguageProvider>
-                    <GlobalLoader />
-                    <App {...(props || {})} />
-                </LanguageProvider>
-            </ThemeProvider>
+            <ErrorBoundary>
+                <ThemeProvider>
+                    <LanguageProvider>
+                        <GlobalLoader />
+                        <App {...(props || {})} />
+                    </LanguageProvider>
+                </ThemeProvider>
+            </ErrorBoundary>
         );
     },
 
