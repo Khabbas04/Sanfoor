@@ -8,7 +8,18 @@ import AiWidget from '@/Pages/Ai/AiWidget';
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
     const page = usePage();
     const { auth = {} } = page.props || {};
-    const isAdvisorRoute = route().current('ai.advisor');
+    const safeRouteCurrent = (name, pattern) => {
+        try {
+            if (!name || typeof route === 'undefined') return false;
+            return route().current(name, {});
+        } catch (e) {
+            if (pattern && typeof window !== 'undefined') {
+                return window.location.pathname.includes(pattern);
+            }
+            return false;
+        }
+    };
+    const isAdvisorRoute = safeRouteCurrent('ai.advisor', '/ai-advisor');
 
     // Normalize role flags once so the layout can render the correct user actions.
     const role = (auth?.user?.role || '').toLowerCase().trim();
@@ -136,18 +147,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     };
 
     const t = translations[lang];
-
-    const safeRouteCurrent = (name, pattern) => {
-        try {
-            if (!name) return false;
-            return route().current(name);
-        } catch (e) {
-            if (pattern && typeof window !== 'undefined') {
-                return window.location.pathname.includes(pattern);
-            }
-            return false;
-        }
-    };
 
     const safeRoute = (name, params) => {
         try {
@@ -393,7 +392,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             </main>
 
             {/* The floating AI assistant is available only for signed-in users on the welcome page. */}
-            {auth.user && route().current('welcome') && !shouldHideAiWidget && <AiWidget user={auth.user} />}
+            {auth.user && safeRouteCurrent('welcome', '/') && !shouldHideAiWidget && <AiWidget user={auth.user} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
