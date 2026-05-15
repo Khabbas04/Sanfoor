@@ -76,6 +76,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             tree: 'المسار الشجري',
             calc: 'حاسبة التفوّق',
             directory: 'دليل المباني',
+            chapters: 'الشابترز',
+            quiz: 'بنك الأسئلة',
             ai: 'AI Sanfoor',
             dashboard: 'لوحة التحكم',
             profile: 'إعدادات الحساب',
@@ -105,6 +107,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             tree: 'Tree Path',
             calc: 'Success Calc',
             directory: 'Directory',
+            chapters: 'Chapters',
+            quiz: 'Quiz Bank',
             ai: 'AI Sanfoor',
             dashboard: 'Dashboard',
             profile: 'Settings',
@@ -214,6 +218,14 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                             </Link>
 
+                            <Link href={route('chapters.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('chapters.*') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <span className="transition-transform group-hover:scale-110">📖</span> {t.chapters}
+                            </Link>
+
+                            <Link href={route('quiz.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${route().current('quiz.*') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <span className="transition-transform group-hover:scale-110">❓</span> {t.quiz}
+                            </Link>
+
                             <Link href={route('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${route().current('ai.advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
                                 <span className="relative z-10 flex items-center gap-2">
                                     <span className="group-hover:animate-pulse text-base">🤖</span> {t.ai}
@@ -320,6 +332,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <Link onClick={() => setMobileOpen(false)} href={route('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {t.tree}</Link>
                         <Link onClick={() => setMobileOpen(false)} href={route('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📈 {t.calc}</Link>
                         <Link onClick={() => setMobileOpen(false)} href={route('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
+                        <Link onClick={() => setMobileOpen(false)} href={route('chapters.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
+                        <Link onClick={() => setMobileOpen(false)} href={route('quiz.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
                         <Link onClick={() => setMobileOpen(false)} href={route('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-center shadow-lg shadow-indigo-500/30 hover:opacity-90 transition-opacity">🤖 {t.ai}</Link>
                         
                         {auth.user && (

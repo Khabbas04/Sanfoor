@@ -14,7 +14,11 @@ use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use App\Http\Controllers\Admin\AdminContactMessageController;
+use App\Http\Controllers\Admin\AdminChapterController;
+use App\Http\Controllers\Admin\AdminQuestionController;
 use App\Http\Controllers\AdminCollegeController;
+use App\Http\Controllers\ChapterController;
+use App\Http\Controllers\QuizController;
 use App\Models\Course;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -195,6 +199,14 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('campus.directory');
 
+    // Course chapters browsing for students.
+    Route::get('/chapters', [ChapterController::class, 'index'])->name('chapters.index');
+
+    // Quiz and practice system.
+    Route::get('/quiz', [QuizController::class, 'index'])->name('quiz.index');
+    Route::post('/quiz/start', [QuizController::class, 'start'])->name('quiz.start');
+    Route::post('/quiz/submit', [QuizController::class, 'submit'])->name('quiz.submit');
+
     // AI advisor routes, including chat lifecycle operations.
     Route::get('/ai-advisor', [AiAdvisorController::class, 'index'])->name('ai.advisor');
     Route::post('/ai-advisor/chat', [AiAdvisorController::class, 'chat'])->name('ai.advisor.chat');
@@ -296,6 +308,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/contact-messages', [AdminContactMessageController::class, 'index'])->name('contact_messages.index');
         Route::put('/contact-messages/{contactMessage}/status', [AdminContactMessageController::class, 'updateStatus'])->name('contact_messages.update_status');
         Route::delete('/contact-messages/{contactMessage}', [AdminContactMessageController::class, 'destroy'])->name('contact_messages.destroy');
+
+        // Chapter management for admin.
+        Route::get('/chapters', [AdminChapterController::class, 'index'])->name('chapters.index');
+        Route::post('/chapters', [AdminChapterController::class, 'store'])->name('chapters.store');
+        Route::put('/chapters/{chapter}', [AdminChapterController::class, 'update'])->name('chapters.update');
+        Route::delete('/chapters/{chapter}', [AdminChapterController::class, 'destroy'])->name('chapters.destroy');
+
+        // Question management for admin.
+        Route::get('/questions', [AdminQuestionController::class, 'index'])->name('questions.index');
+        Route::post('/questions', [AdminQuestionController::class, 'store'])->name('questions.store');
+        Route::put('/questions/{question}', [AdminQuestionController::class, 'update'])->name('questions.update');
+        Route::delete('/questions/{question}', [AdminQuestionController::class, 'destroy'])->name('questions.destroy');
     });
 });
 
