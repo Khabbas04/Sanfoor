@@ -248,13 +248,13 @@ export default function AdminLayout({ children }) {
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-2xl font-black shadow-xl border border-white/20 relative group overflow-hidden">
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-                            <span className="relative z-10">{auth.user.name?.charAt(0) ?? '?'}</span>
+                            <span className="relative z-10">{auth?.user?.name?.charAt(0) ?? '?'}</span>
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.15em] mb-1">
                                 {isOwner ? 'OWNER' : 'ADMIN'}
                             </p>
-                            <p className="font-black text-[15px] text-white truncate drop-shadow-sm">{auth.user.name ?? ''}</p>
+                            <p className="font-black text-[15px] text-white truncate drop-shadow-sm">{auth?.user?.name ?? ''}</p>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="flex h-2 w-2 relative">
                                     <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

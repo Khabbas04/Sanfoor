@@ -77,7 +77,10 @@ export default function QuizIndex({ courses = [], recentAttempts = [] }) {
     const filteredCourses = useMemo(() => {
         if (!search.trim()) return courses;
         const q = search.toLowerCase();
-        return courses.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q));
+        return courses.filter(c => 
+            (c?.name || '').toLowerCase().includes(q) || 
+            (c?.code || '').toLowerCase().includes(q)
+        );
     }, [courses, search]);
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';

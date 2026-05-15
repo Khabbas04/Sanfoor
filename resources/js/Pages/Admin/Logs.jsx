@@ -123,9 +123,10 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
             return logDay === today;
         }).length;
 
+        const logArray = Array.isArray(logs) ? logs : [];
         const actionTypes = {};
-        logs.forEach((log) => {
-            const action = log.action || 'UNKNOWN';
+        logArray.forEach((log) => {
+            const action = log?.action || 'UNKNOWN';
             actionTypes[action] = (actionTypes[action] || 0) + 1;
         });
 

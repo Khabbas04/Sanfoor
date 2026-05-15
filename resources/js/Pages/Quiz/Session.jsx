@@ -4,7 +4,9 @@ import MainLayout from '@/Layouts/MainLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function QuizSession({ questions = [], course, chapter, mode = 'quiz' }) {
+export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapter, mode = 'quiz' }) {
+    const questions = Array.isArray(questionsProp) ? questionsProp : [];
+    const course = courseProp || { id: 0, name: '' };
     const { isDark } = useTheme();
     const { lang } = useLanguage();
 
