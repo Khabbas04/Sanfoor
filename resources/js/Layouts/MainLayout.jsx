@@ -251,13 +251,24 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                                 </Link>
 
-                                <Link href="/chapters" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('chapters.index', '/chapters') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                    <span className="transition-transform group-hover:scale-110">📖</span> {t.chapters}
-                                </Link>
-
-                                <Link href="/quiz" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('quiz.*', '/quiz') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                    <span className="transition-transform group-hover:scale-110">❓</span> {t.quiz}
-                                </Link>
+                                {/* Academic Content Dropdown */}
+                                <div className="relative group/academic">
+                                    <button className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(safeRouteCurrent('chapters.index') || safeRouteCurrent('quiz.*')) ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                        <span className="transition-transform group-hover:scale-110">📚</span> {lang === 'ar' ? 'المحتوى الأكاديمي' : 'Academic Content'}
+                                        <svg className="w-4 h-4 ml-1 transition-transform group-hover/academic:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
+                                    
+                                    <div className={`absolute top-full pt-2 opacity-0 invisible group-hover/academic:opacity-100 group-hover/academic:visible transition-all duration-200 z-50 ${lang === 'ar' ? 'right-0' : 'left-0'}`}>
+                                        <div className={`w-56 rounded-2xl shadow-xl border p-2 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                                            <Link href="/chapters" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>
+                                                <span>📖</span> {t.chapters}
+                                            </Link>
+                                            <Link href="/quiz" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>
+                                                <span>❓</span> {t.quiz}
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
 
                                 <Link href={safeRoute('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${safeRouteCurrent('ai.advisor', '/ai-advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
                                     <span className="relative z-10 flex items-center gap-2">
@@ -429,6 +440,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <ul className="space-y-2.5">
                                 <li><Link href="/" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.home}</Link></li>
                                 <li><Link href={safeRoute('tree.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.tree}</Link></li>
+                                <li><Link href="/chapters" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.chapters}</Link></li>
+                                <li><Link href="/quiz" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.quiz}</Link></li>
                                 <li><Link href={safeRoute('calculator.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
                                 <li><Link href={safeRoute('ai.advisor')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.ai}</Link></li>
                             </ul>
