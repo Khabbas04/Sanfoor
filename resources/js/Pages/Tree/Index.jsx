@@ -2136,10 +2136,6 @@ export default function Tree({
                                 {isSidebarOpen ? '✕' : '☰'}
                             </button>
 
-                            <Link href={route('dashboard')} className="w-10 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm" title="العودة للوحة التحكم">
-                                🏠
-                            </Link>
-
                             <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
                                 <span>{major_name && `${major_name} • `}{student_name}</span>
                                 <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
@@ -2814,7 +2810,7 @@ export default function Tree({
 }
 
 Tree.layout = page => (
-    <MainLayout hideNavbar hideNavbarOnMobileLandscape hideAiWidgetOnMobileLandscape>
+    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape hideAiWidgetOnMobileLandscape>
         {page}
     </MainLayout>
 );

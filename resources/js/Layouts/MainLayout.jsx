@@ -5,7 +5,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/Ai/AiWidget';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
-export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, hideNavbar = false }) {
+export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
     const page = usePage();
     const { auth } = page.props;
     const isAdvisorRoute = route().current('ai.advisor');
@@ -26,7 +26,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const { isDark, toggleTheme } = useTheme();
     const { lang, toggleLang } = useLanguage();
     const isLandscapeMobile = viewport.width < 1024 && viewport.width >= viewport.height;
-    const shouldHideNav = hideNavbar || (hideNavbarOnMobileLandscape && isLandscapeMobile);
+    const shouldHideNav = hideNavbarOnMobileLandscape && isLandscapeMobile;
     const shouldHideAiWidget = hideAiWidgetOnMobileLandscape && isLandscapeMobile;
 
     // Add the compact navbar style after the user scrolls down.
@@ -175,7 +175,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
             {/* Shared floating navbar used across the public-facing experience. */}
             {!shouldHideNav && (
-                <div className="relative md:fixed md:top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none">
+                <div className={`${absoluteNavbar ? 'absolute' : 'relative md:fixed'} top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none`}>
                     <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[72px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                     <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
