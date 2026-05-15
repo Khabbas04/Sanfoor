@@ -313,7 +313,7 @@ export default function AdminLayout({ children }) {
                 {/* Footer Section */}
                 <div className="p-5 border-t border-white/5 bg-slate-950/60 backdrop-blur-md">
                     <Link
-                        href={route('logout')}
+                        href={safeRoute('logout')}
                         method="post"
                         as="button"
                         className="w-full flex items-center justify-center gap-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 py-4 rounded-2xl hover:bg-rose-600 hover:text-white transition-all font-black text-[11px] group shadow-lg"
@@ -358,7 +358,7 @@ export default function AdminLayout({ children }) {
                             {isDark ? '☀️' : '🌙'}
                         </button>
                         <Link
-                            href={route('dashboard')}
+                            href={safeRoute('dashboard')}
                             className={`hidden sm:flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all shadow-inner active:scale-95 ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white'}`}
                         >
                             <span>👤</span> {t.studentProfile}

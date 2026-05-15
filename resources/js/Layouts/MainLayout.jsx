@@ -8,7 +8,7 @@ import AiWidget from '@/Pages/Ai/AiWidget';
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
     const page = usePage();
     const { auth } = page.props;
-    const isAdvisorRoute = route().current('ai.advisor');
+    const isAdvisorRoute = safeRouteCurrent('ai.advisor', '/ai-advisor');
 
     // Normalize role flags once so the layout can render the correct user actions.
     const role = (auth?.user?.role || '').toLowerCase().trim();
@@ -295,24 +295,22 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                                 <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">📧</div>
                                                 <p className="text-xs font-bold truncate opacity-70">{auth.user.email}</p>
                                             </div>
-                                            {isAdminOrOwner && (
                                                 <>
-                                                    <Link href={route('admin.dashboard')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-black mb-2 ${isDark ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}>
+                                                    <Link href={safeRoute('admin.dashboard')} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-black mb-2 ${isDark ? 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20' : 'text-amber-700 bg-amber-50 hover:bg-amber-100'}`}>
                                                         <span>🛡️</span> {t.admin}
                                                     </Link>
                                                     <div className={`border-b my-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}></div>
                                                 </>
-                                            )}
                                             <div className="space-y-1">
-                                                <Link href={route('dashboard')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
+                                                <Link href={safeRoute('dashboard')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                                                     <span>📊</span> {t.dashboard}
                                                 </Link>
-                                                <Link href={route('profile.edit')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
+                                                <Link href={safeRoute('profile.edit')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                                                     <span>⚙️</span> {t.profile}
                                                 </Link>
                                             </div>
                                             <div className={`border-t my-2 pt-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-                                                <Link href={route('logout')} method="post" as="button" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                                                <Link href={safeRoute('logout')} method="post" as="button" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                                                     <span>👋</span> {t.logout}
                                                 </Link>
                                             </div>
@@ -320,7 +318,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     </div>
                                 </div>
                             ) : (
-                                <Link href={route('login')} className="hidden lg:inline-flex bg-slate-900 dark:bg-indigo-600 text-white px-7 py-2.5 rounded-xl font-black text-[13px] shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all pointer-events-auto">
+                                <Link href={safeRoute('login')} className="hidden lg:inline-flex bg-slate-900 dark:bg-indigo-600 text-white px-7 py-2.5 rounded-xl font-black text-[13px] shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all pointer-events-auto">
                                     {t.login}
                                 </Link>
                             )}
@@ -393,7 +391,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             </main>
 
             {/* The floating AI assistant is available only for signed-in users on the welcome page. */}
-            {auth.user && route().current('welcome') && !shouldHideAiWidget && <AiWidget user={auth.user} />}
+            {auth.user && safeRouteCurrent('welcome', '/') && window.location.pathname === '/' && !shouldHideAiWidget && <AiWidget user={auth.user} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
@@ -414,7 +412,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 max-w-md">
                                 <p className="text-xs font-black text-indigo-200 mb-1">{t.supportCenter}</p>
                                 <p className="text-[12px] text-slate-300 font-bold leading-relaxed">{t.supportHint}</p>
-                                <Link href={route('support.issue.create')} className="mt-3 inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
+                                <Link href={safeRoute('support.issue.create')} className="mt-3 inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
                                     🛠️ {t.reportIssue}
                                 </Link>
                             </div>
@@ -424,27 +422,27 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.studentTools}</h4>
                             <ul className="space-y-2.5">
                                 <li><Link href="/" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.home}</Link></li>
-                                <li><Link href={route('tree.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.tree}</Link></li>
-                                <li><Link href={route('calculator.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
-                                <li><Link href={route('ai.advisor')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.ai}</Link></li>
+                                <li><Link href={safeRoute('tree.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.tree}</Link></li>
+                                <li><Link href={safeRoute('calculator.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
+                                <li><Link href={safeRoute('ai.advisor')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.ai}</Link></li>
                             </ul>
                         </div>
 
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.resources}</h4>
                             <ul className="space-y-2.5">
-                                <li><Link href={route('public.how_it_works')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.howItWorks}</Link></li>
-                                <li><Link href={route('public.faq')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.faq}</Link></li>
-                                <li><Link href={route('public.contact')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.contact}</Link></li>
-                                <li><Link href={route('legal.about')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.about}</Link></li>
+                                <li><Link href={safeRoute('public.how_it_works')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.howItWorks}</Link></li>
+                                <li><Link href={safeRoute('public.faq')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.faq}</Link></li>
+                                <li><Link href={safeRoute('public.contact')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.contact}</Link></li>
+                                <li><Link href={safeRoute('legal.about')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.about}</Link></li>
                             </ul>
                         </div>
 
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.legal}</h4>
                             <ul className="space-y-2.5">
-                                <li><Link href={route('legal.terms')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.terms}</Link></li>
-                                <li><Link href={route('legal.privacy')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.privacy}</Link></li>
+                                <li><Link href={safeRoute('legal.terms')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.terms}</Link></li>
+                                <li><Link href={safeRoute('legal.privacy')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.privacy}</Link></li>
                             </ul>
                         </div>
                     </div>

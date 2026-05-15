@@ -13,7 +13,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 // By defining it outside, its reference never changes, preventing full DOM tear-downs.
 const layoutFunction = (page) => {
     // Use the component name or URL as a unique key for AnimatePresence to track page changes.
-    const key = typeof window !== 'undefined' ? window.location.pathname : page.type.name;
+    const key = typeof window !== 'undefined' 
+        ? window.location.pathname 
+        : (page?.type?.name || page?.type?.displayName || Math.random().toString());
     
     return (
         // Use a CSS grid to overlap the old and new pages during the transition.
