@@ -164,12 +164,17 @@ class QuizController extends Controller
             'answers' => $data['answers'],
         ]);
 
-        return response()->json([
-            'attempt_id' => $attempt->id,
-            'total' => $total,
-            'correct' => $correct,
-            'score_percentage' => $scorePct,
-            'results' => $results,
+        return Inertia::render('Quiz/Session', [
+            'results' => [
+                'attempt_id' => $attempt->id,
+                'total' => $total,
+                'correct' => $correct,
+                'score_percentage' => $scorePct,
+                'results' => $results,
+            ],
+            'questions' => $questions->values(), // Keep questions to allow review
+            'course' => Course::select('id', 'name', 'code')->find($data['course_id']),
+            'mode' => $data['mode'],
         ]);
     }
 }

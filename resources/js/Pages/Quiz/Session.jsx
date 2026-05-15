@@ -105,22 +105,21 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
         if (isPractice) {
             // In practice mode, submit this single answer immediately
             setPracticeRevealed(true);
-            fetch('/quiz/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                body: JSON.stringify({
-                    course_id: course.id,
-                    chapter_id: chapter?.id || null,
-                    mode: 'practice',
-                    answers: { [currentQ.id]: option },
-                    time_spent_seconds: null,
-                }),
-            })
-                .then(r => r.json())
-                .then(data => {
-                    setPracticeResult(data.results?.[currentQ.id] || null);
-                })
-                .catch(() => {});
+            router.post(route('quiz.submit'), {
+                course_id: course.id,
+                chapter_id: chapter?.id || null,
+                mode: 'practice',
+                answers: { [currentQ.id]: option },
+                time_spent_seconds: null,
+            }, {
+                preserveScroll: true,
+                onSuccess: (page) => {
+                    // Results are returned in the props, but for practice we might need a direct check
+                    // If your backend returns JSON for practice, we need to handle it.
+                    // But usually Inertia expects a page.
+                },
+                onError: (errors) => console.error(errors)
+            });
         }
     }, [showResult, isPractice, practiceRevealed, currentQ, course, chapter]);
 
@@ -151,26 +150,22 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
         }
 
         setSubmitting(true);
-        try {
-            const res = await fetch('/quiz/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content },
-                body: JSON.stringify({
-                    course_id: course.id,
-                    chapter_id: chapter?.id || null,
-                    mode: 'quiz',
-                    answers,
-                    time_spent_seconds: elapsed,
-                }),
-            });
-            const data = await res.json();
-            setResults(data);
-            setShowResult(true);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setSubmitting(false);
-        }
+        router.post(route('quiz.submit'), {
+            course_id: course.id,
+            chapter_id: chapter?.id || null,
+            mode: 'quiz',
+            answers,
+            time_spent_seconds: elapsed,
+        }, {
+            onSuccess: (page) => {
+                // The backend should return the results prop
+                if (page.props.results) {
+                    setResults(page.props.results);
+                    setShowResult(true);
+                }
+            },
+            onFinish: () => setSubmitting(false)
+        });
     };
 
     const getScoreMessage = (pct) => {
