@@ -126,26 +126,49 @@ export default function AdminLayout({ children }) {
             ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
             : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400';
 
-    // Sidebar item metadata is centralized here for easier maintenance.
-    const menuItems = [
-        { icon: '📊', name: t.dashboard, route: 'admin.dashboard', pattern: 'admin.dashboard' },
-        { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*' },
-        { icon: '📩', name: t.contactMessages, route: 'admin.contact_messages.index', pattern: 'admin.contact_messages.*' },
-        { icon: '🔥', name: t.demand, route: 'admin.reports.demand', pattern: 'admin.reports.*' },
-        { icon: '📚', name: t.courses, route: 'admin.courses', pattern: 'admin.courses' },
-        { icon: '📖', name: t.chapters, route: 'admin.chapters.index', pattern: 'admin.chapters.*' },
-        { icon: '❓', name: t.questions, route: 'admin.questions.index', pattern: 'admin.questions.*' },
-        { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors' },
-        { icon: '🧩', name: t.collegesDirectory, route: 'admin.colleges.index', pattern: 'admin.colleges.*' },
-        { icon: '🎓', name: lang === 'ar' ? 'إدارة التخصصات' : 'Manage Majors', route: 'admin.majors.index', pattern: 'admin.majors.*' },
-        { icon: '📍', name: t.campusLandmarks, route: 'admin.landmarks.index', pattern: 'admin.landmarks.*' },
-        { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
-        ...(isOwner ? [{ icon: '🕵️', name: lang === 'ar' ? 'سجل المالك' : 'Owner Logs', route: 'admin.owner.logs', pattern: 'admin.owner.logs' }] : []),
-        { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },
-        ...(isOwner
-            ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }]
-            : []),
-        { icon: '⚙️', name: t.settings, route: 'admin.settings', pattern: 'admin.settings' },
+    // Sidebar menu organized into logical sections for clearer navigation.
+    const menuSections = [
+        {
+            label: lang === 'ar' ? 'نظرة عامة' : 'Overview',
+            items: [
+                { icon: '📊', name: t.dashboard, route: 'admin.dashboard', pattern: 'admin.dashboard' },
+                { icon: '🔥', name: t.demand, route: 'admin.reports.demand', pattern: 'admin.reports.*' },
+            ],
+        },
+        {
+            label: lang === 'ar' ? 'المحتوى التعليمي' : 'Content',
+            items: [
+                { icon: '📚', name: t.courses, route: 'admin.courses', pattern: 'admin.courses' },
+                { icon: '📖', name: t.chapters, route: 'admin.chapters.index', pattern: 'admin.chapters.*' },
+                { icon: '❓', name: t.questions, route: 'admin.questions.index', pattern: 'admin.questions.*' },
+            ],
+        },
+        {
+            label: lang === 'ar' ? 'البنية الأكاديمية' : 'Academic',
+            items: [
+                { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors' },
+                { icon: '🧩', name: t.collegesDirectory, route: 'admin.colleges.index', pattern: 'admin.colleges.*' },
+                { icon: '🎓', name: lang === 'ar' ? 'التخصصات' : 'Majors', route: 'admin.majors.index', pattern: 'admin.majors.*' },
+                { icon: '📍', name: t.campusLandmarks, route: 'admin.landmarks.index', pattern: 'admin.landmarks.*' },
+            ],
+        },
+        {
+            label: lang === 'ar' ? 'المستخدمون والدعم' : 'Users & Support',
+            items: [
+                { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },
+                { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*', badge: openIssuesCount },
+                { icon: '📩', name: t.contactMessages, route: 'admin.contact_messages.index', pattern: 'admin.contact_messages.*' },
+                ...(isOwner ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }] : []),
+            ],
+        },
+        {
+            label: lang === 'ar' ? 'النظام' : 'System',
+            items: [
+                { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
+                ...(isOwner ? [{ icon: '🕵️', name: lang === 'ar' ? 'سجل المالك' : 'Owner Logs', route: 'admin.owner.logs', pattern: 'admin.owner.logs' }] : []),
+                { icon: '⚙️', name: t.settings, route: 'admin.settings', pattern: 'admin.settings' },
+            ],
+        },
     ];
 
     // Support pipe-separated route patterns so one item can cover multiple screens.
@@ -154,12 +177,7 @@ export default function AdminLayout({ children }) {
         try {
             const patterns = pattern.split('|').map((p) => p.trim()).filter(Boolean);
             return patterns.some((p) => {
-                // If the pattern already contains wildcard, trust it as-is.
-                if (p.includes('*')) {
-                    return route().current(p);
-                }
-
-                // Match both the exact route and nested routes.
+                if (p.includes('*')) return route().current(p);
                 return route().current(p) || route().current(`${p}.*`);
             });
         } catch (e) {
@@ -228,46 +246,49 @@ export default function AdminLayout({ children }) {
                     </div>
                 </div>
 
-                {/* Render all sidebar links from the menuItems config above. */}
-                <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-2.5 scrollbar-hide">
-                    <p className="px-4 text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-4 mt-2">{t.mainMenu}</p>
-                    {menuItems.map((item, index) => {
-                        const active = isRouteActive(item.pattern);
-                        let href = '#';
-                        try {
-                            href = item.route === '#' ? '#' : route(item.route);
-                        } catch (e) {
-                            console.error(`Route ${item.route} not found`);
-                        }
+                {/* Render sidebar links organized by section */}
+                <nav className="flex-1 overflow-y-auto py-2 px-4 space-y-1 scrollbar-hide">
+                    {menuSections.map((section, sIdx) => (
+                        <div key={sIdx} className={sIdx > 0 ? 'mt-4' : ''}>
+                            <p className="px-4 text-[9px] font-black text-slate-600 uppercase tracking-[0.25em] mb-2 mt-2 flex items-center gap-2">
+                                <span className="flex-1 h-px bg-slate-800"></span>
+                                <span className="shrink-0">{section.label}</span>
+                                <span className="flex-1 h-px bg-slate-800"></span>
+                            </p>
+                            {section.items.map((item, index) => {
+                                const active = isRouteActive(item.pattern);
+                                let href = '#';
+                                try { href = item.route === '#' ? '#' : route(item.route); } catch (e) { console.error(`Route ${item.route} not found`); }
 
-                        return (
-                            <Link
-                                key={index}
-                                href={href}
-                                className={`relative flex items-center gap-4 px-5 py-4 rounded-[1.25rem] transition-all duration-300 group overflow-hidden border
-                                    ${active 
-                                        ? 'text-white border-white/10 shadow-[0_10px_30px_-10px_rgba(79,70,229,0.5)] transform scale-[1.02]' 
-                                        : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent'
-                                    }
-                                `}
-                            >
-                                {active && <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-700"></div>}
-                                
-                                <span className={`relative z-10 text-xl transition-all duration-500 ${active ? 'scale-110 rotate-3' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110'}`}>
-                                    {item.icon}
-                                </span>
-                                <span className={`relative z-10 font-black text-[13px] tracking-wide transition-colors ${active ? 'text-white' : 'group-hover:text-white'}`}>
-                                    {item.name}
-                                </span>
-                                {item.route === 'admin.issues.index' && openIssuesCount > 0 && (
-                                    <span className="relative z-10 mr-auto min-w-[22px] h-[22px] px-1.5 rounded-md bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-[0_0_14px_rgba(244,63,94,0.45)]">
-                                        {openIssuesCount > 99 ? '99+' : openIssuesCount}
-                                    </span>
-                                )}
-                                {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-white rounded-r-full shadow-[0_0_15px_#fff]"></div>}
-                            </Link>
-                        );
-                    })}
+                                return (
+                                    <Link
+                                        key={index}
+                                        href={href}
+                                        className={`relative flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-300 group overflow-hidden border mb-0.5
+                                            ${active 
+                                                ? 'text-white border-white/10 shadow-[0_8px_24px_-8px_rgba(79,70,229,0.5)]' 
+                                                : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent'
+                                            }
+                                        `}
+                                    >
+                                        {active && <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-700"></div>}
+                                        <span className={`relative z-10 text-lg transition-all duration-500 ${active ? 'scale-110' : 'grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110'}`}>
+                                            {item.icon}
+                                        </span>
+                                        <span className={`relative z-10 font-black text-[12px] tracking-wide transition-colors ${active ? 'text-white' : 'group-hover:text-white'}`}>
+                                            {item.name}
+                                        </span>
+                                        {item.badge > 0 && (
+                                            <span className="relative z-10 mr-auto min-w-[20px] h-[20px] px-1 rounded-md bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-[0_0_12px_rgba(244,63,94,0.4)]">
+                                                {item.badge > 99 ? '99+' : item.badge}
+                                            </span>
+                                        )}
+                                        {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-white rounded-r-full shadow-[0_0_12px_#fff]"></div>}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </nav>
 
                 {/* Footer Section */}

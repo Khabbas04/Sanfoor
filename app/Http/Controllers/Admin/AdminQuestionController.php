@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminLog;
 use App\Models\Chapter;
 use App\Models\Course;
+use App\Models\Major;
 use App\Models\Question;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,25 +26,42 @@ class AdminQuestionController extends Controller
     }
 
     /**
-     * Display admin question management page.
+     * Display admin question management page with cascading filters.
      */
     public function index(Request $request): Response
     {
+        $majorId = $request->query('major_id');
         $courseId = $request->query('course_id');
         $chapterId = $request->query('chapter_id');
         $difficulty = $request->query('difficulty');
+        $search = $request->query('search');
 
         $questions = Question::query()
-            ->with('course:id,name,code', 'chapter:id,title')
+            ->with('course:id,name,code,major_id', 'chapter:id,title')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
+            ->when($majorId && !$courseId, function ($q) use ($majorId) {
+                $q->whereHas('course', fn($cq) => $majorId === 'university'
+                    ? $cq->whereNull('major_id')
+                    : $cq->where('major_id', $majorId)
+                );
+            })
             ->when($chapterId, fn($q) => $q->where('chapter_id', $chapterId))
             ->when($difficulty, fn($q) => $q->where('difficulty', $difficulty))
+            ->when($search, function ($q) use ($search) {
+                $q->where('question_text', 'like', "%{$search}%");
+            })
             ->latest()
             ->get();
 
-        $courses = Course::select('id', 'name', 'code')
-            ->orderBy('name')
-            ->get();
+        $majors = Major::select('id', 'name')->orderBy('name')->get();
+
+        $coursesQuery = Course::select('id', 'name', 'code', 'major_id')->orderBy('name');
+        if ($majorId && $majorId !== 'university') {
+            $coursesQuery->where('major_id', $majorId);
+        } elseif ($majorId === 'university') {
+            $coursesQuery->whereNull('major_id');
+        }
+        $courses = $coursesQuery->get();
 
         $chapters = Chapter::select('id', 'title', 'course_id')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
@@ -54,10 +72,19 @@ class AdminQuestionController extends Controller
             'questions' => $questions,
             'courses' => $courses,
             'chapters' => $chapters,
+            'majors' => $majors,
             'filters' => [
+                'major_id' => $majorId,
                 'course_id' => $courseId,
                 'chapter_id' => $chapterId,
                 'difficulty' => $difficulty,
+                'search' => $search,
+            ],
+            'stats' => [
+                'total' => Question::count(),
+                'easy' => Question::where('difficulty', 'easy')->count(),
+                'medium' => Question::where('difficulty', 'medium')->count(),
+                'hard' => Question::where('difficulty', 'hard')->count(),
             ],
         ]);
     }
@@ -82,6 +109,7 @@ class AdminQuestionController extends Controller
         ]);
 
         $data['is_active'] = $data['is_active'] ?? true;
+        if (empty($data['chapter_id'])) $data['chapter_id'] = null;
 
         $question = Question::create($data);
 
@@ -108,6 +136,8 @@ class AdminQuestionController extends Controller
             'difficulty' => 'required|in:easy,medium,hard',
             'is_active' => 'boolean',
         ]);
+
+        if (empty($data['chapter_id'])) $data['chapter_id'] = null;
 
         $question->update($data);
 
