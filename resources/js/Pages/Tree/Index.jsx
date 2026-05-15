@@ -2075,7 +2075,7 @@ export default function Tree({
     );
 
     return (
-        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: isMobile || isFullScreen ? '100dvh' : 'calc(100vh - 80px)' }}>
+        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: '100dvh' }}>
             <Head>
                 <title>{lang === 'ar' ? 'الخطة الشجرية الذكية | سنفور' : 'Smart Course Tree | Sanfoor'}</title>
                 <meta name="description" content={lang === 'ar' ? 'استعرض خطتك الشجرية، تتبع المتطلبات السابقة، وخطط تسجيل المواد بشكل ذكي داخل حسابك.' : 'Visualize your study tree, track prerequisites, and plan your courses smartly inside your account.'} />
@@ -2135,6 +2135,10 @@ export default function Tree({
                             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
                                 {isSidebarOpen ? '✕' : '☰'}
                             </button>
+
+                            <Link href={route('dashboard')} className="w-10 h-10 bg-white border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm" title="العودة للوحة التحكم">
+                                🏠
+                            </Link>
 
                             <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
                                 <span>{major_name && `${major_name} • `}{student_name}</span>
@@ -2241,7 +2245,7 @@ export default function Tree({
                             🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
                         </button>
                         {legendOpen && (
-                            <div className="absolute top-[calc(100%+0.5rem)] left-0 md:left-auto md:right-0 w-[calc(100vw-1rem)] md:w-80 max-w-sm bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50 origin-top" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
+                            <div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 mx-auto md:mx-0 md:right-auto md:left-0 w-[calc(100vw-2rem)] md:w-80 max-w-sm bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50 origin-top" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
                                 <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
                                     {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
@@ -2810,7 +2814,7 @@ export default function Tree({
 }
 
 Tree.layout = page => (
-    <MainLayout hideNavbarOnMobileLandscape hideAiWidgetOnMobileLandscape>
+    <MainLayout hideNavbar hideNavbarOnMobileLandscape hideAiWidgetOnMobileLandscape>
         {page}
     </MainLayout>
 );

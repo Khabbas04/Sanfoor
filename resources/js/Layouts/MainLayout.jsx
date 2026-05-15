@@ -5,7 +5,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/Ai/AiWidget';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
-export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false }) {
+export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, hideNavbar = false }) {
     const page = usePage();
     const { auth } = page.props;
     const isAdvisorRoute = route().current('ai.advisor');
@@ -26,7 +26,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const { isDark, toggleTheme } = useTheme();
     const { lang, toggleLang } = useLanguage();
     const isLandscapeMobile = viewport.width < 1024 && viewport.width >= viewport.height;
-    const shouldHideNav = hideNavbarOnMobileLandscape && isLandscapeMobile;
+    const shouldHideNav = hideNavbar || (hideNavbarOnMobileLandscape && isLandscapeMobile);
     const shouldHideAiWidget = hideAiWidgetOnMobileLandscape && isLandscapeMobile;
 
     // Add the compact navbar style after the user scrolls down.
