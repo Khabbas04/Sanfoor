@@ -7,33 +7,22 @@ import { createRoot } from 'react-dom/client';
 import { LanguageProvider } from '@/Contexts/LanguageContext';
 import { ThemeProvider } from '@/Contexts/ThemeContext';
 import GlobalLoader from '@/Components/GlobalLoader';
-import ErrorBoundary from '@/Components/ErrorBoundary';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Sanfoor';
-const defaultTitle = 'سنفور | Sanfoor - المرشد الأكاديمي الذكي';
 
 createInertiaApp({
-    title: (title) => (title ? `${title} | ${appName}` : defaultTitle),
+    title: (title) => (title ? `${title} | ${appName}` : appName),
     resolve: (name) => resolvePageComponent(`./Pages/${name}.jsx`, import.meta.glob('./Pages/**/*.jsx')),
     setup({ el, App, props }) {
         const root = createRoot(el);
-
-        const element = (
-            <ErrorBoundary>
-                <LanguageProvider>
-                    <ThemeProvider>
-                        <GlobalLoader />
-                        <App {...props} />
-                    </ThemeProvider>
-                </LanguageProvider>
-            </ErrorBoundary>
+        root.render(
+            <LanguageProvider>
+                <ThemeProvider>
+                    <GlobalLoader />
+                    <App {...props} />
+                </ThemeProvider>
+            </LanguageProvider>
         );
-        
-        if (typeof window !== 'undefined') {
-            console.log('%c [Sanfoor Debug] Render Props:', 'background: #222; color: #bada55', props);
-        }
-
-        root.render(element);
     },
     progress: false,
 });
