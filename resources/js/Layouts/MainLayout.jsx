@@ -6,8 +6,10 @@ import AiWidget from '@/Pages/Ai/AiWidget';
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
-    const page = usePage() || { props: {} };
-    const { auth } = page.props || {};
+    const page = usePage();
+    if (!page || !page.props) return null; // Prevent rendering if props aren't ready
+
+    const { auth, admin_notifications, flash } = page.props;
     const safeAuth = auth || {};
     const safeUser = safeAuth?.user || {};
     const safeRouteCurrent = (name, pattern) => {

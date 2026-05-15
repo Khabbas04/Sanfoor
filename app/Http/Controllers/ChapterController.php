@@ -47,7 +47,7 @@ class ChapterController extends Controller
             ->get();
 
         return Inertia::render('Chapters/Index', [
-            'courses' => $courses,
+            'courses' => $courses->toArray(),
         ]);
     }
 }

@@ -23,7 +23,7 @@ createInertiaApp({
                 <LanguageProvider>
                     <ThemeProvider>
                         <GlobalLoader />
-                        <App {...(props || {})} />
+                        <App {...props} />
                     </ThemeProvider>
                 </LanguageProvider>
             </ErrorBoundary>

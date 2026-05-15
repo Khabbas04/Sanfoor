@@ -56,8 +56,8 @@ class QuizController extends Controller
             ->get();
 
         return Inertia::render('Quiz/Index', [
-            'courses' => $courses,
-            'recentAttempts' => $recentAttempts,
+            'courses' => $courses->toArray(),
+            'recentAttempts' => $recentAttempts->toArray(),
         ]);
     }
 
