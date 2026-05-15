@@ -18,7 +18,7 @@ export default function ChaptersIndex({ courses }) {
     const [search, setSearch] = useState('');
     const [expandedCourse, setExpandedCourse] = useState(null);
 
-    const t = {
+    const translations = {
         ar: {
             title: 'شابترز المواد',
             subtitle: 'تصفّح محتوى الشابترز لكل مادة دراسية',
@@ -43,12 +43,8 @@ export default function ChaptersIndex({ courses }) {
             credits: 'credits',
             goToQuiz: 'Start Practice',
         },
-    }[lang] || {
-        title: 'شابترز المواد', subtitle: 'تصفّح محتوى الشابترز لكل مادة دراسية',
-        searchPlaceholder: 'ابحث عن مادة...', chapters: 'شابتر', questions: 'سؤال',
-        noChapters: 'لا توجد شابترز متاحة حالياً.', noResults: 'لا توجد نتائج مطابقة للبحث.',
-        semester: 'الفصل', credits: 'ساعات', goToQuiz: 'ابدأ تدريب',
     };
+    const t = translations[lang] || translations.ar || translations.en || {};
 
     const filteredCourses = useMemo(() => {
         if (!search.trim()) return safeCourses;

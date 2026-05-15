@@ -102,7 +102,7 @@ async function translateDomToEnglish(root = document.body) {
         }
 
         const attrs = originalAttrValues.get(el);
-        if (!(attr in attrs)) {
+        if (attrs && !(attr in attrs)) {
             attrs[attr] = value;
         }
 

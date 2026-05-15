@@ -148,7 +148,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
         }
     };
 
-    const t = translations[lang] || translations.ar;
+    const t = (translations[lang] || translations.ar) || translations.en || {};
 
     const safeRoute = (name, params) => {
         try {
