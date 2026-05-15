@@ -9,7 +9,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const page = usePage() || { props: {} };
     const { auth } = page.props || {};
     const safeAuth = auth || {};
-    const safeUser = safeAuth.user || {};
+    const safeUser = safeAuth?.user || {};
     const safeRouteCurrent = (name, pattern) => {
         try {
             if (!name || typeof route === 'undefined') return false;

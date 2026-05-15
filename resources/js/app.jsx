@@ -18,16 +18,22 @@ createInertiaApp({
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        root.render(
+        const element = (
             <ErrorBoundary>
-                <ThemeProvider>
-                    <LanguageProvider>
+                <LanguageProvider>
+                    <ThemeProvider>
                         <GlobalLoader />
-                        <App {...props} />
-                    </LanguageProvider>
-                </ThemeProvider>
+                        <App {...(props || {})} />
+                    </ThemeProvider>
+                </LanguageProvider>
             </ErrorBoundary>
         );
+        
+        if (typeof window !== 'undefined') {
+            console.log('%c [Sanfoor Debug] Render Props:', 'background: #222; color: #bada55', props);
+        }
+
+        root.render(element);
     },
     progress: false,
 });
