@@ -288,7 +288,7 @@ class AdminController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Index', [
-            'courses' => Course::with(['major', 'prerequisites'])->latest()->get(),
+            'courses' => Course::where('is_quiz_only', false)->with(['major', 'prerequisites'])->latest()->get(),
             // 🔥 تم إزالة universities بناءً على طلبك 🔥
             'colleges' => College::all(),
             'majors' => Major::all(),

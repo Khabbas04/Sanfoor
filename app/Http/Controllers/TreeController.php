@@ -95,6 +95,7 @@ class TreeController extends Controller
             ->groupBy('course_id');
 
         $query = Course::query()
+            ->where('is_quiz_only', false)
             ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
                 $join->on('courses.id', '=', 'course_stats.course_id');
             })

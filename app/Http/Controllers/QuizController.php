@@ -31,6 +31,7 @@ class QuizController extends Controller
                        ->orWhere('code', 'like', "%{$search}%");
                 });
             })
+            ->where('is_quiz_only', true)
             ->whereHas('questions', function ($q) {
                 $q->where('is_active', true);
             })
