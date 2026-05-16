@@ -22,9 +22,6 @@ class QuizController extends Controller
         $user = Auth::user();
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
         $search = $request->query('search');
-        $collegeId = $request->query('college_id');
-        $majorId = $request->query('major_id');
-        $studyPlan = $request->query('study_plan');
 
         $courses = Course::query()
             ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id', 'study_plan_version')
@@ -43,18 +40,6 @@ class QuizController extends Controller
                        ->orWhere('code', 'like', "%{$search}%");
                 });
             })
-            ->when($collegeId, function ($q) use ($collegeId) {
-                $q->whereHas('major', fn($mq) => $mq->where('college_id', $collegeId));
-            })
-            ->when($majorId && $majorId !== 'university', function ($q) use ($majorId) {
-                $q->where('major_id', $majorId);
-            })
-            ->when($majorId === 'university', function ($q) {
-                $q->whereNull('major_id');
-            })
-            ->when($studyPlan, function ($q) use ($studyPlan) {
-                $q->where('study_plan_version', $studyPlan);
-            })
             ->whereHas('questions', function ($q) {
                 $q->where('is_active', true);
             })
@@ -72,14 +57,6 @@ class QuizController extends Controller
             ->orderBy('name')
             ->get();
 
-        $majors = Major::select('id', 'name', 'college_id')->orderBy('name')->get();
-        $colleges = College::select('id', 'name')->orderBy('name')->get();
-        $studyPlans = Course::select('study_plan_version')
-            ->distinct()
-            ->whereNotNull('study_plan_version')
-            ->orderBy('study_plan_version', 'desc')
-            ->pluck('study_plan_version');
-
         // Get the student's recent attempts for stats.
         $recentAttempts = QuizAttempt::where('user_id', $user->id)
             ->with('course:id,name,code', 'chapter:id,title')
@@ -89,15 +66,9 @@ class QuizController extends Controller
 
         return Inertia::render('Quiz/Index', [
             'courses' => $courses,
-            'majors' => $majors,
-            'colleges' => $colleges,
-            'studyPlans' => $studyPlans,
             'recentAttempts' => $recentAttempts,
             'filters' => [
                 'search' => $search,
-                'college_id' => $collegeId,
-                'major_id' => $majorId,
-                'study_plan' => $studyPlan,
             ],
         ]);
     }

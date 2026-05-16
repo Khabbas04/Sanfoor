@@ -4,7 +4,7 @@ import MainLayout from '@/Layouts/MainLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function QuizIndex({ courses = [], majors = [], colleges = [], studyPlans = [], filters = {}, recentAttempts = [] }) {
+export default function QuizIndex({ courses = [], filters = {}, recentAttempts = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     
@@ -27,9 +27,6 @@ export default function QuizIndex({ courses = [], majors = [], colleges = [], st
         modeQuiz: 'كويز',
         modePractice: 'تدريب',
         all: 'الكل',
-        college: 'الكلية',
-        major: 'التخصص',
-        studyPlan: 'الخطة',
     } : {
         title: 'Question Bank',
         subtitle: 'Test yourself with Quiz or Practice modes',
@@ -44,24 +41,13 @@ export default function QuizIndex({ courses = [], majors = [], colleges = [], st
         modeQuiz: 'Quiz',
         modePractice: 'Practice',
         all: 'All',
-        college: 'College',
-        major: 'Major',
-        studyPlan: 'Plan',
     };
 
     const applyFilter = (params) => {
         const current = { ...filters, ...params };
-        // Reset dependent filters
-        if ('college_id' in params) { delete current.major_id; }
-        
         Object.keys(current).forEach(k => { if (!current[k]) delete current[k]; });
         router.get(route('quiz.index'), current, { preserveState: true, preserveScroll: true });
     };
-
-    const filterMajors = useMemo(() => {
-        if (!filters.college_id) return majors;
-        return majors.filter(m => String(m.college_id) === String(filters.college_id));
-    }, [majors, filters.college_id]);
 
     const handleStart = (mode) => {
         if (!selectedCourse) return;
@@ -88,38 +74,24 @@ export default function QuizIndex({ courses = [], majors = [], colleges = [], st
                     <p className={`text-lg font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
                 </div>
 
-                {/* Filters Row */}
-                <div className={`mb-12 rounded-[2rem] border p-6 ${card}`}>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <select value={filters.college_id || ''} onChange={e => applyFilter({ college_id: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.college}</option>
-                            {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-
-                        <select value={filters.major_id || ''} onChange={e => applyFilter({ major_id: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.major}</option>
-                            <option value="university">{lang === 'ar' ? 'مواد جامعة' : 'University'}</option>
-                            {filterMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
-
-                        <select value={filters.study_plan || ''} onChange={e => applyFilter({ study_plan: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.studyPlan}</option>
-                            {studyPlans.map(v => <option key={v} value={v}>{v}</option>)}
-                        </select>
-
-                        <div className="relative">
-                            <span className={`absolute ${lang === 'ar' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 opacity-40`}>🔍</span>
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onBlur={() => applyFilter({ search })}
-                                onKeyDown={e => e.key === 'Enter' && applyFilter({ search })}
-                                placeholder={t.searchPlaceholder}
-                                className={`${inputCls} ${lang === 'ar' ? 'pr-11' : 'pl-11'}`}
-                            />
-                        </div>
+                {/* Search Row */}
+                <div className="mb-12 max-w-2xl mx-auto relative group">
+                    <div className={`absolute ${lang === 'ar' ? 'right-5' : 'left-5'} inset-y-0 flex items-center pointer-events-none text-xl opacity-40 group-focus-within:opacity-100 transition-opacity`}>
+                        🔍
                     </div>
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onBlur={() => applyFilter({ search })}
+                        onKeyDown={e => e.key === 'Enter' && applyFilter({ search })}
+                        placeholder={t.searchPlaceholder}
+                        className={`w-full ${lang === 'ar' ? 'pr-14 pl-6' : 'pl-14 pr-6'} py-5 rounded-[2rem] border-2 transition-all outline-none font-bold text-lg ${
+                            isDark 
+                                ? 'bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500/50 focus:bg-slate-900' 
+                                : 'bg-white border-slate-100 text-slate-900 focus:border-indigo-500/30 shadow-xl shadow-indigo-500/5'
+                        }`}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
