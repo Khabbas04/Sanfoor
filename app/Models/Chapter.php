@@ -15,6 +15,7 @@ class Chapter extends Model
         'course_id',
         'title',
         'description',
+        'google_drive_link',
         'order',
         'is_active',
     ];

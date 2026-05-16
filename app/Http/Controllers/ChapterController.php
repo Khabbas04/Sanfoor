@@ -48,7 +48,9 @@ class ChapterController extends Controller
                 $q->where('is_active', true);
             }])
             ->with(['chapters' => function ($q) {
-                $q->where('is_active', true)->orderBy('order');
+                $q->select('id', 'course_id', 'title', 'description', 'google_drive_link', 'order', 'is_active')
+                  ->where('is_active', true)
+                  ->orderBy('order');
             }])
             ->orderBy('semester')
             ->orderBy('name')
