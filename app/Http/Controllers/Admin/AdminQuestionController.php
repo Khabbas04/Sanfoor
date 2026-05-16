@@ -10,6 +10,7 @@ use App\Models\Major;
 use App\Models\Question;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -76,8 +77,8 @@ class AdminQuestionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'course_id' => 'required|exists:courses,id',
-            'chapter_id' => 'nullable|exists:chapters,id',
+            'course_name' => 'required|string|max:255',
+            'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
             'option_b' => 'required|string|max:1000',
@@ -89,12 +90,42 @@ class AdminQuestionController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $data['is_active'] = $data['is_active'] ?? true;
-        if (empty($data['chapter_id'])) $data['chapter_id'] = null;
+        // Find or create course
+        $course = Course::firstOrCreate(
+            ['name' => $data['course_name']],
+            [
+                'code' => 'M-' . strtoupper(Str::random(6)),
+                'credit_hours' => 3,
+                'type' => 'compulsory',
+                'semester' => 1
+            ]
+        );
 
-        $question = Question::create($data);
+        // Find or create chapter if title provided
+        $chapterId = null;
+        if (!empty($data['chapter_title'])) {
+            $chapter = Chapter::firstOrCreate(
+                ['course_id' => $course->id, 'title' => $data['chapter_title']],
+                ['is_active' => true, 'order' => 0]
+            );
+            $chapterId = $chapter->id;
+        }
 
-        $this->logAction('CREATE_QUESTION', "تم إنشاء سؤال #{$question->id} للمادة #{$data['course_id']}");
+        $question = Question::create([
+            'course_id' => $course->id,
+            'chapter_id' => $chapterId,
+            'question_text' => $data['question_text'],
+            'option_a' => $data['option_a'],
+            'option_b' => $data['option_b'],
+            'option_c' => $data['option_c'],
+            'option_d' => $data['option_d'],
+            'correct_option' => $data['correct_option'],
+            'explanation' => $data['explanation'],
+            'difficulty' => $data['difficulty'],
+            'is_active' => $data['is_active'] ?? true,
+        ]);
+
+        $this->logAction('CREATE_QUESTION', "تم إنشاء سؤال #{$question->id} للمادة: {$course->name}");
 
         return back()->with(['message' => 'تم إضافة السؤال بنجاح.', 'type' => 'success']);
     }
@@ -105,8 +136,8 @@ class AdminQuestionController extends Controller
     public function update(Request $request, Question $question): RedirectResponse
     {
         $data = $request->validate([
-            'course_id' => 'required|exists:courses,id',
-            'chapter_id' => 'nullable|exists:chapters,id',
+            'course_name' => 'required|string|max:255',
+            'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
             'option_b' => 'required|string|max:1000',
@@ -118,9 +149,40 @@ class AdminQuestionController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        if (empty($data['chapter_id'])) $data['chapter_id'] = null;
+        // Find or create course
+        $course = Course::firstOrCreate(
+            ['name' => $data['course_name']],
+            [
+                'code' => 'M-' . strtoupper(Str::random(6)),
+                'credit_hours' => 3,
+                'type' => 'compulsory',
+                'semester' => 1
+            ]
+        );
 
-        $question->update($data);
+        // Find or create chapter
+        $chapterId = null;
+        if (!empty($data['chapter_title'])) {
+            $chapter = Chapter::firstOrCreate(
+                ['course_id' => $course->id, 'title' => $data['chapter_title']],
+                ['is_active' => true, 'order' => 0]
+            );
+            $chapterId = $chapter->id;
+        }
+
+        $question->update([
+            'course_id' => $course->id,
+            'chapter_id' => $chapterId,
+            'question_text' => $data['question_text'],
+            'option_a' => $data['option_a'],
+            'option_b' => $data['option_b'],
+            'option_c' => $data['option_c'],
+            'option_d' => $data['option_d'],
+            'correct_option' => $data['correct_option'],
+            'explanation' => $data['explanation'],
+            'difficulty' => $data['difficulty'],
+            'is_active' => $data['is_active'] ?? true,
+        ]);
 
         $this->logAction('UPDATE_QUESTION', "تم تعديل سؤال #{$question->id}");
 

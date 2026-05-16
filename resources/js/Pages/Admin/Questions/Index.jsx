@@ -53,9 +53,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         totalQuestions: 'إجمالي الأسئلة',
         university: 'مواد الجامعة',
         selectMajor: 'اختر التخصص',
-        selectCourse: 'اختر المادة',
-        selectChapter: 'بدون شابتر',
-        noChapter: 'عام',
+        course: 'المادة (اسم يدوياً)',
+        selectCourse: 'ابحث عن مادة...',
+        newCourse: 'مادة جديدة',
         allDifficulties: 'كل الصعوبات',
         correct: 'الصحيحة',
         hidden: 'مخفي',
@@ -93,9 +93,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         totalQuestions: 'Total Questions',
         university: 'University Courses',
         selectMajor: 'Select major',
-        selectCourse: 'Select course',
-        selectChapter: 'No chapter',
-        noChapter: 'General',
+        course: 'Course (Manual name)',
+        selectCourse: 'Search course...',
+        newCourse: 'New Course',
         allDifficulties: 'All difficulties',
         correct: 'Correct',
         hidden: 'Hidden',
@@ -108,8 +108,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const inputCls = `w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition-all focus:ring-2 focus:ring-indigo-500/30 ${isDark ? 'bg-slate-900/60 border-slate-700 text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`;
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
-        course_id: '',
-        chapter_id: '',
+        course_name: '',
+        chapter_title: '',
         question_text: '',
         option_a: '',
         option_b: '',
@@ -121,17 +121,13 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         is_active: true,
     });
 
-    // Filtered chapters for the form dropdown based on selected course
-    const formChapters = useMemo(() => {
-        if (!data.course_id) return [];
-        return chapters.filter(ch => String(ch.course_id) === String(data.course_id));
-    }, [data.course_id, chapters]);
+
 
     const openCreate = () => { reset(); setEditingId(null); setShowForm(true); };
     const openEdit = (q) => {
         setData({
-            course_id: q.course_id,
-            chapter_id: q.chapter_id || '',
+            course_name: q.course?.name || '',
+            chapter_title: q.chapter?.title || '',
             question_text: q.question_text,
             option_a: q.option_a,
             option_b: q.option_b,
@@ -242,22 +238,33 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
                         </div>
 
-                        {/* Row 1: Course, Chapter, Difficulty */}
+                        {/* Row 1: Course Name, Chapter Title, Difficulty */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
-                                <select value={data.course_id} onChange={e => { setData('course_id', e.target.value); setData('chapter_id', ''); }} className={inputCls} required>
-                                    <option value="">— {t.selectCourse} —</option>
-                                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                                {errors.course_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_id}</p>}
+                                <input 
+                                    type="text" 
+                                    value={data.course_name} 
+                                    onChange={e => setData('course_name', e.target.value)} 
+                                    className={inputCls} 
+                                    required 
+                                    placeholder="مثلاً: برمجة 1..."
+                                    list="existing-courses"
+                                />
+                                <datalist id="existing-courses">
+                                    {courses.map(c => <option key={c.id} value={c.name} />)}
+                                </datalist>
+                                {errors.course_name && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_name}</p>}
                             </div>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.chapter}</label>
-                                <select value={data.chapter_id} onChange={e => setData('chapter_id', e.target.value)} className={inputCls}>
-                                    <option value="">{t.selectChapter}</option>
-                                    {formChapters.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
-                                </select>
+                                <input 
+                                    type="text" 
+                                    value={data.chapter_title} 
+                                    onChange={e => setData('chapter_title', e.target.value)} 
+                                    className={inputCls} 
+                                    placeholder="اختياري: اسم الشابتر..."
+                                />
                             </div>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.difficulty} *</label>
