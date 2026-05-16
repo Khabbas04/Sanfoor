@@ -15,10 +15,11 @@ class ChapterController extends Controller
      * Display the chapters browsing page for students.
      * Lists all courses that have active chapters.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
+        $search = $request->query('search');
 
         $courses = Course::query()
             ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
@@ -29,6 +30,13 @@ class ChapterController extends Controller
                 })->orWhere(function ($q) use ($studyPlanVersion) {
                     $q->whereNull('major_id')
                       ->where('study_plan_version', $studyPlanVersion);
+                });
+            })
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%{$search}%")
+                       ->orWhere('code', 'like', "%{$search}%")
+                       ->orWhereHas('chapters', fn($chq) => $chq->where('title', 'like', "%{$search}%"));
                 });
             })
             ->whereHas('chapters', function ($q) {
@@ -47,7 +55,10 @@ class ChapterController extends Controller
             ->get();
 
         return Inertia::render('Chapters/Index', [
-            'courses' => $courses->toArray(),
+            'courses' => $courses,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 }

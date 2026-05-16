@@ -89,6 +89,7 @@ class AdminChapterController extends Controller
             'course_id' => 'required|exists:courses,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
+            'google_drive_link' => 'nullable|url|max:255',
             'order' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
         ]);
@@ -111,6 +112,7 @@ class AdminChapterController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
+            'google_drive_link' => 'nullable|url|max:255',
             'order' => 'nullable|integer|min:0',
             'is_active' => 'boolean',
         ]);

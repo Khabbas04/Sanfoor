@@ -28,6 +28,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         description: 'الوصف (اختياري)',
         order: 'الترتيب',
         active: 'مفعّل',
+        googleDriveLink: 'رابط قوقل درايف (تحميل الشابتر)',
         save: 'حفظ',
         update: 'تحديث',
         cancel: 'إلغاء',
@@ -55,6 +56,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         description: 'Description (optional)',
         order: 'Order',
         active: 'Active',
+        googleDriveLink: 'Google Drive Link (Download)',
         save: 'Save',
         update: 'Update',
         cancel: 'Cancel',
@@ -84,6 +86,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         course_id: '',
         title: '',
         description: '',
+        google_drive_link: '',
         order: 0,
         is_active: true,
     });
@@ -101,7 +104,14 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
 
     const openCreate = () => { reset(); setEditingId(null); setShowForm(true); };
     const openEdit = (chapter) => {
-        setData({ course_id: chapter.course_id, title: chapter.title, description: chapter.description || '', order: chapter.order, is_active: chapter.is_active });
+        setData({ 
+            course_id: chapter.course_id, 
+            title: chapter.title, 
+            description: chapter.description || '', 
+            google_drive_link: chapter.google_drive_link || '',
+            order: chapter.order, 
+            is_active: chapter.is_active 
+        });
         setEditingId(chapter.id);
         setShowForm(true);
     };
@@ -224,6 +234,12 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             <textarea value={data.description} onChange={e => setData('description', e.target.value)} rows={2} className={inputCls} placeholder="وصف مختصر لمحتوى الشابتر..." />
                         </div>
 
+                        <div>
+                            <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.googleDriveLink}</label>
+                            <input type="url" value={data.google_drive_link} onChange={e => setData('google_drive_link', e.target.value)} className={inputCls} placeholder="https://drive.google.com/..." />
+                            {errors.google_drive_link && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.google_drive_link}</p>}
+                        </div>
+
                         <div className="flex items-center gap-6">
                             <div className="w-28">
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.order}</label>
@@ -290,6 +306,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                         {chapter.description && <span className={`text-[10px] font-bold truncate max-w-[200px] ${subtext}`}>{chapter.description}</span>}
                                                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-violet-500/15 text-violet-400' : 'bg-violet-50 text-violet-700'}`}>{chapter.questions_count || 0} {t.questions}</span>
+                                                        {chapter.google_drive_link && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-blue-500/15 text-blue-400' : 'bg-blue-50 text-blue-700'}`}>🔗 Drive</span>}
                                                         {!chapter.is_active && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-700'}`}>{t.hidden}</span>}
                                                     </div>
                                                 </div>
