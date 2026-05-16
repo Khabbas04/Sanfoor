@@ -4,16 +4,18 @@ import MainLayout from '@/Layouts/MainLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapter, mode = 'quiz', results: resultsProp }) {
+export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapter: chapterProp, mode: modeProp = 'quiz', results: resultsProp = null }) {
     const questions = Array.isArray(questionsProp) ? questionsProp : [];
     const course = courseProp || { id: 0, name: 'Course' };
+    const chapter = chapterProp || null;
+    const mode = modeProp || 'quiz';
     const { isDark } = useTheme();
     const { lang } = useLanguage();
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState({});
     const [showResult, setShowResult] = useState(false);
-    const [results, setResults] = useState(resultsProp || null);
+    const [results, setResults] = useState(resultsProp);
     const [submitting, setSubmitting] = useState(false);
     const [startTime] = useState(Date.now());
     const [elapsed, setElapsed] = useState(0);
@@ -23,7 +25,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
 
     const isPractice = mode === 'practice';
     const total = questions.length;
-    const currentQ = questions[currentIndex];
+    const currentQ = questions[currentIndex] || {};
 
     const t = lang === 'ar' ? {
         quizTitle: 'كويز',
@@ -97,7 +99,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
     };
 
     const selectOption = useCallback((option) => {
-        if (showResult) return;
+        if (showResult || !currentQ?.id) return;
         if (isPractice && practiceRevealed) return;
 
         setAnswers(prev => ({ ...prev, [currentQ.id]: option }));
@@ -145,7 +147,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
     };
 
     const handleSubmit = async () => {
-        const answeredCount = Object.keys(answers).length;
+        const answeredCount = Object.keys(answers || {}).length;
         if (answeredCount < total) {
             if (!confirm(t.unanswered)) return;
         }
