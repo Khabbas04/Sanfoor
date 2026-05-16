@@ -440,6 +440,30 @@ export default function Welcome({ auth }) {
                                     accentBg: 'bg-emerald-50',
                                     delay: 300,
                                 },
+                                {
+                                    icon: "📚",
+                                    title: 'الشباتر الدراسية',
+                                    desc: 'شروحات مركزة لكل فصل مع أمثلة وتمارين تساعدك تراجع وتثبت المعلومة بسرعة.',
+                                    gradient: 'from-amber-500 to-orange-500',
+                                    accentBg: 'bg-amber-50',
+                                    delay: 450,
+                                },
+                                {
+                                    icon: "📝",
+                                    title: 'بنك الأسئلة',
+                                    desc: 'تجميعة أسئلة مختارة وتمارين متدرجة عشان تختبر نفسك قبل الامتحان بثقة.',
+                                    gradient: 'from-sky-500 to-indigo-500',
+                                    accentBg: 'bg-sky-50',
+                                    delay: 600,
+                                },
+                                {
+                                    icon: "🏫",
+                                    title: 'دليل الكليات',
+                                    desc: 'اعرف مباني الكليات ومواقعها والخدمات القريبة منها عبر دليل واضح وسهل التصفح.',
+                                    gradient: 'from-purple-500 to-fuchsia-500',
+                                    accentBg: 'bg-purple-50',
+                                    delay: 750,
+                                },
                             ].map((f, i) => (
                                 <div
                                     key={i}
