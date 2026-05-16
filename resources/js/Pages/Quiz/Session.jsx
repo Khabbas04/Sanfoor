@@ -4,16 +4,16 @@ import MainLayout from '@/Layouts/MainLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapter, mode = 'quiz' }) {
+export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapter, mode = 'quiz', results: resultsProp }) {
     const questions = Array.isArray(questionsProp) ? questionsProp : [];
-    const course = courseProp || { id: 0, name: '' };
+    const course = courseProp || { id: 0, name: 'Course' };
     const { isDark } = useTheme();
     const { lang } = useLanguage();
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState({});
     const [showResult, setShowResult] = useState(false);
-    const [results, setResults] = useState(null);
+    const [results, setResults] = useState(resultsProp || null);
     const [submitting, setSubmitting] = useState(false);
     const [startTime] = useState(Date.now());
     const [elapsed, setElapsed] = useState(0);
@@ -113,10 +113,11 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                 time_spent_seconds: null,
             }, {
                 preserveScroll: true,
+                preserveState: true,
                 onSuccess: (page) => {
-                    // Results are returned in the props, but for practice we might need a direct check
-                    // If your backend returns JSON for practice, we need to handle it.
-                    // But usually Inertia expects a page.
+                    if (page.props.results?.results?.[currentQ.id]) {
+                        setPracticeResult(page.props.results.results[currentQ.id]);
+                    }
                 },
                 onError: (errors) => console.error(errors)
             });
@@ -158,7 +159,6 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
             time_spent_seconds: elapsed,
         }, {
             onSuccess: (page) => {
-                // The backend should return the results prop
                 if (page.props.results) {
                     setResults(page.props.results);
                     setShowResult(true);

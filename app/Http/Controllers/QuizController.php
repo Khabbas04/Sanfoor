@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\College;
 use App\Models\Course;
+use App\Models\Major;
 use App\Models\Question;
 use App\Models\QuizAttempt;
 use Illuminate\Http\Request;
@@ -15,13 +17,17 @@ class QuizController extends Controller
     /**
      * Display the quiz hub page listing courses that have questions.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $user = Auth::user();
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
+        $search = $request->query('search');
+        $collegeId = $request->query('college_id');
+        $majorId = $request->query('major_id');
+        $studyPlan = $request->query('study_plan');
 
         $courses = Course::query()
-            ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
+            ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id', 'study_plan_version')
             ->where(function ($query) use ($user, $studyPlanVersion) {
                 $query->where(function ($q) use ($user, $studyPlanVersion) {
                     $q->where('major_id', $user->major_id)
@@ -30,6 +36,24 @@ class QuizController extends Controller
                     $q->whereNull('major_id')
                       ->where('study_plan_version', $studyPlanVersion);
                 });
+            })
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%{$search}%")
+                       ->orWhere('code', 'like', "%{$search}%");
+                });
+            })
+            ->when($collegeId, function ($q) use ($collegeId) {
+                $q->whereHas('major', fn($mq) => $mq->where('college_id', $collegeId));
+            })
+            ->when($majorId && $majorId !== 'university', function ($q) use ($majorId) {
+                $q->where('major_id', $majorId);
+            })
+            ->when($majorId === 'university', function ($q) {
+                $q->whereNull('major_id');
+            })
+            ->when($studyPlan, function ($q) use ($studyPlan) {
+                $q->where('study_plan_version', $studyPlan);
             })
             ->whereHas('questions', function ($q) {
                 $q->where('is_active', true);
@@ -48,6 +72,14 @@ class QuizController extends Controller
             ->orderBy('name')
             ->get();
 
+        $majors = Major::select('id', 'name', 'college_id')->orderBy('name')->get();
+        $colleges = College::select('id', 'name')->orderBy('name')->get();
+        $studyPlans = Course::select('study_plan_version')
+            ->distinct()
+            ->whereNotNull('study_plan_version')
+            ->orderBy('study_plan_version', 'desc')
+            ->pluck('study_plan_version');
+
         // Get the student's recent attempts for stats.
         $recentAttempts = QuizAttempt::where('user_id', $user->id)
             ->with('course:id,name,code', 'chapter:id,title')
@@ -56,8 +88,17 @@ class QuizController extends Controller
             ->get();
 
         return Inertia::render('Quiz/Index', [
-            'courses' => $courses->toArray(),
-            'recentAttempts' => $recentAttempts->toArray(),
+            'courses' => $courses,
+            'majors' => $majors,
+            'colleges' => $colleges,
+            'studyPlans' => $studyPlans,
+            'recentAttempts' => $recentAttempts,
+            'filters' => [
+                'search' => $search,
+                'college_id' => $collegeId,
+                'major_id' => $majorId,
+                'study_plan' => $studyPlan,
+            ],
         ]);
     }
 
