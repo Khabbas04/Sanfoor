@@ -25,7 +25,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const t = lang === 'ar' ? {
         title: 'إدارة الأسئلة',
         addQuestion: 'إضافة سؤال',
-        course: 'المادة',
+
         major: 'التخصص',
         chapter: 'الشابتر',
         questionText: 'نص السؤال',
@@ -66,7 +66,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     } : {
         title: 'Manage Questions',
         addQuestion: 'Add Question',
-        course: 'Course',
+
         major: 'Major',
         chapter: 'Chapter',
         questionText: 'Question text',
