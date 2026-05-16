@@ -23,7 +23,7 @@ class ChapterController extends Controller
 
         $courses = Course::query()
             ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
-            ->where('is_quiz_only', true)
+            ->where('is_quiz_only', 1)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sq) use ($search) {
                     $sq->where('name', 'like', "%{$search}%")

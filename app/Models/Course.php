@@ -19,7 +19,7 @@ class Course extends Model
                 $query->whereHas('major', function ($q) {
                     $q->where('college_id', 1);
                 })->orWhereNull('major_id')
-                  ->orWhere('is_quiz_only', true);
+                  ->orWhere('is_quiz_only', 1);
             });
         });
     }

@@ -49,8 +49,8 @@ class AdminQuestionController extends Controller
             ->latest()
             ->get();
 
-        $courses = Course::where('is_quiz_only', true)->select('id', 'name', 'code')->orderBy('name')->get();
-        $chapters = Chapter::whereHas('course', function($q) { $q->where('is_quiz_only', true); })->select('id', 'title', 'course_id')->orderBy('order')->get();
+        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code')->orderBy('name')->get();
+        $chapters = Chapter::whereHas('course', function($q) { $q->where('is_quiz_only', 1); })->select('id', 'title', 'course_id')->orderBy('order')->get();
 
         return Inertia::render('Admin/Questions/Index', [
             'questions' => $questions,
@@ -96,7 +96,7 @@ class AdminQuestionController extends Controller
             ['name' => $data['course_name']],
             [
                 'code' => $data['course_code'],
-                'is_quiz_only' => true,
+                'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
                 'semester' => 1
@@ -157,7 +157,7 @@ class AdminQuestionController extends Controller
             ['name' => $data['course_name']],
             [
                 'code' => $data['course_code'],
-                'is_quiz_only' => true,
+                'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
                 'semester' => 1
