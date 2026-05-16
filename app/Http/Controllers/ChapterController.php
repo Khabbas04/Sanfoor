@@ -23,15 +23,7 @@ class ChapterController extends Controller
 
         $courses = Course::query()
             ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
-            ->where(function ($query) use ($user, $studyPlanVersion) {
-                $query->where(function ($q) use ($user, $studyPlanVersion) {
-                    $q->where('major_id', $user->major_id)
-                      ->where('study_plan_version', $studyPlanVersion);
-                })->orWhere(function ($q) use ($studyPlanVersion) {
-                    $q->whereNull('major_id')
-                      ->where('study_plan_version', $studyPlanVersion);
-                });
-            })
+            ->where('is_quiz_only', true)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sq) use ($search) {
                     $sq->where('name', 'like', "%{$search}%")
