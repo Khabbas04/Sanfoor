@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminLog;
+use App\Models\College;
 use App\Models\Chapter;
 use App\Models\Course;
 use App\Models\Major;
@@ -53,9 +54,16 @@ class AdminChapterController extends Controller
             ->orderBy('order')
             ->get();
 
-        $majors = Major::select('id', 'name')->orderBy('name')->get();
+        $majors = Major::select('id', 'name', 'college_id')->orderBy('name')->get();
+        $colleges = College::select('id', 'name')->orderBy('name')->get();
+        
+        $studyPlans = Course::select('study_plan_version')
+            ->distinct()
+            ->whereNotNull('study_plan_version')
+            ->orderBy('study_plan_version', 'desc')
+            ->pluck('study_plan_version');
 
-        $coursesQuery = Course::select('id', 'name', 'code', 'major_id')->orderBy('name');
+        $coursesQuery = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name');
         if ($majorId && $majorId !== 'university') {
             $coursesQuery->where('major_id', $majorId);
         } elseif ($majorId === 'university') {
@@ -67,10 +75,14 @@ class AdminChapterController extends Controller
             'chapters' => $chapters,
             'courses' => $courses,
             'majors' => $majors,
+            'colleges' => $colleges,
+            'studyPlans' => $studyPlans,
             'filters' => [
                 'major_id' => $majorId,
                 'course_id' => $courseId,
                 'search' => $search,
+                'college_id' => $request->query('college_id'),
+                'study_plan' => $request->query('study_plan'),
             ],
             'stats' => [
                 'total' => Chapter::count(),

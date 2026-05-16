@@ -4,7 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function AdminChapters({ chapters = [], courses = [], majors = [], filters = {}, stats = {} }) {
+export default function AdminChapters({ chapters = [], courses = [], majors = [], colleges = [], studyPlans = [], filters = {}, stats = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     
@@ -43,9 +43,12 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         totalChapters: 'إجمالي الشابترز',
         activeChapters: 'المفعّلة',
         withQuestions: 'لها أسئلة',
-        university: 'مواد الجامعة',
         selectMajor: 'اختر التخصص',
         selectCourse: 'اختر المادة',
+        selectCollege: 'اختر الكلية',
+        selectStudyPlan: 'اختر الخطة',
+        college: 'الكلية',
+        studyPlan: 'الخطة الدراسية',
         hidden: 'مخفي',
     } : {
         title: 'Manage Chapters',
@@ -71,9 +74,12 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         totalChapters: 'Total Chapters',
         activeChapters: 'Active',
         withQuestions: 'With Questions',
-        university: 'University Courses',
         selectMajor: 'Select major',
         selectCourse: 'Select course',
+        selectCollege: 'Select college',
+        selectStudyPlan: 'Select plan',
+        college: 'College',
+        studyPlan: 'Study Plan',
         hidden: 'Hidden',
     };
 
@@ -91,16 +97,45 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         is_active: true,
     });
 
-    // Cascading filter: when major changes, filter courses in the form dropdown too
+    // Filtered lists for the form
+    const [formCollegeId, setFormCollegeId] = useState('');
+    const [formMajorId, setFormMajorId] = useState('');
+    const [formStudyPlan, setFormStudyPlan] = useState('');
+
+    const filteredMajors = useMemo(() => {
+        if (!formCollegeId) return majors;
+        return majors.filter(m => String(m.college_id) === String(formCollegeId));
+    }, [majors, formCollegeId]);
+
     const formCourses = useMemo(() => {
-        if (filters.major_id && filters.major_id !== 'university') {
-            return courses.filter(c => String(c.major_id) === String(filters.major_id));
+        let list = courses;
+        if (formMajorId) {
+            if (formMajorId === 'university') list = list.filter(c => !c.major_id);
+            else list = list.filter(c => String(c.major_id) === String(formMajorId));
         }
-        if (filters.major_id === 'university') {
-            return courses.filter(c => !c.major_id);
+        if (formStudyPlan) {
+            list = list.filter(c => String(c.study_plan_version) === String(formStudyPlan));
         }
-        return courses;
-    }, [courses, filters.major_id]);
+        return list;
+    }, [courses, formMajorId, formStudyPlan]);
+
+    // Cascading filter for the main list
+    const filterMajors = useMemo(() => {
+        if (!filters.college_id) return majors;
+        return majors.filter(m => String(m.college_id) === String(filters.college_id));
+    }, [majors, filters.college_id]);
+
+    const filterCourses = useMemo(() => {
+        let list = courses;
+        if (filters.major_id) {
+            if (filters.major_id === 'university') list = list.filter(c => !c.major_id);
+            else list = list.filter(c => String(c.major_id) === String(filters.major_id));
+        }
+        if (filters.study_plan) {
+            list = list.filter(c => String(c.study_plan_version) === String(filters.study_plan));
+        }
+        return list;
+    }, [courses, filters.major_id, filters.study_plan]);
 
     const openCreate = () => { reset(); setEditingId(null); setShowForm(true); };
     const openEdit = (chapter) => {
@@ -130,7 +165,10 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const applyFilter = (params) => {
         const current = { ...filters, ...params };
         // Reset dependent filters when parent changes
+        if ('college_id' in params) { delete current.major_id; delete current.course_id; }
         if ('major_id' in params) { delete current.course_id; }
+        if ('study_plan' in params) { delete current.course_id; }
+        
         Object.keys(current).forEach(k => { if (!current[k]) delete current[k]; });
         router.get('/admin/chapters', current, { preserveState: true, preserveScroll: true });
     };
@@ -183,22 +221,29 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
 
                 {/* Filters */}
                 <div className={`rounded-2xl border p-4 ${card}`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {/* Major filter */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <select value={filters.college_id || ''} onChange={e => applyFilter({ college_id: e.target.value })} className={inputCls}>
+                            <option value="">{t.all} — {t.college}</option>
+                            {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+
                         <select value={filters.major_id || ''} onChange={e => applyFilter({ major_id: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.major}</option>
-                            <option value="university">{t.university}</option>
-                            {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            <option value="university">{lang === 'ar' ? 'مواد جامعة' : 'University'}</option>
+                            {filterMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                         </select>
 
-                        {/* Course filter */}
+                        <select value={filters.study_plan || ''} onChange={e => applyFilter({ study_plan: e.target.value })} className={inputCls}>
+                            <option value="">{t.all} — {t.studyPlan}</option>
+                            {studyPlans.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+
                         <select value={filters.course_id || ''} onChange={e => applyFilter({ course_id: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.course}</option>
-                            {formCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                            {filterCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
                         </select>
 
-                        {/* Search */}
-                        <form onSubmit={handleSearchSubmit} className="relative">
+                        <form onSubmit={handleSearchSubmit} className="relative col-span-2 md:col-span-1">
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-40">🔍</span>
                             <input type="text" value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder={t.searchPlaceholder} className={`${inputCls} pr-9`} />
                         </form>
@@ -213,20 +258,43 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`text-lg opacity-50 hover:opacity-100 transition-opacity`}>✕</button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div>
+                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.college}</label>
+                                <select value={formCollegeId} onChange={e => { setFormCollegeId(e.target.value); setFormMajorId(''); }} className={inputCls} disabled={!!editingId}>
+                                    <option value="">— {t.selectCollege} —</option>
+                                    {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.major}</label>
+                                <select value={formMajorId} onChange={e => setFormMajorId(e.target.value)} className={inputCls} disabled={!!editingId}>
+                                    <option value="">— {t.selectMajor} —</option>
+                                    <option value="university">{lang === 'ar' ? 'مواد جامعة' : 'University'}</option>
+                                    {filteredMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.studyPlan}</label>
+                                <select value={formStudyPlan} onChange={e => setFormStudyPlan(e.target.value)} className={inputCls} disabled={!!editingId}>
+                                    <option value="">— {t.selectStudyPlan} —</option>
+                                    {studyPlans.map(v => <option key={v} value={v}>{v}</option>)}
+                                </select>
+                            </div>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 <select value={data.course_id} onChange={e => setData('course_id', e.target.value)} className={inputCls} required disabled={!!editingId}>
                                     <option value="">— {t.selectCourse} —</option>
-                                    {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                    {formCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code}) - {c.study_plan_version}</option>)}
                                 </select>
                                 {errors.course_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_id}</p>}
                             </div>
-                            <div>
-                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.chapterTitle} *</label>
-                                <input type="text" value={data.title} onChange={e => setData('title', e.target.value)} className={inputCls} required placeholder="Chapter 1: Introduction" />
-                                {errors.title && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.title}</p>}
-                            </div>
+                        </div>
+
+                        <div>
+                            <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.chapterTitle} *</label>
+                            <input type="text" value={data.title} onChange={e => setData('title', e.target.value)} className={inputCls} required placeholder="Chapter 1: Introduction" />
+                            {errors.title && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.title}</p>}
                         </div>
 
                         <div>
