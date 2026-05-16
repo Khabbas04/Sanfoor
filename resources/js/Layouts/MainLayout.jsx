@@ -170,6 +170,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
         }
     };
 
+    const [academicOpen, setAcademicOpen] = useState(false);
+
     return (
         <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <Head>
@@ -252,24 +254,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                                 </Link>
 
-                                {/* Academic Content Dropdown */}
-                                <div className="relative group/academic">
-                                    <button className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${(safeRouteCurrent('chapters.index') || safeRouteCurrent('quiz.*')) ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                        <span className="transition-transform group-hover:scale-110">📚</span> {lang === 'ar' ? 'المحتوى الأكاديمي' : 'Academic Content'}
-                                        <svg className="w-4 h-4 ml-1 transition-transform group-hover/academic:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                    </button>
-                                    
-                                    <div className={`absolute top-full pt-2 opacity-0 invisible group-hover/academic:opacity-100 group-hover/academic:visible transition-all duration-200 z-50 ${lang === 'ar' ? 'right-0' : 'left-0'}`}>
-                                        <div className={`w-56 rounded-2xl shadow-xl border p-2 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
-                                            <Link href="/chapters" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>
-                                                <span>📖</span> {t.chapters}
-                                            </Link>
-                                            <Link href="/quiz" className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>
-                                                <span>❓</span> {t.quiz}
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
+                                {/* Academic Content removed from central nav to keep header compact */}
 
                                 <Link href={safeRoute('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${safeRouteCurrent('ai.advisor', '/ai-advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
                                     <span className="relative z-10 flex items-center gap-2">
@@ -280,6 +265,17 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                             {/* Theme toggle, language switcher, and account actions. */}
                             <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="relative">
+                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 mr-1 ${isDark ? 'bg-slate-800 border-white/10 text-indigo-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                        📚
+                                    </button>
+                                    {academicOpen && (
+                                        <div className={`absolute top-full mt-2 ${lang === 'ar' ? 'right-0' : 'left-0'} w-44 rounded-2xl shadow-xl border p-2 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                                            <Link href="/chapters" className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>📖 {t.chapters}</Link>
+                                            <Link href="/quiz" className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>❓ {t.quiz}</Link>
+                                        </div>
+                                    )}
+                                </div>
                                 <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-indigo-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
                                     {lang === 'ar' ? 'EN' : 'AR'}
                                 </button>
