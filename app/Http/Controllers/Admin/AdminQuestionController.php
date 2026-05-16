@@ -34,6 +34,7 @@ class AdminQuestionController extends Controller
         $courseId = $request->query('course_id');
         $chapterId = $request->query('chapter_id');
         $difficulty = $request->query('difficulty');
+        $studyPlan = $request->query('study_plan');
         $search = $request->query('search');
 
         $questions = Question::query()
@@ -45,6 +46,9 @@ class AdminQuestionController extends Controller
                     : $cq->where('major_id', $majorId)
                 );
             })
+            ->when($studyPlan, function ($q) use ($studyPlan) {
+                $q->whereHas('course', fn($cq) => $cq->where('study_plan_version', $studyPlan));
+            })
             ->when($chapterId, fn($q) => $q->where('chapter_id', $chapterId))
             ->when($difficulty, fn($q) => $q->where('difficulty', $difficulty))
             ->when($search, function ($q) use ($search) {
@@ -55,13 +59,22 @@ class AdminQuestionController extends Controller
 
         $majors = Major::select('id', 'name')->orderBy('name')->get();
 
-        $coursesQuery = Course::select('id', 'name', 'code', 'major_id')->orderBy('name');
+        $coursesQuery = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name');
         if ($majorId && $majorId !== 'university') {
             $coursesQuery->where('major_id', $majorId);
         } elseif ($majorId === 'university') {
             $coursesQuery->whereNull('major_id');
         }
+        if ($studyPlan) {
+            $coursesQuery->where('study_plan_version', $studyPlan);
+        }
         $courses = $coursesQuery->get();
+
+        $studyPlans = Course::select('study_plan_version')
+            ->distinct()
+            ->whereNotNull('study_plan_version')
+            ->orderBy('study_plan_version', 'desc')
+            ->pluck('study_plan_version');
 
         $chapters = Chapter::select('id', 'title', 'course_id')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
@@ -73,11 +86,13 @@ class AdminQuestionController extends Controller
             'courses' => $courses,
             'chapters' => $chapters,
             'majors' => $majors,
+            'studyPlans' => $studyPlans,
             'filters' => [
                 'major_id' => $majorId,
                 'course_id' => $courseId,
                 'chapter_id' => $chapterId,
                 'difficulty' => $difficulty,
+                'study_plan' => $studyPlan,
                 'search' => $search,
             ],
             'stats' => [

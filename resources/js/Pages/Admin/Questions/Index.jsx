@@ -209,15 +209,19 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
                 {/* Filters */}
                 <div className={`rounded-2xl border p-4 ${card}`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                         <select value={filters.major_id || ''} onChange={e => applyFilter({ major_id: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.major}</option>
                             <option value="university">{t.university}</option>
                             {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                         </select>
+                        <select value={filters.study_plan || ''} onChange={e => applyFilter({ study_plan: e.target.value })} className={inputCls}>
+                            <option value="">{t.all} — {t.studyPlan}</option>
+                            {(props.studyPlans || []).map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
                         <select value={filters.course_id || ''} onChange={e => applyFilter({ course_id: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.course}</option>
-                            {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                            {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code}) - {c.study_plan_version}</option>)}
                         </select>
                         <select value={filters.chapter_id || ''} onChange={e => applyFilter({ chapter_id: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.chapter}</option>
