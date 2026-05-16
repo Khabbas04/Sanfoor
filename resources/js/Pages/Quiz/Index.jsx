@@ -60,6 +60,9 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
     };
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200 shadow-sm';
+    const heading = isDark ? 'text-white' : 'text-slate-900';
+    const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
+
     const inputCls = `w-full p-4 rounded-2xl border-2 transition-all outline-none font-bold text-sm ${
         isDark ? 'bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500' : 'bg-white border-slate-100 text-slate-900 focus:border-indigo-500 shadow-sm'
     }`;
@@ -69,9 +72,16 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
             <Head title={t.title} />
 
             <div className="max-w-7xl mx-auto">
-                <div className="mb-12 text-center">
-                    <h1 className={`text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-indigo-500 to-violet-600 bg-clip-text text-transparent`}>{t.title}</h1>
-                    <p className={`text-lg font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
+                <div className="relative mb-20 text-center">
+                    <div className={`inline-block px-12 py-8 rounded-[2.5rem] border transition-all duration-700 shadow-2xl relative overflow-hidden group ${
+                        isDark ? 'bg-slate-800/40 border-slate-700/50 shadow-indigo-500/10' : 'bg-white/80 border-slate-100 shadow-indigo-500/5'
+                    }`}>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
+                        <h1 className={`text-4xl md:text-6xl font-black mb-3 relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h1>
+                        <p className={`text-lg md:text-xl font-bold opacity-70 relative z-10 ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>{t.subtitle}</p>
+                        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
+                        <div className="absolute -top-12 -left-12 w-32 h-32 bg-violet-500/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
+                    </div>
                 </div>
 
                 {/* Search Row */}
