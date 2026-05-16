@@ -22,6 +22,10 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const [localSearch, setLocalSearch] = useState(filters.search || '');
     const [expandedQ, setExpandedQ] = useState(null);
 
+    // Form cascading filters
+    const [formMajor, setFormMajor] = useState(filters.major_id || '');
+    const [formPlan, setFormPlan] = useState(filters.study_plan || '');
+
     const t = lang === 'ar' ? {
         title: 'إدارة الأسئلة',
         addQuestion: 'إضافة سؤال',
@@ -60,6 +64,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         correct: 'الصحيحة',
         hidden: 'مخفي',
         markCorrect: 'حدد كإجابة صحيحة',
+        studyPlan: 'الخطة الدراسية',
+        allPlans: 'كل الخطط',
     } : {
         title: 'Manage Questions',
         addQuestion: 'Add Question',
@@ -98,6 +104,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         correct: 'Correct',
         hidden: 'Hidden',
         markCorrect: 'Mark as correct',
+        studyPlan: 'Study Plan',
+        allPlans: 'All Plans',
     };
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
@@ -140,6 +148,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
             difficulty: q.difficulty,
             is_active: q.is_active,
         });
+        setFormMajor(q.course?.major_id || (q.course?.major_id === null ? 'university' : ''));
+        setFormPlan(q.course?.study_plan_version || '');
         setEditingId(q.id);
         setShowForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -173,6 +183,14 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     };
 
     const optionLabels = { a: 'A', b: 'B', c: 'C', d: 'D' };
+
+    const filteredCourses = useMemo(() => {
+        return courses.filter(c => {
+            const matchesMajor = !formMajor || (formMajor === 'university' ? !c.major_id : String(c.major_id) === String(formMajor));
+            const matchesPlan = !formPlan || String(c.study_plan_version) === String(formPlan);
+            return matchesMajor && matchesPlan;
+        });
+    }, [formMajor, formPlan, courses]);
 
     return (
         <AdminLayout>
@@ -249,13 +267,32 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
                         </div>
 
+                        {/* Row 0: Form Filters (Cascading) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-dashed dark:border-slate-700 pb-4 mb-4">
+                            <div>
+                                <label className={`text-[10px] font-black uppercase tracking-wider block mb-1.5 ${subtext}`}>{t.major}</label>
+                                <select value={formMajor} onChange={e => { setFormMajor(e.target.value); setData('course_id', ''); }} className={inputCls}>
+                                    <option value="">{t.all}</option>
+                                    <option value="university">🏛️ {t.university}</option>
+                                    {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className={`text-[10px] font-black uppercase tracking-wider block mb-1.5 ${subtext}`}>{t.studyPlan}</label>
+                                <select value={formPlan} onChange={e => { setFormPlan(e.target.value); setData('course_id', ''); }} className={inputCls}>
+                                    <option value="">{t.allPlans}</option>
+                                    {studyPlans.map(p => <option key={p} value={p}>{p}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
                         {/* Row 1: Course, Chapter, Difficulty */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 <select value={data.course_id} onChange={e => { setData('course_id', e.target.value); setData('chapter_id', ''); }} className={inputCls} required>
-                                    <option value="">— {t.selectCourse} —</option>
-                                    {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                    <option value="">— {t.selectCourse} ({filteredCourses.length}) —</option>
+                                    {filteredCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
                                 </select>
                                 {errors.course_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_id}</p>}
                             </div>

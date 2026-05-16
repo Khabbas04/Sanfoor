@@ -59,16 +59,9 @@ class AdminQuestionController extends Controller
 
         $majors = Major::select('id', 'name')->orderBy('name')->get();
 
-        $coursesQuery = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name');
-        if ($majorId && $majorId !== 'university') {
-            $coursesQuery->where('major_id', $majorId);
-        } elseif ($majorId === 'university') {
-            $coursesQuery->whereNull('major_id');
-        }
-        if ($studyPlan) {
-            $coursesQuery->where('study_plan_version', $studyPlan);
-        }
-        $courses = $coursesQuery->get();
+        $courses = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')
+            ->orderBy('name')
+            ->get();
 
         $studyPlans = Course::select('study_plan_version')
             ->distinct()
