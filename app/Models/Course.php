@@ -18,7 +18,8 @@ class Course extends Model
             $builder->where(function ($query) {
                 $query->whereHas('major', function ($q) {
                     $q->where('college_id', 1);
-                })->orWhereNull('major_id');
+                })->orWhereNull('major_id')
+                  ->orWhere('is_quiz_only', true);
             });
         });
     }
@@ -36,6 +37,7 @@ class Course extends Model
         'tree_position_y',
         'major_id',
         'study_plan_version',
+        'is_quiz_only',
         'description',
     ];
 
