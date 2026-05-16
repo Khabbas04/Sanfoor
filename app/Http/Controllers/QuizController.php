@@ -85,6 +85,11 @@ class QuizController extends Controller
             'count' => 'nullable|integer|min:5|max:50',
         ]);
 
+        $course = Course::find($data['course_id']);
+        if (!$course) {
+            return redirect()->route('quiz.index')->with(['message' => 'المادة غير موجودة.', 'type' => 'error']);
+        }
+
         $count = $data['count'] ?? 10;
 
         $questionsQuery = Question::where('course_id', $data['course_id'])
@@ -110,7 +115,7 @@ class QuizController extends Controller
                     'chapter_id' => $q->chapter_id,
                     // correct_option is NOT sent to the frontend; it is checked server-side on submit.
                 ];
-            });
+            })->values();
 
         $course = Course::select('id', 'name', 'code')->findOrFail($data['course_id']);
         $chapter = null;

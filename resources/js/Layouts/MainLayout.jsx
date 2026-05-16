@@ -9,9 +9,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const page = usePage();
     if (!page || !page.props) return null; // Prevent rendering if props aren't ready
 
-    const { auth, admin_notifications, flash } = page.props;
+    const { props = {} } = page;
+    const { auth = {}, admin_notifications = [], flash = {} } = props;
     const safeAuth = auth || {};
-    const safeUser = safeAuth?.user || {};
+    const safeUser = safeAuth.user || {};
     const safeRouteCurrent = (name, pattern) => {
         try {
             if (!name || typeof route === 'undefined') return false;

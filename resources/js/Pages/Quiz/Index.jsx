@@ -44,8 +44,8 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
     };
 
     const applyFilter = (params) => {
-        const current = { ...filters, ...params };
-        Object.keys(current).forEach(k => { if (!current[k]) delete current[k]; });
+        const current = { ...(filters || {}), ...(params || {}) };
+        Object.keys(current || {}).forEach(k => { if (!current[k]) delete current[k]; });
         router.get(route('quiz.index'), current, { preserveState: true, preserveScroll: true });
     };
 
