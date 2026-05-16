@@ -87,7 +87,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
     // Shared translations used by navigation labels and the footer.
     const translations = {
-        ar: {
+            ar: {
             home: 'الرئيسية',
             tree: 'المسار الشجري',
             calc: 'حاسبة التفوّق',
@@ -110,7 +110,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             contact: 'تواصل معنا',
             supportCenter: 'مركز الدعم',
             studentTools: 'أدوات الطالب',
-            supportHint: 'للمشاكل التقنية داخل الحساب استخدم صفحة البلاغات ليصل الطلب للفريق مباشرة.',
+            supportHint: 'للمشاكل التقنية داخل الحساب، استخدم صفحة البلاغات ليصل الطلب للفريق مباشرة.',
             reportIssue: 'الإبلاغ عن مشكلة',
             terms: 'شروط الاستخدام',
             privacy: 'سياسة الخصوصية',
@@ -426,9 +426,14 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 max-w-md">
                                 <p className="text-xs font-black text-indigo-200 mb-1">{t.supportCenter}</p>
                                 <p className="text-[12px] text-slate-300 font-bold leading-relaxed">{t.supportHint}</p>
-                                <Link href={safeRoute('public.how_it_works')} className="mt-3 inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
-                                    📘 {t.howItWorks}
-                                </Link>
+                                <div className="mt-3 flex items-center gap-3">
+                                    <Link href={safeRoute('support.issue.create')} className="inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
+                                        🛠️ {t.reportIssue}
+                                    </Link>
+                                    <Link href={safeRoute('public.how_it_works')} className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-slate-200 transition-colors">
+                                        📘 {t.howItWorks}
+                                    </Link>
+                                </div>
                             </div>
                         </div>
 
@@ -447,7 +452,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.resources}</h4>
                             <ul className="space-y-2.5">
-                                <li><Link href={safeRoute('public.how_it_works')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.howItWorks}</Link></li>
+                                <li><Link href={safeRoute('public.contact')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.contact}</Link></li>
                                 <li><Link href={safeRoute('legal.terms')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.terms}</Link></li>
                                 <li><Link href={safeRoute('legal.privacy')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.privacy}</Link></li>
                                 <li><Link href={safeRoute('legal.about')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.about}</Link></li>
