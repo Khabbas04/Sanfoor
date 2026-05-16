@@ -215,7 +215,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         </select>
                         <select value={filters.chapter_id || ''} onChange={e => applyFilter({ chapter_id: e.target.value })} className={inputCls}>
                             <option value="">{t.selectChapter}</option>
-                            {chapters.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
+                            {chapters.filter(ch => !filters.course_id || String(ch.course_id) === String(filters.course_id)).map(ch => (
+                                <option key={ch.id} value={ch.id}>{ch.title}</option>
+                            ))}
                         </select>
                         <select value={filters.difficulty || ''} onChange={e => applyFilter({ difficulty: e.target.value })} className={inputCls}>
                             <option value="">{t.allDifficulties}</option>
@@ -264,7 +266,14 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     onChange={e => setData('chapter_title', e.target.value)} 
                                     className={inputCls} 
                                     placeholder="اختياري: اسم الشابتر..."
+                                    list="existing-chapters"
                                 />
+                                <datalist id="existing-chapters">
+                                    {chapters.filter(ch => {
+                                        const course = courses.find(c => c.name === data.course_name);
+                                        return course && String(ch.course_id) === String(course.id);
+                                    }).map(ch => <option key={ch.id} value={ch.title} />)}
+                                </datalist>
                             </div>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.difficulty} *</label>
