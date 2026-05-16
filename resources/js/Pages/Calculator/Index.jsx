@@ -1,12 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import MainLayout from '@/Layouts/MainLayout';
 import { Head } from '@inertiajs/react';
+import { useTheme } from '@/Contexts/ThemeContext';
+import { useLanguage } from '@/Contexts/LanguageContext';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 export default function Calculator({ auth, initialCourses }) {
+    const { isDark } = useTheme();
+    const { lang } = useLanguage();
     const legacyPlanSemesterToYearTerm = (semesterValue) => {
         const normalized = Math.min(12, Math.max(1, parseInt(semesterValue, 10) || 1));
         return {
@@ -206,16 +210,15 @@ export default function Calculator({ auth, initialCourses }) {
             
             <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)] py-8 sm:py-10" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-                    <section className="relative overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 shadow-[0_20px_60px_-32px_rgba(15,23,42,0.35)] backdrop-blur-xl">
-                        <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-sky-200/35 blur-3xl" />
-                        <div className="absolute -bottom-28 -right-16 h-80 w-80 rounded-full bg-indigo-200/35 blur-3xl" />
-
-                        <div className="relative z-10 p-6 sm:p-8 lg:p-10">
-                            <div className="text-center max-w-2xl mx-auto">
-                                <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">حاسبة المعدل الذكية</h1>
-                            </div>
+                    <div className="relative mb-20 text-center">
+                        <div className={`inline-block px-12 py-8 rounded-[2.5rem] border transition-all duration-700 shadow-2xl relative overflow-hidden group ${isDark ? 'bg-slate-800/40 border-slate-700/50 shadow-indigo-500/10' : 'bg-white/80 border-slate-100 shadow-indigo-500/5'}`}>
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50" />
+                            <h1 className={`text-4xl md:text-6xl font-black mb-3 relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>حاسبة المعدل الذكية</h1>
+                            <p className={`text-lg md:text-xl font-bold opacity-70 relative z-10 ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>احسب نسبتك ومعدلك التراكمي بسهولة</p>
+                            <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
+                            <div className="absolute -top-12 -left-12 w-32 h-32 bg-violet-500/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700" />
                         </div>
-                    </section>
+                    </div>
 
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
 

@@ -2119,7 +2119,10 @@ export default function Tree({
 
                             <div className="relative z-10 p-4 sm:p-6">
                                 <div className="text-center max-w-2xl mx-auto">
-                                    <h1 className="text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
+                                    <div className={`inline-block px-10 py-6 rounded-[2.25rem] border transition-all duration-700 relative overflow-hidden group ${isDark ? 'bg-slate-800/40 border-slate-700/50 shadow-indigo-500/10' : 'bg-white/80 border-slate-100 shadow-indigo-500/5'}`}>
+                                        <h1 className={`text-3xl md:text-5xl font-[900] mb-2 relative z-10 ${isDark ? 'text-white' : 'text-slate-900'}`}>الخطة الشجرية</h1>
+                                        <p className={`text-sm md:text-lg font-bold opacity-70 relative z-10 ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>استعرض متطلبات المواد وخطط تسجيل فصولك</p>
+                                    </div>
                                 </div>
                             </div>
                         </section>
