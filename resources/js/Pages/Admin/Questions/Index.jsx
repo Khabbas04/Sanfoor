@@ -4,7 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function AdminQuestions({ questions = [], courses = [], chapters = [], majors = [], studyPlans = [], filters = {}, stats = {} }) {
+export default function AdminQuestions({ questions = [], courses = [], chapters = [], filters = {}, stats = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
 
@@ -12,8 +12,6 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     questions = questions || [];
     courses = courses || [];
     chapters = chapters || [];
-    majors = majors || [];
-    studyPlans = studyPlans || [];
     filters = filters || {};
     stats = stats || {};
 
@@ -22,9 +20,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const [localSearch, setLocalSearch] = useState(filters.search || '');
     const [expandedQ, setExpandedQ] = useState(null);
 
-    // Form cascading filters
-    const [formMajor, setFormMajor] = useState(filters.major_id || '');
-    const [formPlan, setFormPlan] = useState(filters.study_plan || '');
+
 
     const t = lang === 'ar' ? {
         title: 'إدارة الأسئلة',
@@ -104,8 +100,6 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         correct: 'Correct',
         hidden: 'Hidden',
         markCorrect: 'Mark as correct',
-        studyPlan: 'Study Plan',
-        allPlans: 'All Plans',
     };
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
@@ -148,8 +142,6 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
             difficulty: q.difficulty,
             is_active: q.is_active,
         });
-        setFormMajor(q.course?.major_id || (q.course?.major_id === null ? 'university' : ''));
-        setFormPlan(q.course?.study_plan_version || '');
         setEditingId(q.id);
         setShowForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -183,14 +175,6 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     };
 
     const optionLabels = { a: 'A', b: 'B', c: 'C', d: 'D' };
-
-    const filteredCourses = useMemo(() => {
-        return courses.filter(c => {
-            const matchesMajor = !formMajor || (formMajor === 'university' ? !c.major_id : String(c.major_id) === String(formMajor));
-            const matchesPlan = !formPlan || String(c.study_plan_version) === String(formPlan);
-            return matchesMajor && matchesPlan;
-        });
-    }, [formMajor, formPlan, courses]);
 
     return (
         <AdminLayout>
@@ -228,23 +212,14 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
                 {/* Filters */}
                 <div className={`rounded-2xl border p-4 ${card}`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-                        <select value={filters.major_id || ''} onChange={e => applyFilter({ major_id: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.major}</option>
-                            <option value="university">{t.university}</option>
-                            {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
-                        <select value={filters.study_plan || ''} onChange={e => applyFilter({ study_plan: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.studyPlan}</option>
-                            {(studyPlans || []).map(v => <option key={v} value={v}>{v}</option>)}
-                        </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                         <select value={filters.course_id || ''} onChange={e => applyFilter({ course_id: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.course}</option>
-                            {courses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code}) - {c.study_plan_version}</option>)}
+                            <option value="">{t.selectCourse}</option>
+                            {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                         <select value={filters.chapter_id || ''} onChange={e => applyFilter({ chapter_id: e.target.value })} className={inputCls}>
-                            <option value="">{t.all} — {t.chapter}</option>
-                            {chapters.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
+                            <option value="">{t.selectChapter}</option>
+                            {formChapters.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
                         </select>
                         <select value={filters.difficulty || ''} onChange={e => applyFilter({ difficulty: e.target.value })} className={inputCls}>
                             <option value="">{t.allDifficulties}</option>
@@ -267,32 +242,13 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
                         </div>
 
-                        {/* Row 0: Form Filters (Cascading) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-dashed dark:border-slate-700 pb-4 mb-4">
-                            <div>
-                                <label className={`text-[10px] font-black uppercase tracking-wider block mb-1.5 ${subtext}`}>{t.major}</label>
-                                <select value={formMajor} onChange={e => { setFormMajor(e.target.value); setData('course_id', ''); }} className={inputCls}>
-                                    <option value="">{t.all}</option>
-                                    <option value="university">🏛️ {t.university}</option>
-                                    {majors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className={`text-[10px] font-black uppercase tracking-wider block mb-1.5 ${subtext}`}>{t.studyPlan}</label>
-                                <select value={formPlan} onChange={e => { setFormPlan(e.target.value); setData('course_id', ''); }} className={inputCls}>
-                                    <option value="">{t.allPlans}</option>
-                                    {studyPlans.map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
                         {/* Row 1: Course, Chapter, Difficulty */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 <select value={data.course_id} onChange={e => { setData('course_id', e.target.value); setData('chapter_id', ''); }} className={inputCls} required>
-                                    <option value="">— {t.selectCourse} ({filteredCourses.length}) —</option>
-                                    {filteredCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                                    <option value="">— {t.selectCourse} —</option>
+                                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                                 {errors.course_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_id}</p>}
                             </div>

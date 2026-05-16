@@ -40,15 +40,6 @@ class AdminQuestionController extends Controller
         $questions = Question::query()
             ->with('course:id,name,code,major_id', 'chapter:id,title')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
-            ->when($majorId && !$courseId, function ($q) use ($majorId) {
-                $q->whereHas('course', fn($cq) => $majorId === 'university'
-                    ? $cq->whereNull('major_id')
-                    : $cq->where('major_id', $majorId)
-                );
-            })
-            ->when($studyPlan, function ($q) use ($studyPlan) {
-                $q->whereHas('course', fn($cq) => $cq->where('study_plan_version', $studyPlan));
-            })
             ->when($chapterId, fn($q) => $q->where('chapter_id', $chapterId))
             ->when($difficulty, fn($q) => $q->where('difficulty', $difficulty))
             ->when($search, function ($q) use ($search) {
@@ -57,35 +48,17 @@ class AdminQuestionController extends Controller
             ->latest()
             ->get();
 
-        $majors = Major::select('id', 'name')->orderBy('name')->get();
-
-        $courses = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')
-            ->orderBy('name')
-            ->get();
-
-        $studyPlans = Course::select('study_plan_version')
-            ->distinct()
-            ->whereNotNull('study_plan_version')
-            ->orderBy('study_plan_version', 'desc')
-            ->pluck('study_plan_version');
-
-        $chapters = Chapter::select('id', 'title', 'course_id')
-            ->when($courseId, fn($q) => $q->where('course_id', $courseId))
-            ->orderBy('order')
-            ->get();
+        $courses = Course::select('id', 'name', 'code')->orderBy('name')->get();
+        $chapters = Chapter::select('id', 'title', 'course_id')->orderBy('order')->get();
 
         return Inertia::render('Admin/Questions/Index', [
             'questions' => $questions,
             'courses' => $courses,
             'chapters' => $chapters,
-            'majors' => $majors,
-            'studyPlans' => $studyPlans,
             'filters' => [
-                'major_id' => $majorId,
                 'course_id' => $courseId,
                 'chapter_id' => $chapterId,
                 'difficulty' => $difficulty,
-                'study_plan' => $studyPlan,
                 'search' => $search,
             ],
             'stats' => [
