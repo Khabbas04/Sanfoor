@@ -4,7 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function AdminQuestions({ questions = [], courses = [], chapters = [], majors = [], filters = {}, stats = {} }) {
+export default function AdminQuestions({ questions = [], courses = [], chapters = [], majors = [], studyPlans = [], filters = {}, stats = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
 
@@ -13,6 +13,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     courses = courses || [];
     chapters = chapters || [];
     majors = majors || [];
+    studyPlans = studyPlans || [];
     filters = filters || {};
     stats = stats || {};
 
@@ -217,7 +218,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         </select>
                         <select value={filters.study_plan || ''} onChange={e => applyFilter({ study_plan: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.studyPlan}</option>
-                            {(props.studyPlans || []).map(v => <option key={v} value={v}>{v}</option>)}
+                            {(studyPlans || []).map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                         <select value={filters.course_id || ''} onChange={e => applyFilter({ course_id: e.target.value })} className={inputCls}>
                             <option value="">{t.all} — {t.course}</option>
