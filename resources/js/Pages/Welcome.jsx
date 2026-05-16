@@ -358,6 +358,40 @@ export default function Welcome({ auth }) {
                     </div>
                 </section>
 
+                {/* ════════════════════════════════════
+                    NEW: CHAPTERS & QUESTIONS CTA
+                ════════════════════════════════════ */}
+                <section className="py-12 sm:py-16 bg-gray-50 relative overflow-hidden">
+                    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-8">
+                            <h3 className="text-xl font-black text-slate-900">جديد على سنفور</h3>
+                            <p className="text-slate-500 mt-2">أضفنا موارد جديدة تساعدك تراجع وتستعد للامتحانات بسهولة.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <Link href={route('chapters.index')} className="group block p-6 rounded-2xl bg-white border border-slate-100 hover:shadow-lg transition-all">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-lg bg-indigo-50 flex items-center justify-center text-2xl">📚</div>
+                                    <div>
+                                        <h4 className="font-black text-slate-900">الشباتر الدراسية</h4>
+                                        <p className="text-slate-500 text-sm mt-1">اطلع على شرح كل فصل ومحتوى المادة مع أمثلة وتمارين موجهة.</p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <Link href={route('quiz.index')} className="group block p-6 rounded-2xl bg-white border border-slate-100 hover:shadow-lg transition-all">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-lg bg-cyan-50 flex items-center justify-center text-2xl">📝</div>
+                                    <div>
+                                        <h4 className="font-black text-slate-900">بنك الأسئلة</h4>
+                                        <p className="text-slate-500 text-sm mt-1">جرّب أسئلة سابقة ومختارة لتحضير امتحاناتك بثقة.</p>
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+                    </div>
+                </section>
+
 
                 {/* ════════════════════════════════════
                     2. FEATURES
