@@ -204,7 +204,7 @@ Route::middleware('auth')->group(function () {
 
     // Quiz and practice system.
     Route::get('/quiz', [QuizController::class, 'index'])->name('quiz.index');
-    Route::post('/quiz/start', [QuizController::class, 'start'])->name('quiz.start');
+    Route::get('/quiz/start', [QuizController::class, 'start'])->name('quiz.start');
     Route::post('/quiz/submit', [QuizController::class, 'submit'])->name('quiz.submit');
 
     // AI advisor routes, including chat lifecycle operations.
