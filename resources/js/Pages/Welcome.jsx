@@ -259,17 +259,18 @@ export default function Welcome({ auth }) {
 
                     {/* Static Image Background */}
                     <div className="absolute inset-0 w-full h-[120%] -bottom-16 z-0 overflow-hidden rounded-b-[inherit]">
-                        {/* Layered gradients for a cleaner, more professional hero background */}
-                        <div
-                            className="absolute inset-0"
-                            style={{
-                                backgroundImage: [
-                                    'radial-gradient(800px 400px at 20% 10%, rgba(99,102,241,0.35), transparent 65%)',
-                                    'radial-gradient(700px 360px at 80% 15%, rgba(34,211,238,0.25), transparent 60%)',
-                                    'linear-gradient(180deg, #0b1220 0%, #0f172a 45%, #111827 100%)',
-                                ].join(', '),
-                            }}
-                        />
+                        {/* Image-based hero background with layered overlays (same style as gym-store-pro) */}
+                        <div className="absolute inset-0">
+                            <img
+                                src="/images/background.png"
+                                alt=""
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                            <div className="absolute inset-0 bg-black/40" />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0f172a]" />
+                        </div>
 
                         {/* Soft fade into the next section so the background extends lower */}
                         <div className="absolute -bottom-24 left-0 right-0 h-56 bg-gradient-to-b from-transparent to-[#fafbff]" />
