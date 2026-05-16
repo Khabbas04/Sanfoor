@@ -78,6 +78,7 @@ class AdminQuestionController extends Controller
     {
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
+            'course_code' => 'required|string|max:20',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -91,10 +92,10 @@ class AdminQuestionController extends Controller
         ]);
 
         // Find or create course
-        $course = Course::firstOrCreate(
+        $course = Course::updateOrCreate(
             ['name' => $data['course_name']],
             [
-                'code' => 'M-' . strtoupper(Str::random(6)),
+                'code' => $data['course_code'],
                 'credit_hours' => 3,
                 'type' => 'compulsory',
                 'semester' => 1
@@ -137,6 +138,7 @@ class AdminQuestionController extends Controller
     {
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
+            'course_code' => 'required|string|max:20',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -150,10 +152,10 @@ class AdminQuestionController extends Controller
         ]);
 
         // Find or create course
-        $course = Course::firstOrCreate(
+        $course = Course::updateOrCreate(
             ['name' => $data['course_name']],
             [
-                'code' => 'M-' . strtoupper(Str::random(6)),
+                'code' => $data['course_code'],
                 'credit_hours' => 3,
                 'type' => 'compulsory',
                 'semester' => 1

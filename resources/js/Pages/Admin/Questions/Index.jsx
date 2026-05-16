@@ -53,7 +53,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         totalQuestions: 'إجمالي الأسئلة',
         university: 'مواد الجامعة',
         selectMajor: 'اختر التخصص',
-        course: 'المادة (اسم يدوياً)',
+        course: 'اسم المادة',
+        courseCode: 'رقم المادة',
         selectCourse: 'ابحث عن مادة...',
         newCourse: 'مادة جديدة',
         allDifficulties: 'كل الصعوبات',
@@ -93,7 +94,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         totalQuestions: 'Total Questions',
         university: 'University Courses',
         selectMajor: 'Select major',
-        course: 'Course (Manual name)',
+        course: 'Course Name',
+        courseCode: 'Course Code',
         selectCourse: 'Search course...',
         newCourse: 'New Course',
         allDifficulties: 'All difficulties',
@@ -109,6 +111,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
         course_name: '',
+        course_code: '',
         chapter_title: '',
         question_text: '',
         option_a: '',
@@ -127,6 +130,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const openEdit = (q) => {
         setData({
             course_name: q.course?.name || '',
+            course_code: q.course?.code || '',
             chapter_title: q.chapter?.title || '',
             question_text: q.question_text,
             option_a: q.option_a,
@@ -240,23 +244,39 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
                         </div>
 
-                        {/* Row 1: Course Name, Chapter Title, Difficulty */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
+                        {/* Row 1: Course Name, Course Code, Chapter Title, Difficulty */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div className="sm:col-span-1">
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 <input 
                                     type="text" 
                                     value={data.course_name} 
-                                    onChange={e => setData('course_name', e.target.value)} 
+                                    onChange={e => {
+                                        setData('course_name', e.target.value);
+                                        const c = courses.find(x => x.name === e.target.value);
+                                        if (c) setData('course_code', c.code);
+                                    }} 
                                     className={inputCls} 
                                     required 
-                                    placeholder="مثلاً: برمجة 1..."
+                                    placeholder="برمجة 1..."
                                     list="existing-courses"
                                 />
                                 <datalist id="existing-courses">
                                     {courses.map(c => <option key={c.id} value={c.name} />)}
                                 </datalist>
                                 {errors.course_name && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_name}</p>}
+                            </div>
+                            <div>
+                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.courseCode} *</label>
+                                <input 
+                                    type="text" 
+                                    value={data.course_code} 
+                                    onChange={e => setData('course_code', e.target.value)} 
+                                    className={inputCls} 
+                                    required 
+                                    placeholder="مثلاً: 0306101"
+                                />
+                                {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.chapter}</label>
