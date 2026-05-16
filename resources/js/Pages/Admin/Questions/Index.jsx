@@ -215,7 +215,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         </select>
                         <select value={filters.chapter_id || ''} onChange={e => applyFilter({ chapter_id: e.target.value })} className={inputCls}>
                             <option value="">{t.selectChapter}</option>
-                            {formChapters.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
+                            {chapters.map(ch => <option key={ch.id} value={ch.id}>{ch.title}</option>)}
                         </select>
                         <select value={filters.difficulty || ''} onChange={e => applyFilter({ difficulty: e.target.value })} className={inputCls}>
                             <option value="">{t.allDifficulties}</option>
