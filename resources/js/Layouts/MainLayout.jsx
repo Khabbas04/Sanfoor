@@ -452,9 +452,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.resources}</h4>
                             <ul className="space-y-2.5">
+                                <li><Link href={safeRoute('public.how_it_works')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.howItWorks}</Link></li>
                                 <li><Link href={safeRoute('public.contact')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.contact}</Link></li>
-                                <li><Link href={safeRoute('legal.terms')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.terms}</Link></li>
-                                <li><Link href={safeRoute('legal.privacy')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.privacy}</Link></li>
                                 <li><Link href={safeRoute('legal.about')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.about}</Link></li>
                             </ul>
                         </div>
