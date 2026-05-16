@@ -89,7 +89,8 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const inputCls = `w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition-all focus:ring-2 focus:ring-indigo-500/30 ${isDark ? 'bg-slate-900/60 border-slate-700 text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`;
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
-        course_id: '',
+        course_name: '',
+        course_code: '',
         title: '',
         description: '',
         google_drive_link: '',
@@ -140,7 +141,8 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const openCreate = () => { reset(); setEditingId(null); setShowForm(true); };
     const openEdit = (chapter) => {
         setData({ 
-            course_id: chapter.course_id, 
+            course_name: chapter.course?.name || '', 
+            course_code: chapter.course?.code || '',
             title: chapter.title, 
             description: chapter.description || '', 
             google_drive_link: chapter.google_drive_link || '',
@@ -258,36 +260,38 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`text-lg opacity-50 hover:opacity-100 transition-opacity`}>✕</button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                            <div>
-                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.college}</label>
-                                <select value={formCollegeId} onChange={e => { setFormCollegeId(e.target.value); setFormMajorId(''); }} className={inputCls} disabled={!!editingId}>
-                                    <option value="">— {t.selectCollege} —</option>
-                                    {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.major}</label>
-                                <select value={formMajorId} onChange={e => setFormMajorId(e.target.value)} className={inputCls} disabled={!!editingId}>
-                                    <option value="">— {t.selectMajor} —</option>
-                                    <option value="university">{lang === 'ar' ? 'مواد جامعة' : 'University'}</option>
-                                    {filteredMajors.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.studyPlan}</label>
-                                <select value={formStudyPlan} onChange={e => setFormStudyPlan(e.target.value)} className={inputCls} disabled={!!editingId}>
-                                    <option value="">— {t.selectStudyPlan} —</option>
-                                    {studyPlans.map(v => <option key={v} value={v}>{v}</option>)}
-                                </select>
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
-                                <select value={data.course_id} onChange={e => setData('course_id', e.target.value)} className={inputCls} required disabled={!!editingId}>
-                                    <option value="">— {t.selectCourse} —</option>
-                                    {formCourses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code}) - {c.study_plan_version}</option>)}
-                                </select>
-                                {errors.course_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_id}</p>}
+                                <input 
+                                    type="text" 
+                                    value={data.course_name} 
+                                    onChange={e => {
+                                        setData('course_name', e.target.value);
+                                        const c = courses.find(x => x.name === e.target.value);
+                                        if (c) setData('course_code', c.code);
+                                    }} 
+                                    className={inputCls} 
+                                    required 
+                                    placeholder="مثلاً: برمجة 1..."
+                                    list="existing-courses-chapters"
+                                />
+                                <datalist id="existing-courses-chapters">
+                                    {courses.map(c => <option key={c.id} value={c.name} />)}
+                                </datalist>
+                                {errors.course_name && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_name}</p>}
+                            </div>
+                            <div>
+                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>رقم المادة *</label>
+                                <input 
+                                    type="text" 
+                                    value={data.course_code} 
+                                    onChange={e => setData('course_code', e.target.value)} 
+                                    className={inputCls} 
+                                    required 
+                                    placeholder="مثلاً: 0306101"
+                                />
+                                {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
                         </div>
 

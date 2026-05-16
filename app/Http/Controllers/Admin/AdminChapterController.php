@@ -63,13 +63,7 @@ class AdminChapterController extends Controller
             ->orderBy('study_plan_version', 'desc')
             ->pluck('study_plan_version');
 
-        $coursesQuery = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name');
-        if ($majorId && $majorId !== 'university') {
-            $coursesQuery->where('major_id', $majorId);
-        } elseif ($majorId === 'university') {
-            $coursesQuery->whereNull('major_id');
-        }
-        $courses = $coursesQuery->get();
+        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name')->get();
 
         return Inertia::render('Admin/Chapters/Index', [
             'chapters' => $chapters,
@@ -98,7 +92,8 @@ class AdminChapterController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'course_id' => 'required|exists:courses,id',
+            'course_name' => 'required|string|max:255',
+            'course_code' => 'required|string|max:20',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
             'google_drive_link' => 'nullable|url|max:255',
@@ -106,12 +101,31 @@ class AdminChapterController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $data['order'] = $data['order'] ?? Chapter::where('course_id', $data['course_id'])->max('order') + 1;
-        $data['is_active'] = $data['is_active'] ?? true;
+        // Find or create course
+        $course = Course::updateOrCreate(
+            ['name' => $data['course_name']],
+            [
+                'code' => $data['course_code'],
+                'is_quiz_only' => 1,
+                'credit_hours' => 3,
+                'type' => 'compulsory',
+                'semester' => 1
+            ]
+        );
 
-        $chapter = Chapter::create($data);
+        $order = $data['order'] ?? Chapter::where('course_id', $course->id)->max('order') + 1;
+        $isActive = $data['is_active'] ?? true;
 
-        $this->logAction('CREATE_CHAPTER', "تم إنشاء شابتر \"{$chapter->title}\" للمادة #{$chapter->course_id}");
+        $chapter = Chapter::create([
+            'course_id' => $course->id,
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'google_drive_link' => $data['google_drive_link'],
+            'order' => $order,
+            'is_active' => $isActive,
+        ]);
+
+        $this->logAction('CREATE_CHAPTER', "تم إنشاء شابتر \"{$chapter->title}\" للمادة {$course->name}");
 
         return back()->with(['message' => 'تم إضافة الشابتر بنجاح.', 'type' => 'success']);
     }
@@ -122,6 +136,8 @@ class AdminChapterController extends Controller
     public function update(Request $request, Chapter $chapter): RedirectResponse
     {
         $data = $request->validate([
+            'course_name' => 'required|string|max:255',
+            'course_code' => 'required|string|max:20',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
             'google_drive_link' => 'nullable|url|max:255',
@@ -129,7 +145,26 @@ class AdminChapterController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $chapter->update($data);
+        // Find or create course
+        $course = Course::updateOrCreate(
+            ['name' => $data['course_name']],
+            [
+                'code' => $data['course_code'],
+                'is_quiz_only' => 1,
+                'credit_hours' => 3,
+                'type' => 'compulsory',
+                'semester' => 1
+            ]
+        );
+
+        $chapter->update([
+            'course_id' => $course->id,
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'google_drive_link' => $data['google_drive_link'],
+            'order' => $data['order'] ?? $chapter->order,
+            'is_active' => $data['is_active'] ?? $chapter->is_active,
+        ]);
 
         $this->logAction('UPDATE_CHAPTER', "تم تعديل شابتر \"{$chapter->title}\" #{$chapter->id}");
 
