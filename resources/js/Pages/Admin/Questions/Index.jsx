@@ -19,6 +19,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const [editingId, setEditingId] = useState(null);
     const [localSearch, setLocalSearch] = useState(filters.search || '');
     const [expandedQ, setExpandedQ] = useState(null);
+    const [isNewCourse, setIsNewCourse] = useState(courses.length === 0);
 
 
 
@@ -126,7 +127,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
 
 
-    const openCreate = () => { reset(); setEditingId(null); setShowForm(true); };
+    const openCreate = () => { reset(); setEditingId(null); setIsNewCourse(courses.length === 0); setShowForm(true); };
     const openEdit = (q) => {
         setData({
             course_name: q.course?.name || '',
@@ -143,6 +144,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
             is_active: q.is_active,
         });
         setEditingId(q.id);
+        setIsNewCourse(false);
         setShowForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -244,23 +246,69 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
                         </div>
 
+                        {/* Course selection toggle */}
+                        {!editingId && courses.length > 0 && (
+                            <div className="flex gap-3 mb-2 px-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsNewCourse(false);
+                                        setData(prev => ({ ...prev, course_name: '', course_code: '' }));
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-indigo-650 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                >
+                                    {lang === 'ar' ? 'اختر مادة موجودة' : 'Select Existing Course'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsNewCourse(true);
+                                        setData(prev => ({ ...prev, course_name: '', course_code: '' }));
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-indigo-650 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                >
+                                    {lang === 'ar' ? 'إنشاء مادة جديدة' : 'Create New Course'}
+                                </button>
+                            </div>
+                        )}
+
                         {/* Row 1: Course Name, Course Code, Chapter Title, Difficulty */}
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                             <div className="sm:col-span-1">
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
-                                <input 
-                                    type="text" 
-                                    value={data.course_name} 
-                                    onChange={e => {
-                                        setData('course_name', e.target.value);
-                                        const c = courses.find(x => x.name === e.target.value);
-                                        if (c) setData('course_code', c.code);
-                                    }} 
-                                    className={inputCls} 
-                                    required 
-                                    placeholder="برمجة 1..."
-                                    list="existing-courses"
-                                />
+                                {!isNewCourse && !editingId ? (
+                                    <select
+                                        value={data.course_name}
+                                        onChange={e => {
+                                            const c = courses.find(x => x.name === e.target.value);
+                                            setData(prev => ({
+                                                ...prev,
+                                                course_name: e.target.value,
+                                                course_code: c ? c.code : ''
+                                            }));
+                                        }}
+                                        className={inputCls}
+                                        required
+                                    >
+                                        <option value="">{lang === 'ar' ? 'اختر المادة...' : 'Select course...'}</option>
+                                        {courses.map(c => <option key={c.id} value={c.name}>{c.name} ({c.code})</option>)}
+                                    </select>
+                                ) : (
+                                    <input 
+                                        type="text" 
+                                        value={data.course_name} 
+                                        onChange={e => {
+                                            setData('course_name', e.target.value);
+                                            const c = courses.find(x => x.name === e.target.value);
+                                            if (c) setData('course_code', c.code);
+                                        }} 
+                                        className={inputCls} 
+                                        required 
+                                        placeholder="برمجة 1..."
+                                        list="existing-courses"
+                                        disabled={!!editingId}
+                                    />
+                                )}
                                 <datalist id="existing-courses">
                                     {courses.map(c => <option key={c.id} value={c.name} />)}
                                 </datalist>
@@ -275,6 +323,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     className={inputCls} 
                                     required 
                                     placeholder="مثلاً: 0306101"
+                                    disabled={!isNewCourse || !!editingId}
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>

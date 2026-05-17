@@ -10,7 +10,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
     
     const [search, setSearch] = useState(filters.search || '');
     const [selectedCourse, setSelectedCourse] = useState(null);
-    const [selectedChapter, setSelectedChapter] = useState(null);
+    const [selectedChapters, setSelectedChapters] = useState([]);
     const [questionCount, setQuestionCount] = useState(10);
 
     const t = lang === 'ar' ? {
@@ -53,7 +53,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
         if (!selectedCourse) return;
         router.get(route('quiz.start'), {
             course_id: selectedCourse.id,
-            chapter_id: selectedChapter || null,
+            chapter_ids: selectedChapters.length > 0 ? selectedChapters : null,
             mode,
             count: questionCount,
         });
@@ -113,7 +113,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                     key={course.id}
                                     onClick={() => {
                                         setSelectedCourse(course);
-                                        setSelectedChapter(null);
+                                        setSelectedChapters([]);
                                     }}
                                     className={`group p-6 rounded-[2rem] border-2 text-right transition-all duration-300 hover:-translate-y-1 ${
                                         selectedCourse?.id === course.id 
@@ -156,17 +156,81 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                 
                                 <div className="space-y-6 mb-8">
                                     <div>
-                                        <label className={`block text-[11px] font-black uppercase mb-2 opacity-50 ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.allChapters}</label>
-                                        <select
-                                            value={selectedChapter || ''}
-                                            onChange={(e) => setSelectedChapter(e.target.value || null)}
-                                            className={`w-full p-4 rounded-xl font-bold border-2 transition-all ${isDark ? 'bg-slate-900 border-white/10 text-white focus:border-indigo-500' : 'bg-slate-50 border-slate-100 text-slate-900 focus:border-indigo-500'}`}
-                                        >
-                                            <option value="">{t.allChapters}</option>
-                                            {(selectedCourse.chapters || []).map(ch => (
-                                                <option key={ch.id} value={ch.id}>{ch.title} ({ch.questions_count})</option>
-                                            ))}
-                                        </select>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <label className={`block text-[11px] font-[900] uppercase opacity-60 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                                {lang === 'ar' ? 'اختر الشباتر المطلوبة للامتحان' : 'Select Chapters for Quiz'}
+                                            </label>
+                                            
+                                            {selectedCourse.chapters && selectedCourse.chapters.length > 0 && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedChapters(selectedCourse.chapters.map(ch => ch.id))}
+                                                        className={`text-[10px] font-black transition-colors ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-800'}`}
+                                                    >
+                                                        {lang === 'ar' ? 'تحديد الكل' : 'Select All'}
+                                                    </button>
+                                                    <span className="text-[10px] opacity-40">|</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedChapters([])}
+                                                        className={`text-[10px] font-black transition-colors ${isDark ? 'text-rose-400 hover:text-rose-300' : 'text-rose-600 hover:text-rose-805'}`}
+                                                    >
+                                                        {lang === 'ar' ? 'إلغاء الكل' : 'Clear All'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {selectedCourse.chapters && selectedCourse.chapters.length > 0 ? (
+                                            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                                                {selectedCourse.chapters.map(ch => {
+                                                    const isChecked = selectedChapters.includes(ch.id);
+                                                    return (
+                                                        <button
+                                                            key={ch.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (isChecked) {
+                                                                    setSelectedChapters(selectedChapters.filter(id => id !== ch.id));
+                                                                } else {
+                                                                    setSelectedChapters([...selectedChapters, ch.id]);
+                                                                }
+                                                            }}
+                                                            className={`w-full p-3 px-4 rounded-xl border-2 text-right transition-all flex items-center justify-between gap-3 ${
+                                                                isChecked
+                                                                    ? (isDark ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-indigo-600 bg-indigo-50 text-indigo-900')
+                                                                    : (isDark ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700' : 'border-slate-100 bg-slate-50 text-slate-655 hover:border-slate-200')
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <span className={`w-5 h-5 rounded-md flex items-center justify-center border text-[10px] transition-all shrink-0 ${
+                                                                    isChecked
+                                                                        ? 'bg-indigo-600 border-indigo-600 text-white font-black'
+                                                                        : (isDark ? 'border-slate-700 bg-slate-850' : 'border-slate-300 bg-white')
+                                                                }`}>
+                                                                    {isChecked ? '✓' : ''}
+                                                                </span>
+                                                                <span className="text-xs font-[800] truncate">{ch.title}</span>
+                                                            </div>
+                                                            <span className={`text-[9px] font-black shrink-0 px-2 py-0.5 rounded-md ${
+                                                                isChecked
+                                                                    ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700')
+                                                                    : (isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-200/60 text-slate-500')
+                                                            }`}>
+                                                                {ch.questions_count} Q
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className={`p-4 rounded-xl border-2 border-dashed text-center text-xs font-bold ${
+                                                isDark ? 'border-slate-800 text-slate-500' : 'border-slate-200 text-slate-400'
+                                            }`}>
+                                                {lang === 'ar' ? 'لا توجد شابترز لهذه المادة. سيتم تقديم أسئلة المادة كاملة.' : 'No chapters available. Questions will be drawn from the whole course.'}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>

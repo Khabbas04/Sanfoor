@@ -91,17 +91,18 @@ class AdminQuestionController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Find or create course
-        $course = Course::updateOrCreate(
-            ['name' => $data['course_name']],
-            [
+        // Find or create course non-destructively
+        $course = Course::where('name', $data['course_name'])->first();
+        if (!$course) {
+            $course = Course::create([
+                'name' => $data['course_name'],
                 'code' => $data['course_code'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
                 'semester' => 1
-            ]
-        );
+            ]);
+        }
 
         // Find or create chapter if title provided
         $chapterId = null;
@@ -152,17 +153,18 @@ class AdminQuestionController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Find or create course
-        $course = Course::updateOrCreate(
-            ['name' => $data['course_name']],
-            [
+        // Find or create course non-destructively
+        $course = Course::where('name', $data['course_name'])->first();
+        if (!$course) {
+            $course = Course::create([
+                'name' => $data['course_name'],
                 'code' => $data['course_code'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
                 'semester' => 1
-            ]
-        );
+            ]);
+        }
 
         // Find or create chapter
         $chapterId = null;

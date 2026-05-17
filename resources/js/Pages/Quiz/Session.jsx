@@ -4,11 +4,11 @@ import MainLayout from '@/Layouts/MainLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapter: chapterProp, mode: modeProp = 'quiz', results: resultsProp = null }) {
+export default function QuizSession({ questions: questionsProp = [], course: courseProp, chapters: chaptersProp = [], mode: modeProp = 'quiz', results: resultsProp = null }) {
     try {
         const questions = Array.isArray(questionsProp) ? questionsProp : [];
         const course = courseProp || { id: 0, name: 'Course' };
-        const chapter = chapterProp || null;
+        const chapters = Array.isArray(chaptersProp) ? chaptersProp : [];
         const mode = modeProp || 'quiz';
         const { isDark } = useTheme();
         const { lang } = useLanguage();
@@ -105,7 +105,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                 setPracticeRevealed(true);
                 router.post(route('quiz.submit'), {
                     course_id: course.id,
-                    chapter_id: chapter?.id || null,
+                    chapter_ids: chapters.length > 0 ? chapters.map(ch => ch.id) : null,
                     mode: 'practice',
                     answers: { [currentQ.id]: option },
                     time_spent_seconds: null,
@@ -120,7 +120,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                     onError: (errors) => console.error(errors)
                 });
             }
-        }, [showResult, isPractice, practiceRevealed, currentQ, course, chapter]);
+        }, [showResult, isPractice, practiceRevealed, currentQ, course, chapters]);
 
         const goNext = () => {
             if (isPractice) { setPracticeRevealed(false); setPracticeResult(null); }
@@ -138,7 +138,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
             setSubmitting(true);
             router.post(route('quiz.submit'), {
                 course_id: course.id,
-                chapter_id: chapter?.id || null,
+                chapter_ids: chapters.length > 0 ? chapters.map(ch => ch.id) : null,
                 mode: 'quiz',
                 answers,
                 time_spent_seconds: elapsed,
@@ -189,10 +189,24 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
             <div className="min-h-screen" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 <Head><title>{course.name}</title></Head>
                 <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className={`text-lg font-[900] ${isDark ? 'text-white' : 'text-slate-900'}`}>{course.name}</h2>
-                        <div className="text-right">
-                            <span className="text-xl font-[900] font-mono">{formatTime(elapsed)}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{course.name}</h2>
+                            {chapters.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-700'}`}>
+                                        {lang === 'ar' ? 'الشباتر النشطة:' : 'Selected Chapters:'}
+                                    </span>
+                                    {chapters.map(ch => (
+                                        <span key={ch.id} className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                            {ch.title}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-left shrink-0 sm:text-right">
+                            <span className="text-2xl font-black font-mono tracking-wider">{formatTime(elapsed)}</span>
                         </div>
                     </div>
                     <div className={`w-full h-2 rounded-full mb-8 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>

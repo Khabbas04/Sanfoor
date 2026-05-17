@@ -73,6 +73,8 @@ class QuizController extends Controller
         $data = $request->validate([
             'course_id' => 'required|exists:courses,id',
             'chapter_id' => 'nullable|exists:chapters,id',
+            'chapter_ids' => 'nullable|array',
+            'chapter_ids.*' => 'exists:chapters,id',
             'mode' => 'required|in:quiz,practice',
             'count' => 'nullable|integer|min:5|max:50',
         ]);
@@ -87,8 +89,16 @@ class QuizController extends Controller
         $questionsQuery = Question::where('course_id', $data['course_id'])
             ->where('is_active', true);
 
-        if (!empty($data['chapter_id'])) {
-            $questionsQuery->where('chapter_id', $data['chapter_id']);
+        // Resolve chapter selection
+        $chapterIds = [];
+        if (!empty($data['chapter_ids'])) {
+            $chapterIds = $data['chapter_ids'];
+        } elseif (!empty($data['chapter_id'])) {
+            $chapterIds = [$data['chapter_id']];
+        }
+
+        if (!empty($chapterIds)) {
+            $questionsQuery->whereIn('chapter_id', $chapterIds);
         }
 
         $questions = $questionsQuery
@@ -105,20 +115,20 @@ class QuizController extends Controller
                     'option_d' => $q->option_d,
                     'difficulty' => $q->difficulty,
                     'chapter_id' => $q->chapter_id,
-                    // correct_option is NOT sent to the frontend; it is checked server-side on submit.
                 ];
             })->values();
 
         $course = Course::select('id', 'name', 'code')->findOrFail($data['course_id']);
-        $chapter = null;
-        if (!empty($data['chapter_id'])) {
-            $chapter = \App\Models\Chapter::select('id', 'title')->find($data['chapter_id']);
+        
+        $selectedChapters = [];
+        if (!empty($chapterIds)) {
+            $selectedChapters = \App\Models\Chapter::select('id', 'title', 'order')->whereIn('id', $chapterIds)->orderBy('order')->get();
         }
 
         return Inertia::render('Quiz/Session', [
             'questions' => $questions,
             'course' => $course,
-            'chapter' => $chapter,
+            'chapters' => $selectedChapters,
             'mode' => $data['mode'],
         ]);
     }
@@ -131,6 +141,8 @@ class QuizController extends Controller
         $data = $request->validate([
             'course_id' => 'required|exists:courses,id',
             'chapter_id' => 'nullable|exists:chapters,id',
+            'chapter_ids' => 'nullable|array',
+            'chapter_ids.*' => 'exists:chapters,id',
             'mode' => 'required|in:quiz,practice',
             'answers' => 'required|array',
             'answers.*' => 'required|in:a,b,c,d',
@@ -161,10 +173,18 @@ class QuizController extends Controller
 
         $scorePct = $total > 0 ? round(($correct / $total) * 100) : 0;
 
+        // Resolve chapter_id for saving the single attempt record
+        $chapterId = null;
+        if (!empty($data['chapter_ids']) && count($data['chapter_ids']) === 1) {
+            $chapterId = $data['chapter_ids'][0];
+        } elseif (!empty($data['chapter_id'])) {
+            $chapterId = $data['chapter_id'];
+        }
+
         $attempt = QuizAttempt::create([
             'user_id' => Auth::id(),
             'course_id' => $data['course_id'],
-            'chapter_id' => $data['chapter_id'] ?? null,
+            'chapter_id' => $chapterId,
             'mode' => $data['mode'],
             'total_questions' => $total,
             'correct_answers' => $correct,

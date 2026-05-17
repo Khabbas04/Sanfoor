@@ -138,7 +138,25 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         return list;
     }, [courses, filters.major_id, filters.study_plan]);
 
-    const openCreate = () => { reset(); setEditingId(null); setShowForm(true); };
+    const openCreate = (course = null) => { 
+        reset(); 
+        setEditingId(null); 
+        if (course) {
+            setData({
+                course_name: course.name,
+                course_code: course.code,
+                title: '',
+                description: '',
+                google_drive_link: '',
+                order: 0,
+                is_active: true,
+            });
+            setIsNewCourse(false);
+        } else {
+            setIsNewCourse(courses.length === 0);
+        }
+        setShowForm(true); 
+    };
     const openEdit = (chapter) => {
         setData({ 
             course_name: chapter.course?.name || '', 
@@ -150,6 +168,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
             is_active: chapter.is_active 
         });
         setEditingId(chapter.id);
+        setIsNewCourse(false);
         setShowForm(true);
     };
 
@@ -260,22 +279,68 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`text-lg opacity-50 hover:opacity-100 transition-opacity`}>✕</button>
                         </div>
 
+                        {/* Course selection toggle */}
+                        {!editingId && courses.length > 0 && (
+                            <div className="flex gap-3 mb-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsNewCourse(false);
+                                        setData(prev => ({ ...prev, course_name: '', course_code: '' }));
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-indigo-600 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                >
+                                    {lang === 'ar' ? 'اختر مادة موجودة' : 'Select Existing Course'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsNewCourse(true);
+                                        setData(prev => ({ ...prev, course_name: '', course_code: '' }));
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-indigo-600 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                >
+                                    {lang === 'ar' ? 'إنشاء مادة جديدة' : 'إنشاء مادة جديدة'}
+                                </button>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
-                                <input 
-                                    type="text" 
-                                    value={data.course_name} 
-                                    onChange={e => {
-                                        setData('course_name', e.target.value);
-                                        const c = courses.find(x => x.name === e.target.value);
-                                        if (c) setData('course_code', c.code);
-                                    }} 
-                                    className={inputCls} 
-                                    required 
-                                    placeholder="مثلاً: برمجة 1..."
-                                    list="existing-courses-chapters"
-                                />
+                                {!isNewCourse && !editingId ? (
+                                    <select
+                                        value={data.course_name}
+                                        onChange={e => {
+                                            const c = courses.find(x => x.name === e.target.value);
+                                            setData(prev => ({
+                                                ...prev,
+                                                course_name: e.target.value,
+                                                course_code: c ? c.code : ''
+                                            }));
+                                        }}
+                                        className={inputCls}
+                                        required
+                                    >
+                                        <option value="">{lang === 'ar' ? 'اختر المادة...' : 'Select course...'}</option>
+                                        {courses.map(c => <option key={c.id} value={c.name}>{c.name} ({c.code})</option>)}
+                                    </select>
+                                ) : (
+                                    <input 
+                                        type="text" 
+                                        value={data.course_name} 
+                                        onChange={e => {
+                                            setData('course_name', e.target.value);
+                                            const c = courses.find(x => x.name === e.target.value);
+                                            if (c) setData('course_code', c.code);
+                                        }} 
+                                        className={inputCls} 
+                                        required 
+                                        placeholder="مثلاً: برمجة 1..."
+                                        list="existing-courses-chapters"
+                                        disabled={!!editingId}
+                                    />
+                                )}
                                 <datalist id="existing-courses-chapters">
                                     {courses.map(c => <option key={c.id} value={c.name} />)}
                                 </datalist>
@@ -290,6 +355,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                     className={inputCls} 
                                     required 
                                     placeholder="مثلاً: 0306101"
+                                    disabled={!isNewCourse || !!editingId}
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
@@ -360,9 +426,21 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                             <span className={`text-[10px] font-bold font-mono ${subtext}`}>{group.course?.code}</span>
                                         </div>
                                     </div>
-                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
-                                        {group.chapters.length} {lang === 'ar' ? 'شابتر' : 'chapters'}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <button 
+                                            onClick={() => openCreate(group.course)} 
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                                                isDark 
+                                                    ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' 
+                                                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white'
+                                            }`}
+                                        >
+                                            + {lang === 'ar' ? 'إضافة شابتر لهذه المادة' : 'Add Chapter to Course'}
+                                        </button>
+                                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
+                                            {group.chapters.length} {lang === 'ar' ? 'شابتر' : 'chapters'}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Chapter rows */}
