@@ -18,6 +18,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [localSearch, setLocalSearch] = useState(filters.search || '');
+    const [isNewCourse, setIsNewCourse] = useState(courses.length === 0);
 
     const t = lang === 'ar' ? {
         title: 'إدارة الشابترز',
