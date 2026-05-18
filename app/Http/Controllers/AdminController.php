@@ -500,8 +500,13 @@ class AdminController extends Controller
                 'string',
                 Rule::unique('courses')->where(function ($query) use ($request) {
                     $majorId = $request->input('major_id');
+                    $type = $request->input('type');
 
-                    $query->where('study_plan_version', (int) $request->input('study_plan_version'));
+                    if ($type === 'university_req' && empty($majorId)) {
+                        // General university requirements are unique globally across all plans
+                    } else {
+                        $query->where('study_plan_version', (int) $request->input('study_plan_version'));
+                    }
 
                     if (empty($majorId)) {
                         $query->whereNull('major_id');
@@ -545,24 +550,54 @@ class AdminController extends Controller
             }
         }
 
-        $course = Course::create([
-            'name'         => $validated['name'],
-            'code'         => $validated['code'],
-            'credit_hours' => $validated['credit_hours'],
-            'difficulty_level' => $validated['difficulty_level'] ?? 3,
-            'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
-            'type'         => $validated['type'],
-            'major_id'     => $validated['major_id'],
-            'study_plan_version' => $validated['study_plan_version'],
-            'semester'     => $validated['semester'],
-            'description'  => $validated['description'],
-        ]);
+        $isUniReq = ($validated['type'] === 'university_req' && empty($validated['major_id']));
+        $planVersions = $isUniReq ? [11, 12] : [(int) $validated['study_plan_version']];
 
-        if ($prerequisiteIds->isNotEmpty()) {
-            $course->prerequisites()->attach($prerequisiteIds->all());
+        $createdCourses = [];
+        foreach ($planVersions as $planVersion) {
+            $course = Course::create([
+                'name'         => $validated['name'],
+                'code'         => $validated['code'],
+                'credit_hours' => $validated['credit_hours'],
+                'difficulty_level' => $validated['difficulty_level'] ?? 3,
+                'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
+                'type'         => $validated['type'],
+                'major_id'     => $validated['major_id'],
+                'study_plan_version' => $planVersion,
+                'semester'     => $validated['semester'],
+                'description'  => $validated['description'],
+            ]);
+            $createdCourses[$planVersion] = $course;
         }
 
-        $this->logAction('ADD_COURSE', "تم إضافة المادة وربط المتطلب: {$course->name} ({$course->code})");
+        foreach ($createdCourses as $planVersion => $course) {
+            if ($planVersion === (int) $validated['study_plan_version']) {
+                if ($prerequisiteIds->isNotEmpty()) {
+                    $course->prerequisites()->attach($prerequisiteIds->all());
+                }
+            } else {
+                if ($prerequisiteIds->isNotEmpty()) {
+                    $otherPrereqIds = [];
+                    foreach ($prerequisiteIds as $pid) {
+                        $originalPrereq = Course::find($pid);
+                        if ($originalPrereq) {
+                            $mappedPrereq = Course::where('code', $originalPrereq->code)
+                                ->where('study_plan_version', $planVersion)
+                                ->where('is_quiz_only', false)
+                                ->first();
+                            if ($mappedPrereq) {
+                                $otherPrereqIds[] = $mappedPrereq->id;
+                            }
+                        }
+                    }
+                    if (!empty($otherPrereqIds)) {
+                        $course->prerequisites()->attach($otherPrereqIds);
+                    }
+                }
+            }
+        }
+
+        $this->logAction('ADD_COURSE', "تم إضافة المادة وربط المتطلب: {$validated['name']} ({$validated['code']})" . ($isUniReq ? " (لكافة الخطط)" : ""));
         TreeController::flushCourseTreeCache();
         return redirect()->back()->with('success', 'تم حفظ المادة بنجاح وتفعيل نظام المتطلبات! 🎉');
     }
@@ -574,10 +609,24 @@ class AdminController extends Controller
             'code'            => [
                 'required',
                 'string',
-                Rule::unique('courses')->ignore($course->id)->where(function ($query) use ($request) {
+                Rule::unique('courses')->ignore($course->id)->where(function ($query) use ($request, $course) {
                     $majorId = $request->input('major_id');
+                    $type = $request->input('type');
 
-                    $query->where('study_plan_version', (int) $request->input('study_plan_version'));
+                    if ($type === 'university_req' && empty($majorId)) {
+                        $otherPlan = (int) $course->study_plan_version === 12 ? 11 : 12;
+                        $otherCourse = Course::where('code', $course->code)
+                            ->whereNull('major_id')
+                            ->where('study_plan_version', $otherPlan)
+                            ->where('is_quiz_only', false)
+                            ->first();
+
+                        if ($otherCourse) {
+                            $query->where('id', '!=', $otherCourse->id);
+                        }
+                    } else {
+                        $query->where('study_plan_version', (int) $request->input('study_plan_version'));
+                    }
 
                     if (empty($majorId)) {
                         $query->whereNull('major_id');
@@ -627,6 +676,10 @@ class AdminController extends Controller
             }
         }
 
+        $isUniReq = ($validated['type'] === 'university_req' && empty($validated['major_id']));
+        $oldCode = $course->code;
+        $oldPlanVersion = (int) $course->study_plan_version;
+
         $course->update([
             'name'         => $validated['name'],
             'code'         => $validated['code'],
@@ -646,7 +699,80 @@ class AdminController extends Controller
             $course->prerequisites()->detach(); 
         }
 
-        $this->logAction('UPDATE_COURSE', "تم تعديل المادة: {$course->name}");
+        if ($isUniReq) {
+            $otherPlanVersion = $oldPlanVersion === 12 ? 11 : 12;
+
+            $otherCourse = Course::where('code', $oldCode)
+                ->whereNull('major_id')
+                ->where('study_plan_version', $otherPlanVersion)
+                ->where('is_quiz_only', false)
+                ->first();
+
+            if ($otherCourse) {
+                $otherCourse->update([
+                    'name'         => $validated['name'],
+                    'code'         => $validated['code'],
+                    'credit_hours' => $validated['credit_hours'],
+                    'difficulty_level' => $validated['difficulty_level'] ?? 3,
+                    'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
+                    'type'         => $validated['type'],
+                    'major_id'     => $validated['major_id'],
+                    'semester'     => $validated['semester'],
+                    'description'  => $validated['description'],
+                ]);
+
+                if ($prerequisiteIds->isNotEmpty()) {
+                    $otherPrereqIds = [];
+                    foreach ($prerequisiteIds as $pid) {
+                        $originalPrereq = Course::find($pid);
+                        if ($originalPrereq) {
+                            $mappedPrereq = Course::where('code', $originalPrereq->code)
+                                ->where('study_plan_version', $otherPlanVersion)
+                                ->where('is_quiz_only', false)
+                                ->first();
+                            if ($mappedPrereq) {
+                                $otherPrereqIds[] = $mappedPrereq->id;
+                            }
+                        }
+                    }
+                    $otherCourse->prerequisites()->sync($otherPrereqIds);
+                } else {
+                    $otherCourse->prerequisites()->detach();
+                }
+            } else {
+                $newOtherCourse = Course::create([
+                    'name'         => $validated['name'],
+                    'code'         => $validated['code'],
+                    'credit_hours' => $validated['credit_hours'],
+                    'difficulty_level' => $validated['difficulty_level'] ?? 3,
+                    'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
+                    'type'         => $validated['type'],
+                    'major_id'     => $validated['major_id'],
+                    'study_plan_version' => $otherPlanVersion,
+                    'semester'     => $validated['semester'],
+                    'description'  => $validated['description'],
+                ]);
+
+                if ($prerequisiteIds->isNotEmpty()) {
+                    $otherPrereqIds = [];
+                    foreach ($prerequisiteIds as $pid) {
+                        $originalPrereq = Course::find($pid);
+                        if ($originalPrereq) {
+                            $mappedPrereq = Course::where('code', $originalPrereq->code)
+                                ->where('study_plan_version', $otherPlanVersion)
+                                ->where('is_quiz_only', false)
+                                ->first();
+                            if ($mappedPrereq) {
+                                $otherPrereqIds[] = $mappedPrereq->id;
+                            }
+                        }
+                    }
+                    $newOtherCourse->prerequisites()->attach($otherPrereqIds);
+                }
+            }
+        }
+
+        $this->logAction('UPDATE_COURSE', "تم تعديل المادة: {$validated['name']}" . ($isUniReq ? " (في كافة الخطط)" : ""));
         TreeController::flushCourseTreeCache();
         return redirect()->back()->with('success', 'تم تعديل المادة بنجاح!');
     }
@@ -654,10 +780,26 @@ class AdminController extends Controller
     public function destroy(Course $course)
     {
         $courseName = $course->name;
-        DB::table('course_prerequisites')->where('course_id', $course->id)->orWhere('prerequisite_id', $course->id)->delete();
-        $course->delete();
+        $isUniReq = ($course->type === 'university_req' && empty($course->major_id));
 
-        $this->logAction('DELETE_COURSE', "تم حذف المادة: {$courseName}");
+        $coursesToDelete = [$course];
+        if ($isUniReq) {
+            $otherCourse = Course::where('code', $course->code)
+                ->whereNull('major_id')
+                ->where('study_plan_version', $course->study_plan_version === 12 ? 11 : 12)
+                ->where('is_quiz_only', false)
+                ->first();
+            if ($otherCourse) {
+                $coursesToDelete[] = $otherCourse;
+            }
+        }
+
+        foreach ($coursesToDelete as $c) {
+            DB::table('course_prerequisites')->where('course_id', $c->id)->orWhere('prerequisite_id', $c->id)->delete();
+            $c->delete();
+        }
+
+        $this->logAction('DELETE_COURSE', "تم حذف المادة: {$courseName}" . ($isUniReq ? " (من كافة الخطط)" : ""));
         TreeController::flushCourseTreeCache();
         return redirect()->back()->with('success', 'تم الحذف بنجاح');
     }
@@ -666,8 +808,28 @@ class AdminController extends Controller
     {
         $ids = $request->input('ids');
         if (!empty($ids)) {
-            $count = Course::whereIn('id', $ids)->delete();
-            DB::table('course_prerequisites')->whereIn('course_id', $ids)->orWhereIn('prerequisite_id', $ids)->delete();
+            $ids = array_map('intval', $ids);
+            
+            $uniReqCourses = Course::whereIn('id', $ids)
+                ->where('type', 'university_req')
+                ->whereNull('major_id')
+                ->get();
+                
+            $allIdsToDelete = $ids;
+            foreach ($uniReqCourses as $ur) {
+                $otherPlan = $ur->study_plan_version === 12 ? 11 : 12;
+                $otherCourse = Course::where('code', $ur->code)
+                    ->whereNull('major_id')
+                    ->where('study_plan_version', $otherPlan)
+                    ->where('is_quiz_only', false)
+                    ->first();
+                if ($otherCourse && !in_array($otherCourse->id, $allIdsToDelete)) {
+                    $allIdsToDelete[] = $otherCourse->id;
+                }
+            }
+
+            $count = Course::whereIn('id', $allIdsToDelete)->delete();
+            DB::table('course_prerequisites')->whereIn('course_id', $allIdsToDelete)->orWhereIn('prerequisite_id', $allIdsToDelete)->delete();
             $this->logAction('BULK_DELETE', "تم حذف $count مادة مع كافة علاقاتها الشجرية.");
             TreeController::flushCourseTreeCache();
             return redirect()->back()->with('success', "تم حذف المواد بنجاح.");
