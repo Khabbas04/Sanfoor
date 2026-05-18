@@ -92,7 +92,7 @@ class AdminQuestionController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])->first();
+        $course = Course::where('name', $data['course_name'])->where('is_quiz_only', 1)->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
@@ -154,7 +154,7 @@ class AdminQuestionController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])->first();
+        $course = Course::where('name', $data['course_name'])->where('is_quiz_only', 1)->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],

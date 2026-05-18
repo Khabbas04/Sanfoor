@@ -99,9 +99,6 @@ export default function ChaptersIndex({ courses = [], filters = {} }) {
                                         <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase ${
                                             isDark ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
                                         }`}>
-                                            {t.semester} {selectedCourse.semester}
-                                        </span>
-                                        <span className={`text-xs font-bold ${subtext}`}>
                                             {selectedCourse.chapters?.length || 0} {t.chapters}
                                         </span>
                                     </div>
@@ -213,7 +210,7 @@ export default function ChaptersIndex({ courses = [], filters = {} }) {
                                                     <p className="text-indigo-500 font-black text-xs tracking-wider uppercase">{course.code}</p>
                                                     <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                                                     <p className={`text-[10px] font-black uppercase ${subtext}`}>
-                                                        {t.semester} {course.semester}
+                                                        {course.chapters?.length || 0} {t.chapters}
                                                     </p>
                                                 </div>
                                             </div>
