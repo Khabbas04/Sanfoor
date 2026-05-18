@@ -734,7 +734,7 @@ export default function Advisor() {
                         <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-indigo-700'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
                         <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`}/>
-                            {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? 'المستشار الاحتياطي (المحلي الذكي) 🔴' : 'المستشار الذكي (Gemini AI) 🟢')}
+                            {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? 'مستشار سنفور (الوضع المحلي) 🔴' : 'مستشار سنفور (الوضع الذكي) 🟢')}
                         </p>
                     </div>
                 </div>
