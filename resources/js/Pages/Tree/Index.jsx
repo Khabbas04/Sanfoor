@@ -365,25 +365,92 @@ export default function Tree({
             setIsPrinting(true);
             const nodesBounds = getRectOfNodes(flowInstance.getNodes());
 
-            const padding = 150;
+            // Define header width and print boundaries including the new academic header at the top
+            const headerWidth = Math.max(1000, nodesBounds.width);
+            const printBounds = {
+                x: nodesBounds.x - (headerWidth > nodesBounds.width ? (headerWidth - nodesBounds.width) / 2 : 0),
+                y: nodesBounds.y - 240, // 240px above the topmost node to accommodate the header
+                width: Math.max(headerWidth, nodesBounds.width),
+                height: nodesBounds.height + 280 // Extra height to include the header
+            };
+
+            const padding = 100;
             const exportScale = 2; // For professional high-res quality
 
-            const width = nodesBounds.width + padding * 2;
-            const height = nodesBounds.height + padding * 2;
+            const width = printBounds.width + padding * 2;
+            const height = printBounds.height + padding * 2;
 
             const transform = getTransformForBounds(
-                nodesBounds,
+                printBounds,
                 width,
                 height,
-                0.1,
+                0.05,
                 2
             );
+
+            // Create and style the premium academic header to insert into the exported image
+            const headerDiv = document.createElement('div');
+            headerDiv.id = 'print-plan-header';
+            headerDiv.style.position = 'absolute';
+            headerDiv.style.width = `${headerWidth}px`;
+            headerDiv.style.height = '140px';
+            headerDiv.style.left = `${(nodesBounds.x + nodesBounds.width / 2) - headerWidth / 2}px`;
+            headerDiv.style.top = `${nodesBounds.y - 190}px`;
+            headerDiv.style.zIndex = '9999';
+            
+            headerDiv.innerHTML = `
+                <div style="
+                    direction: rtl; 
+                    font-family: 'Cairo', 'Inter', sans-serif; 
+                    background: #ffffff; 
+                    border: 4px double #1e293b; 
+                    border-radius: 24px; 
+                    padding: 20px 40px; 
+                    box-sizing: border-box; 
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    width: 100%; 
+                    height: 100%;
+                    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+                ">
+                    <!-- Right side: University info -->
+                    <div style="text-align: right; display: flex; flex-direction: column; justify-content: center;">
+                        <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a;">جامعة الزرقاء</h2>
+                        <h3 style="margin: 4px 0 0 0; font-size: 13px; font-weight: 700; color: #475569;">${college_name || 'كلية تكنولوجيا المعلومات'}</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: 700; color: #6366f1;">تخصص ${major_name || 'هندسة البرمجيات'}</p>
+                    </div>
+
+                    <!-- Center: Title & Emblem -->
+                    <div style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <svg style="width: 36px; height: 36px; color: #0f172a; margin-bottom: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <h1 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">الخطة الدراسية الاسترشادية الشجرية</h1>
+                        <span style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-top: 1px; letter-spacing: 0.5px;">Sanfoor Academic Infrastructure</span>
+                    </div>
+
+                    <!-- Left side: Plan Metadata -->
+                    <div style="text-align: left; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
+                        <div style="background: #f1f5f9; padding: 5px 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 4px;">
+                            <span style="font-size: 10px; font-weight: 800; color: #1e293b;">رقم إصدار الخطة: </span>
+                            <span style="font-size: 11px; font-weight: 900; color: #4f46e5;">خطة ${study_plan_version || 'معتمدة'}</span>
+                        </div>
+                        <p style="margin: 0; font-size: 10px; font-weight: 700; color: #64748b;">تاريخ التصدير: <span style="color: #0f172a; font-weight: 800;">${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
+                        <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 700; color: #10b981;">الحالة الأكاديمية: معتمدة رسمياً</p>
+                    </div>
+                </div>
+            `;
 
             // Hide the background dots for a cleaner print
             const elementsToHide = document.querySelectorAll('.react-flow__background');
             elementsToHide.forEach(el => el.style.display = 'none');
 
-            const dataUrl = await toPng(document.querySelector('.react-flow__viewport'), {
+            // Temporarily append the header to the React Flow viewport so html-to-image captures it
+            const viewport = document.querySelector('.react-flow__viewport');
+            viewport.appendChild(headerDiv);
+
+            const dataUrl = await toPng(viewport, {
                 backgroundColor: '#ffffff',
                 width: width,
                 height: height,
@@ -396,6 +463,8 @@ export default function Tree({
                 pixelRatio: exportScale,
             });
 
+            // Clean up and remove the temporary header element
+            viewport.removeChild(headerDiv);
             elementsToHide.forEach(el => el.style.display = '');
 
             // Trigger download instead of window.print()
@@ -409,7 +478,7 @@ export default function Tree({
             Swal.fire({
                 icon: 'success',
                 title: 'تم التصدير بنجاح!',
-                text: 'تم حفظ الخطة كصورة احترافية بدقة عالية.',
+                text: 'تم حفظ الخطة كصورة احترافية بدقة عالية تحتوي على معلومات الخطة والتخصص.',
                 ...swalTheme
             });
         } catch (error) {
@@ -422,7 +491,7 @@ export default function Tree({
                 ...swalTheme
             });
         }
-    }, [flowInstance, major_name]);
+    }, [flowInstance, major_name, college_name, study_plan_version]);
 
     const toggleFullScreen = useCallback(() => {
         setIsFullScreen((prev) => !prev);
