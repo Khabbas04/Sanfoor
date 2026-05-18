@@ -973,11 +973,6 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                             <option value="11">الخطة الشجرية 11</option>
                                             <option value="12">الخطة الشجرية 12</option>
                                         </select>
-                                        {data.type === 'university_req' && !data.major_id && (
-                                            <p className="text-[10px] font-black text-indigo-600 bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100/80 mt-1.5 animate-pulse">
-                                                ✨ سيتم إضافة/تعديل هذا المتطلب تلقائياً في كلاً من الخطة 11 والخطة 12.
-                                            </p>
-                                        )}
                                         {errors.study_plan_version && <div className="text-rose-500 text-xs mt-1 font-bold">{errors.study_plan_version}</div>}
                                     </div>
 
