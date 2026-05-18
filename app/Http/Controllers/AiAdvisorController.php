@@ -16,13 +16,14 @@ use Inertia\Inertia;
 
 class AiAdvisorController extends Controller
 {
-    private const MAX_CONTEXT_MESSAGES = 12;
+    private const MAX_CONTEXT_MESSAGES = 8;
     private const RATE_LIMIT_PER_HOUR = 40;
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
     private const MAX_WIDGET_ITEMS = 8;
     private const MAX_HOURS_NORMAL = 18;
     private const MAX_HOURS_PROBATION = 12;
     private const ENABLE_SMART_TITLE = false;
+    private const DAILY_LIMIT = 5;
 
     public function index()
     {
@@ -31,6 +32,9 @@ class AiAdvisorController extends Controller
         if (!$user) {
             abort(403);
         }
+
+        // Clear academic cache on page load to guarantee fresh cart and grades status
+        $this->clearStudentCache($user->id);
 
         $user->load(['major', 'cartCourses', 'passedCourses']);
 
@@ -48,6 +52,12 @@ class AiAdvisorController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $apiKeys = $this->getGeminiApiKeys();
+        
+        $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
+        $usage = (int) Cache::get($usageKey, 0);
+        $remaining = max(0, self::DAILY_LIMIT - $usage);
+
         return Inertia::render('Ai/Advisor', [
             'studentStats' => [
                 'name' => $user->name ?? 'طالب',
@@ -64,6 +74,8 @@ class AiAdvisorController extends Controller
             ],
             'chats' => $chats,
             'initialCartIds' => $user->cartCourses->pluck('id')->toArray(),
+            'dailyMessagesRemaining' => $remaining,
+            'isAiActive' => !empty($apiKeys),
         ]);
     }
 
@@ -92,10 +104,19 @@ class AiAdvisorController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
 
-        $apiKeys = $this->getGeminiApiKeys();
-        if (empty($apiKeys)) {
-            return response()->json(['status' => 'error', 'message' => 'مفتاح Gemini غير موجود.'], 500);
+        // Check student's daily message limits (max 5 per day)
+        $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
+        $usage = (int) Cache::get($usageKey, 0);
+        if ($usage >= self::DAILY_LIMIT) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'لقد استهلكت جميع محاولاتك الـ 5 المتاحة اليوم للمستشار الأكاديمي. حاول غداً ⏳',
+                'daily_messages_remaining' => 0
+            ], 429);
         }
+
+        // Clear academic data cache to ensure fresh analysis
+        $this->clearStudentCache($user->id);
 
         if (!$this->checkRateLimit($user->id)) {
             return response()->json([
@@ -106,6 +127,7 @@ class AiAdvisorController extends Controller
                 'follow_up_suggestions' => [],
                 'interactive_widget' => null,
                 'chat_id' => $data['chat_id'] ?? null,
+                'daily_messages_remaining' => max(0, self::DAILY_LIMIT - $usage)
             ]);
         }
 
@@ -122,25 +144,38 @@ class AiAdvisorController extends Controller
         $cartData = $this->getCartData($user);
         $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartData['ids'], $user);
 
-        $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $data['message']);
-        $contents = $this->buildConversationContext($chat, $systemPrompt);
+        $apiKeys = $this->getGeminiApiKeys();
+        $useFallback = empty($apiKeys);
 
         try {
-            $rawText = $this->callGeminiAPI($contents, $apiKeys);
-            $parsed = $this->parseAIResponse($rawText);
+            if ($useFallback) {
+                $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+                
+                $replyText = $parsed['reply'];
+                $followUpSuggestions = $parsed['follow_up_suggestions'];
+                $interactiveWidget = $parsed['interactive_widget'];
+                $suggestedDetails = $parsed['suggested_courses'];
+                $removeDetails = $parsed['courses_to_remove'];
+            } else {
+                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $data['message']);
+                $contents = $this->buildConversationContext($chat, $systemPrompt);
 
-            $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
-            $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
-            $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
-            $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableCourses['map'], $cartData['map']);
+                $rawText = $this->callGeminiAPI($contents, $apiKeys);
+                $parsed = $this->parseAIResponse($rawText);
 
-            $matched = $this->matchCoursesInReply($replyText, $availableCourses['map'], $cartData['map']);
-            $suggestedDetails = !empty($matched['suggested'])
-                ? Course::whereIn('id', $matched['suggested'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
-                : [];
-            $removeDetails = !empty($matched['remove'])
-                ? Course::whereIn('id', $matched['remove'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
-                : [];
+                $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
+                $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
+                $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
+                $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableCourses['map'], $cartData['map']);
+
+                $matched = $this->matchCoursesInReply($replyText, $availableCourses['map'], $cartData['map']);
+                $suggestedDetails = !empty($matched['suggested'])
+                    ? Course::whereIn('id', $matched['suggested'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                    : [];
+                $removeDetails = !empty($matched['remove'])
+                    ? Course::whereIn('id', $matched['remove'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                    : [];
+            }
 
             $chat->messages()->create([
                 'role' => 'ai',
@@ -154,12 +189,16 @@ class AiAdvisorController extends Controller
             ]);
 
             if ($isNewChat) {
-                $title = self::ENABLE_SMART_TITLE
+                $title = !$useFallback && self::ENABLE_SMART_TITLE
                     ? $this->generateSmartTitle($data['message'], $replyText, $apiKeys[0])
                     : $this->makeFallbackTitle($data['message']);
 
                 $chat->update(['title' => $title]);
             }
+
+            // Increment daily message usage on success
+            Cache::put($usageKey, $usage + 1, now()->endOfDay());
+            $newRemaining = max(0, self::DAILY_LIMIT - ($usage + 1));
 
             return response()->json([
                 'status' => 'success',
@@ -170,6 +209,8 @@ class AiAdvisorController extends Controller
                 'interactive_widget' => $interactiveWidget,
                 'chat_id' => $chatId,
                 'chat_title' => $isNewChat ? $chat->title : null,
+                'daily_messages_remaining' => $newRemaining,
+                'is_fallback' => $useFallback,
             ]);
         } catch (\Throwable $e) {
             Log::error('Gemini AI Error: ' . $e->getMessage(), [
@@ -177,24 +218,56 @@ class AiAdvisorController extends Controller
                 'file' => $e->getFile(),
             ]);
 
-            $message = $e->getMessage();
-            if (str_contains($message, '429') || str_contains($message, 'quota') || str_contains($message, 'RESOURCE_EXHAUSTED')) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'خدمة الذكاء الاصطناعي وصلت للحد المسموح من Gemini حالياً. راجع quota/billing أو جرّب لاحقاً.',
-                    'chat_id' => $chatId,
-                ], 429);
-            }
+            // Attempt dynamic fallback if API fails
+            try {
+                $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+                
+                $replyText = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
+                $followUpSuggestions = $parsed['follow_up_suggestions'];
+                $interactiveWidget = $parsed['interactive_widget'];
+                $suggestedDetails = $parsed['suggested_courses'];
+                $removeDetails = $parsed['courses_to_remove'];
 
-            return response()->json([
-                'status' => 'success',
-                'reply' => '⚠️ صار تأخير أو مشكلة مؤقتة بالرد. حاول مرة ثانية بسؤال أقصر.',
-                'suggested_courses' => [],
-                'courses_to_remove' => [],
-                'follow_up_suggestions' => ['حاول مرة أخرى', 'اسأل سؤال آخر'],
-                'interactive_widget' => null,
-                'chat_id' => $chatId,
-            ]);
+                $chat->messages()->create([
+                    'role' => 'ai',
+                    'content' => json_encode([
+                        'reply' => $replyText,
+                        'suggested_courses' => $suggestedDetails,
+                        'courses_to_remove' => $removeDetails,
+                        'follow_up_suggestions' => $followUpSuggestions,
+                        'interactive_widget' => $interactiveWidget,
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+
+                // Increment daily message usage on fallback success
+                Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                $newRemaining = max(0, self::DAILY_LIMIT - ($usage + 1));
+
+                return response()->json([
+                    'status' => 'success',
+                    'reply' => $replyText,
+                    'suggested_courses' => $suggestedDetails,
+                    'courses_to_remove' => $removeDetails,
+                    'follow_up_suggestions' => $followUpSuggestions,
+                    'interactive_widget' => $interactiveWidget,
+                    'chat_id' => $chatId,
+                    'chat_title' => $isNewChat ? $chat->title : null,
+                    'daily_messages_remaining' => $newRemaining,
+                    'is_fallback' => true,
+                ]);
+            } catch (\Throwable $fallbackEx) {
+                return response()->json([
+                    'status' => 'success',
+                    'reply' => '⚠️ واجهت مشكلة فنية مؤقتة بالوصول لمساعد سنفور الأكاديمي. يرجى المحاولة مرة أخرى لاحقاً.',
+                    'suggested_courses' => [],
+                    'courses_to_remove' => [],
+                    'follow_up_suggestions' => [],
+                    'interactive_widget' => null,
+                    'chat_id' => $chatId,
+                    'daily_messages_remaining' => max(0, self::DAILY_LIMIT - $usage),
+                    'is_fallback' => true,
+                ]);
+            }
         }
     }
 
@@ -355,37 +428,49 @@ class AiAdvisorController extends Controller
         return $title === '' ? 'محادثة جديدة' : $title . (mb_strlen($message, 'UTF-8') > 35 ? '...' : '');
     }
 
+    private function clearStudentCache(int $userId): void
+    {
+        Cache::forget("student_academic_data_{$userId}");
+        Cache::forget("student_cart_data_{$userId}");
+    }
+
     private function getStudentAcademicData($user): array
     {
-        $user->loadMissing(['major', 'passedCourses', 'cartCourses']);
-        $gpaData = $user->calculateGPA();
-        $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
-        $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
+        $cacheKey = "student_academic_data_{$user->id}";
+        return Cache::remember($cacheKey, 600, function() use ($user) {
+            $user->loadMissing(['major', 'passedCourses', 'cartCourses']);
+            $gpaData = $user->calculateGPA();
+            $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
+            $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
 
-        return [
-            'major_name' => $user->major?->name ?? 'تخصص عام',
-            'gpa_data' => $gpaData,
-            'is_probation' => $isProbation,
-            'has_academic_records' => $hasAcademicRecords,
-            'passed_course_ids' => $user->passedCourses->pluck('id')->toArray(),
-            'passed_courses_names' => $user->passedCourses->pluck('name')->implode('، '),
-            'total_passed_hours' => $user->passedCourses->sum('credit_hours'),
-            'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : null,
-            'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
-        ];
+            return [
+                'major_name' => $user->major?->name ?? 'تخصص عام',
+                'gpa_data' => $gpaData,
+                'is_probation' => $isProbation,
+                'has_academic_records' => $hasAcademicRecords,
+                'passed_course_ids' => $user->passedCourses->pluck('id')->toArray(),
+                'passed_courses_names' => $user->passedCourses->pluck('name')->implode('، '),
+                'total_passed_hours' => $user->passedCourses->sum('credit_hours'),
+                'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : null,
+                'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
+            ];
+        });
     }
 
     private function getCartData($user): array
     {
-        $user->loadMissing('cartCourses');
-        $map = $user->cartCourses->pluck('name', 'id')->toArray();
+        $cacheKey = "student_cart_data_{$user->id}";
+        return Cache::remember($cacheKey, 600, function() use ($user) {
+            $user->loadMissing('cartCourses');
+            $map = $user->cartCourses->pluck('name', 'id')->toArray();
 
-        return [
-            'ids' => $user->cartCourses->pluck('id')->toArray(),
-            'map' => $map,
-            'list' => implode(' | ', $map),
-            'hours' => $user->cartCourses->sum('credit_hours'),
-        ];
+            return [
+                'ids' => $user->cartCourses->pluck('id')->toArray(),
+                'map' => $map,
+                'list' => implode(' | ', $map),
+                'hours' => $user->cartCourses->sum('credit_hours'),
+            ];
+        });
     }
 
     private function checkRateLimit(int $userId): bool
@@ -404,90 +489,119 @@ class AiAdvisorController extends Controller
 
     private function getAvailableCourses(array $passedCourseIds, array $cartCourseIds, $user): array
     {
-        $planVersion = (int) ($user->study_plan_version ?? 12);
+        $passedStr = implode(',', $passedCourseIds);
+        $cartStr = implode(',', $cartCourseIds);
+        $cacheKey = "student_available_courses_{$user->id}_{$passedStr}_{$cartStr}";
 
-        $courses = Course::with(['prerequisites', 'children'])
-            ->where(function ($query) use ($user, $planVersion) {
-                if ($user->major_id) {
-                    $query->where(function ($majorScope) use ($user, $planVersion) {
-                        $majorScope->where('major_id', $user->major_id)
-                            ->where('study_plan_version', $planVersion);
-                    })->orWhere(function ($universityScope) use ($planVersion) {
-                        $universityScope->whereNull('major_id')
-                            ->where('study_plan_version', $planVersion);
-                    });
-                } else {
-                    $query->whereNull('major_id')->where('study_plan_version', $planVersion);
+        return Cache::remember($cacheKey, 600, function() use ($passedCourseIds, $cartCourseIds, $user) {
+            $planVersion = (int) ($user->study_plan_version ?? 12);
+
+            $courses = Course::with(['prerequisites', 'children'])
+                ->where(function ($query) use ($user, $planVersion) {
+                    if ($user->major_id) {
+                        $query->where(function ($majorScope) use ($user, $planVersion) {
+                            $majorScope->where('major_id', $user->major_id)
+                                ->where('study_plan_version', $planVersion);
+                        })->orWhere(function ($universityScope) use ($planVersion) {
+                            $universityScope->whereNull('major_id')
+                                ->where('study_plan_version', $planVersion);
+                        });
+                    } else {
+                        $query->whereNull('major_id')->where('study_plan_version', $planVersion);
+                    }
+                })
+                ->whereNotIn('id', $passedCourseIds)
+                ->get();
+
+            $map = [];
+            $text = [];
+            $details = [];
+            $allEligible = [];
+
+            foreach ($courses as $course) {
+                $canTake = true;
+                foreach ($course->prerequisites as $prereq) {
+                    if (!in_array($prereq->id, $passedCourseIds, true)) {
+                        $canTake = false;
+                        break;
+                    }
                 }
-            })
-            ->whereNotIn('id', $passedCourseIds)
-            ->get();
 
-        $map = [];
-        $text = [];
-        $details = [];
-
-        foreach ($courses as $course) {
-            $canTake = true;
-            foreach ($course->prerequisites as $prereq) {
-                if (!in_array($prereq->id, $passedCourseIds, true)) {
-                    $canTake = false;
-                    break;
+                if (!$canTake) {
+                    continue;
                 }
-            }
 
-            if (!$canTake) {
-                continue;
-            }
+                $map[$course->id] = $course->name;
 
-            $map[$course->id] = $course->name;
-
-            $courseYear = 1;
-            if (strlen((string) $course->code) >= 4) {
-                $fourthDigit = (int) substr((string) $course->code, 3, 1);
-                $courseYear = ($fourthDigit >= 1 && $fourthDigit <= 5) ? $fourthDigit : 1;
-            }
-
-            $prereqCount = $course->prerequisites->count();
-            $unlocksCount = $course->children->count();
-            $inCart = in_array($course->id, $cartCourseIds, true);
-            $manualDifficulty = max(1, min(5, (int) ($course->difficulty_level ?? 3)));
-            $courseType = $course->type ?? 'غير محدد';
-
-            $line = "- {$course->name} (رمز: {$course->code}, ساعات: {$course->credit_hours}, سنة_المادة: {$courseYear}, نوع: {$courseType}, عدد_المتطلبات: {$prereqCount}, تصنيف_الصعوبة_الاداري: {$manualDifficulty})";
-            if ($unlocksCount > 0) {
-                $line .= " [🔥 استراتيجية (تفتح {$unlocksCount} مواد)]";
-            }
-            if ($inCart) {
-                $line .= ' [🛒 موجودة بالتسجيل التجريبي حالياً]';
-            }
-
-            if (!empty($course->description)) {
-                $line .= "\n  📝 وصف: " . mb_substr($course->description, 0, 150, 'UTF-8');
-                if (mb_strlen($course->description, 'UTF-8') > 150) {
-                    $line .= '...';
+                $courseYear = 1;
+                if (strlen((string) $course->code) >= 4) {
+                    $fourthDigit = (int) substr((string) $course->code, 3, 1);
+                    $courseYear = ($fourthDigit >= 1 && $fourthDigit <= 5) ? $fourthDigit : 1;
                 }
+
+                $prereqCount = $course->prerequisites->count();
+                $unlocksCount = $course->children->count();
+                $inCart = in_array($course->id, $cartCourseIds, true);
+                $manualDifficulty = max(1, min(5, (int) ($course->difficulty_level ?? 3)));
+                $courseType = $course->type ?? 'غير محدد';
+
+                $allEligible[] = [
+                    'id' => $course->id,
+                    'name' => $course->name,
+                    'code' => $course->code,
+                    'credit_hours' => $course->credit_hours,
+                    'course_year' => $courseYear,
+                    'type' => $courseType,
+                    'prereq_count' => $prereqCount,
+                    'unlocks' => $unlocksCount,
+                    'in_cart' => $inCart,
+                    'difficulty_level' => $manualDifficulty,
+                ];
+
+                $details[$course->id] = [
+                    'name' => $course->name,
+                    'code' => $course->code,
+                    'credit_hours' => $course->credit_hours,
+                    'course_year' => $courseYear,
+                    'type' => $courseType,
+                    'difficulty_level' => $manualDifficulty,
+                    'prereq_count' => $prereqCount,
+                    'unlocks' => $unlocksCount,
+                    'in_cart' => $inCart,
+                ];
             }
 
-            $text[] = $line;
-            $details[$course->id] = [
-                'name' => $course->name,
-                'code' => $course->code,
-                'credit_hours' => $course->credit_hours,
-                'course_year' => $courseYear,
-                'type' => $courseType,
-                'difficulty_level' => $manualDifficulty,
-                'prereq_count' => $prereqCount,
-                'unlocks' => $unlocksCount,
-                'in_cart' => $inCart,
+            $totalPassedHours = $user->passedCourses->sum('credit_hours');
+            $studentYear = max(1, min(5, (int) ceil($totalPassedHours / 33)));
+
+            usort($allEligible, function ($a, $b) use ($studentYear) {
+                if ($a['in_cart'] !== $b['in_cart']) {
+                    return $b['in_cart'] <=> $a['in_cart'];
+                }
+                if ($a['unlocks'] !== $b['unlocks']) {
+                    return $b['unlocks'] <=> $a['unlocks'];
+                }
+                $diffA = abs($a['course_year'] - $studentYear);
+                $diffB = abs($b['course_year'] - $studentYear);
+                return $diffA <=> $diffB;
+            });
+
+            $topEligible = array_slice($allEligible, 0, 20);
+
+            foreach ($topEligible as $course) {
+                $line = "- {$course['name']} (رمز: {$course['code']}, ساعات: {$course['credit_hours']}, سنة: {$course['course_year']}, نوع: {$course['type']}, تفتح: {$course['unlocks']} مواد, صعوبة: {$course['difficulty_level']})";
+                if ($course['in_cart']) {
+                    $line .= ' [🛒 بالجدول التجريبي حالياً]';
+                }
+                $text[] = $line;
+            }
+
+            return [
+                'map' => $map,
+                'text' => $text ? implode("\n", $text) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
+                'details' => $details,
             ];
-        }
-
-        return [
-            'map' => $map,
-            'text' => $text ? implode("\n", $text) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
-            'details' => $details,
-        ];
+        });
     }
 
     private function buildStudentAdvisingRagContext(array $academicData, array $cartData, array $availableCourses, string $userMessage): string
@@ -1043,5 +1157,118 @@ class AiAdvisorController extends Controller
         }
 
         return $this->makeFallbackTitle($userMessage);
+    }
+
+    private function getLocalFallbackResponse(string $message, $user, array $academicData, array $cartData, array $availableCourses): array
+    {
+        $normalized = $this->normalizeArabic($message);
+        $reply = '';
+        $suggestedIds = [];
+        $followUps = [];
+        $widget = null;
+
+        $availableDetails = array_values($availableCourses['details'] ?? []);
+        usort($availableDetails, fn($a, $b) => ($b['unlocks'] <=> $a['unlocks']));
+
+        if (preg_match('/(معدل|gpa|انذار|إنذار|رفع|تراكمي)/u', $normalized)) {
+            $reply = "أهلاً بك **{$user->name}**. لرفع معدلك التراكمي المتبقي لك، أنصحك بالتركيز على المواد ذات الطبيعة السهلة أو المعتدلة أولاً لتخفيف العبء الأكاديمي، وتجنب تسجيل ساعات مفرطة في فصل واحد. \n\nإليك بعض المواد المتاحة لك حالياً والتي يُنصح بها لرفع المعدل:";
+            
+            $easyCourses = array_filter($availableDetails, fn($c) => $c['difficulty_level'] <= 2);
+            $easyCourses = array_slice($easyCourses, 0, 3);
+            if (empty($easyCourses)) {
+                $easyCourses = array_slice($availableDetails, 0, 2);
+            }
+
+            foreach ($easyCourses as $c) {
+                $id = array_search($c['name'], $availableCourses['map']);
+                if ($id) {
+                    $suggestedIds[] = $id;
+                    $reply .= "\n- **{$c['name']}** ({$c['credit_hours']} ساعات) - تصنيف الصعوبة خفيف.";
+                }
+            }
+            $followUps = ['كيف أحسب معدلي المتوقع؟', 'ما هي شروط رفع الإنذار الأكاديمي؟'];
+        } elseif (preg_match('/(تخرج|خطة|مسار|فتح|متطلبات|استراتيج|سنه)/u', $normalized)) {
+            $reply = "أهلاً بك **{$user->name}**. لتسريع تخرجك وفتح المزيد من المواد في الفصول القادمة، يجب عليك إعطاء الأولوية **للمواد الاستراتيجية** (المواد التي تفتح مواد أخرى كمتطلب سابق).\n\nإليك أهم المواد الاستراتيجية المتاحة لك حالياً لتسجيلها:";
+            
+            $strategicCourses = array_slice($availableDetails, 0, 3);
+            foreach ($strategicCourses as $c) {
+                $id = array_search($c['name'], $availableCourses['map']);
+                if ($id) {
+                    $suggestedIds[] = $id;
+                    $reply .= "\n- **{$c['name']}** (تفتح عدد {$c['unlocks']} مواد لاحقة!).";
+                }
+            }
+            $followUps = ['هل يوجد مواد حرة بالخطة؟', 'ما هي المواد التي تفتح أكبر عدد من التخصص؟'];
+        } elseif (preg_match('/(مبنى|كلية|قاعة|وين|اين|مكان|فاروق|دوازي)/u', $normalized)) {
+            $reply = "دليل مباني جامعة الزرقاء السريع 🏛️:\n" .
+                "- **مبنى الفاروق (أ.ب)**: يضم كليات الشريعة، الآداب، تكنولوجيا المعلومات، والعلوم التربوية.\n" .
+                "- **مبنى (ت)**: يضم كلية العلوم الطبية المساندة والكلية التقنية.\n" .
+                "- **مبنى الدوازي (د.هـ)**: يضم التمريض، الصيدلة، والعلوم.\n" .
+                "- **مبنى (ل)**: يضم الهندسة التكنولوجية، الفنون والتصميم.\n" .
+                "- **مبنى الشهيد معاذ الكساسبة (ق)**: يضم كلية الاقتصاد والعلوم الإدارية والدراسات العليا.\n\n" .
+                "💡 **ملاحظة ترميز القاعات**: الرقم الأول يعبر عن الطابق (مثال: قاعة 102 في الطابق الأول، وقاعة 205 في الطابق الثاني).";
+            $followUps = ['أين تقع المكتبة العامة؟', 'كيف أصل إلى القبول والتسجيل؟'];
+        } else {
+            $reply = "أهلاً بك يا **{$user->name}** في تطبيق سنفور 🤖. أنا مستشارك الأكاديمي الذكي المساعد لك.\n\nيمكنك سؤالي عن خطتك الدراسية، أو كيفية ترتيب جدولك الدراسي، أو أماكن الكليات ومباني الجامعة. \n\nلقد قمت بتحليل خطتك الأكاديمية، وإليك أهم المادتين المقترحتين لك لتسجيلهما في جدولك التجريبي الحالي:";
+            
+            $defaultSuggestions = array_slice($availableDetails, 0, 2);
+            foreach ($defaultSuggestions as $c) {
+                $id = array_search($c['name'], $availableCourses['map']);
+                if ($id) {
+                    $suggestedIds[] = $id;
+                    $reply .= "\n- **{$c['name']}** ({$c['credit_hours']} ساعات) - مادة مهمة لمسارك الأكاديمي.";
+                }
+            }
+            $followUps = ['اقترح علي جدول متوازن', 'أين تقع كلية الآي تي؟'];
+        }
+
+        $suggestedDetails = [];
+        if (!empty($suggestedIds)) {
+            $suggestedDetails = Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray();
+        }
+
+        if (!empty($suggestedDetails)) {
+            $widgetCourses = [];
+            foreach ($suggestedDetails as $sc) {
+                if (!in_array($sc['id'], $cartData['ids'])) {
+                    $widgetCourses[] = [
+                        'id' => $sc['id'],
+                        'name' => $sc['name'],
+                        'code' => $sc['code'],
+                        'credit_hours' => $sc['credit_hours'],
+                        'action' => 'add',
+                    ];
+                }
+            }
+            if (!empty($widgetCourses)) {
+                $widget = [
+                    'type' => 'cart_review',
+                    'title' => 'أضف المقترحات للجدول التجريبي',
+                    'courses' => array_map(fn($c) => [
+                        'id' => $c['id'],
+                        'name' => $c['name'],
+                        'code' => $c['code'],
+                        'credit_hours' => $c['credit_hours'],
+                        'difficulty' => 2,
+                        'verdict' => 'add',
+                        'reason' => 'مادة مقترحة ومتاحة للتسجيل مباشرة'
+                    ], $widgetCourses),
+                    'summary' => [
+                        'total_hours' => $cartData['hours'] + collect($widgetCourses)->sum('credit_hours'),
+                        'max_hours' => $academicData['max_allowed_hours'],
+                        'overall_difficulty' => 'متوازن',
+                        'recommendation' => 'ننصح بإضافة المواد لبناء جدول دراسي متكامل'
+                    ]
+                ];
+            }
+        }
+
+        return [
+            'reply' => $reply,
+            'suggested_courses' => $suggestedDetails,
+            'courses_to_remove' => [],
+            'follow_up_suggestions' => $followUps,
+            'interactive_widget' => $widget,
+        ];
     }
 }

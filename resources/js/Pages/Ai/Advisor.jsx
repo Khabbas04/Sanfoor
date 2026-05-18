@@ -339,7 +339,11 @@ const Ring = ({pct, size=40, s=3.5}) => {
 // 🧠 MAIN
 // ======================================================================
 export default function Advisor() {
-    const { studentStats: st, chats: initChats, initialCartIds } = usePage().props;
+    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, isAiActive: initialIsAiActive } = usePage().props;
+
+    const [remaining, setRemaining] = useState(initialRemaining ?? 5);
+    const [isAiActive, setIsAiActive] = useState(initialIsAiActive ?? false);
+    const [isFallback, setIsFallback] = useState(false);
 
     const welcome = useMemo(() => {
         const name = st?.name || 'بطل';
@@ -503,6 +507,11 @@ export default function Advisor() {
             const pl = { message:t }; if (activeId) pl.chat_id = activeId;
             const r = await axios.post(route('ai.advisor.chat'), pl, { signal: abortRef.current.signal });
             if (r.data.status === 'success') {
+                if (r.data.daily_messages_remaining !== undefined) {
+                    setRemaining(r.data.daily_messages_remaining);
+                }
+                setIsFallback(!!r.data.is_fallback);
+
                 const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
                     ? r.data.reply
                     : 'ما وصلني رد واضح هذه المرة. حاول إعادة الصياغة بسؤال أقصر.';
@@ -512,8 +521,18 @@ export default function Advisor() {
                 setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:r.data.suggested_courses||[], courses_to_remove:r.data.courses_to_remove||[], follow_up_suggestions:r.data.follow_up_suggestions||[], interactive_widget:r.data.interactive_widget||null, isAnimating:true }]);
                 if (!activeId && r.data.chat_id) { setActiveId(r.data.chat_id); setChats(p => [{ id:r.data.chat_id, title:r.data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
                 if (r.data.chat_title && r.data.chat_id) setChats(p => p.map(c => c.id===r.data.chat_id ? {...c, title:r.data.chat_title} : c));
-            } else { setGenerating(false); setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:r.data.message || 'الخادم مشغول، حاول ثانية. 🔄', isAnimating:false }]); }
-        } catch(e) { if (axios.isCancel?.(e)) return; setGenerating(false); setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:e?.response?.data?.message || 'انقطع الاتصال. 📡', isAnimating:false }]); }
+            } else { 
+                setGenerating(false); 
+                setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:r.data.message || 'الخادم مشغول، حاول ثانية. 🔄', isAnimating:false }]); 
+            }
+        } catch(e) { 
+            if (axios.isCancel?.(e)) return; 
+            setGenerating(false); 
+            if (e?.response?.data?.daily_messages_remaining !== undefined) {
+                setRemaining(e.response.data.daily_messages_remaining);
+            }
+            setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:e?.response?.data?.message || 'انقطع الاتصال. 📡', isAnimating:false }]); 
+        }
         finally { setTyping(false); }
     }, [activeId, generating, typing, magicCommands]);
 
@@ -709,11 +728,14 @@ export default function Advisor() {
                 <div className="flex items-center gap-3">
                     <div className="relative">
                         <div className="w-10 h-10 bg-white border-2 border-indigo-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
-                        <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"/>
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${(isFallback || !isAiActive) ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}/>
                     </div>
                     <div>
-                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className="text-[7px] bg-indigo-700 text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase">AI</span></h2>
-                        <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1"><span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':'bg-emerald-400'} animate-pulse`}/>{typing?'يحلل سؤالك...':generating?'يكتب الرد...':'جاهز لمساعدتك'}</p>
+                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-indigo-700'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
+                        <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`}/>
+                            {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? 'المستشار الاحتياطي (المحلي الذكي) 🔴' : 'المستشار الذكي (Gemini AI) 🟢')}
+                        </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -814,15 +836,21 @@ export default function Advisor() {
                                     setCommandFilter('');
                                 }
                             }} 
-                            placeholder="اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..." 
-                            className="w-full bg-slate-50/70 border-2 border-slate-200/50 rounded-xl py-3 pr-4 pl-14 text-slate-800 placeholder-slate-400/60 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 focus:bg-white transition-all font-bold text-[12.5px]" 
-                            disabled={typing||loadingChat||generating}
+                            placeholder={remaining <= 0 ? "⚠️ لقد استهلكت محاولاتك الـ 5 المتاحة لليوم. عد غداً ⏳" : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
+                            className={`w-full ${remaining <= 0 ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
+                            disabled={typing||loadingChat||generating||remaining <= 0}
                         />
-                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating} className="absolute left-2 w-9 h-9 bg-indigo-700 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
+                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||remaining <= 0} className="absolute left-2 w-9 h-9 bg-indigo-700 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
                         </button>
                     </form>
-                    <p className="text-[7px] text-slate-400 font-bold text-center mt-1.5">النتائج استرشادية — سنفور بيحلل بياناتك الحقيقية من قاعدة البيانات</p>
+                    <p className="text-[7.5px] font-bold text-center mt-1.5 flex items-center justify-center gap-1.5">
+                        <span className="text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300"/>
+                        <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${remaining > 0 ? 'bg-indigo-50 text-indigo-700' : 'bg-red-50 text-red-600 animate-pulse'}`}>
+                            {remaining > 0 ? `الرسائل المتبقية لليوم: ${remaining}/5` : '⚠️ انتهت رسائلك المتاحة اليوم'}
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>
