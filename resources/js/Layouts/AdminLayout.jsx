@@ -166,9 +166,8 @@ export default function AdminLayout({ children }) {
         {
             label: lang === 'ar' ? 'البنية الأكاديمية' : 'Academic',
             items: [
-                { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors' },
+                { icon: '🏛️', name: t.structure, route: 'admin.structure', pattern: 'admin.structure|admin.majors.*|admin.majors' },
                 { icon: '🧩', name: t.collegesDirectory, route: 'admin.colleges.index', pattern: 'admin.colleges.*' },
-                { icon: '🎓', name: lang === 'ar' ? 'التخصصات' : 'Majors', route: 'admin.majors.index', pattern: 'admin.majors.*' },
                 { icon: '📍', name: t.campusLandmarks, route: 'admin.landmarks.index', pattern: 'admin.landmarks.*' },
             ],
         },
