@@ -9,6 +9,9 @@ use App\Models\User;
 use App\Models\AdminLog;
 use App\Models\AdminNote;
 use App\Models\IssueReport;
+use App\Models\Chapter;
+use App\Models\Question;
+use App\Models\QuizAttempt;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Artisan;
@@ -106,9 +109,15 @@ class AdminController extends Controller
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
                 'active_admins_now' => $activeAdminIds->count(),
                 'owners_count' => User::whereRaw('LOWER(role) = ?', ['owner'])->count(),
-                'courses_count' => Course::count(),
-                'compulsory_count' => Course::where('type', 'compulsory')->count(),
-                'elective_count' => Course::where('type', 'elective')->count(),
+                'courses_count' => Course::where('is_quiz_only', false)->count(),
+                'compulsory_count' => Course::where('is_quiz_only', false)->where('type', 'compulsory')->count(),
+                'elective_count' => Course::where('is_quiz_only', false)->where('type', 'elective')->count(),
+                // Quizzes & Chapters System Stats
+                'quiz_courses_count' => Course::where('is_quiz_only', true)->count(),
+                'chapters_count' => Chapter::count(),
+                'questions_count' => Question::count(),
+                'quiz_attempts_count' => QuizAttempt::count(),
+                'quiz_avg_score' => round(QuizAttempt::avg('score_percentage') ?? 0),
             ],
             'onlineUsers' => $onlineUsers,
             'platform' => [

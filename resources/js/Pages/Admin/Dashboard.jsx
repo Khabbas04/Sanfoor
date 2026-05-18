@@ -18,7 +18,7 @@ const translations = {
         academicCoverage: 'التغطية الأكاديمية', collegesSlashMajors: 'كليات / تخصصات',
         topDemand: 'المواد الأكثر طلباً (Top 5)', viewFullReport: 'عرض التقرير الكامل ←',
         student: 'طالب', noSimulatorData: 'لا يوجد بيانات تسجيل تجريبي مسجلة حالياً.',
-        quickActions: 'إجراءات سريعة', studentReports: 'بلاغات الطلاب',
+        quickActions: 'إجراءات سريعة وبوابات التحكم', studentReports: 'بلاغات الطلاب',
         addCollege: 'إضافة كلية جديدة', updatePlan: 'تحديث خطة تخصص', activityLog: 'سجل حركات الإدارة',
         aiStatus: 'ذكاء اصطناعي نشط', configAlgo: 'تهيئة الخوارزميات',
         latestReports: 'آخر البلاغات', viewAll: 'عرض الكل', unknown: 'غير معروف',
@@ -37,6 +37,13 @@ const translations = {
         noteSaved: 'تم حفظ الملاحظة',
         notesTimeline: 'آخر الملاحظات',
         noNotesYet: 'لا توجد ملاحظات مسجلة بعد.',
+        academicTreeSection: 'إحصائيات الخطة والشجرة الأكاديمية الأكاديمية',
+        quizChaptersSection: 'منظومة الشباتر والكويزات التفاعلية',
+        quizCourses: 'مواد الكويزات فقط',
+        totalChapters: 'إجمالي الشباتر المرفوعة',
+        totalQuestions: 'بنك الأسئلة',
+        quizAttempts: 'محاولات الطلاب للكويزات',
+        avgQuizScore: 'متوسط الدرجات الكلي',
     },
     en: {
         title: 'Admin Control Center', subtitle: 'Operational dashboard: stats, reports, log, and quick controls.',
@@ -49,7 +56,7 @@ const translations = {
         academicCoverage: 'Academic Coverage', collegesSlashMajors: 'Colleges / Majors',
         topDemand: 'Top 5 Most Demanded Courses', viewFullReport: 'View Full Report →',
         student: 'students', noSimulatorData: 'No trial registration data recorded yet.',
-        quickActions: 'Quick Actions', studentReports: 'Student Reports',
+        quickActions: 'Quick Controls & Gateways', studentReports: 'Student Reports',
         addCollege: 'Add New College', updatePlan: 'Update Major Plan', activityLog: 'Activity Log',
         aiStatus: 'AI Active', configAlgo: 'Configure Algorithms',
         latestReports: 'Latest Reports', viewAll: 'View All', unknown: 'Unknown',
@@ -68,6 +75,13 @@ const translations = {
         noteSaved: 'Note saved',
         notesTimeline: 'Recent notes',
         noNotesYet: 'No notes logged yet.',
+        academicTreeSection: 'Academic Tree & Plan Statistics',
+        quizChaptersSection: 'Interactive Quiz & Chapters Ecosystem',
+        quizCourses: 'Quiz-only Courses',
+        totalChapters: 'Total Chapters',
+        totalQuestions: 'Question Bank',
+        quizAttempts: 'Quiz Attempts',
+        avgQuizScore: 'Avg Quiz Score',
     },
 };
 
@@ -210,14 +224,39 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                     </div>
                 </div>
 
-                {/* KPI Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
-                    <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${safeStats.active_students_now || 0}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${safeStats.active_admins_now || 0}`} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
-                    <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                {/* 🏛️ 1. Academic Tree & Plan Section */}
+                <div className="space-y-4 animate-slide-in">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">🏛️</span>
+                        <h2 className={`text-lg font-black tracking-tight ${heading}`}>{t.academicTreeSection}</h2>
+                        <div className={`h-px flex-1 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                        <StatCard title={t.totalStudents} value={safeStats.students_count || 0} icon="👨‍🎓" color="indigo" trend={`${t.activeNow}: ${safeStats.active_students_now || 0}`} link={route('admin.students.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.admins} value={safeStats.admins_count || 0} icon="⚙️" color="violet" trend={`${t.activeNow}: ${safeStats.active_admins_now || 0}`} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.courses} value={safeStats.courses_count || 0} icon="📚" color="emerald" trend={`${safeStats.compulsory_count || 0} ${t.majorCourses}`} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.simulatorRequests} value={safeDemandReport.reduce((acc, curr) => acc + Number(curr?.cart_users_count || 0), 0)} icon="🛒" color="rose" trend={t.nextSemesterForecast} link={route('admin.reports.demand')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.systemStatus} value="100%" icon="🛡️" color="amber" trend={t.systemProtected} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.academicCoverage} value={`${safePlatform.colleges_count || 0}/${safePlatform.majors_count || 0}`} icon="🏛️" color="indigo" trend={t.collegesSlashMajors} link={route('admin.courses')} isDark={isDark} tLabel={t.statsTracker} />
+                    </div>
+                </div>
+
+                {/* ⚡ 2. Interactive Chapters & Quizzes Section */}
+                <div className="space-y-4 animate-slide-in delay-100">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">⚡</span>
+                        <h2 className={`text-lg font-black tracking-tight ${heading}`}>{t.quizChaptersSection}</h2>
+                        <div className={`h-px flex-1 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <StatCard title={t.totalChapters} value={safeStats.chapters_count || 0} icon="📖" color="indigo" trend={lang === 'ar' ? 'إدارة محتوى الشباتر' : 'Manage Chapters'} link={route('admin.chapters.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.totalQuestions} value={safeStats.questions_count || 0} icon="❓" color="violet" trend={lang === 'ar' ? 'بنك الأسئلة والخيارات' : 'Question Bank'} link={route('admin.questions.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.quizCourses} value={safeStats.quiz_courses_count || 0} icon="🎓" color="emerald" trend={lang === 'ar' ? 'خارج الشجرة الأكاديمية' : 'Isolated quiz subjects'} link={route('admin.chapters.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.quizAttempts} value={safeStats.quiz_attempts_count || 0} icon="🎯" color="rose" trend={lang === 'ar' ? 'إجمالي محاولات الاختبارات' : 'Total quiz responses'} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.avgQuizScore} value={`${safeStats.quiz_avg_score || 0}%`} icon="📈" color="amber" trend={lang === 'ar' ? 'مستوى أداء الطلاب العام' : 'Overall student success rate'} isDark={isDark} tLabel={t.statsTracker} />
+                    </div>
                 </div>
                 {/* Reports + Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -245,18 +284,17 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                     </div>
 
                     <div className={`${cardAlt} rounded-[2.5rem] p-8 flex flex-col justify-between`}>
-                        <div>
-                            <h3 className={`text-lg font-black ${heading} mb-3`}>{t.quickActions}</h3>
-                            <p className={`text-sm font-bold ${subtext}`}>
-                                {lang === 'ar' ? 'تم نقل إعدادات الأونلاين وإدارة الأدمن إلى صفحة الإعدادات الجديدة.' : 'Online users and admin-management controls have moved to the new Settings page.'}
-                            </p>
+                        <div className="w-full">
+                            <h3 className={`text-lg font-black ${heading} mb-4 flex items-center gap-2`}>
+                                <span>⚡</span> {t.quickActions}
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <QuickLink title={lang === 'ar' ? 'إدارة الشباتر' : 'Manage Chapters'} icon="📖" href={route('admin.chapters.index')} isDark={isDark} />
+                                <QuickLink title={lang === 'ar' ? 'إدارة الأسئلة' : 'Manage Questions'} icon="❓" href={route('admin.questions.index')} isDark={isDark} />
+                                <QuickLink title={lang === 'ar' ? 'إدارة مواد الشجرة' : 'Manage Tree Courses'} icon="📚" href={route('admin.courses')} isDark={isDark} />
+                                <QuickLink title={t.openSettings} icon="⚙️" href={route('admin.settings')} isDark={isDark} />
+                            </div>
                         </div>
-                        <Link
-                            href={route('admin.settings')}
-                            className="mt-6 inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-3 font-black text-sm transition-all"
-                        >
-                            ⚙️ {t.openSettings}
-                        </Link>
                     </div>
                 </div>
 
@@ -394,11 +432,11 @@ function StatCard({ title, value, icon, color, link = '#', trend, isDark, tLabel
 function QuickLink({ title, icon, href, isDark }) {
     return (
         <Link href={href} className={`flex items-center justify-between p-4 rounded-2xl border transition-all group ${isDark ? 'bg-slate-800/50 border-slate-700 hover:border-indigo-500/50 hover:bg-slate-800' : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md'}`}>
-            <div className="flex items-center gap-3">
-                <span className="text-lg group-hover:scale-110 transition-transform">{icon}</span>
-                <span className={`text-xs font-black ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{title}</span>
+            <div className="flex items-center gap-3 min-w-0">
+                <span className="text-lg group-hover:scale-110 transition-transform shrink-0">{icon}</span>
+                <span className={`text-[11px] font-black truncate ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{title}</span>
             </div>
-            <span className={`transition-colors text-lg ${isDark ? 'text-slate-600 group-hover:text-indigo-400' : 'text-slate-300 group-hover:text-indigo-500'}`}>←</span>
+            <span className={`transition-transform duration-300 text-xs font-black group-hover:translate-x-[-3px] shrink-0 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>←</span>
         </Link>
     );
 }
