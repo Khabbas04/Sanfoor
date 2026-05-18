@@ -265,16 +265,16 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                             {/* Theme toggle, language switcher, and account actions. */}
                             <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="relative">
-                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 mr-1 ${isDark ? 'bg-slate-800 border-white/10 text-indigo-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                <div className="relative group pointer-events-auto">
+                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 mr-1 ${isDark ? 'bg-slate-800 border border-white/10 text-indigo-400 hover:bg-slate-700 hover:border-indigo-500' : 'bg-white border border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-indigo-300'}`}>
                                         📚
                                     </button>
-                                    {academicOpen && (
-                                        <div className={`absolute top-full mt-2 ${lang === 'ar' ? 'right-0' : 'left-0'} w-44 rounded-2xl shadow-xl border p-2 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
-                                            <Link href="/chapters" className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>📖 {t.chapters}</Link>
-                                            <Link href="/quiz" className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-slate-50 text-slate-600 hover:text-indigo-600'}`}>❓ {t.quiz}</Link>
+                                    <div className={`absolute ${lang === 'ar' ? 'right-0' : 'left-0'} top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${academicOpen ? 'opacity-100 visible' : ''}`}>
+                                        <div className={`w-48 rounded-2xl shadow-xl border p-2 animate-dropdown ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                                            <Link href="/chapters" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-indigo-50/50 text-slate-600 hover:text-indigo-600 hover:scale-[1.02]'}`}>📖 {t.chapters}</Link>
+                                            <Link href="/quiz" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-indigo-50/50 text-slate-600 hover:text-indigo-600 hover:scale-[1.02]'}`}>❓ {t.quiz}</Link>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                                 <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-indigo-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
                                     {lang === 'ar' ? 'EN' : 'AR'}
