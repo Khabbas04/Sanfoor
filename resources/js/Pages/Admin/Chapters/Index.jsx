@@ -116,7 +116,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
             else list = list.filter(c => String(c.major_id) === String(formMajorId));
         }
         if (formStudyPlan) {
-            list = list.filter(c => String(c.study_plan_version) === String(formStudyPlan));
+            list = list.filter(c => c.is_quiz_only || Number(c.is_quiz_only) === 1 || String(c.study_plan_version) === String(formStudyPlan));
         }
         return list;
     }, [courses, formMajorId, formStudyPlan]);
@@ -134,7 +134,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
             else list = list.filter(c => String(c.major_id) === String(filters.major_id));
         }
         if (filters.study_plan) {
-            list = list.filter(c => String(c.study_plan_version) === String(filters.study_plan));
+            list = list.filter(c => c.is_quiz_only || Number(c.is_quiz_only) === 1 || String(c.study_plan_version) === String(filters.study_plan));
         }
         return list;
     }, [courses, filters.major_id, filters.study_plan]);
@@ -201,12 +201,18 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const grouped = useMemo(() => {
         const map = {};
         chapters.forEach(ch => {
+            if (filters.study_plan) {
+                const c = ch.course;
+                if (c && !(c.is_quiz_only || Number(c.is_quiz_only) === 1) && String(c.study_plan_version) !== String(filters.study_plan)) {
+                    return;
+                }
+            }
             const key = ch.course_id;
             if (!map[key]) map[key] = { course: ch.course, chapters: [] };
             map[key].chapters.push(ch);
         });
         return Object.values(map);
-    }, [chapters]);
+    }, [chapters, filters.study_plan]);
 
     return (
         <AdminLayout>

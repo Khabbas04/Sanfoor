@@ -35,7 +35,7 @@ class AdminChapterController extends Controller
         $search = $request->query('search');
 
         $chapters = Chapter::query()
-            ->with('course:id,name,code,major_id')
+            ->with('course:id,name,code,major_id,study_plan_version,is_quiz_only')
             ->withCount('questions')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
             ->when($majorId && !$courseId, function ($q) use ($majorId) {
@@ -63,7 +63,7 @@ class AdminChapterController extends Controller
             ->orderBy('study_plan_version', 'desc')
             ->pluck('study_plan_version');
 
-        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name')->get();
+        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code', 'major_id', 'study_plan_version', 'is_quiz_only')->orderBy('name')->get();
 
         return Inertia::render('Admin/Chapters/Index', [
             'chapters' => $chapters,

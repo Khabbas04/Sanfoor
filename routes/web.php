@@ -101,6 +101,7 @@ Route::get('/dashboard', function () {
         ->groupBy('course_id');
 
     $plannerCoursesQuery = Course::query()
+        ->where('is_quiz_only', false)
         ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
             $join->on('courses.id', '=', 'course_stats.course_id');
         })
