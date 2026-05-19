@@ -1858,9 +1858,12 @@ export default function Tree({
 
             let semCourses = [];
             let semHours = 0;
+            const isSummer = currentSem % 3 === 0;
+            const maxSemHours = isSummer ? 10 : 18; // الصيفي حده الأقصى 10 ساعات عادة
+
             for (let c of availableNow) {
-                if (semHours + c.credit_hours <= 18) {
-                    semCourses.push(c);
+                if (semHours + c.credit_hours <= maxSemHours) {
+                    semCourses.push({ ...c, isSummer, currentSem });
                     semHours += c.credit_hours;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
                     
@@ -1871,7 +1874,9 @@ export default function Tree({
                 }
             }
             semCourses.forEach(c => simulatedPassed.add(c.id));
-            generatedSemesters.push(semCourses);
+            if (semCourses.length > 0) {
+                generatedSemesters.push(semCourses);
+            }
             currentSem++;
         }
         
@@ -1888,7 +1893,7 @@ export default function Tree({
                                 <span className="w-9 h-9 bg-indigo-500/20 rounded-lg flex items-center justify-center text-lg">🤖</span>
                                 خطة التخرج التنبؤية
                             </h2>
-                            <p className="text-sm text-indigo-300/60 font-bold">توزيع ذكي للمواد المتبقية على فصولك القادمة</p>
+                            <p className="text-sm text-indigo-300/60 font-bold">توزيع ذكي للمواد المتبقية مع مراعاة الفصول الصيفية</p>
                         </div>
                         <button onClick={() => setShow4YearPlan(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-all text-lg relative z-10 active:scale-90">✕</button>
                     </div>
@@ -1897,11 +1902,14 @@ export default function Tree({
                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                             {generatedSemesters.map((semCourses, i) => {
                                 const semHours = semCourses.reduce((sum, c) => sum + c.credit_hours, 0);
+                                const isSummer = semCourses.length > 0 && semCourses[0].isSummer;
+                                const semNum = semCourses.length > 0 ? semCourses[0].currentSem : (i + 1);
+                                
                                 return (
-                                    <div key={i} className="bg-white border border-slate-200/80 rounded-[1.25rem] p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col" style={{ animationDelay: `${i * 50}ms` }}>
-                                        <div className="bg-gradient-to-l from-indigo-50 to-slate-50 text-indigo-800 text-center py-2.5 rounded-xl mb-3.5 font-[800] text-[13px] border border-indigo-100/60 flex justify-between px-3.5 items-center">
-                                            <span className="flex items-center gap-1.5">📅 الفصل +{i + 1}</span>
-                                            <span className="bg-white px-2 py-0.5 rounded-md text-[10px] font-[800] text-indigo-600 border border-indigo-100">{semHours} ساعة</span>
+                                    <div key={i} className={`bg-white border rounded-[1.25rem] p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col ${isSummer ? 'border-amber-200' : 'border-slate-200/80'}`} style={{ animationDelay: `${i * 50}ms` }}>
+                                        <div className={`text-center py-2.5 rounded-xl mb-3.5 font-[800] text-[13px] border flex justify-between px-3.5 items-center ${isSummer ? 'bg-gradient-to-l from-amber-50 to-orange-50 text-amber-800 border-amber-100/60' : 'bg-gradient-to-l from-indigo-50 to-slate-50 text-indigo-800 border-indigo-100/60'}`}>
+                                            <span className="flex items-center gap-1.5">{isSummer ? '☀️ صيفي' : '📅 اعتيادي'} (فصل +{semNum})</span>
+                                            <span className={`bg-white px-2 py-0.5 rounded-md text-[10px] font-[800] border ${isSummer ? 'text-amber-600 border-amber-100' : 'text-indigo-600 border-indigo-100'}`}>{semHours} ساعة</span>
                                         </div>
                                         <div className="space-y-1.5 flex-1">
                                             {semCourses.map(c => (
