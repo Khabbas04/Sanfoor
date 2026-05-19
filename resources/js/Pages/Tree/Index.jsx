@@ -22,6 +22,7 @@ const DESKTOP_NODE_WIDTH = 200;
 const DESKTOP_NODE_HEIGHT = 88;
 const MOBILE_NODE_WIDTH = 160;
 const MOBILE_NODE_HEIGHT = 76;
+const ELECTIVE_MAX_HOURS = 9;
 
 // Shared SweetAlert theme so all tree interactions feel visually consistent.
 const swalTheme = {
@@ -1505,6 +1506,36 @@ export default function Tree({
             return;
         }
 
+        const electiveCart = courses.filter(c => cartIds.includes(c.id) && c.type === 'elective');
+        const electiveCartHours = electiveCart.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
+        if (course.type === 'elective' && electiveCartHours + course.credit_hours > ELECTIVE_MAX_HOURS) {
+            const overflow = electiveCartHours + course.credit_hours - ELECTIVE_MAX_HOURS;
+            const suggestedDrop = electiveCart
+                .slice()
+                .sort((a, b) => {
+                    const aScore = getCoursePriority(a);
+                    const bScore = getCoursePriority(b);
+                    if (aScore !== bScore) return aScore - bScore;
+                    return (Number(a.credit_hours) || 0) - (Number(b.credit_hours) || 0);
+                })[0];
+            const currentListHtml = electiveCart.length
+                ? electiveCart
+                    .map(c => `<span style="display:inline-block;background:#fff7ed;border:1px solid #fed7aa;padding:3px 10px;border-radius:10px;margin:3px;font-weight:700;">🎨 ${c.name} (${c.credit_hours}س)</span>`)
+                    .join('')
+                : '';
+            const suggestionHtml = suggestedDrop
+                ? `نقترح إزالة <b>${suggestedDrop.name}</b> (${suggestedDrop.credit_hours}س) لتفريغ مساحة.`
+                : 'أزل مادة اختيارية أولاً لتوفير مساحة.';
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'حد الاختياري 9 ساعات',
+                html: `الساعات الاختيارية الحالية <b>${electiveCartHours}س</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours}س) ستتجاوز الحد بـ <b>${overflow}س</b>.<br/><br/>${currentListHtml ? `<div style="text-align:right;font-size:12px;">${currentListHtml}</div><br/>` : ''}${suggestionHtml}`,
+                ...swalTheme
+            });
+            return;
+        }
+
         const currentCartHours = courses
             .filter(c => cartIds.includes(c.id))
             .reduce((sum, c) => sum + (c.credit_hours || 0), 0);
@@ -1636,6 +1667,7 @@ export default function Tree({
         let currentHours = 0;
         let heavyCount = 0;
         let onlineCount = 0;
+        let electiveHours = 0;
         const targetOnline = schedulePace === 'light' ? 2 : (schedulePace === 'balanced' ? 1 : 0);
         const selectedMeta = {};
 
@@ -1649,6 +1681,7 @@ export default function Tree({
                 // Adjust difficulty thresholds slightly so it doesn't fail to generate a full schedule
                 if (schedulePace === 'light' && difficulty > 65) return false;
                 if (schedulePace === 'balanced' && difficulty > 85) return false;
+                if (course.type === 'elective' && electiveHours + course.credit_hours > ELECTIVE_MAX_HOURS) return false;
                 
                 if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
 
@@ -1679,6 +1712,7 @@ export default function Tree({
                 currentHours += course.credit_hours;
                 if (isHeavy) heavyCount += 1;
                 if (isOnline) onlineCount += 1;
+                if (course.type === 'elective') electiveHours += course.credit_hours;
                 return true;
             }
             return false;
@@ -1706,6 +1740,10 @@ export default function Tree({
     };
 
     const totalCartCredits = useMemo(() => courses.filter(c => cartIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIds]);
+    const electiveCartHours = useMemo(
+        () => courses.filter(c => cartIds.includes(c.id) && c.type === 'elective').reduce((acc, c) => acc + (c.credit_hours || 0), 0),
+        [courses, cartIds]
+    );
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
 
     const processedCourses = useMemo(() => {
@@ -2678,6 +2716,15 @@ export default function Tree({
                                         <div className="relative z-10">
                                             <div className="flex justify-between items-end mb-3"><p className="font-[800] text-base">الجدول المقترح</p><div className="text-right"><span className={`text-3xl font-[900] leading-none ${totalCartCredits > 18 ? 'text-rose-400' : 'text-amber-400'}`}>{totalCartCredits}</span><span className="text-slate-400 text-[10px] font-bold mr-1">/ 18 س</span></div></div>
                                             <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${totalCartCredits > 18 ? 'bg-rose-500' : 'bg-gradient-to-l from-indigo-400 to-indigo-500'}`} style={{ width: `${Math.min((totalCartCredits / 18) * 100, 100)}%` }} /></div>
+                                            <div className="mt-3 rounded-xl bg-white/5 border border-white/10 p-3">
+                                                <div className="flex justify-between text-[10px] font-bold text-white/70">
+                                                    <span>ساعات اختياري</span>
+                                                    <span>{electiveCartHours} / {ELECTIVE_MAX_HOURS} س</span>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
+                                                    <div className={`h-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${electiveCartHours > ELECTIVE_MAX_HOURS ? 'bg-rose-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((electiveCartHours / ELECTIVE_MAX_HOURS) * 100, 100)}%` }} />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
