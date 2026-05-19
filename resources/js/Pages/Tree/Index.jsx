@@ -1616,19 +1616,40 @@ export default function Tree({
                 score += Number(course.fail_rate || 0) > 35 ? -18 : 4;
             }
 
-            return { course, score, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence };
+            // Realism Adjustments based on Pace
+            const isOnline = course.type === 'university_req';
+            if (schedulePace === 'light') {
+                if (isOnline) score += 80; // Huge boost to grab online courses
+                score += difficulty < 45 ? 40 : -20; // Boost easy courses
+            } else if (schedulePace === 'balanced') {
+                if (isOnline) score += 50; // Boost to grab 1 online course
+                score += (difficulty > 40 && difficulty < 70) ? 20 : 0; // Favor medium difficulty
+            } else if (schedulePace === 'heavy') {
+                if (isCompulsory || isMajor) score += 60; // Heavy relies on major courses
+                if (isOnline) score -= 50; // Discourage online courses in heavy
+            }
+
+            return { course, score, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence, isOnline };
         }).sort((a, b) => b.score - a.score);
 
         let newCart = [];
         let currentHours = 0;
         let heavyCount = 0;
+        let onlineCount = 0;
+        const targetOnline = schedulePace === 'light' ? 2 : (schedulePace === 'balanced' ? 1 : 0);
         const selectedMeta = {};
 
         const addCourse = (entry) => {
-            const { course, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence } = entry;
+            const { course, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence, isOnline } = entry;
             if (currentHours + course.credit_hours <= targetHours && !newCart.includes(course.id)) {
-                if (schedulePace === 'light' && difficulty > 58) return false;
+                
+                // Enforce exact online course target to make it highly realistic
+                if (isOnline && onlineCount >= targetOnline) return false;
+
+                // Adjust difficulty thresholds slightly so it doesn't fail to generate a full schedule
+                if (schedulePace === 'light' && difficulty > 65) return false;
                 if (schedulePace === 'balanced' && difficulty > 85) return false;
+                
                 if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
 
                 const confidence = Math.max(
@@ -1648,15 +1669,16 @@ export default function Tree({
                     confidence,
                     dataConfidence,
                     reasons: [
-                        `يفتح ${unlock} مواد`,
-                        `صعوبة ${Math.round(difficulty)}%`,
-                        `سنة ${course.recommended_year}`,
+                        isOnline ? '💻 متطلب جامعة (أونلاين)' : `📊 صعوبة ${Math.round(difficulty)}%`,
+                        `🔑 يفتح ${unlock} مواد`,
+                        `📅 سنة ${course.recommended_year}`,
                     ],
                 };
 
                 newCart.push(course.id);
                 currentHours += course.credit_hours;
                 if (isHeavy) heavyCount += 1;
+                if (isOnline) onlineCount += 1;
                 return true;
             }
             return false;
