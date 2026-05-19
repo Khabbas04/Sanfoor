@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\College;
+use App\Models\GraduationPlan;
 use App\Models\Major;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -40,11 +41,28 @@ class ProfileController extends Controller
             ]);
         }
 
+        $approvedPlan = null;
+        try {
+            $plan = GraduationPlan::query()->where('user_id', $request->user()->id)->first();
+            if ($plan) {
+                $approvedPlan = [
+                    'id' => $plan->id,
+                    'payload' => $plan->payload,
+                    'approved_at' => optional($plan->approved_at)->toISOString(),
+                ];
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Failed loading approved graduation plan', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
             'colleges' => $colleges,
             'majors' => $majors,
+            'approved_plan' => $approvedPlan,
         ]);
     }
 

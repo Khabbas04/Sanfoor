@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\CourseTreeResource;
 use App\Http\Resources\PassedCourseResource;
 use App\Models\Course;
+use App\Models\GraduationPlan;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,6 +53,9 @@ class TreeController extends Controller
         $passed_course_ids = $user->passedCourses->pluck('id')->all();
         $totalPassedHours = (int) $user->passedCourses->sum('credit_hours');
         $cart_course_ids = $user->cartCourses->pluck('id')->all();
+        $approvedPlan = GraduationPlan::query()
+            ->where('user_id', $user->id)
+            ->first();
 
         return Inertia::render('Tree/Index', [
             'courses' => $courses,
@@ -63,6 +67,11 @@ class TreeController extends Controller
             'major_name' => $user->major ? $user->major->name : 'غير محدد',
             'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
             'study_plan_version' => (int) ($user->study_plan_version ?? 12),
+            'approved_plan' => $approvedPlan ? [
+                'id' => $approvedPlan->id,
+                'payload' => $approvedPlan->payload,
+                'approved_at' => optional($approvedPlan->approved_at)->toISOString(),
+            ] : null,
         ]);
     }
 

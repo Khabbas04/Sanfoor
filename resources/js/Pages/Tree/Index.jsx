@@ -173,6 +173,7 @@ export default function Tree({
     study_plan_version = 12,
     passed_courses = [],
     total_passed_hours = 0,
+    approved_plan = null,
 }) {
 
     // Page-level state drives filtering, course selection, and AI planning behavior.
@@ -203,6 +204,15 @@ export default function Tree({
     const [compareFirstCourse, setCompareFirstCourse] = useState(null);
     const [compareCourse, setCompareCourse] = useState(null);
     const [show4YearPlan, setShow4YearPlan] = useState(false);
+    const [planDraft, setPlanDraft] = useState(null);
+    const [approvedPlan, setApprovedPlan] = useState(approved_plan);
+    const [planSelectedSemester, setPlanSelectedSemester] = useState(0);
+    const [planSearch, setPlanSearch] = useState('');
+    const [planNotes, setPlanNotes] = useState('');
+    const [isSavingPlan, setIsSavingPlan] = useState(false);
+    const [planPrintMode, setPlanPrintMode] = useState(false);
+    const [dragCourseMeta, setDragCourseMeta] = useState(null);
+    const [showAllPlanCourses, setShowAllPlanCourses] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
     const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 720);
     const [dismissedRotateHint, setDismissedRotateHint] = useState(false);
@@ -245,6 +255,352 @@ export default function Tree({
         const safeTerm = [1, 2, 3].includes(parsedTerm) ? parsedTerm : 1;
         return ((safeYear - 1) * 3) + safeTerm;
     }, []);
+
+    const courseById = useMemo(
+        () => new Map(courses.map((course) => [course.id, course])),
+        [courses]
+    );
+
+    const buildPlanFromPayload = useCallback((payload) => {
+        if (!payload || !Array.isArray(payload.semesters)) return null;
+        const semesters = payload.semesters.map((sem, index) => {
+            const courseIds = Array.isArray(sem.course_ids) ? sem.course_ids : [];
+            return {
+                semester: Number(sem.semester || index + 1),
+                is_summer: Boolean(sem.is_summer),
+                courses: courseIds.map((id) => courseById.get(id)).filter(Boolean),
+            };
+        });
+        return { semesters, notes: payload.notes || '' };
+    }, [courseById]);
+
+    const buildPredictivePlan = useCallback(() => {
+        let simulatedPassed = new Set(passedIds);
+        let remainingCourses = [...courses.filter(c => !simulatedPassed.has(c.id))];
+        let generatedSemesters = [];
+        let currentSem = 1;
+        const maxSemesters = 7; // 3.5 years max
+
+        // تتبع الساعات المنجزة لكل نوع لضمان عدم تجاوز الخطة المطلوبة
+        let categoryPassedHours = {
+            university_req: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'university_req').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+            compulsory: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'compulsory').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+            elective: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'elective').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+            supporting: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'supporting').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+        };
+
+        // حساب الساعات المطلوبة ديناميكياً لكل تخصص بناءً على الشجرة الحالية
+        const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+        const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+        const universityReqCap = 30; // متطلبات الجامعة ثابتة تقريباً 30
+        const totalPlanHours = 132; // الحد الأدنى للخطة
+        
+        // الاختياري هو ما يتبقى للوصول لـ 132 ساعة
+        const electiveCap = Math.max(0, totalPlanHours - (totalCompulsory + totalSupporting + universityReqCap));
+
+        // حدود الخطة الدراسية الديناميكية للتخصص الحالي
+        const caps = { 
+            university_req: universityReqCap, 
+            compulsory: totalCompulsory > 0 ? totalCompulsory : 87, 
+            elective: electiveCap > 0 ? electiveCap : 9, 
+            supporting: totalSupporting > 0 ? totalSupporting : 6 
+        };
+
+        const normalizeName = (value) => String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .replace(/[^\u0600-\u06FFa-z0-9 ]+/gi, '');
+        const nameHasAll = (name, parts) => {
+            const normalized = normalizeName(name);
+            return parts.every(part => normalized.includes(normalizeName(part)));
+        };
+
+        while (remainingCourses.length > 0 && currentSem <= maxSemesters) {
+            const simulatedPassedHours = courses
+                .filter(c => simulatedPassed.has(c.id))
+                .reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
+
+            const remainingHours = remainingCourses.reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
+            const isSummer = currentSem % 3 === 0;
+            const baseMaxSemHours = isSummer ? 9 : 18;
+            const canGraduateBoost = remainingHours <= baseMaxSemHours + 3;
+            const maxSemHours = currentSem === 1 ? 12 : (canGraduateBoost ? baseMaxSemHours + 3 : baseMaxSemHours);
+            const minSemHours = isSummer ? 0 : 12;
+
+            let availableNow = remainingCourses.filter(c => {
+                const type = c.type || 'compulsory';
+                
+                // التخطيط الواقعي: تطبيق حد الساعات فقط على المواد الاختيارية (elective).
+                // جميع المواد الإجبارية (compulsory, supporting, university_req) يجب أن تكون موجودة في الخطة.
+                if (type === 'elective' && categoryPassedHours[type] >= (caps[type] || 999) && !cartIds.includes(c.id)) return false;
+
+                const requiredHours = Number(c.minimum_passed_hours || 0);
+                if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
+                if (!c.prerequisites || c.prerequisites.length === 0) return true;
+                return c.prerequisites.every(p => simulatedPassed.has(p.id));
+            });
+
+            if (availableNow.length === 0) break;
+
+            const remainingOnlineCount = remainingCourses.filter(c => c.type === 'university_req').length;
+            const remainingSemestersEstimate = Math.max(1, Math.ceil(remainingHours / baseMaxSemHours));
+            const mustPlaceOnline = remainingOnlineCount > 0 && remainingOnlineCount >= remainingSemestersEstimate;
+
+            // الترتيب الذكي: 
+            // 1. الأولوية القصوى للمواد التي وضعها الطالب في التسجيل التجريبي.
+            // 2. تأخير المواد التي تتطلب 90 ساعة فأكثر (مثل مشاريع التخرج) لنهاية الخطة.
+            // 3. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
+            availableNow.sort((a, b) => {
+                if (mustPlaceOnline) {
+                    const aOnline = a.type === 'university_req';
+                    const bOnline = b.type === 'university_req';
+                    if (aOnline && !bOnline) return -1;
+                    if (!aOnline && bOnline) return 1;
+                }
+                if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
+                if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
+                
+                const aReq = Number(a.minimum_passed_hours || 0);
+                const bReq = Number(b.minimum_passed_hours || 0);
+                if (aReq >= 90 && bReq < 90) return 1;
+                if (bReq >= 90 && aReq < 90) return -1;
+
+                const depthDelta = getCourseDepth(b.id) - getCourseDepth(a.id);
+                if (depthDelta !== 0) return depthDelta;
+                return (Number(b.credit_hours) || 0) - (Number(a.credit_hours) || 0);
+            });
+
+            let semCourses = [];
+            let semHours = 0;
+            let semOnlineCount = 0; // لضمان عدم تكدس متطلبات الجامعة (الأونلاين) في فصل واحد
+
+            if (currentSem === 1) {
+                const pickFirstSemesterCourse = (predicate) => {
+                    const match = availableNow.find(c => predicate(c) && !semCourses.some(sc => sc.id === c.id));
+                    if (!match) return false;
+                    if (semHours + match.credit_hours > maxSemHours) return false;
+                    semCourses.push({ ...match, isSummer, currentSem });
+                    semHours += match.credit_hours;
+                    if (match.type === 'university_req') semOnlineCount += 1;
+                    remainingCourses = remainingCourses.filter(rc => rc.id !== match.id);
+                    const type = match.type || 'compulsory';
+                    if (categoryPassedHours[type] !== undefined) {
+                        categoryPassedHours[type] += Number(match.credit_hours || 0);
+                    }
+                    return true;
+                };
+
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['اساسيات', 'تكنولوجيا', 'معلومات']));
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تصميم', 'منطق', 'رقمي']));
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تربية', 'وطنية']));
+                pickFirstSemesterCourse((c) => c.type === 'university_req' && nameHasAll(c.name, ['متطلب', 'جامعة', 'اختياري']));
+            }
+
+            for (let c of availableNow) {
+                if (currentSem === 1 && semHours >= 12) break;
+                if (semHours >= maxSemHours) break;
+                if (semCourses.some(sc => sc.id === c.id)) continue;
+                const isOnline = c.type === 'university_req';
+                
+                // الحد الواقعي: مادة أونلاين واحدة كحد أقصى في الفصل، إلا إذا أضافها الطالب بيده للتسجيل التجريبي
+                if (isOnline && semOnlineCount >= 1 && !cartIds.includes(c.id)) continue;
+
+                if (mustPlaceOnline && semOnlineCount === 0 && !isOnline && availableNow.some(course => course.type === 'university_req')) continue;
+
+                if (semHours + c.credit_hours <= maxSemHours) {
+                    semCourses.push({ ...c, isSummer, currentSem });
+                    semHours += c.credit_hours;
+                    if (isOnline) semOnlineCount++;
+                    remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
+                    
+                    const type = c.type || 'compulsory';
+                    if (categoryPassedHours[type] !== undefined) {
+                        categoryPassedHours[type] += Number(c.credit_hours || 0);
+                    }
+                }
+            }
+
+            if (!isSummer && currentSem !== 1 && semHours > 0 && semHours < minSemHours && remainingHours > maxSemHours) {
+                const relaxed = availableNow.filter(c => !semCourses.some(sc => sc.id === c.id));
+                for (let c of relaxed) {
+                    if (semHours >= minSemHours) break;
+                    if (semHours + c.credit_hours > maxSemHours) continue;
+                    semCourses.push({ ...c, isSummer, currentSem });
+                    semHours += c.credit_hours;
+                    if (c.type === 'university_req') semOnlineCount++;
+                    remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
+
+                    const type = c.type || 'compulsory';
+                    if (categoryPassedHours[type] !== undefined) {
+                        categoryPassedHours[type] += Number(c.credit_hours || 0);
+                    }
+                }
+            }
+
+            if (!isSummer && semHours > 0 && semHours < minSemHours && remainingHours > maxSemHours) {
+                remainingCourses = [...semCourses.map(c => ({ ...c })), ...remainingCourses];
+                semCourses = [];
+            }
+            semCourses.forEach(c => simulatedPassed.add(c.id));
+            if (semCourses.length > 0) {
+                generatedSemesters.push(semCourses);
+            }
+            currentSem++;
+        }
+
+        return {
+            semesters: generatedSemesters.map((semCourses, index) => ({
+                semester: semCourses[0]?.currentSem ?? (index + 1),
+                is_summer: Boolean(semCourses[0]?.isSummer),
+                courses: semCourses,
+            })),
+        };
+    }, [passedIds, courses, cartIds, getCourseDepth]);
+
+    useEffect(() => {
+        if (!show4YearPlan) return;
+        if (planDraft) return;
+        if (approvedPlan?.payload) {
+            const loaded = buildPlanFromPayload(approvedPlan.payload);
+            if (loaded) {
+                setPlanDraft(loaded);
+                setPlanNotes(loaded.notes || '');
+                return;
+            }
+        }
+        const generated = buildPredictivePlan();
+        setPlanDraft(generated);
+        setPlanNotes('');
+    }, [show4YearPlan, planDraft, approvedPlan, buildPlanFromPayload, buildPredictivePlan]);
+
+    useEffect(() => {
+        if (show4YearPlan) return;
+        setPlanDraft(null);
+        setPlanNotes('');
+        setPlanSearch('');
+        setDragCourseMeta(null);
+        setPlanPrintMode(false);
+    }, [show4YearPlan]);
+
+    useEffect(() => {
+        if (!planPrintMode) return;
+        const handleAfterPrint = () => setPlanPrintMode(false);
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+    }, [planPrintMode]);
+
+    useEffect(() => {
+        setApprovedPlan(approved_plan || null);
+    }, [approved_plan]);
+
+    useEffect(() => {
+        if (!planDraft?.semesters?.length) return;
+        if (planSelectedSemester >= planDraft.semesters.length) {
+            setPlanSelectedSemester(0);
+        }
+    }, [planDraft, planSelectedSemester]);
+
+    const planCourseIds = useMemo(() => {
+        const ids = new Set();
+        if (!planDraft?.semesters) return ids;
+        planDraft.semesters.forEach((sem) => {
+            (sem.courses || []).forEach((course) => ids.add(course.id));
+        });
+        return ids;
+    }, [planDraft]);
+
+    const planSemesterWarnings = useMemo(() => {
+        if (!planDraft?.semesters) return [];
+        const courseSemesterIndex = new Map();
+        planDraft.semesters.forEach((sem, index) => {
+            (sem.courses || []).forEach((course) => courseSemesterIndex.set(course.id, index));
+        });
+
+        return planDraft.semesters.map((sem, index) => {
+            const semHours = (sem.courses || []).reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
+            const isSummer = Boolean(sem.is_summer);
+            const maxHours = isSummer ? 9 : 18;
+            const minHours = isSummer ? 0 : 12;
+            const warnings = [];
+
+            if (semHours === 0) warnings.push('الفصل فارغ حالياً.');
+            if (semHours > maxHours) warnings.push(`تجاوزت حد الساعات (${maxHours}س).`);
+            if (!isSummer && semHours > 0 && semHours < minHours) warnings.push('أقل من الحد الأدنى 12 ساعة.');
+
+            (sem.courses || []).forEach((course) => {
+                const unmet = (course.prerequisites || [])
+                    .filter((p) => !passedIds.includes(p.id))
+                    .filter((p) => {
+                        const prereqIndex = courseSemesterIndex.get(p.id);
+                        return prereqIndex === undefined || prereqIndex >= index;
+                    });
+                if (unmet.length > 0) {
+                    warnings.push(`يوجد متطلبات سابقة لم تُنجز قبل ${course.name}.`);
+                }
+            });
+
+            return { semHours, warnings };
+        });
+    }, [planDraft, passedIds]);
+
+    const planLibraryCourses = useMemo(() => {
+        const query = planSearch.trim().toLowerCase();
+        return courses.filter((course) => {
+            if (!showAllPlanCourses && planCourseIds.has(course.id)) return false;
+            if (!query) return true;
+            const hay = `${course.name} ${course.code}`.toLowerCase();
+            return hay.includes(query);
+        });
+    }, [courses, planCourseIds, planSearch, showAllPlanCourses]);
+
+    const updatePlanDraft = useCallback((updater) => {
+        setPlanDraft((prev) => (prev ? updater(prev) : prev));
+    }, []);
+
+    const addCourseToSemester = useCallback((course, targetIndex) => {
+        if (!course) return;
+        updatePlanDraft((prev) => {
+            const semesters = prev.semesters.map((sem) => ({
+                ...sem,
+                courses: Array.isArray(sem.courses) ? [...sem.courses] : [],
+            }));
+            if (!semesters[targetIndex]) return prev;
+            if (semesters[targetIndex].courses.some((c) => c.id === course.id)) return prev;
+            semesters[targetIndex].courses.push(course);
+            return { ...prev, semesters };
+        });
+    }, [updatePlanDraft]);
+
+    const removeCourseFromPlan = useCallback((courseId) => {
+        updatePlanDraft((prev) => {
+            const semesters = prev.semesters.map((sem) => ({
+                ...sem,
+                courses: (sem.courses || []).filter((c) => c.id !== courseId),
+            }));
+            return { ...prev, semesters };
+        });
+    }, [updatePlanDraft]);
+
+    const moveCourseToSemester = useCallback((courseId, fromIndex, toIndex) => {
+        if (fromIndex === toIndex) return;
+        updatePlanDraft((prev) => {
+            const semesters = prev.semesters.map((sem) => ({
+                ...sem,
+                courses: Array.isArray(sem.courses) ? [...sem.courses] : [],
+            }));
+            const fromSem = semesters[fromIndex];
+            const toSem = semesters[toIndex];
+            if (!fromSem || !toSem) return prev;
+            const course = fromSem.courses.find((c) => c.id === courseId);
+            if (!course) return prev;
+            fromSem.courses = fromSem.courses.filter((c) => c.id !== courseId);
+            if (!toSem.courses.some((c) => c.id === courseId)) {
+                toSem.courses.push(course);
+            }
+            return { ...prev, semesters };
+        });
+    }, [updatePlanDraft]);
 
     const yearOptions = useMemo(() => ([
         { value: 1, label: 'السنة الأولى' },
@@ -1879,228 +2235,208 @@ export default function Tree({
     }, [cartIds, coursesWithDifficulty, totalCartCredits, schedulePace]);
 
     const render4YearPlan = () => {
-        let simulatedPassed = new Set(passedIds);
-        let remainingCourses = [...courses.filter(c => !simulatedPassed.has(c.id))];
-        let generatedSemesters = [];
-        let currentSem = 1;
-        const maxSemesters = 7; // 3.5 years max
+        if (!planDraft) return null;
+        const semesters = planDraft.semesters || [];
 
-        // تتبع الساعات المنجزة لكل نوع لضمان عدم تجاوز الخطة المطلوبة
-        let categoryPassedHours = {
-            university_req: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'university_req').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
-            compulsory: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'compulsory').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
-            elective: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'elective').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
-            supporting: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'supporting').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+        const handleApprovePlan = async () => {
+            const payload = {
+                semesters: semesters.map((sem, index) => ({
+                    semester: Number(sem.semester || index + 1),
+                    is_summer: Boolean(sem.is_summer),
+                    course_ids: (sem.courses || []).map((c) => c.id),
+                })),
+                notes: planNotes,
+            };
+
+            setIsSavingPlan(true);
+            try {
+                const response = await axios.post(route('graduation-plan.store'), { plan: payload });
+                setApprovedPlan(response.data?.plan || { payload });
+                Swal.fire({ icon: 'success', title: 'تم الاعتماد!', text: response.data?.message || 'تم اعتماد الخطة بنجاح.', ...swalTheme });
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: error.response?.data?.message || 'فشل حفظ الخطة. حاول مرة أخرى.', ...swalTheme });
+            } finally {
+                setIsSavingPlan(false);
+            }
         };
 
-        // حساب الساعات المطلوبة ديناميكياً لكل تخصص بناءً على الشجرة الحالية
-        const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
-        const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
-        const universityReqCap = 30; // متطلبات الجامعة ثابتة تقريباً 30
-        const totalPlanHours = 132; // الحد الأدنى للخطة
-        
-        // الاختياري هو ما يتبقى للوصول لـ 132 ساعة
-        const electiveCap = Math.max(0, totalPlanHours - (totalCompulsory + totalSupporting + universityReqCap));
-
-        // حدود الخطة الدراسية الديناميكية للتخصص الحالي
-        const caps = { 
-            university_req: universityReqCap, 
-            compulsory: totalCompulsory > 0 ? totalCompulsory : 87, 
-            elective: electiveCap > 0 ? electiveCap : 9, 
-            supporting: totalSupporting > 0 ? totalSupporting : 6 
+        const handlePrintPlan = () => {
+            setPlanPrintMode(true);
+            setTimeout(() => window.print(), 80);
         };
 
-        const normalizeName = (value) => String(value || '')
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, ' ')
-            .replace(/[^\u0600-\u06FFa-z0-9 ]+/gi, '');
-        const nameHasAll = (name, parts) => {
-            const normalized = normalizeName(name);
-            return parts.every(part => normalized.includes(normalizeName(part)));
+        const handleRegeneratePlan = () => {
+            const generated = buildPredictivePlan();
+            setPlanDraft(generated);
+            setPlanNotes('');
         };
 
-        while (remainingCourses.length > 0 && currentSem <= maxSemesters) {
-            const simulatedPassedHours = courses
-                .filter(c => simulatedPassed.has(c.id))
-                .reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
-
-            const remainingHours = remainingCourses.reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
-            const isSummer = currentSem % 3 === 0;
-            const baseMaxSemHours = isSummer ? 9 : 18;
-            const canGraduateBoost = remainingHours <= baseMaxSemHours + 3;
-            const maxSemHours = currentSem === 1 ? 12 : (canGraduateBoost ? baseMaxSemHours + 3 : baseMaxSemHours);
-            const minSemHours = isSummer ? 0 : 12;
-
-            let availableNow = remainingCourses.filter(c => {
-                const type = c.type || 'compulsory';
-                
-                // التخطيط الواقعي: تطبيق حد الساعات فقط على المواد الاختيارية (elective).
-                // جميع المواد الإجبارية (compulsory, supporting, university_req) يجب أن تكون موجودة في الخطة.
-                if (type === 'elective' && categoryPassedHours[type] >= (caps[type] || 999) && !cartIds.includes(c.id)) return false;
-
-                const requiredHours = Number(c.minimum_passed_hours || 0);
-                if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
-                if (!c.prerequisites || c.prerequisites.length === 0) return true;
-                return c.prerequisites.every(p => simulatedPassed.has(p.id));
-            });
-
-            if (availableNow.length === 0) break;
-
-            const remainingOnlineCount = remainingCourses.filter(c => c.type === 'university_req').length;
-            const remainingSemestersEstimate = Math.max(1, Math.ceil(remainingHours / baseMaxSemHours));
-            const mustPlaceOnline = remainingOnlineCount > 0 && remainingOnlineCount >= remainingSemestersEstimate;
-
-            // الترتيب الذكي: 
-            // 1. الأولوية القصوى للمواد التي وضعها الطالب في التسجيل التجريبي.
-            // 2. تأخير المواد التي تتطلب 90 ساعة فأكثر (مثل مشاريع التخرج) لنهاية الخطة.
-            // 3. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
-            availableNow.sort((a, b) => {
-                if (mustPlaceOnline) {
-                    const aOnline = a.type === 'university_req';
-                    const bOnline = b.type === 'university_req';
-                    if (aOnline && !bOnline) return -1;
-                    if (!aOnline && bOnline) return 1;
-                }
-                if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
-                if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
-                
-                const aReq = Number(a.minimum_passed_hours || 0);
-                const bReq = Number(b.minimum_passed_hours || 0);
-                if (aReq >= 90 && bReq < 90) return 1;
-                if (bReq >= 90 && aReq < 90) return -1;
-
-                const depthDelta = getCourseDepth(b.id) - getCourseDepth(a.id);
-                if (depthDelta !== 0) return depthDelta;
-                return (Number(b.credit_hours) || 0) - (Number(a.credit_hours) || 0);
-            });
-
-            let semCourses = [];
-            let semHours = 0;
-            let semOnlineCount = 0; // لضمان عدم تكدس متطلبات الجامعة (الأونلاين) في فصل واحد
-
-            if (currentSem === 1) {
-                const pickFirstSemesterCourse = (predicate) => {
-                    const match = availableNow.find(c => predicate(c) && !semCourses.some(sc => sc.id === c.id));
-                    if (!match) return false;
-                    if (semHours + match.credit_hours > maxSemHours) return false;
-                    semCourses.push({ ...match, isSummer, currentSem });
-                    semHours += match.credit_hours;
-                    if (match.type === 'university_req') semOnlineCount += 1;
-                    remainingCourses = remainingCourses.filter(rc => rc.id !== match.id);
-                    const type = match.type || 'compulsory';
-                    if (categoryPassedHours[type] !== undefined) {
-                        categoryPassedHours[type] += Number(match.credit_hours || 0);
-                    }
-                    return true;
-                };
-
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['اساسيات', 'تكنولوجيا', 'معلومات']));
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تصميم', 'منطق', 'رقمي']));
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تربية', 'وطنية']));
-                pickFirstSemesterCourse((c) => c.type === 'university_req' && nameHasAll(c.name, ['متطلب', 'جامعة', 'اختياري']));
+        const handleLoadApproved = () => {
+            if (!approvedPlan?.payload) return;
+            const loaded = buildPlanFromPayload(approvedPlan.payload);
+            if (loaded) {
+                setPlanDraft(loaded);
+                setPlanNotes(loaded.notes || '');
             }
-
-            for (let c of availableNow) {
-                if (currentSem === 1 && semHours >= 12) break;
-                if (semHours >= maxSemHours) break;
-                if (semCourses.some(sc => sc.id === c.id)) continue;
-                const isOnline = c.type === 'university_req';
-                
-                // الحد الواقعي: مادة أونلاين واحدة كحد أقصى في الفصل، إلا إذا أضافها الطالب بيده للتسجيل التجريبي
-                if (isOnline && semOnlineCount >= 1 && !cartIds.includes(c.id)) continue;
-
-                if (mustPlaceOnline && semOnlineCount === 0 && !isOnline && availableNow.some(course => course.type === 'university_req')) continue;
-
-                if (semHours + c.credit_hours <= maxSemHours) {
-                    semCourses.push({ ...c, isSummer, currentSem });
-                    semHours += c.credit_hours;
-                    if (isOnline) semOnlineCount++;
-                    remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
-                    
-                    const type = c.type || 'compulsory';
-                    if (categoryPassedHours[type] !== undefined) {
-                        categoryPassedHours[type] += Number(c.credit_hours || 0);
-                    }
-                }
-            }
-
-            if (!isSummer && currentSem !== 1 && semHours > 0 && semHours < minSemHours && remainingHours > maxSemHours) {
-                const relaxed = availableNow.filter(c => !semCourses.some(sc => sc.id === c.id));
-                for (let c of relaxed) {
-                    if (semHours >= minSemHours) break;
-                    if (semHours + c.credit_hours > maxSemHours) continue;
-                    semCourses.push({ ...c, isSummer, currentSem });
-                    semHours += c.credit_hours;
-                    if (c.type === 'university_req') semOnlineCount++;
-                    remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
-
-                    const type = c.type || 'compulsory';
-                    if (categoryPassedHours[type] !== undefined) {
-                        categoryPassedHours[type] += Number(c.credit_hours || 0);
-                    }
-                }
-            }
-
-            if (!isSummer && semHours > 0 && semHours < minSemHours && remainingHours > maxSemHours) {
-                remainingCourses = [...semCourses.map(c => ({ ...c })), ...remainingCourses];
-                semCourses = [];
-            }
-            semCourses.forEach(c => simulatedPassed.add(c.id));
-            if (semCourses.length > 0) {
-                generatedSemesters.push(semCourses);
-            }
-            currentSem++;
-        }
-        
-        // يمكن إضافة المواد المتبقية غير القابلة للجدولة هنا إذا أردنا عرضها
-        // if (remainingCourses.length > 0) generatedSemesters.push(remainingCourses);
+        };
 
         return (
             <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-6">
-                <div className="bg-white w-full max-w-6xl h-[88vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
-                    <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex justify-between items-center shrink-0 relative overflow-hidden">
+                <div className="bg-white w-full max-w-7xl h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
+                    <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '16px 16px' }} />
                         <div className="text-white relative z-10">
                             <h2 className="text-xl sm:text-2xl font-[900] mb-1 flex items-center gap-2.5">
-                                <span className="w-9 h-9 bg-indigo-500/20 rounded-lg flex items-center justify-center text-lg">🤖</span>
-                                خطة التخرج التنبؤية
+                                <span className="w-9 h-9 bg-indigo-500/20 rounded-lg flex items-center justify-center text-lg">🧭</span>
+                                خطة التخرج التنبؤية (قابلة للتعديل)
                             </h2>
-                            <p className="text-sm text-indigo-300/60 font-bold">توزيع ذكي للمواد المتبقية مع مراعاة الفصول الصيفية</p>
+                            <p className="text-sm text-indigo-300/60 font-bold">اسحب المواد، وعدّل الفصول، واعتمد خطتك النهائية.</p>
                         </div>
-                        <button onClick={() => setShow4YearPlan(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-all text-lg relative z-10 active:scale-90">✕</button>
+                        <div className="flex flex-wrap items-center gap-2 relative z-10">
+                            {approvedPlan?.payload && (
+                                <button onClick={handleLoadApproved} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">📥 تحميل المعتمدة</button>
+                            )}
+                            <button onClick={handleRegeneratePlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🔄 إعادة توليد</button>
+                            <button onClick={handlePrintPlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🖨️ طباعة</button>
+                            <button onClick={handleApprovePlan} disabled={isSavingPlan} className="px-4 py-2.5 rounded-xl text-[11px] font-[900] bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                                {isSavingPlan ? 'جارٍ الاعتماد...' : '✅ اعتماد الخطة'}
+                            </button>
+                            <button onClick={() => setShow4YearPlan(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-all text-lg active:scale-90">✕</button>
+                        </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f8fafc]">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                            {generatedSemesters.map((semCourses, i) => {
-                                const semHours = semCourses.reduce((sum, c) => sum + c.credit_hours, 0);
-                                const isSummer = semCourses.length > 0 && semCourses[0].isSummer;
-                                const semNum = semCourses.length > 0 ? semCourses[0].currentSem : (i + 1);
-                                
-                                return (
-                                    <div key={i} className={`bg-white border rounded-[1.25rem] p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col ${isSummer ? 'border-amber-200' : 'border-slate-200/80'}`} style={{ animationDelay: `${i * 50}ms` }}>
-                                        <div className={`text-center py-2.5 rounded-xl mb-3.5 font-[800] text-[13px] border flex justify-between px-3.5 items-center ${isSummer ? 'bg-gradient-to-l from-amber-50 to-orange-50 text-amber-800 border-amber-100/60' : 'bg-gradient-to-l from-indigo-50 to-slate-50 text-indigo-800 border-indigo-100/60'}`}>
-                                            <span className="flex items-center gap-1.5">{isSummer ? '☀️ صيفي' : '📅 اعتيادي'} (فصل +{semNum})</span>
-                                            <span className={`bg-white px-2 py-0.5 rounded-md text-[10px] font-[800] border ${isSummer ? 'text-amber-600 border-amber-100' : 'text-indigo-600 border-indigo-100'}`}>{semHours} ساعة</span>
-                                        </div>
-                                        <div className="space-y-1.5 flex-1">
-                                            {semCourses.map(c => (
-                                                <div key={c.id} className="text-[11px] bg-slate-50/80 border border-slate-100 hover:border-indigo-200 p-2.5 rounded-xl flex justify-between items-center font-bold text-slate-700 transition-colors group">
-                                                    <span className="truncate flex-1 ml-2" title={c.name}>{c.name}</span>
-                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-[800] shrink-0 ${c.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>{c.credit_hours}س</span>
+                    <div className="flex-1 overflow-hidden bg-[#f8fafc]">
+                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-hidden">
+                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm overflow-hidden">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-[900] text-[13px] text-slate-800">📚 مكتبة المواد</h3>
+                                    <label className="text-[10px] font-bold text-slate-500 flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={showAllPlanCourses} onChange={(e) => setShowAllPlanCourses(e.target.checked)} />
+                                        إظهار الكل
+                                    </label>
+                                </div>
+                                <input
+                                    value={planSearch}
+                                    onChange={(e) => setPlanSearch(e.target.value)}
+                                    placeholder="ابحث عن مادة..."
+                                    className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-300 outline-none"
+                                />
+                                <div className="mt-3 flex flex-wrap gap-1">
+                                    {semesters.map((sem, index) => (
+                                        <button
+                                            key={`${sem.semester}-${index}`}
+                                            onClick={() => setPlanSelectedSemester(index)}
+                                            className={`px-2.5 py-1 rounded-lg text-[10px] font-[800] border transition-all ${planSelectedSemester === index ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}
+                                        >
+                                            {sem.is_summer ? 'صيفي' : 'اعتيادي'} {sem.semester}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="mt-3 text-[10px] font-bold text-slate-400">حدد الفصل ثم أضف المادة.</div>
+                                <div className="mt-3 flex-1 overflow-y-auto space-y-2 hide-scrollbar">
+                                    {planLibraryCourses.map((course) => {
+                                        const alreadyUsed = planCourseIds.has(course.id);
+                                        return (
+                                            <div key={course.id} className={`border rounded-xl p-2.5 text-[11px] font-bold flex items-center justify-between gap-2 ${alreadyUsed ? 'bg-slate-50 text-slate-400 border-slate-200' : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-200'}`}>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate">{course.name}</p>
+                                                    <p className="text-[9px] text-slate-400 mt-0.5">{course.code} • {course.credit_hours}س</p>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                                <button
+                                                    disabled={alreadyUsed}
+                                                    onClick={() => addCourseToSemester(course, planSelectedSemester)}
+                                                    className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black text-[12px] border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >
+                                                    +
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="mt-4">
+                                    <label className="text-[11px] font-[800] text-slate-700">ملاحظات الخطة</label>
+                                    <textarea
+                                        value={planNotes}
+                                        onChange={(e) => setPlanNotes(e.target.value)}
+                                        className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-600 focus:ring-2 focus:ring-indigo-300 outline-none"
+                                        rows={3}
+                                        placeholder="اكتب ملاحظاتك..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="h-full overflow-y-auto hide-scrollbar">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    {semesters.map((sem, i) => {
+                                        const semInfo = planSemesterWarnings[i] || { semHours: 0, warnings: [] };
+                                        const semLabel = sem.is_summer ? '☀️ صيفي' : '📅 اعتيادي';
+                                        return (
+                                            <div
+                                                key={`${sem.semester}-${i}`}
+                                                onDragOver={(e) => e.preventDefault()}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    if (!dragCourseMeta) return;
+                                                    moveCourseToSemester(dragCourseMeta.courseId, dragCourseMeta.fromIndex, i);
+                                                    setDragCourseMeta(null);
+                                                }}
+                                                className={`bg-white border rounded-[1.25rem] p-4 shadow-sm hover:shadow-lg transition-all flex flex-col ${sem.is_summer ? 'border-amber-200' : 'border-slate-200/80'}`}
+                                            >
+                                                <div className={`text-center py-2.5 rounded-xl mb-3.5 font-[800] text-[12px] border flex justify-between px-3.5 items-center ${sem.is_summer ? 'bg-gradient-to-l from-amber-50 to-orange-50 text-amber-800 border-amber-100/60' : 'bg-gradient-to-l from-indigo-50 to-slate-50 text-indigo-800 border-indigo-100/60'}`}>
+                                                    <span className="flex items-center gap-1.5">{semLabel} (فصل {sem.semester})</span>
+                                                    <span className={`bg-white px-2 py-0.5 rounded-md text-[10px] font-[800] border ${sem.is_summer ? 'text-amber-600 border-amber-100' : 'text-indigo-600 border-indigo-100'}`}>{semInfo.semHours} ساعة</span>
+                                                </div>
+
+                                                {semInfo.warnings.length > 0 && (
+                                                    <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2 text-[10px] font-bold text-amber-700 space-y-1">
+                                                        {semInfo.warnings.map((warning, idx) => (
+                                                            <div key={idx}>⚠️ {warning}</div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="space-y-2 flex-1">
+                                                    {(sem.courses || []).map((course) => (
+                                                        <div
+                                                            key={course.id}
+                                                            draggable
+                                                            onDragStart={() => setDragCourseMeta({ courseId: course.id, fromIndex: i })}
+                                                            className="text-[11px] bg-slate-50/80 border border-slate-100 hover:border-indigo-200 p-2.5 rounded-xl flex justify-between items-center font-bold text-slate-700 transition-colors group"
+                                                        >
+                                                            <span className="truncate flex-1 ml-2" title={course.name}>{course.name}</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    onClick={() => moveCourseToSemester(course.id, i, Math.max(0, i - 1))}
+                                                                    className="w-6 h-6 rounded-md bg-white text-slate-400 hover:text-indigo-600 border border-slate-200 text-[10px]"
+                                                                    title="نقل للأعلى"
+                                                                >
+                                                                    ↑
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => moveCourseToSemester(course.id, i, Math.min(semesters.length - 1, i + 1))}
+                                                                    className="w-6 h-6 rounded-md bg-white text-slate-400 hover:text-indigo-600 border border-slate-200 text-[10px]"
+                                                                    title="نقل للأسفل"
+                                                                >
+                                                                    ↓
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => removeCourseFromPlan(course.id)}
+                                                                    className="w-6 h-6 rounded-md bg-white text-slate-400 hover:text-rose-600 border border-slate-200 text-[10px]"
+                                                                    title="إزالة"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-[800] shrink-0 ${course.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : course.type === 'supporting' ? 'bg-fuchsia-50 text-fuchsia-600 border border-fuchsia-100' : course.type === 'elective' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-cyan-50 text-cyan-600 border border-cyan-100'}`}>{course.credit_hours}س</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div className="p-4 bg-white border-t border-slate-100 text-center shrink-0">
-                        <button onClick={() => setShow4YearPlan(false)} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-[800] shadow-xl hover:bg-indigo-600 active:scale-95 transition-all flex items-center gap-2 mx-auto text-sm">
-                            ✅ اعتماد والعودة للشجرة
-                        </button>
                     </div>
                 </div>
             </div>
@@ -2619,12 +2955,45 @@ export default function Tree({
                     @page { size: landscape; margin: 0; }
                     body { background: white !important; }
                     body * { visibility: hidden; }
-                    #print-container, #print-container * { visibility: visible !important; }
-                    #print-container { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: white; z-index: 999999; }
+                    #print-container, #print-container *,
+                    #plan-print-container, #plan-print-container * { visibility: visible !important; }
+                    #print-container, #plan-print-container { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: white; z-index: 999999; }
                     #print-container img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+                    #plan-print-container { padding: 24px; box-sizing: border-box; }
                     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 }
             ` }} />
+
+            {planPrintMode && planDraft && (
+                <div id="plan-print-container" dir="rtl" className="bg-white text-slate-900" style={{ position: 'fixed', left: '-9999px', top: '-9999px' }}>
+                    <div className="w-full max-w-[1100px] mx-auto">
+                        <div className="mb-6 border-b border-slate-200 pb-4">
+                            <h1 className="text-2xl font-black">خطة التخرج المعتمدة</h1>
+                            <p className="text-sm font-bold text-slate-500">{student_name} • {major_name || 'غير محدد'}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            {planDraft.semesters.map((sem, index) => (
+                                <div key={`${sem.semester}-${index}`} className="border border-slate-200 rounded-xl p-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-black text-sm">{sem.is_summer ? 'صيفي' : 'اعتيادي'} {sem.semester}</span>
+                                        <span className="text-xs font-bold text-slate-500">
+                                            {(sem.courses || []).reduce((sum, c) => sum + Number(c.credit_hours || 0), 0)} ساعة
+                                        </span>
+                                    </div>
+                                    <ul className="space-y-1 text-xs font-bold text-slate-700">
+                                        {(sem.courses || []).map((course) => (
+                                            <li key={course.id} className="flex justify-between border-b border-slate-100 pb-1">
+                                                <span>{course.name}</span>
+                                                <span className="text-slate-500">{course.credit_hours}س</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ═══ HEADER ═══ */}
             {!isFullScreen && (

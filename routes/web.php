@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\AdminManagerController;
 use App\Http\Controllers\Admin\AdminStudentController;
 use App\Http\Controllers\TreeController;
+use App\Http\Controllers\GraduationPlanController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\GradeController;
 use App\Http\Controllers\AiAdvisorController;
@@ -168,6 +169,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tree', [TreeController::class, 'index'])->name('tree.index');
     Route::post('/tree/toggle', [TreeController::class, 'toggle'])->name('tree.toggle');
     Route::post('/tree/retake', [TreeController::class, 'retakeCourse'])->name('tree.retake');
+    Route::post('/graduation-plan', [GraduationPlanController::class, 'store'])->name('graduation-plan.store');
 
     // Synchronize the simulation cart with the backend.
         // 🔥 Global heartbeat for all authenticated users (keep session alive)
