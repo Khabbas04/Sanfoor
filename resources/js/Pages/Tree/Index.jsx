@@ -499,6 +499,17 @@ export default function Tree({
         setTimeout(() => fitViewSmart(260), 140);
     }, [fitViewSmart, isMobile]);
 
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isFullScreen) {
+                setIsFullScreen(false);
+                setTimeout(() => fitViewSmart(260), 140);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isFullScreen, fitViewSmart]);
+
     const handleZoom = useCallback((delta) => {
         if (!flowInstance) return;
         const current = flowInstance.getZoom();
