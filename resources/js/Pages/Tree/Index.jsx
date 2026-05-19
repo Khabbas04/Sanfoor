@@ -27,6 +27,7 @@ const REQUIRED_TYPE_HOURS = {
     compulsory: 87,
     supporting: 6,
     university_req: 30,
+    elective: ELECTIVE_MAX_HOURS,
 };
 
 // Shared SweetAlert theme so all tree interactions feel visually consistent.
@@ -1745,16 +1746,13 @@ export default function Tree({
     };
 
     const totalCartCredits = useMemo(() => courses.filter(c => cartIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIds]);
-    const electiveCartHours = useMemo(
-        () => courses.filter(c => cartIds.includes(c.id) && c.type === 'elective').reduce((acc, c) => acc + (c.credit_hours || 0), 0),
-        [courses, cartIds]
-    );
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
     const typeProgress = useMemo(() => {
         const passedByType = {
             compulsory: 0,
             supporting: 0,
             university_req: 0,
+            elective: 0,
         };
 
         courses.forEach((course) => {
@@ -1770,6 +1768,12 @@ export default function Tree({
                 color: 'from-indigo-400 to-indigo-500',
                 passed: passedByType.compulsory,
                 target: REQUIRED_TYPE_HOURS.compulsory,
+            },
+            elective: {
+                label: 'اختياري',
+                color: 'from-amber-400 to-amber-500',
+                passed: passedByType.elective,
+                target: REQUIRED_TYPE_HOURS.elective,
             },
             supporting: {
                 label: 'مساندة',
@@ -2833,15 +2837,6 @@ export default function Tree({
                                         <div className="relative z-10">
                                             <div className="flex justify-between items-end mb-3"><p className="font-[800] text-base">الجدول المقترح</p><div className="text-right"><span className={`text-3xl font-[900] leading-none ${totalCartCredits > 18 ? 'text-rose-400' : 'text-amber-400'}`}>{totalCartCredits}</span><span className="text-slate-400 text-[10px] font-bold mr-1">/ 18 س</span></div></div>
                                             <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${totalCartCredits > 18 ? 'bg-rose-500' : 'bg-gradient-to-l from-indigo-400 to-indigo-500'}`} style={{ width: `${Math.min((totalCartCredits / 18) * 100, 100)}%` }} /></div>
-                                            <div className="mt-3 rounded-xl bg-white/5 border border-white/10 p-3">
-                                                <div className="flex justify-between text-[10px] font-bold text-white/70">
-                                                    <span>ساعات اختياري</span>
-                                                    <span>{electiveCartHours} / {ELECTIVE_MAX_HOURS} س</span>
-                                                </div>
-                                                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mt-2">
-                                                    <div className={`h-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${electiveCartHours > ELECTIVE_MAX_HOURS ? 'bg-rose-500' : 'bg-amber-400'}`} style={{ width: `${Math.min((electiveCartHours / ELECTIVE_MAX_HOURS) * 100, 100)}%` }} />
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
 
