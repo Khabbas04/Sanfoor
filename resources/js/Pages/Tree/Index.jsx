@@ -2491,7 +2491,6 @@ export default function Tree({
                     </div>
                 </div>
             )}
-            )}
 
             <div className="flex-1 flex w-full h-full relative overflow-hidden">
                 {show4YearPlan && render4YearPlan()}
@@ -2845,7 +2844,7 @@ export default function Tree({
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'top-3 right-3' : 'bottom-3 left-3'} z-30 px-3 py-2 rounded-xl text-[11px] font-[900] shadow-lg border border-slate-200/70 ${isFullScreen ? 'bg-slate-900 text-white' : 'bg-white/95 text-slate-700'} backdrop-blur-md active:scale-95`}
+                            className={`absolute ${isFullScreen ? 'top-4 right-4 sm:top-5 sm:right-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : 'bottom-3 left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg'} z-[100] px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
                         </button>
