@@ -2483,65 +2483,14 @@ export default function Tree({
                         </div>
                     </div>
 
-                    {/* Legend Dropdown */}
+                    {/* Legend Button */}
                     <div className="shrink-0 relative w-full md:w-auto md:mr-3" dir="rtl">
-                        <button onClick={() => setLegendOpen(!legendOpen)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border ${legendOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
-                            🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
+                        <button onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
+                            🌳 دليل الشجرة
                         </button>
-                        {legendOpen && (
-                            <div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 mx-auto md:mx-0 md:right-auto md:left-0 w-[calc(100vw-2rem)] md:w-96 max-w-sm bg-white/95 backdrop-blur-xl p-4 sm:p-5 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-3 z-50 origin-top overflow-y-auto max-h-[80vh] hide-scrollbar" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                
-                                <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-200 text-right space-y-1.5">
-                                    <p className="text-[11px] font-[900] text-slate-800 flex items-center justify-end gap-1.5">🌳 كيف تعمل الشجرة؟</p>
-                                    <p className="text-[9px] font-bold text-slate-500 leading-relaxed">
-                                        الشجرة الأكاديمية تعرض خطتك الدراسية. يمكنك النقر على أي مادة لتمييزها كـ "منجزة". الشجرة تحسب الساعات وتفتح لك المواد التي تعتمد على مواد أخرى قمت باجتيازها تلقائياً، وتغلق المواد التي لم تستوفِ متطلباتها.
-                                    </p>
-                                </div>
-
-                                <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 text-right space-y-1.5">
-                                    <p className="text-[11px] font-[900] text-rose-800 flex items-center justify-end gap-1.5">🔄 نظام الإعادة (للمواد المرسوبة)</p>
-                                    <p className="text-[9px] font-bold text-rose-600/80 leading-relaxed">
-                                        إذا رسبت في مادة (أقل من 50%) أو حصلت على صفر جامعي (أقل من 35%)، ستظهر المادة باللون الأحمر (حالة "راسب"). من تفاصيل المادة، ستتمكن من الضغط على زر <b>"إعادة المادة"</b> لفتح محاولة جديدة وإعادة دراستها ليتم حسابها كإعادة لرفع المعدل.
-                                    </p>
-                                </div>
-
-                                <div className="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-3 text-right">
-                                    <p className="text-[11px] font-[900] text-violet-700 mb-1 flex items-center justify-end gap-1.5">⚖️ المقارنة الاحترافية</p>
-                                    <p className="text-[9px] font-bold text-slate-600 leading-relaxed">
-                                        افتح أي مادة من الشجرة ثم اضغط زر <b>"مقارنة المادة"</b>، بعدها اختر مادة أخرى من الشجرة. ستظهر لك نافذة تقارن بين المادتين من ناحية الصعوبة، التأثير (كم مادة تفتح)، والأولوية، لمساعدتك في اختيار المادة الأنسب للتسجيل.
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-2 text-right mt-1">حالة المادة</p>
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-1">
-                                        {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'راسب (إعادة)' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
-                                            <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-700">{l.label}</span><span className={`w-3.5 h-3.5 rounded-[4px] ${l.color} shadow-sm border border-black/5`} /></div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-2 text-right mt-1">الرموز والمسار</p>
-                                    <div className="flex flex-col gap-2.5 pb-1">
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">إجباري (مستطيل)</span><div className="w-5 h-3.5 bg-slate-200 rounded-[4px] border border-black/5"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">مساندة (بيضاوي)</span><div className="w-5 h-3.5 bg-slate-200 rounded-[10px] border border-black/5"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">اختياري (مائل)</span><div className="w-5 h-3.5 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px] border border-black/5"></div></div>
-                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">جامعة (حاد)</span><div className="w-5 h-3.5 bg-slate-200 rounded-[2px] border border-black/5"></div></div>
-                                        <div className="flex items-start justify-end gap-2.5 mt-1">
-                                            <div className="text-right flex-1">
-                                                <p className="text-[10px] font-bold text-slate-700">المسار الحرج (شريط أحمر أعلى البطاقة)</p>
-                                                <p className="text-[9px] font-bold text-slate-500 leading-snug mt-0.5">مواد تفتح سلسلة طويلة من المواد، تأخيرها قد يؤخر تخرجك.</p>
-                                            </div>
-                                            <span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm mt-1.5 shrink-0"></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                        )}
                     </div>
                 </div>
+            )}
             )}
 
             <div className="flex-1 flex w-full h-full relative overflow-hidden">
@@ -2871,172 +2820,6 @@ export default function Tree({
                             />
                         </ReactFlow>
 
-                        {/* Floating toast while picking second course */}
-                        {compareMode && compareFirstCourse && !compareCourse && (
-                            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-violet-600/95 backdrop-blur-xl text-white px-5 py-3 rounded-2xl shadow-2xl shadow-violet-500/30 border border-violet-400/30 flex items-center gap-3" dir="rtl" style={{ animation: 'sn-scale 0.25s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                <span className="text-lg">⚖️</span>
-                                <div>
-                                    <p className="text-[12px] font-[900]">اختر المادة الثانية من الشجرة</p>
-                                    <p className="text-[10px] font-bold text-violet-200/70">المادة الأولى: {compareFirstCourse.name}</p>
-                                </div>
-                                <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-xs transition-all mr-1">✕</button>
-                            </div>
-                        )}
-
-                        {compareMode && compareFirstCourse && compareCourse && (
-                            <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 md:p-6" dir="rtl">
-                                <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} />
-                                <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900 shadow-[0_30px_100px_rgba(15,23,42,0.6)]" style={{ animation: 'sn-scale 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                    <div className="bg-gradient-to-l from-indigo-950/80 to-violet-950/80 px-4 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-400/20 flex items-center justify-center text-lg shadow-inner">⚖️</div>
-                                            <div>
-                                                <h3 className="text-white font-[900] text-[15px]">مقارنة احترافية</h3>
-                                                <p className="text-[10px] text-white/50 font-bold mt-0.5 tracking-wide">{compareFirstCourse.code} vs {compareCourse.code}</p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setCompareMode(false);
-                                                setCompareFirstCourse(null);
-                                                setCompareCourse(null);
-                                            }}
-                                            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-rose-500/20 text-white/50 hover:text-rose-300 transition-all flex items-center justify-center text-sm shrink-0 border border-white/5"
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-
-                                    <div className="overflow-y-auto flex-1 p-3 sm:p-5 md:p-6 hide-scrollbar bg-slate-950/50 space-y-4">
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                            {[
-                                                { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
-                                                { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
-                                            ].map((entry, index) => {
-
-                                                const { course, label, tone } = entry;
-                                                const courseDifficulty = Number(course.difficulty_level || 3);
-                                                const courseImpact = getTotalImpact(course.id);
-                                                const coursePriority = getCoursePriority(course);
-                                                const difficultyLabel = courseDifficulty >= 4 ? 'مكثّف' : courseDifficulty === 3 ? 'متوازن' : 'خفيف';
-                                                const statusLabel = getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'available' ? 'متاحة' : 'مقفلة';
-
-                                                return (
-                                                    <div
-                                                        key={course.id}
-                                                        className={`text-right rounded-2xl border p-4 sm:p-5 ${tone === 'indigo' ? 'bg-indigo-500/8 border-indigo-400/20' : 'bg-violet-500/8 border-violet-400/20'}`}
-                                                    >
-                                                        <div className="flex items-start justify-between gap-3 mb-4">
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className={`text-[9px] font-[900] uppercase tracking-wider mb-2 ${tone === 'indigo' ? 'text-indigo-300' : 'text-violet-300'}`}>{label}</p>
-                                                                <p className="text-[16px] sm:text-[18px] font-[900] text-white leading-snug">{course.name}</p>
-                                                                <p className="mt-1 text-[10px] text-white/45 font-bold">{course.code} • {course.credit_hours} ساعات • {course.type === 'compulsory' ? 'إجباري' : course.type === 'elective' ? 'اختياري' : course.type === 'supporting' ? 'مساندة' : 'جامعة'}</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                                                            <span className={`text-[9px] font-[800] px-2 py-1 rounded-full border ${getStatus(course) === 'passed' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20' : getStatus(course) === 'available' ? 'bg-sky-500/15 text-sky-300 border-sky-400/20' : 'bg-rose-500/15 text-rose-300 border-rose-400/20'}`}>{statusLabel}</span>
-                                                            {getCourseDepth(course.id) >= 2 && (
-                                                                <span className="text-[9px] font-[800] px-2 py-1 rounded-full border bg-rose-500/10 text-rose-200 border-rose-400/20">في المسار الحرج</span>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="grid grid-cols-3 gap-2.5">
-                                                            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">الصعوبة</p>
-                                                                <p className="text-[18px] font-[900] text-white leading-none">{courseDifficulty}</p>
-                                                                <p className={`text-[9px] font-[800] mt-1 ${courseDifficulty >= 4 ? 'text-rose-200' : courseDifficulty === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>{difficultyLabel}</p>
-                                                            </div>
-                                                            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">التأثير</p>
-                                                                <p className="text-[18px] font-[900] text-white leading-none">{courseImpact}</p>
-                                                                <p className="text-[9px] font-[800] mt-1 text-white/45">مادة تتأثر</p>
-                                                            </div>
-                                                            <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                                <p className="text-[8px] font-[900] text-white/45 mb-0.5">الأولوية</p>
-                                                                <p className="text-[18px] font-[900] text-white leading-none">{coursePriority}%</p>
-                                                                <p className="text-[9px] font-[800] mt-1 text-white/45">ترتيبك</p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                            <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(5, coursePriority))}%` }} />
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-
-                                        </div>
-
-                                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3">
-                                            <h4 className="text-[12px] font-[900] text-white/60 flex items-center gap-2">📊 الخلاصة</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                                                {(() => {
-                                                    const firstDifficulty = Number(compareFirstCourse.difficulty_level || 3);
-                                                    const secondDifficulty = Number(compareCourse.difficulty_level || 3);
-                                                    const firstImpact = getTotalImpact(compareFirstCourse.id);
-                                                    const secondImpact = getTotalImpact(compareCourse.id);
-                                                    const firstPriority = getCoursePriority(compareFirstCourse);
-                                                    const secondPriority = getCoursePriority(compareCourse);
-
-                                                    const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : compareFirstCourse;
-                                                    const moreImpactCourse = secondImpact > firstImpact ? compareCourse : compareFirstCourse;
-                                                    const higherPriorityCourse = secondPriority > firstPriority ? compareCourse : compareFirstCourse;
-                                                    const difficultyGap = Math.abs(secondDifficulty - firstDifficulty);
-                                                    const impactGap = Math.abs(secondImpact - firstImpact);
-                                                    const priorityGap = Math.abs(secondPriority - firstPriority);
-
-
-                                                    return (
-                                                        <>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                                                <div className="rounded-xl bg-rose-500/8 border border-rose-400/15 p-3.5">
-                                                                    <p className="text-[9px] font-[900] text-rose-300/70 mb-1">🔥 الأثقل</p>
-                                                                    <p className="text-[13px] font-[900] text-white truncate">{harderCourse.name}</p>
-                                                                    <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {difficultyGap} {difficultyGap === 1 ? 'نقطة' : 'نقاط'}</p>
-                                                                </div>
-                                                                <div className="rounded-xl bg-violet-500/8 border border-violet-400/15 p-3.5">
-                                                                    <p className="text-[9px] font-[900] text-violet-300/70 mb-1">🔗 الأكثر تأثيراً</p>
-                                                                    <p className="text-[13px] font-[900] text-white truncate">{moreImpactCourse.name}</p>
-                                                                    <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {impactGap} {impactGap === 1 ? 'مادة' : 'مواد'}</p>
-                                                                </div>
-                                                                <div className="rounded-xl bg-indigo-500/8 border border-indigo-400/15 p-3.5">
-                                                                    <p className="text-[9px] font-[900] text-indigo-300/70 mb-1">⭐ الأعلى أولوية</p>
-                                                                    <p className="text-[13px] font-[900] text-white truncate">{higherPriorityCourse.name}</p>
-                                                                    <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {priorityGap}%</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="rounded-xl bg-emerald-500/8 border border-emerald-400/15 p-3.5 flex items-start gap-3">
-                                                                <span className="text-lg mt-0.5 shrink-0">💡</span>
-                                                                <div>
-                                                                    <p className="text-[12px] font-[900] text-emerald-200">التوصية</p>
-                                                                    <p className="text-[11px] font-bold text-emerald-100/70 leading-relaxed mt-0.5">
-                                                                        {firstPriority > secondPriority
-                                                                            ? `ابدأ بـ "${compareFirstCourse.name}" لأن أولويتها أعلى (${firstPriority}%) وتأثيرها على مسارك أكبر.`
-                                                                            : secondPriority > firstPriority
-                                                                                ? `ابدأ بـ "${compareCourse.name}" لأن أولويتها أعلى (${secondPriority}%) وتأثيرها على مسارك أكبر.`
-                                                                                : `المادتان متساويتان بالأولوية (${firstPriority}%). اختر حسب اهتمامك أو جدولك.`
-                                                                        }
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    );
-                                                })()}
-                                            </div>
-
-                                            {/* Action buttons */}
-                                            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                                                <button onClick={() => { setSelectedCourse(compareFirstCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-indigo-500/15 text-indigo-300 border border-indigo-400/20 hover:bg-indigo-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareFirstCourse.code}</button>
-                                                <button onClick={() => { setSelectedCourse(compareCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-300 border border-violet-400/20 hover:bg-violet-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareCourse.code}</button>
-                                                <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-3 rounded-xl text-[11px] font-[800] bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all active:scale-95">إغلاق</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
                         {isFullScreen && selectedCourse && (
                             <div
@@ -3082,6 +2865,248 @@ export default function Tree({
                     </div>
                 </div>
             </div>
+
+            {/* --- GLOBALLY MOVED MODALS --- */}
+            {/* Tree Guide Modal */}
+            {legendOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" dir="rtl">
+                    <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setLegendOpen(false)} />
+                    <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl" style={{ animation: 'sn-scale 0.25s cubic-bezier(0.16,1,0.3,1) both' }}>
+                        
+                        <div className="bg-slate-50 px-5 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-xl">🌳</span>
+                                <h3 className="text-slate-800 font-[900] text-[15px]">دليل الشجرة الأكاديمية</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setLegendOpen(false)}
+                                className="w-8 h-8 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-500 hover:text-slate-700 transition-all flex items-center justify-center text-sm shrink-0"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 p-4 sm:p-6 hide-scrollbar space-y-4">
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-right space-y-2">
+                                <p className="text-[13px] font-[900] text-slate-800 flex items-center justify-end gap-1.5">🌳 كيف تعمل الشجرة؟</p>
+                                <p className="text-[11px] font-bold text-slate-500 leading-relaxed">
+                                    الشجرة الأكاديمية تعرض خطتك الدراسية. يمكنك النقر على أي مادة لتمييزها كـ "منجزة". الشجرة تحسب الساعات وتفتح لك المواد التي تعتمد على مواد أخرى قمت باجتيازها تلقائياً، وتغلق المواد التي لم تستوفِ متطلباتها.
+                                </p>
+                            </div>
+
+                            <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 text-right space-y-2">
+                                <p className="text-[13px] font-[900] text-rose-800 flex items-center justify-end gap-1.5">🔄 نظام الإعادة (للمواد المرسوبة)</p>
+                                <p className="text-[11px] font-bold text-rose-600/90 leading-relaxed">
+                                    إذا رسبت في مادة (أقل من 50%) أو حصلت على صفر جامعي (أقل من 35%)، ستظهر المادة باللون الأحمر (حالة "راسب"). من تفاصيل المادة، ستتمكن من الضغط على زر <b>"إعادة المادة"</b> لفتح محاولة جديدة وإعادة دراستها ليتم حسابها كإعادة لرفع المعدل.
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border border-violet-500/20 bg-violet-50 p-4 text-right">
+                                <p className="text-[13px] font-[900] text-violet-700 mb-2 flex items-center justify-end gap-1.5">⚖️ المقارنة الاحترافية</p>
+                                <p className="text-[11px] font-bold text-slate-600 leading-relaxed">
+                                    افتح أي مادة من الشجرة ثم اضغط زر <b>"مقارنة المادة"</b>، بعدها اختر مادة أخرى من الشجرة. ستظهر لك نافذة تقارن بين المادتين من ناحية الصعوبة، التأثير (كم مادة تفتح)، والأولوية، لمساعدتك في اختيار المادة الأنسب للتسجيل.
+                                </p>
+                            </div>
+
+                            <div className="pt-2">
+                                <p className="text-[11px] font-[900] text-slate-400 uppercase tracking-wider mb-3 text-right">حالة المادة</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 mb-2">
+                                    {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'راسب (إعادة)' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                        <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-700">{l.label}</span><span className={`w-4 h-4 rounded-[4px] ${l.color} shadow-sm border border-black/5`} /></div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <p className="text-[11px] font-[900] text-slate-400 uppercase tracking-wider mb-3 text-right">الرموز والمسار</p>
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">إجباري (مستطيل)</span><div className="w-6 h-4 bg-slate-200 rounded-[4px] border border-black/5"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">مساندة (بيضاوي)</span><div className="w-6 h-4 bg-slate-200 rounded-[10px] border border-black/5"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">اختياري (مائل)</span><div className="w-6 h-4 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px] border border-black/5"></div></div>
+                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">جامعة (حاد)</span><div className="w-6 h-4 bg-slate-200 rounded-[2px] border border-black/5"></div></div>
+                                    <div className="flex items-start justify-end gap-3 mt-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <div className="text-right flex-1">
+                                            <p className="text-[11px] font-bold text-slate-800">المسار الحرج (شريط أحمر أعلى البطاقة)</p>
+                                            <p className="text-[10px] font-bold text-slate-500 leading-snug mt-1">مواد تفتح سلسلة طويلة من المواد، تأخيرها قد يؤخر تخرجك.</p>
+                                        </div>
+                                        <span className="w-6 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm mt-1.5 shrink-0"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* Compare Toast */}
+            {compareMode && compareFirstCourse && !compareCourse && (
+                <div className="fixed top-20 sm:top-24 left-1/2 -translate-x-1/2 z-[100] bg-violet-600/95 backdrop-blur-xl text-white px-5 py-3 rounded-2xl shadow-2xl shadow-violet-500/30 border border-violet-400/30 flex items-center gap-3" dir="rtl" style={{ animation: 'sn-scale 0.25s cubic-bezier(0.16,1,0.3,1) both' }}>
+                    <span className="text-lg">⚖️</span>
+                    <div>
+                        <p className="text-[12px] font-[900]">اختر المادة الثانية من الشجرة</p>
+                        <p className="text-[10px] font-bold text-violet-200/70">المادة الأولى: {compareFirstCourse.name}</p>
+                    </div>
+                    <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-xs transition-all mr-1">✕</button>
+                </div>
+            )}
+
+            {/* Compare Modal */}
+            {compareMode && compareFirstCourse && compareCourse && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 md:p-6" dir="rtl">
+                    <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} />
+                    <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900 shadow-[0_30px_100px_rgba(15,23,42,0.6)]" style={{ animation: 'sn-scale 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
+                        <div className="bg-gradient-to-l from-indigo-950/80 to-violet-950/80 px-4 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-400/20 flex items-center justify-center text-lg shadow-inner">⚖️</div>
+                                <div>
+                                    <h3 className="text-white font-[900] text-[15px]">مقارنة احترافية</h3>
+                                    <p className="text-[10px] text-white/50 font-bold mt-0.5 tracking-wide">{compareFirstCourse.code} vs {compareCourse.code}</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCompareMode(false);
+                                    setCompareFirstCourse(null);
+                                    setCompareCourse(null);
+                                }}
+                                className="w-9 h-9 rounded-xl bg-white/5 hover:bg-rose-500/20 text-white/50 hover:text-rose-300 transition-all flex items-center justify-center text-sm shrink-0 border border-white/5"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="overflow-y-auto flex-1 p-3 sm:p-5 md:p-6 hide-scrollbar bg-slate-950/50 space-y-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {[
+                                    { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
+                                    { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
+                                ].map((entry, index) => {
+
+                                    const { course, label, tone } = entry;
+                                    const courseDifficulty = Number(course.difficulty_level || 3);
+                                    const courseImpact = getTotalImpact(course.id);
+                                    const coursePriority = getCoursePriority(course);
+                                    const difficultyLabel = courseDifficulty >= 4 ? 'مكثّف' : courseDifficulty === 3 ? 'متوازن' : 'خفيف';
+                                    const statusLabel = getStatus(course) === 'passed' ? 'منجزة' : getStatus(course) === 'available' ? 'متاحة' : 'مقفلة';
+
+                                    return (
+                                        <div
+                                            key={course.id}
+                                            className={`text-right rounded-2xl border p-4 sm:p-5 ${tone === 'indigo' ? 'bg-indigo-500/8 border-indigo-400/20' : 'bg-violet-500/8 border-violet-400/20'}`}
+                                        >
+                                            <div className="flex items-start justify-between gap-3 mb-4">
+                                                <div className="min-w-0 flex-1">
+                                                    <p className={`text-[9px] font-[900] uppercase tracking-wider mb-2 ${tone === 'indigo' ? 'text-indigo-300' : 'text-violet-300'}`}>{label}</p>
+                                                    <p className="text-[16px] sm:text-[18px] font-[900] text-white leading-snug">{course.name}</p>
+                                                    <p className="mt-1 text-[10px] text-white/45 font-bold">{course.code} • {course.credit_hours} ساعات • {course.type === 'compulsory' ? 'إجباري' : course.type === 'elective' ? 'اختياري' : course.type === 'supporting' ? 'مساندة' : 'جامعة'}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                                                <span className={`text-[9px] font-[800] px-2 py-1 rounded-full border ${getStatus(course) === 'passed' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20' : getStatus(course) === 'available' ? 'bg-sky-500/15 text-sky-300 border-sky-400/20' : 'bg-rose-500/15 text-rose-300 border-rose-400/20'}`}>{statusLabel}</span>
+                                                {getCourseDepth(course.id) >= 2 && (
+                                                    <span className="text-[9px] font-[800] px-2 py-1 rounded-full border bg-rose-500/10 text-rose-200 border-rose-400/20">في المسار الحرج</span>
+                                                )}
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2.5">
+                                                <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
+                                                    <p className="text-[8px] font-[900] text-white/45 mb-0.5">الصعوبة</p>
+                                                    <p className="text-[18px] font-[900] text-white leading-none">{courseDifficulty}</p>
+                                                    <p className={`text-[9px] font-[800] mt-1 ${courseDifficulty >= 4 ? 'text-rose-200' : courseDifficulty === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>{difficultyLabel}</p>
+                                                </div>
+                                                <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
+                                                    <p className="text-[8px] font-[900] text-white/45 mb-0.5">التأثير</p>
+                                                    <p className="text-[18px] font-[900] text-white leading-none">{courseImpact}</p>
+                                                    <p className="text-[9px] font-[800] mt-1 text-white/45">مادة تتأثر</p>
+                                                </div>
+                                                <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
+                                                    <p className="text-[8px] font-[900] text-white/45 mb-0.5">الأولوية</p>
+                                                    <p className="text-[18px] font-[900] text-white leading-none">{coursePriority}%</p>
+                                                    <p className="text-[9px] font-[800] mt-1 text-white/45">ترتيبك</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(5, coursePriority))}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                            </div>
+
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3 mt-4">
+                                <h4 className="text-[12px] font-[900] text-white/60 flex items-center gap-2">📊 الخلاصة</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                    {(() => {
+                                        const firstDifficulty = Number(compareFirstCourse.difficulty_level || 3);
+                                        const secondDifficulty = Number(compareCourse.difficulty_level || 3);
+                                        const firstImpact = getTotalImpact(compareFirstCourse.id);
+                                        const secondImpact = getTotalImpact(compareCourse.id);
+                                        const firstPriority = getCoursePriority(compareFirstCourse);
+                                        const secondPriority = getCoursePriority(compareCourse);
+
+                                        const harderCourse = secondDifficulty > firstDifficulty ? compareCourse : compareFirstCourse;
+                                        const moreImpactCourse = secondImpact > firstImpact ? compareCourse : compareFirstCourse;
+                                        const higherPriorityCourse = secondPriority > firstPriority ? compareCourse : compareFirstCourse;
+                                        const difficultyGap = Math.abs(secondDifficulty - firstDifficulty);
+                                        const impactGap = Math.abs(secondImpact - firstImpact);
+                                        const priorityGap = Math.abs(secondPriority - firstPriority);
+
+
+                                        return (
+                                            <>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                    <div className="rounded-xl bg-rose-500/8 border border-rose-400/15 p-3.5">
+                                                        <p className="text-[9px] font-[900] text-rose-300/70 mb-1">🔥 الأثقل</p>
+                                                        <p className="text-[13px] font-[900] text-white truncate">{harderCourse.name}</p>
+                                                        <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {difficultyGap} {difficultyGap === 1 ? 'نقطة' : 'نقاط'}</p>
+                                                    </div>
+                                                    <div className="rounded-xl bg-violet-500/8 border border-violet-400/15 p-3.5">
+                                                        <p className="text-[9px] font-[900] text-violet-300/70 mb-1">🔗 الأكثر تأثيراً</p>
+                                                        <p className="text-[13px] font-[900] text-white truncate">{moreImpactCourse.name}</p>
+                                                        <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {impactGap} {impactGap === 1 ? 'مادة' : 'مواد'}</p>
+                                                    </div>
+                                                    <div className="rounded-xl bg-indigo-500/8 border border-indigo-400/15 p-3.5">
+                                                        <p className="text-[9px] font-[900] text-indigo-300/70 mb-1">⭐ الأعلى أولوية</p>
+                                                        <p className="text-[13px] font-[900] text-white truncate">{higherPriorityCourse.name}</p>
+                                                        <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {priorityGap}%</p>
+                                                    </div>
+                                                </div>
+                                                <div className="rounded-xl bg-emerald-500/8 border border-emerald-400/15 p-3.5 flex items-start gap-3">
+                                                    <span className="text-lg mt-0.5 shrink-0">💡</span>
+                                                    <div>
+                                                        <p className="text-[12px] font-[900] text-emerald-200">التوصية</p>
+                                                        <p className="text-[11px] font-bold text-emerald-100/70 leading-relaxed mt-0.5">
+                                                            {firstPriority > secondPriority
+                                                                ? `ابدأ بـ "${compareFirstCourse.name}" لأن أولويتها أعلى (${firstPriority}%) وتأثيرها على مسارك أكبر.`
+                                                                : secondPriority > firstPriority
+                                                                    ? `ابدأ بـ "${compareCourse.name}" لأن أولويتها أعلى (${secondPriority}%) وتأثيرها على مسارك أكبر.`
+                                                                    : `المادتان متساويتان بالأولوية (${firstPriority}%). اختر حسب اهتمامك أو جدولك.`
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Action buttons */}
+                                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                                    <button onClick={() => { setSelectedCourse(compareFirstCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-indigo-500/15 text-indigo-300 border border-indigo-400/20 hover:bg-indigo-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareFirstCourse.code}</button>
+                                    <button onClick={() => { setSelectedCourse(compareCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-300 border border-violet-400/20 hover:bg-violet-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareCourse.code}</button>
+                                    <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-3 rounded-xl text-[11px] font-[800] bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all active:scale-95">إغلاق</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
