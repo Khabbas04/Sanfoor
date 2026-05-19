@@ -100,7 +100,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'course_user',
             'user_id',
             'course_id'
-        )->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')->withTimestamps();
+        )->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term', 'is_retake', 'attempt_number')->withTimestamps();
     }
 
     /**
@@ -159,13 +159,29 @@ class User extends Authenticatable implements MustVerifyEmail
             return ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
         }
 
+        // Group by course_id and take the best grade per course.
+        // This ensures retaken courses only count once with the highest grade.
+        $bestGrades = [];
+        foreach ($coursesWithGrades as $course) {
+            $courseId = $course->id;
+            $rawGrade = (float) $course->pivot->grade;
+            // أقل من 35 = صفر جامعي
+            $effectiveGrade = $rawGrade < 35 ? 0 : $rawGrade;
+
+            if (!isset($bestGrades[$courseId]) || $effectiveGrade > $bestGrades[$courseId]['grade']) {
+                $bestGrades[$courseId] = [
+                    'grade' => $effectiveGrade,
+                    'credit_hours' => $course->credit_hours,
+                ];
+            }
+        }
+
         $totalCredits = 0;
         $weightedSum = 0;
 
-        foreach ($coursesWithGrades as $course) {
-            $grade = (float) $course->pivot->grade;
-            $totalCredits += $course->credit_hours;
-            $weightedSum += ($grade * $course->credit_hours);
+        foreach ($bestGrades as $entry) {
+            $totalCredits += $entry['credit_hours'];
+            $weightedSum += ($entry['grade'] * $entry['credit_hours']);
         }
 
         if ($totalCredits == 0) {

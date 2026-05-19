@@ -25,6 +25,8 @@ class PassedCourseResource extends JsonResource
                 'studied_semester' => $this->pivot?->studied_semester !== null ? (int) $this->pivot->studied_semester : null,
                 'studied_year' => $this->pivot?->studied_year !== null ? (int) $this->pivot->studied_year : null,
                 'studied_term' => $this->pivot?->studied_term !== null ? (int) $this->pivot->studied_term : null,
+                'is_retake' => (bool) ($this->pivot?->is_retake ?? false),
+                'attempt_number' => (int) ($this->pivot?->attempt_number ?? 1),
             ],
         ];
     }

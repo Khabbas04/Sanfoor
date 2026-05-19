@@ -780,12 +780,30 @@ export default function Tree({
 
     const getStatus = useCallback((course) => {
         if (!course) return 'locked';
-        if (passedIds.includes(course.id)) return 'passed';
+        if (passedIds.includes(course.id)) {
+            // Check if the latest attempt for this course is a failure (grade < 50)
+            const passedCourse = Array.isArray(localPassedCourses)
+                ? localPassedCourses.filter(c => c.id === course.id)
+                : [];
+            if (passedCourse.length > 0) {
+                // Get the latest attempt (highest attempt_number)
+                const latestAttempt = passedCourse.reduce((latest, c) => {
+                    const attemptNum = c?.pivot?.attempt_number || 1;
+                    const latestNum = latest?.pivot?.attempt_number || 1;
+                    return attemptNum > latestNum ? c : latest;
+                }, passedCourse[0]);
+                const grade = latestAttempt?.pivot?.grade;
+                if (grade !== null && grade !== undefined && parseFloat(grade) < 50) {
+                    return 'failed';
+                }
+            }
+            return 'passed';
+        }
         if (cartIds.includes(course.id)) return 'cart';
         if (isLockedByHours(course)) return 'locked';
         if (!course.prerequisites || course.prerequisites.length === 0) return 'available';
         return course.prerequisites.every(p => passedIds.includes(p.id)) ? 'available' : 'locked';
-    }, [passedIds, cartIds, isLockedByHours]);
+    }, [passedIds, cartIds, isLockedByHours, localPassedCourses]);
 
     const getUnlocksDetailed = useCallback((courseId) => {
         return courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
@@ -1048,6 +1066,7 @@ export default function Tree({
 
             const themes = {
                 passed: { bg: 'background:linear-gradient(135deg,#059669,#10b981)', border: 'border:1.5px solid rgba(16,185,129,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'منجز', statusIcon: '✅' },
+                failed: { bg: 'background:linear-gradient(135deg,#dc2626,#ef4444)', border: 'border:1.5px solid rgba(239,68,68,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'راسب', statusIcon: '❌' },
                 cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'تجريبي', statusIcon: '🛒' },
                 available: { bg: 'background:linear-gradient(135deg,#4338ca,#6366f1)', border: 'border:1.5px solid rgba(99,102,241,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'متاح', statusIcon: '🔓' },
                 locked: { bg: 'background:#f8fafc', border: 'border:1.5px solid #cbd5e1', badgeBg: 'rgba(148,163,184,0.15)', textColor: '#64748b', statusLabel: 'مغلق', statusIcon: '🔒' },
@@ -1119,6 +1138,7 @@ export default function Tree({
                         </div>
                     </div>
                     ${isCriticalPath ? `<div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ef4444 0%,#fb7185 50%,#f43f5e 100%);box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset,0 2px 10px rgba(239,68,68,0.25);z-index:20;pointer-events:none;" title="هذه مادة على المسار الحرج"></div>` : ''}
+                    ${status === 'failed' ? `<div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#dc2626 0%,#ef4444 50%,#f87171 100%);z-index:20;pointer-events:none;"></div>` : ''}
                 </div>
             `;
 
@@ -1387,6 +1407,62 @@ export default function Tree({
                 icon: 'error',
                 title: 'خطأ!',
                 text: error.response?.data?.msg || error.response?.data?.message || 'حدث خطأ بالاتصال',
+                ...swalTheme
+            });
+        }
+    };
+
+    // 🔄 إعادة المادة المرسوب فيها
+    const retakeCourse = async (courseId) => {
+        const course = courses.find(c => c.id === courseId);
+        if (!course) return;
+
+        const result = await Swal.fire({
+            icon: 'question',
+            title: '🔄 إعادة المادة',
+            html: `هل تريد إعادة مادة <b>${course.name}</b>؟<br/><br/><span style="font-size:12px;color:#64748b;">سيتم إضافة محاولة جديدة وستبقى المادة منجزة في الشجرة.</span>`,
+            showCancelButton: true,
+            confirmButtonText: 'نعم، أعد المادة',
+            cancelButtonText: 'تراجع',
+            ...swalTheme
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await axios.post(route('tree.retake'), {
+                course_id: courseId,
+                studied_year: targetYear,
+                studied_term: targetTerm,
+            });
+
+            if (response.data.status === 'retake_added') {
+                // Add new retake record to local state
+                setLocalPassedCourses(prev => [...prev, {
+                    ...course,
+                    pivot: {
+                        grade: null,
+                        studied_semester: targetSemester,
+                        studied_year: targetYear,
+                        studied_term: targetTerm,
+                        is_retake: true,
+                        attempt_number: response.data.attempt_number,
+                    }
+                }]);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تمت إضافة الإعادة!',
+                    text: response.data.msg,
+                    ...swalTheme
+                });
+                setActiveTab('semesters');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ!',
+                text: error.response?.data?.msg || 'حدث خطأ أثناء إعادة المادة.',
                 ...swalTheme
             });
         }
@@ -1662,6 +1738,8 @@ export default function Tree({
         if (grade === null || grade === undefined) return 'bg-slate-100 text-slate-500 border-slate-200';
         const val = parseFloat(grade);
         if (isNaN(val)) return 'bg-slate-100 text-slate-500 border-slate-200';
+        if (val < 35) return 'bg-red-200 text-red-900 border-red-300'; // صفر جامعي
+        if (val < 50) return 'bg-rose-100 text-rose-700 border-rose-200'; // رسوب
         if (val >= 84) return 'bg-emerald-100 text-emerald-700 border-emerald-200';
         if (val >= 76) return 'bg-blue-100 text-blue-700 border-blue-200';
         if (val >= 68) return 'bg-indigo-100 text-indigo-700 border-indigo-200';
@@ -2062,6 +2140,49 @@ export default function Tree({
 
                 {/* Actions */}
                 <div className="space-y-2.5 pt-1">
+                    {/* 🔄 سجل المحاولات (يظهر إذا في أكثر من محاولة) */}
+                    {(() => {
+                        const allAttempts = Array.isArray(localPassedCourses)
+                            ? localPassedCourses
+                                .filter(c => c.id === selectedCourse.id)
+                                .sort((a, b) => (a?.pivot?.attempt_number || 1) - (b?.pivot?.attempt_number || 1))
+                            : [];
+                        if (allAttempts.length <= 1) return null;
+                        return (
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
+                                <h4 className="text-white/70 font-[800] text-[12px] flex items-center gap-2 mb-2.5">🔄 سجل المحاولات ({allAttempts.length}):</h4>
+                                <div className="space-y-2">
+                                    {allAttempts.map((attempt, i) => {
+                                        const grade = attempt?.pivot?.grade;
+                                        const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
+                                        const isUniversityZero = gradeVal !== null && gradeVal < 35;
+                                        const isFailed = gradeVal !== null && gradeVal < 50;
+                                        const isPassing = gradeVal !== null && gradeVal >= 50;
+                                        const isRetake = attempt?.pivot?.is_retake;
+                                        const year = attempt?.pivot?.studied_year;
+                                        const term = attempt?.pivot?.studied_term;
+                                        const termLabel = term === 1 ? 'الأول' : term === 2 ? 'الثاني' : 'الصيفي';
+                                        return (
+                                            <div key={i} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${isPassing ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : isUniversityZero ? 'bg-red-500/20 border-red-400/30 text-red-300' : isFailed ? 'bg-rose-500/15 border-rose-400/20 text-rose-300' : 'bg-white/5 border-white/10 text-white/60'}`}>
+                                                <span className="flex items-center gap-2">
+                                                    {isPassing ? '✅' : isUniversityZero ? '🟥' : isFailed ? '❌' : '⏳'}
+                                                    <span>المحاولة {attempt?.pivot?.attempt_number || i + 1}</span>
+                                                    {isRetake && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/20">إعادة</span>}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    {year && term && <span className="text-[9px] text-white/30">سنة {year} - {termLabel}</span>}
+                                                    <span className={`font-[800] text-[10px] px-2 py-0.5 rounded-md ${isPassing ? 'bg-emerald-500/20 text-emerald-300' : isUniversityZero ? 'bg-red-500/25 text-red-200' : isFailed ? 'bg-rose-500/20 text-rose-300' : 'bg-white/10 text-white/40'}`}>
+                                                        {gradeVal !== null ? (isUniversityZero ? `${grade}% (صفر جامعي)` : `${grade}%`) : 'بدون علامة'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {getStatus(selectedCourse) === 'available' && (
                         <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
                             <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 تحديد الإنجاز حسب السنة والفصل:</span>
@@ -2111,6 +2232,65 @@ export default function Tree({
                         <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
                             {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التسجيل التجريبي'}
                         </button>
+                    )}
+                    {/* زر إعادة المادة للمواد المرسوبة */}
+                    {getStatus(selectedCourse) === 'failed' && (
+                        <>
+                            <div className="bg-rose-500/10 border border-rose-400/20 p-4 rounded-xl backdrop-blur-sm">
+                                <div className="flex items-start gap-3">
+                                    <span className="text-xl mt-0.5">❌</span>
+                                    <div>
+                                        <h4 className="text-rose-200 font-[900] text-[13px]">مادة مرسوبة</h4>
+                                        <p className="text-rose-300/70 text-[11px] font-bold mt-0.5">
+                                            {(() => {
+                                                const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
+                                                const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
+                                                const grade = latest?.pivot?.grade;
+                                                const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
+                                                if (gradeVal !== null && gradeVal < 35) return `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`;
+                                                if (gradeVal !== null && gradeVal < 50) return `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`;
+                                                return 'يمكنك إعادة هذه المادة.';
+                                            })()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-amber-500/10 border border-amber-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
+                                <span className="text-[12px] font-[800] text-amber-300 flex items-center gap-2">📅 تحديد فصل الإعادة:</span>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-amber-100/80 mb-1 block">السنة الدراسية</label>
+                                        <select
+                                            value={targetYear}
+                                            onChange={(e) => handleTargetYearChange(e.target.value)}
+                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                        >
+                                            {yearOptions.map(year => (
+                                                <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-amber-100/80 mb-1 block">الفصل</label>
+                                        <select
+                                            value={targetTerm}
+                                            onChange={(e) => handleTargetTermChange(e.target.value)}
+                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                        >
+                                            {termOptions.map(term => (
+                                                <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onClick={() => retakeCourse(selectedCourse.id)} className="w-full bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-amber-500/20 active:scale-[0.97] flex items-center justify-center gap-2">
+                                🔄 إعادة المادة (محاولة جديدة)
+                            </button>
+                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                                ✖ إلغاء اجتياز المادة
+                            </button>
+                        </>
                     )}
                 </div>
             </motion.div>
@@ -2311,7 +2491,7 @@ export default function Tree({
                             <div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 mx-auto md:mx-0 md:right-auto md:left-0 w-[calc(100vw-2rem)] md:w-80 max-w-sm bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50 origin-top" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
                                 <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
                                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
-                                    {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                    {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'راسب (إعادة)' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
                                         <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
                                     ))}
                                 </div>
@@ -2492,20 +2672,35 @@ export default function Tree({
                                         })}
                                     </div>
                                     <div className="space-y-2.5 pb-8">
-                                        {recordDisplayedCourses.map((c, idx) => (
-                                            <div key={`${activeSemesterTab}-${c.id}`} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between hover:border-emerald-200 transition-colors animate-slideDown" style={{ animationDelay: `${idx * 40}ms` }}>
+                                        {recordDisplayedCourses.map((c, idx) => {
+                                            const isRetakeRecord = c?.pivot?.is_retake;
+                                            const gradeVal = c?.pivot?.grade !== null && c?.pivot?.grade !== undefined ? parseFloat(c.pivot.grade) : null;
+                                            const isUniversityZero = gradeVal !== null && gradeVal < 35;
+                                            const isFailed = gradeVal !== null && gradeVal < 50;
+                                            const gradeLabel = gradeVal !== null
+                                                ? (isUniversityZero ? `${c.pivot.grade}% (صفر جامعي)` : isFailed ? `${c.pivot.grade}% (راسب)` : `${c.pivot.grade}%`)
+                                                : 'ناجح';
+                                            return (
+                                            <div key={`${activeSemesterTab}-${c.id}-${c?.pivot?.attempt_number || idx}`} className={`bg-white p-3.5 rounded-xl border shadow-sm flex items-center justify-between transition-colors animate-slideDown ${isFailed ? 'border-rose-200 hover:border-rose-300' : isRetakeRecord ? 'border-amber-200 hover:border-amber-300' : 'border-slate-200/80 hover:border-emerald-200'}`} style={{ animationDelay: `${idx * 40}ms` }}>
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-100 shrink-0">{c.credit_hours}س</div>
-                                                    <div className="min-w-0 truncate pr-2"><h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4><p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code}</p></div>
+                                                    <div className="min-w-0 truncate pr-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4>
+                                                            {isRetakeRecord && <span className="text-[8px] font-[900] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">🔄 إعادة</span>}
+                                                        </div>
+                                                        <p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code} {c?.pivot?.attempt_number > 1 ? `• المحاولة ${c.pivot.attempt_number}` : ''}</p>
+                                                    </div>
                                                 </div>
                                                 <div className="shrink-0 flex flex-col items-end gap-1 pl-1">
-                                                    <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{c.pivot?.grade ? `${c.pivot.grade}%` : 'ناجح'}</span>
+                                                    <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{gradeLabel}</span>
                                                     <span className="px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
                                                         سنة {c.localYear} - {c.localTerm === 1 ? 'الأول' : c.localTerm === 2 ? 'الثاني' : 'الصيفي'}
                                                     </span>
                                                 </div>
                                             </div>
-                                        ))}
+                                            );
+                                        })}
                                         {recordDisplayedCourses.length === 0 && (<div className="text-center py-10 opacity-60"><div className="text-3xl mb-2">📭</div><p className="text-[12px] font-bold text-slate-500">لا يوجد مواد مسجلة.</p></div>)}
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-slate-200/60"><Link href={route('calculator.index')} className="w-full bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 py-3 rounded-xl font-[800] text-[12px] transition-all flex items-center justify-center gap-2 shadow-sm">تعديل العلامات والفصول في الحاسبة ⚙️</Link></div>

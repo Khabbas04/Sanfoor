@@ -28,7 +28,8 @@ class TreeController extends Controller
             'major:id,name,college_id',
             'major.college:id,name',
             'passedCourses' => function ($query) {
-                $query->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours', 'courses.semester');
+                $query->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours', 'courses.semester')
+                    ->withPivot('is_retake', 'attempt_number');
             },
             'cartCourses' => function ($query) {
                 $query->select('courses.id');
@@ -416,6 +417,90 @@ class TreeController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'تعذر تحديث التسجيل التجريبي الآن. حاول مرة أخرى.',
+            ], 500);
+        }
+    }
+
+    /**
+     * إعادة مادة رسب فيها الطالب (أقل من 50).
+     * ينشئ سجل جديد في course_user مع is_retake = true و attempt_number يزيد واحد.
+     * المادة تبقى "منجزة" في الشجرة حتى أثناء الإعادة.
+     */
+    public function retakeCourse(Request $request)
+    {
+        try {
+            $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'studied_year' => 'nullable|integer|min:1|max:6',
+                'studied_term' => 'nullable|integer|in:1,2,3',
+            ]);
+
+            $userId = Auth::id();
+            $courseId = $request->course_id;
+
+            // جلب آخر سجل لهذه المادة
+            $latestAttempt = DB::table('course_user')
+                ->where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->orderByDesc('attempt_number')
+                ->first();
+
+            if (!$latestAttempt) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'لم يتم العثور على سجل سابق لهذه المادة.',
+                ], 404);
+            }
+
+            $latestGrade = $latestAttempt->grade !== null ? (float) $latestAttempt->grade : null;
+
+            // التحقق: فقط المواد المرسوب فيها (أقل من 50) أو بدون علامة
+            if ($latestGrade !== null && $latestGrade >= 50) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'هذه المادة ناجح فيها ولا تحتاج إعادة. يمكنك الإعادة فقط إذا كانت العلامة أقل من 50.',
+                ], 422);
+            }
+
+            $newAttemptNumber = (int) ($latestAttempt->attempt_number ?? 1) + 1;
+
+            $studiedYear = $request->input('studied_year', 1);
+            $studiedTerm = $request->input('studied_term', 1);
+            $studiedYear = max(1, min(6, (int) $studiedYear));
+            $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
+            $targetSemester = (($studiedYear - 1) * 3) + $studiedTerm;
+
+            // إدراج سجل جديد كإعادة
+            DB::table('course_user')->insert([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'grade' => null, // لم تحدد العلامة بعد
+                'studied_semester' => $targetSemester,
+                'studied_year' => $studiedYear,
+                'studied_term' => $studiedTerm,
+                'is_retake' => true,
+                'attempt_number' => $newAttemptNumber,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            self::flushCourseTreeCache();
+
+            return response()->json([
+                'status' => 'retake_added',
+                'attempt_number' => $newAttemptNumber,
+                'msg' => "تمت إضافة المادة كإعادة (المحاولة رقم {$newAttemptNumber}).",
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Course retake failed', [
+                'user_id' => Auth::id(),
+                'course_id' => $request->input('course_id'),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'msg' => 'تعذر إعادة المادة الآن. حاول مرة أخرى.',
             ], 500);
         }
     }
