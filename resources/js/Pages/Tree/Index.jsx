@@ -1810,8 +1810,22 @@ export default function Tree({
             supporting: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'supporting').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
         };
 
-        // حدود الخطة الدراسية (تستخدم لمنع النظام من جدول مواد زائدة عن الحاجة)
-        const caps = { university_req: 30, compulsory: 87, elective: 9, supporting: 6 };
+        // حساب الساعات المطلوبة ديناميكياً لكل تخصص بناءً على الشجرة الحالية
+        const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+        const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+        const universityReqCap = 30; // متطلبات الجامعة ثابتة تقريباً 30
+        const totalPlanHours = 132; // الحد الأدنى للخطة
+        
+        // الاختياري هو ما يتبقى للوصول لـ 132 ساعة
+        const electiveCap = Math.max(0, totalPlanHours - (totalCompulsory + totalSupporting + universityReqCap));
+
+        // حدود الخطة الدراسية الديناميكية للتخصص الحالي
+        const caps = { 
+            university_req: universityReqCap, 
+            compulsory: totalCompulsory > 0 ? totalCompulsory : 87, 
+            elective: electiveCap > 0 ? electiveCap : 9, 
+            supporting: totalSupporting > 0 ? totalSupporting : 6 
+        };
 
         while (remainingCourses.length > 0 && currentSem <= 12) {
             const simulatedPassedHours = courses
