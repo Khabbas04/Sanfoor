@@ -1877,7 +1877,7 @@ export default function Tree({
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-2 mt-1">
                     <button
                         type="button"
                         onClick={() => {
@@ -1886,9 +1886,10 @@ export default function Tree({
                             setCompareCourse(null);
                             if (isMobile) setIsSidebarOpen(false);
                         }}
-                        className="px-3.5 py-2 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-200 border border-violet-400/20 hover:bg-violet-500/25 transition-all"
+                        className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-[14px] text-[13px] font-[900] bg-gradient-to-l from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-500/30 border border-white/10 transition-all active:scale-[0.98]"
                     >
-                        ⚖️ قارن مع مادة أخرى
+                        <span className="text-xl">⚖️</span>
+                        <span>مقارنة المادة مع مادة أخرى</span>
                     </button>
                 </div>
 
@@ -2488,41 +2489,55 @@ export default function Tree({
                             🌳 {legendOpen ? 'إخفاء الدليل' : 'دليل الشجرة'}
                         </button>
                         {legendOpen && (
-                            <div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 mx-auto md:mx-0 md:right-auto md:left-0 w-[calc(100vw-2rem)] md:w-80 max-w-sm bg-white/95 backdrop-blur-xl p-4 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-2 z-50 origin-top" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">حالة المادة</p>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2 pb-2 border-b border-slate-100">
-                                    {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'راسب (إعادة)' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
-                                        <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3 h-3 rounded-[4px] ${l.color} shadow-sm`} /></div>
-                                    ))}
+                            <div className="absolute top-[calc(100%+0.5rem)] right-0 left-0 mx-auto md:mx-0 md:right-auto md:left-0 w-[calc(100vw-2rem)] md:w-96 max-w-sm bg-white/95 backdrop-blur-xl p-4 sm:p-5 rounded-[1.25rem] shadow-2xl border border-slate-200/80 flex flex-col gap-3 z-50 origin-top overflow-y-auto max-h-[80vh] hide-scrollbar" style={{ animation: 'sn-scale 0.2s cubic-bezier(0.16,1,0.3,1) both' }}>
+                                
+                                <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-200 text-right space-y-1.5">
+                                    <p className="text-[11px] font-[900] text-slate-800 flex items-center justify-end gap-1.5">🌳 كيف تعمل الشجرة؟</p>
+                                    <p className="text-[9px] font-bold text-slate-500 leading-relaxed">
+                                        الشجرة الأكاديمية تعرض خطتك الدراسية. يمكنك النقر على أي مادة لتمييزها كـ "منجزة". الشجرة تحسب الساعات وتفتح لك المواد التي تعتمد على مواد أخرى قمت باجتيازها تلقائياً، وتغلق المواد التي لم تستوفِ متطلباتها.
+                                    </p>
                                 </div>
-                                <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الصعوبة</p>
-                                <div className="flex flex-col gap-2 pb-2 border-b border-slate-100 mb-2">
-                                    {[
-                                        { color: 'bg-emerald-500', title: 'خفيف', desc: 'عادةً من 1 إلى 2، ويكون الحمل الدراسي أخف.' },
-                                        { color: 'bg-amber-500', title: 'متوازن', desc: 'عادةً 3، ويعني مادة بعبء متوسط.' },
-                                        { color: 'bg-rose-500', title: 'مكثّف', desc: 'عادةً من 4 إلى 5، وتحتاج وقت ومجهود أعلى.' },
-                                    ].map(item => (
-                                        <div key={item.title} className="flex items-start justify-end gap-2">
-                                            <div className="text-right">
-                                                <p className="text-[10px] font-[800] text-slate-700 leading-tight">{item.title}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 leading-snug">{item.desc}</p>
-                                            </div>
-                                            <span className={`mt-0.5 w-3 h-3 rounded-full ${item.color} shadow-sm shrink-0`} />
-                                        </div>
-                                    ))}
+
+                                <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 text-right space-y-1.5">
+                                    <p className="text-[11px] font-[900] text-rose-800 flex items-center justify-end gap-1.5">🔄 نظام الإعادة (للمواد المرسوبة)</p>
+                                    <p className="text-[9px] font-bold text-rose-600/80 leading-relaxed">
+                                        إذا رسبت في مادة (أقل من 50%) أو حصلت على صفر جامعي (أقل من 35%)، ستظهر المادة باللون الأحمر (حالة "راسب"). من تفاصيل المادة، ستتمكن من الضغط على زر <b>"إعادة المادة"</b> لفتح محاولة جديدة وإعادة دراستها ليتم حسابها كإعادة لرفع المعدل.
+                                    </p>
                                 </div>
-                                <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-1 text-right">الرموز</p>
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">إجباري (مستطيل)</span><div className="w-4 h-3 bg-slate-200 rounded-[4px]"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">مساندة (بيضاوي)</span><div className="w-4 h-3 bg-slate-200 rounded-[10px]"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">اختياري (مائل)</span><div className="w-4 h-3 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px]"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">جامعة (حاد)</span><div className="w-4 h-3 bg-slate-200 rounded-[1px]"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-500">المسار الحرج: شريط أحمر أعلى البطاقة يعني أن تأخير المادة قد يؤخر التخرج</span><span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm"></span></div>
-                                    <div className="rounded-2xl border border-violet-500/15 bg-violet-500/10 p-2.5 text-right mt-2">
-                                        <p className="text-[10px] font-[900] text-violet-700 mb-0.5">المقارنة بين مادتين</p>
-                                        <p className="text-[9px] font-bold text-slate-500 leading-snug">1) افتح أي مادة ثم اضغط زر قارن. 2) اختر مادة ثانية من الشجرة لتظهر المقارنة في نافذة مستقلة.</p>
+
+                                <div className="rounded-2xl border border-violet-500/15 bg-violet-500/5 p-3 text-right">
+                                    <p className="text-[11px] font-[900] text-violet-700 mb-1 flex items-center justify-end gap-1.5">⚖️ المقارنة الاحترافية</p>
+                                    <p className="text-[9px] font-bold text-slate-600 leading-relaxed">
+                                        افتح أي مادة من الشجرة ثم اضغط زر <b>"مقارنة المادة"</b>، بعدها اختر مادة أخرى من الشجرة. ستظهر لك نافذة تقارن بين المادتين من ناحية الصعوبة، التأثير (كم مادة تفتح)، والأولوية، لمساعدتك في اختيار المادة الأنسب للتسجيل.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-2 text-right mt-1">حالة المادة</p>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-1">
+                                        {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'راسب (إعادة)' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                            <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-700">{l.label}</span><span className={`w-3.5 h-3.5 rounded-[4px] ${l.color} shadow-sm border border-black/5`} /></div>
+                                        ))}
                                     </div>
                                 </div>
+
+                                <div>
+                                    <p className="text-[9px] font-[900] text-slate-400 uppercase tracking-wider mb-2 text-right mt-1">الرموز والمسار</p>
+                                    <div className="flex flex-col gap-2.5 pb-1">
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">إجباري (مستطيل)</span><div className="w-5 h-3.5 bg-slate-200 rounded-[4px] border border-black/5"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">مساندة (بيضاوي)</span><div className="w-5 h-3.5 bg-slate-200 rounded-[10px] border border-black/5"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">اختياري (مائل)</span><div className="w-5 h-3.5 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px] border border-black/5"></div></div>
+                                        <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">جامعة (حاد)</span><div className="w-5 h-3.5 bg-slate-200 rounded-[2px] border border-black/5"></div></div>
+                                        <div className="flex items-start justify-end gap-2.5 mt-1">
+                                            <div className="text-right flex-1">
+                                                <p className="text-[10px] font-bold text-slate-700">المسار الحرج (شريط أحمر أعلى البطاقة)</p>
+                                                <p className="text-[9px] font-bold text-slate-500 leading-snug mt-0.5">مواد تفتح سلسلة طويلة من المواد، تأخيرها قد يؤخر تخرجك.</p>
+                                            </div>
+                                            <span className="w-5 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm mt-1.5 shrink-0"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
                         )}
                     </div>
@@ -2869,15 +2884,15 @@ export default function Tree({
                         )}
 
                         {compareMode && compareFirstCourse && compareCourse && (
-                            <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6" dir="rtl">
-                                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} />
-                                <div className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/98 shadow-[0_30px_100px_rgba(15,23,42,0.6)]" style={{ animation: 'sn-scale 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
-                                    <div className="bg-gradient-to-l from-indigo-950/80 to-violet-950/80 px-5 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
+                            <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 md:p-6" dir="rtl">
+                                <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} />
+                                <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900 shadow-[0_30px_100px_rgba(15,23,42,0.6)]" style={{ animation: 'sn-scale 0.3s cubic-bezier(0.16,1,0.3,1) both' }}>
+                                    <div className="bg-gradient-to-l from-indigo-950/80 to-violet-950/80 px-4 sm:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-400/20 flex items-center justify-center text-lg">⚖️</div>
+                                            <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-400/20 flex items-center justify-center text-lg shadow-inner">⚖️</div>
                                             <div>
-                                                <h3 className="text-white font-[900] text-[15px]">مقارنة بين مادتين</h3>
-                                                <p className="text-[10px] text-white/40 font-bold mt-0.5">{compareFirstCourse.code} vs {compareCourse.code}</p>
+                                                <h3 className="text-white font-[900] text-[15px]">مقارنة احترافية</h3>
+                                                <p className="text-[10px] text-white/50 font-bold mt-0.5 tracking-wide">{compareFirstCourse.code} vs {compareCourse.code}</p>
                                             </div>
                                         </div>
                                         <button
@@ -2887,13 +2902,13 @@ export default function Tree({
                                                 setCompareFirstCourse(null);
                                                 setCompareCourse(null);
                                             }}
-                                            className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all flex items-center justify-center text-sm shrink-0"
+                                            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-rose-500/20 text-white/50 hover:text-rose-300 transition-all flex items-center justify-center text-sm shrink-0 border border-white/5"
                                         >
                                             ✕
                                         </button>
                                     </div>
 
-                                    <div className="overflow-y-auto max-h-[calc(90vh-4.5rem)] p-4 sm:p-6 space-y-5 hide-scrollbar">
+                                    <div className="overflow-y-auto flex-1 p-3 sm:p-5 md:p-6 hide-scrollbar bg-slate-950/50 space-y-4">
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                             {[
                                                 { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
@@ -3012,10 +3027,10 @@ export default function Tree({
                                             </div>
 
                                             {/* Action buttons */}
-                                            <div className="flex items-center justify-center gap-3 pt-2 pb-2">
-                                                <button onClick={() => { setSelectedCourse(compareFirstCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-2.5 rounded-xl text-[11px] font-[800] bg-indigo-500/15 text-indigo-200 border border-indigo-400/20 hover:bg-indigo-500/25 transition-all active:scale-95">📖 تفاصيل {compareFirstCourse.code}</button>
-                                                <button onClick={() => { setSelectedCourse(compareCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-2.5 rounded-xl text-[11px] font-[800] bg-violet-500/15 text-violet-200 border border-violet-400/20 hover:bg-violet-500/25 transition-all active:scale-95">📖 تفاصيل {compareCourse.code}</button>
-                                                <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-2.5 rounded-xl text-[11px] font-[800] bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all active:scale-95">إغلاق</button>
+                                            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                                                <button onClick={() => { setSelectedCourse(compareFirstCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-indigo-500/15 text-indigo-300 border border-indigo-400/20 hover:bg-indigo-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareFirstCourse.code}</button>
+                                                <button onClick={() => { setSelectedCourse(compareCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-300 border border-violet-400/20 hover:bg-violet-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareCourse.code}</button>
+                                                <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-3 rounded-xl text-[11px] font-[800] bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all active:scale-95">إغلاق</button>
                                             </div>
                                         </div>
                                     </div>
