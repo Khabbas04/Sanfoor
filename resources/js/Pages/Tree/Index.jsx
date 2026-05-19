@@ -1879,6 +1879,7 @@ export default function Tree({
         let remainingCourses = [...courses.filter(c => !simulatedPassed.has(c.id))];
         let generatedSemesters = [];
         let currentSem = 1;
+        const maxSemesters = 7; // 3.5 years max
 
         // تتبع الساعات المنجزة لكل نوع لضمان عدم تجاوز الخطة المطلوبة
         let categoryPassedHours = {
@@ -1915,7 +1916,7 @@ export default function Tree({
             return parts.every(part => normalized.includes(normalizeName(part)));
         };
 
-        while (remainingCourses.length > 0 && currentSem <= 12) {
+        while (remainingCourses.length > 0 && currentSem <= maxSemesters) {
             const simulatedPassedHours = courses
                 .filter(c => simulatedPassed.has(c.id))
                 .reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
@@ -1925,6 +1926,7 @@ export default function Tree({
             const baseMaxSemHours = isSummer ? 9 : 18;
             const canGraduateBoost = remainingHours <= baseMaxSemHours + 3;
             const maxSemHours = currentSem === 1 ? 12 : (canGraduateBoost ? baseMaxSemHours + 3 : baseMaxSemHours);
+            const minSemHours = isSummer ? 0 : 12;
 
             let availableNow = remainingCourses.filter(c => {
                 const type = c.type || 'compulsory';
@@ -1989,13 +1991,14 @@ export default function Tree({
                     return true;
                 };
 
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['اساسيات', 'تكنولوجيا']));
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['اساسيات', 'تكنولوجيا', 'معلومات']));
                 pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تصميم', 'منطق', 'رقمي']));
-                pickFirstSemesterCourse((c) => c.type === 'university_req' || nameHasAll(c.name, ['اونلاين']));
-                pickFirstSemesterCourse((c) => c.type === 'elective' && nameHasAll(c.name, ['اونلاين']));
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تربية', 'وطنية']));
+                pickFirstSemesterCourse((c) => c.type === 'university_req' && nameHasAll(c.name, ['متطلب', 'جامعة', 'اختياري']));
             }
 
             for (let c of availableNow) {
+                if (currentSem === 1 && semHours >= 12) break;
                 if (semHours >= maxSemHours) break;
                 if (semCourses.some(sc => sc.id === c.id)) continue;
                 const isOnline = c.type === 'university_req';
@@ -2016,6 +2019,28 @@ export default function Tree({
                         categoryPassedHours[type] += Number(c.credit_hours || 0);
                     }
                 }
+            }
+
+            if (!isSummer && currentSem !== 1 && semHours > 0 && semHours < minSemHours && remainingHours > maxSemHours) {
+                const relaxed = availableNow.filter(c => !semCourses.some(sc => sc.id === c.id));
+                for (let c of relaxed) {
+                    if (semHours >= minSemHours) break;
+                    if (semHours + c.credit_hours > maxSemHours) continue;
+                    semCourses.push({ ...c, isSummer, currentSem });
+                    semHours += c.credit_hours;
+                    if (c.type === 'university_req') semOnlineCount++;
+                    remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
+
+                    const type = c.type || 'compulsory';
+                    if (categoryPassedHours[type] !== undefined) {
+                        categoryPassedHours[type] += Number(c.credit_hours || 0);
+                    }
+                }
+            }
+
+            if (!isSummer && semHours > 0 && semHours < minSemHours && remainingHours > maxSemHours) {
+                remainingCourses = [...semCourses.map(c => ({ ...c })), ...remainingCourses];
+                semCourses = [];
             }
             semCourses.forEach(c => simulatedPassed.add(c.id));
             if (semCourses.length > 0) {
