@@ -488,7 +488,7 @@ export default function Dashboard({
             ` }} />
 
             <div className="py-6 sm:py-8 min-h-screen selection:bg-indigo-100 selection:text-indigo-900" dir="rtl">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7 print:hidden">
 
                     {/* 1. STUDENT ID — HERO CARD */}
                     <div
@@ -764,6 +764,73 @@ export default function Dashboard({
                                 </div>
                             </Link>
                         </div>
+                    </div>
+                </div>
+
+                {/* 🖨️ PRINTABLE TRANSCRIPT (HIDDEN EXCEPT ON PRINT) */}
+                <div className="hidden print:block w-full max-w-[21cm] mx-auto text-black bg-white" dir="rtl">
+                    <div className="text-center border-b-2 border-slate-800 pb-6 mb-6">
+                        <h1 className="text-3xl font-black text-slate-900 mb-2">السجل الأكاديمي</h1>
+                        <h2 className="text-sm font-bold text-slate-600">{auth.user?.major?.name || 'تخصص غير محدد'}</h2>
+                    </div>
+
+                    <div className="flex justify-between items-end border border-slate-300 rounded-xl p-5 mb-8">
+                        <div>
+                            <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">اسم الطالب</p>
+                            <p className="text-lg font-black text-slate-900">{auth.user?.name || 'غير معروف'}</p>
+                            <p className="text-xs font-bold text-slate-600 mt-0.5">{auth.user?.email}</p>
+                        </div>
+                        <div className="text-center">
+                            <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">الساعات المنجزة</p>
+                            <p className="text-xl font-black text-slate-900">{passed_hours} <span className="text-sm font-bold text-slate-500">من {total_hours}</span></p>
+                        </div>
+                        <div className="text-left">
+                            <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">المعدل التراكمي (%)</p>
+                            <p className="text-xl font-black text-slate-900">{cumulativeStats?.percentage || '0.0'}%</p>
+                            <p className="text-[10px] font-bold text-slate-500 mt-0.5">{standing.label}</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {recordSemesters.map((recordKey) => {
+                            const stats = semesterStats[recordKey];
+                            const semCourses = processedCourses.filter(c => c.recordKey === recordKey);
+                            
+                            return (
+                                <div key={recordKey} className="break-inside-avoid">
+                                    <div className="bg-slate-100 px-4 py-2 flex justify-between items-center border border-slate-300 border-b-0 rounded-t-xl">
+                                        <h3 className="font-black text-sm text-slate-800">السنة {stats.year} - الفصل {termLabel(stats.term)}</h3>
+                                        <span className="text-xs font-bold text-slate-600">
+                                            المعدل الفصلي: {stats.percentage > 0 ? `${stats.percentage}%` : '--'} | {stats.credits} ساعات
+                                        </span>
+                                    </div>
+                                    <table className="w-full border-collapse border border-slate-300 text-sm">
+                                        <thead>
+                                            <tr className="bg-slate-50">
+                                                <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700 w-24">الرمز</th>
+                                                <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700">المادة</th>
+                                                <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-20">الساعات</th>
+                                                <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-20">العلامة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {semCourses.map(c => (
+                                                <tr key={c.id}>
+                                                    <td className="border border-slate-300 px-3 py-1.5 text-right font-mono text-xs">{c.code}</td>
+                                                    <td className="border border-slate-300 px-3 py-1.5 text-right font-bold text-slate-800">{c.name}</td>
+                                                    <td className="border border-slate-300 px-3 py-1.5 text-center">{c.credit_hours}</td>
+                                                    <td className="border border-slate-300 px-3 py-1.5 text-center font-black">{c.pivot?.grade || 'منجزة'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-8 text-center text-[10px] text-slate-400 font-bold border-t border-slate-200 pt-4">
+                        تم استخراج هذه الوثيقة من نظام سنفور الأكاديمي - السجل غير رسمي ومخصص للمتابعة الذاتية فقط.
                     </div>
                 </div>
             </div>
