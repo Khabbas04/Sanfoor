@@ -451,8 +451,12 @@ class AiAdvisorController extends Controller
                 'passed_course_ids' => $user->passedCourses->pluck('id')->toArray(),
                 'passed_courses_names' => $user->passedCourses->pluck('name')->implode('، '),
                 'total_passed_hours' => $user->passedCourses->sum('credit_hours'),
-                'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : null,
+                'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : 132,
                 'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
+                'passed_university_req' => $user->passedCourses->where('type', 'university_req')->sum('credit_hours'),
+                'passed_compulsory' => $user->passedCourses->where('type', 'compulsory')->sum('credit_hours'),
+                'passed_elective' => $user->passedCourses->where('type', 'elective')->sum('credit_hours'),
+                'passed_supporting' => $user->passedCourses->where('type', 'supporting')->sum('credit_hours'),
             ];
         });
     }
@@ -669,28 +673,36 @@ class AiAdvisorController extends Controller
             $cartWarning = "\n⚠️ تنبيه: التسجيل التجريبي يحتوي {$cartData['hours']} ساعة ويتجاوز الحد المسموح بـ {$excess} ساعة!";
         }
 
-        $studentYearLabel = $studentYearLabels[$studentYear];
+        $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
 
-        return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وأنت نفسك باختصار واحتراف.\nالقواعد:\n" .
-            "- كن مختصراً جداً ومباشراً (Direct).\n" .
-            "- لا تكرر سؤال الطالب.\n" .
-            "- إذا سأل الطالب عن متطلبات مادة، اذكرها كنقاط فقط.\n" .
-            "- لا تستخدم جمل ترحيبية طويلة كل مرة.\n" .
-            "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**).\n" .
-            "- إذا كان السؤال غير واضح، اسأل سؤالاً توضيحياً واحداً.\n" .
-            "- إذا كان خارج نطاق الجامعة أو الإرشاد الأكاديمي، اعتذر باختصار ووجّه للسؤال الأكاديمي.\n\n" .
-            "معلومات ثابتة عن الجامعة (للأسئلة عن المباني/الكليات):\n" .
-            "- أ.ب: مبنى الفاروق (كلية الشريعة، كلية الآداب، كلية تكنولوجيا المعلومات، كلية العلوم التربوية).\n" .
-            "- ت: كلية العلوم الطبية المساندة، الكلية الزرقاء التقنية.\n" .
+        return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وتخطيط الجداول باحتراف وذكاء.\nالقواعد:\n" .
+            "- كن مختصراً ومباشراً (Direct)، ولا تكرر سؤال الطالب.\n" .
+            "- ركز على توزيع الحمل الدراسي والتأكد من توافق الجدول مع التقسيمة الصحيحة لساعات الخطة.\n" .
+            "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**).\n\n" .
+            "هيكلة متطلبات الخطة الدراسية للتخرج (132 ساعة كحد أدنى):\n" .
+            "- متطلبات الجامعة الإجبارية (متوفرة أونلاين): 30 ساعة.\n" .
+            "- متطلبات التخصص الإجبارية: 87 ساعة.\n" .
+            "- متطلبات التخصص الاختيارية: 9 ساعات.\n" .
+            "- المواد المساندة: 6 ساعات.\n" .
+            "عليك استخدام هذه التقسيمة لتخطيط الجدول للطالب وتوجيهه للمواد التي تنقصه بذكاء، مع تجنب اقتراح مواد تتجاوز الساعات المطلوبة في كل فئة.\n\n" .
+            "معلومات ثابتة عن الجامعة (مباني وكليات):\n" .
+            "- أ.ب: الفاروق (شريعة، آداب، IT، تربوية).\n" .
+            "- ت: علوم طبية مساندة، الزرقاء التقنية.\n" .
             "- د.هـ: الدوازي (التمريض، الصيدلة، العلوم).\n" .
-            "- ل: كلية الهندسة التكنولوجية، كلية الفنون والتصميم.\n" .
-            "- ص: كلية الصحافة والإعلام، كلية الحقوق.\n" .
-            "- ق: مبنى الشهيد معاذ الكساسي (كلية الاقتصاد والعلوم الإدارية، كلية الدراسات العليا).\n" .
-            "- ط: كلية طب الأسنان.\n" .
-            "- ترميز الطوابق: 100 = الطابق الأول، 200 = الطابق الثاني، 300 = الطابق الثالث.\n\n" .
+            "- ل: هندسة، فنون.\n" .
+            "- ص: صحافة، حقوق.\n" .
+            "- ق: الشهيد معاذ (اقتصاد، دراسات عليا).\n" .
+            "- ط: طب الأسنان.\n" .
+            "- الطوابق: 100=الأول، 200=الثاني، 300=الثالث.\n\n" .
             "سياق RAG:\n" . ($ragContext ?: 'لا يوجد سياق إضافي حالياً.') . "\n\n" .
-            "بيانات الطالب المختصرة: {$user->name} | {$academicData['major_name']} | سنة {$studentYearLabel} | معدل {$gpa}% | منجز {$academicData['total_passed_hours']}س | التسجيل: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد" : '') . "\n\n" .
-            "المواد المتاحة للتسجيل:\n{$availableCourses['text']}\n\n" .
+            "بيانات الطالب المختصرة: {$user->name} | {$academicData['major_name']} | سنة {$studentYearLabel} | معدل {$gpa}%\n" .
+            "التقدم حسب أقسام الخطة:\n" .
+            "- متطلبات الجامعة: أنجز {$academicData['passed_university_req']} / 30 ساعة\n" .
+            "- تخصص إجباري: أنجز {$academicData['passed_compulsory']} / 87 ساعة\n" .
+            "- تخصص اختياري: أنجز {$academicData['passed_elective']} / 9 ساعات\n" .
+            "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
+            "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد المسموح {$academicData['max_allowed_hours']}س" : '') . "\n\n" .
+            "المواد المتاحة للتسجيل للطالب:\n{$availableCourses['text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_courses\":[],\"courses_to_remove\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}";
     }

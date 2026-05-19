@@ -1776,9 +1776,20 @@ export default function Tree({
 
     const render4YearPlan = () => {
         let simulatedPassed = new Set(passedIds);
-        let remainingCourses = courses.filter(c => !simulatedPassed.has(c.id));
+        let remainingCourses = [...courses.filter(c => !simulatedPassed.has(c.id))];
         let generatedSemesters = [];
         let currentSem = 1;
+
+        // تتبع الساعات المنجزة لكل نوع لضمان عدم تجاوز الخطة المطلوبة
+        let categoryPassedHours = {
+            university_req: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'university_req').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+            compulsory: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'compulsory').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+            elective: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'elective').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+            supporting: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'supporting').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
+        };
+
+        // حدود الخطة الدراسية (تستخدم لمنع النظام من جدول مواد زائدة عن الحاجة)
+        const caps = { university_req: 30, compulsory: 87, elective: 9, supporting: 6 };
 
         while (remainingCourses.length > 0 && currentSem <= 12) {
             const simulatedPassedHours = courses
@@ -1786,13 +1797,28 @@ export default function Tree({
                 .reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
 
             let availableNow = remainingCourses.filter(c => {
+                const type = c.type || 'compulsory';
+                
+                // التخطيط الواقعي: إذا تجاوزت المادة الحد المسموح لنوعها (مثلاً 9 ساعات اختياري)، نتخطاها
+                // *إلا* إذا كان الطالب قد أضافها يدوياً للتسجيل التجريبي (احترام اختيار الطالب)
+                if (categoryPassedHours[type] >= (caps[type] || 999) && !cartIds.includes(c.id)) return false;
+
                 const requiredHours = Number(c.minimum_passed_hours || 0);
                 if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
                 if (!c.prerequisites || c.prerequisites.length === 0) return true;
                 return c.prerequisites.every(p => simulatedPassed.has(p.id));
             });
+
             if (availableNow.length === 0) break;
-            availableNow.sort((a, b) => getCourseDepth(b.id) - getCourseDepth(a.id));
+
+            // الترتيب الذكي: 
+            // 1. الأولوية القصوى للمواد التي وضعها الطالب في التسجيل التجريبي.
+            // 2. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
+            availableNow.sort((a, b) => {
+                if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
+                if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
+                return getCourseDepth(b.id) - getCourseDepth(a.id);
+            });
 
             let semCourses = [];
             let semHours = 0;
@@ -1801,13 +1827,20 @@ export default function Tree({
                     semCourses.push(c);
                     semHours += c.credit_hours;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
+                    
+                    const type = c.type || 'compulsory';
+                    if (categoryPassedHours[type] !== undefined) {
+                        categoryPassedHours[type] += Number(c.credit_hours || 0);
+                    }
                 }
             }
             semCourses.forEach(c => simulatedPassed.add(c.id));
             generatedSemesters.push(semCourses);
             currentSem++;
         }
-        if (remainingCourses.length > 0) generatedSemesters.push(remainingCourses);
+        
+        // يمكن إضافة المواد المتبقية غير القابلة للجدولة هنا إذا أردنا عرضها
+        // if (remainingCourses.length > 0) generatedSemesters.push(remainingCourses);
 
         return (
             <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-6">
