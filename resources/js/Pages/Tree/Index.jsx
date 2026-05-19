@@ -2240,25 +2240,35 @@ export default function Tree({
                             <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-emerald-500/80 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                         </>
                     )}
-                    {(getStatus(selectedCourse) === 'passed' || getStatus(selectedCourse) === 'cart') && (
-                        <button onClick={() => getStatus(selectedCourse) === 'passed' ? togglePassed(selectedCourse.id) : toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                            {getStatus(selectedCourse) === 'passed' ? '✖ إلغاء اجتياز المادة' : '✖ إزالة من التسجيل التجريبي'}
+                    {getStatus(selectedCourse) === 'cart' && (
+                        <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                            ✖ إزالة من التسجيل التجريبي
                         </button>
                     )}
-                    {/* زر إعادة المادة للمواد المرسوبة */}
-                    {getStatus(selectedCourse) === 'failed' && (
+                    
+                    {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
+                    {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (
                         <>
-                            <div className="bg-rose-500/10 border border-rose-400/20 p-4 rounded-xl backdrop-blur-sm">
+                            <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-rose-500/10 border-rose-400/20' : 'bg-emerald-500/10 border-emerald-400/20'} border p-4 rounded-xl backdrop-blur-sm`}>
                                 <div className="flex items-start gap-3">
-                                    <span className="text-xl mt-0.5">❌</span>
+                                    <span className="text-xl mt-0.5">{getStatus(selectedCourse) === 'failed' ? '❌' : '✅'}</span>
                                     <div>
-                                        <h4 className="text-rose-200 font-[900] text-[13px]">مادة مرسوبة</h4>
-                                        <p className="text-rose-300/70 text-[11px] font-bold mt-0.5">
+                                        <h4 className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-200' : 'text-emerald-200'} font-[900] text-[13px]`}>
+                                            {getStatus(selectedCourse) === 'failed' ? 'مادة مرسوبة' : 'مادة منجزة (متاحة للإعادة)'}
+                                        </h4>
+                                        <p className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-300/70' : 'text-emerald-300/70'} text-[11px] font-bold mt-0.5 leading-relaxed`}>
                                             {(() => {
                                                 const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
                                                 const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
                                                 const grade = latest?.pivot?.grade;
                                                 const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
+                                                
+                                                if (getStatus(selectedCourse) === 'passed') {
+                                                    return gradeVal !== null 
+                                                        ? `العلامة الحالية: ${grade}%. يمكنك إعادة تسجيل المادة مرة أخرى لرفع معدلك التراكمي.`
+                                                        : `لقد اجتزت هذه المادة، ولكن يمكنك إعادتها لرفع معدلك التراكمي إذا رغبت.`;
+                                                }
+
                                                 if (gradeVal !== null && gradeVal < 35) return `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`;
                                                 if (gradeVal !== null && gradeVal < 50) return `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`;
                                                 return 'يمكنك إعادة هذه المادة.';
@@ -2267,11 +2277,11 @@ export default function Tree({
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-amber-500/10 border border-amber-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
-                                <span className="text-[12px] font-[800] text-amber-300 flex items-center gap-2">📅 تحديد فصل الإعادة:</span>
+                            <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-amber-500/10 border-amber-400/20' : 'bg-sky-500/10 border-sky-400/20'} border p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5`}>
+                                <span className={`text-[12px] font-[800] ${getStatus(selectedCourse) === 'failed' ? 'text-amber-300' : 'text-sky-300'} flex items-center gap-2`}>📅 تحديد فصل الإعادة:</span>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label className="text-[10px] font-bold text-amber-100/80 mb-1 block">السنة الدراسية</label>
+                                        <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>السنة الدراسية</label>
                                         <select
                                             value={targetYear}
                                             onChange={(e) => handleTargetYearChange(e.target.value)}
@@ -2283,7 +2293,7 @@ export default function Tree({
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-amber-100/80 mb-1 block">الفصل</label>
+                                        <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>الفصل</label>
                                         <select
                                             value={targetTerm}
                                             onChange={(e) => handleTargetTermChange(e.target.value)}
@@ -2296,11 +2306,11 @@ export default function Tree({
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => retakeCourse(selectedCourse.id)} className="w-full bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-amber-500/20 active:scale-[0.97] flex items-center justify-center gap-2">
+                            <button onClick={() => retakeCourse(selectedCourse.id)} className={`w-full ${getStatus(selectedCourse) === 'failed' ? 'bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20' : 'bg-gradient-to-l from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 shadow-sky-500/20'} text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg active:scale-[0.97] flex items-center justify-center gap-2`}>
                                 🔄 إعادة المادة (محاولة جديدة)
                             </button>
                             <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                ✖ إلغاء اجتياز المادة
+                                ✖ إلغاء تسجيلات المادة بالكامل
                             </button>
                         </>
                     )}
