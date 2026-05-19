@@ -1835,9 +1835,9 @@ export default function Tree({
             let availableNow = remainingCourses.filter(c => {
                 const type = c.type || 'compulsory';
                 
-                // التخطيط الواقعي: إذا تجاوزت المادة الحد المسموح لنوعها (مثلاً 9 ساعات اختياري)، نتخطاها
-                // *إلا* إذا كان الطالب قد أضافها يدوياً للتسجيل التجريبي (احترام اختيار الطالب)
-                if (categoryPassedHours[type] >= (caps[type] || 999) && !cartIds.includes(c.id)) return false;
+                // التخطيط الواقعي: تطبيق حد الساعات فقط على المواد الاختيارية (elective).
+                // جميع المواد الإجبارية (compulsory, supporting, university_req) يجب أن تكون موجودة في الخطة.
+                if (type === 'elective' && categoryPassedHours[type] >= (caps[type] || 999) && !cartIds.includes(c.id)) return false;
 
                 const requiredHours = Number(c.minimum_passed_hours || 0);
                 if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
@@ -1849,22 +1849,36 @@ export default function Tree({
 
             // الترتيب الذكي: 
             // 1. الأولوية القصوى للمواد التي وضعها الطالب في التسجيل التجريبي.
-            // 2. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
+            // 2. تأخير المواد التي تتطلب 90 ساعة فأكثر (مثل مشاريع التخرج) لنهاية الخطة.
+            // 3. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
             availableNow.sort((a, b) => {
                 if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
                 if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
+                
+                const aReq = Number(a.minimum_passed_hours || 0);
+                const bReq = Number(b.minimum_passed_hours || 0);
+                if (aReq >= 90 && bReq < 90) return 1;
+                if (bReq >= 90 && aReq < 90) return -1;
+
                 return getCourseDepth(b.id) - getCourseDepth(a.id);
             });
 
             let semCourses = [];
             let semHours = 0;
+            let semOnlineCount = 0; // لضمان عدم تكدس متطلبات الجامعة (الأونلاين) في فصل واحد
             const isSummer = currentSem % 3 === 0;
             const maxSemHours = isSummer ? 10 : 18; // الصيفي حده الأقصى 10 ساعات عادة
 
             for (let c of availableNow) {
+                const isOnline = c.type === 'university_req';
+                
+                // الحد الواقعي: مادة أونلاين واحدة كحد أقصى في الفصل، إلا إذا أضافها الطالب بيده للتسجيل التجريبي
+                if (isOnline && semOnlineCount >= 1 && !cartIds.includes(c.id)) continue;
+
                 if (semHours + c.credit_hours <= maxSemHours) {
                     semCourses.push({ ...c, isSummer, currentSem });
                     semHours += c.credit_hours;
+                    if (isOnline) semOnlineCount++;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
                     
                     const type = c.type || 'compulsory';
