@@ -1865,10 +1865,26 @@ export default function Tree({
             supporting: totalSupporting > 0 ? totalSupporting : 6 
         };
 
+        const normalizeName = (value) => String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .replace(/[^\u0600-\u06FFa-z0-9 ]+/gi, '');
+        const nameHasAll = (name, parts) => {
+            const normalized = normalizeName(name);
+            return parts.every(part => normalized.includes(normalizeName(part)));
+        };
+
         while (remainingCourses.length > 0 && currentSem <= 12) {
             const simulatedPassedHours = courses
                 .filter(c => simulatedPassed.has(c.id))
                 .reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
+
+            const remainingHours = remainingCourses.reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
+            const isSummer = currentSem % 3 === 0;
+            const baseMaxSemHours = isSummer ? 9 : 18;
+            const canGraduateBoost = remainingHours <= baseMaxSemHours + 3;
+            const maxSemHours = currentSem === 1 ? 12 : (canGraduateBoost ? baseMaxSemHours + 3 : baseMaxSemHours);
 
             let availableNow = remainingCourses.filter(c => {
                 const type = c.type || 'compulsory';
@@ -1885,11 +1901,21 @@ export default function Tree({
 
             if (availableNow.length === 0) break;
 
+            const remainingOnlineCount = remainingCourses.filter(c => c.type === 'university_req').length;
+            const remainingSemestersEstimate = Math.max(1, Math.ceil(remainingHours / baseMaxSemHours));
+            const mustPlaceOnline = remainingOnlineCount > 0 && remainingOnlineCount >= remainingSemestersEstimate;
+
             // الترتيب الذكي: 
             // 1. الأولوية القصوى للمواد التي وضعها الطالب في التسجيل التجريبي.
             // 2. تأخير المواد التي تتطلب 90 ساعة فأكثر (مثل مشاريع التخرج) لنهاية الخطة.
             // 3. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
             availableNow.sort((a, b) => {
+                if (mustPlaceOnline) {
+                    const aOnline = a.type === 'university_req';
+                    const bOnline = b.type === 'university_req';
+                    if (aOnline && !bOnline) return -1;
+                    if (!aOnline && bOnline) return 1;
+                }
                 if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
                 if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
                 
@@ -1898,20 +1924,46 @@ export default function Tree({
                 if (aReq >= 90 && bReq < 90) return 1;
                 if (bReq >= 90 && aReq < 90) return -1;
 
-                return getCourseDepth(b.id) - getCourseDepth(a.id);
+                const depthDelta = getCourseDepth(b.id) - getCourseDepth(a.id);
+                if (depthDelta !== 0) return depthDelta;
+                return (Number(b.credit_hours) || 0) - (Number(a.credit_hours) || 0);
             });
 
             let semCourses = [];
             let semHours = 0;
             let semOnlineCount = 0; // لضمان عدم تكدس متطلبات الجامعة (الأونلاين) في فصل واحد
-            const isSummer = currentSem % 3 === 0;
-            const maxSemHours = isSummer ? 10 : 18; // الصيفي حده الأقصى 10 ساعات عادة
+
+            if (currentSem === 1) {
+                const pickFirstSemesterCourse = (predicate) => {
+                    const match = availableNow.find(c => predicate(c) && !semCourses.some(sc => sc.id === c.id));
+                    if (!match) return false;
+                    if (semHours + match.credit_hours > maxSemHours) return false;
+                    semCourses.push({ ...match, isSummer, currentSem });
+                    semHours += match.credit_hours;
+                    if (match.type === 'university_req') semOnlineCount += 1;
+                    remainingCourses = remainingCourses.filter(rc => rc.id !== match.id);
+                    const type = match.type || 'compulsory';
+                    if (categoryPassedHours[type] !== undefined) {
+                        categoryPassedHours[type] += Number(match.credit_hours || 0);
+                    }
+                    return true;
+                };
+
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['اساسيات', 'تكنولوجيا']));
+                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تصميم', 'منطق', 'رقمي']));
+                pickFirstSemesterCourse((c) => c.type === 'university_req' || nameHasAll(c.name, ['اونلاين']));
+                pickFirstSemesterCourse((c) => c.type === 'elective' && nameHasAll(c.name, ['اونلاين']));
+            }
 
             for (let c of availableNow) {
+                if (semHours >= maxSemHours) break;
+                if (semCourses.some(sc => sc.id === c.id)) continue;
                 const isOnline = c.type === 'university_req';
                 
                 // الحد الواقعي: مادة أونلاين واحدة كحد أقصى في الفصل، إلا إذا أضافها الطالب بيده للتسجيل التجريبي
                 if (isOnline && semOnlineCount >= 1 && !cartIds.includes(c.id)) continue;
+
+                if (mustPlaceOnline && semOnlineCount === 0 && !isOnline && availableNow.some(course => course.type === 'university_req')) continue;
 
                 if (semHours + c.credit_hours <= maxSemHours) {
                     semCourses.push({ ...c, isSummer, currentSem });
