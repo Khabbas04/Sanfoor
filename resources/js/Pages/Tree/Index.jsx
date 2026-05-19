@@ -23,6 +23,11 @@ const DESKTOP_NODE_HEIGHT = 88;
 const MOBILE_NODE_WIDTH = 160;
 const MOBILE_NODE_HEIGHT = 76;
 const ELECTIVE_MAX_HOURS = 9;
+const REQUIRED_TYPE_HOURS = {
+    compulsory: 87,
+    supporting: 6,
+    university_req: 30,
+};
 
 // Shared SweetAlert theme so all tree interactions feel visually consistent.
 const swalTheme = {
@@ -1745,6 +1750,41 @@ export default function Tree({
         [courses, cartIds]
     );
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
+    const typeProgress = useMemo(() => {
+        const passedByType = {
+            compulsory: 0,
+            supporting: 0,
+            university_req: 0,
+        };
+
+        courses.forEach((course) => {
+            if (!passedIds.includes(course.id)) return;
+            const type = course.type;
+            if (!Object.prototype.hasOwnProperty.call(passedByType, type)) return;
+            passedByType[type] += Number(course.credit_hours || 0);
+        });
+
+        return {
+            compulsory: {
+                label: 'إجباري',
+                color: 'from-indigo-400 to-indigo-500',
+                passed: passedByType.compulsory,
+                target: REQUIRED_TYPE_HOURS.compulsory,
+            },
+            supporting: {
+                label: 'مساندة',
+                color: 'from-fuchsia-400 to-fuchsia-500',
+                passed: passedByType.supporting,
+                target: REQUIRED_TYPE_HOURS.supporting,
+            },
+            university_req: {
+                label: 'متطلب جامعة',
+                color: 'from-cyan-400 to-cyan-500',
+                passed: passedByType.university_req,
+                target: REQUIRED_TYPE_HOURS.university_req,
+            },
+        };
+    }, [courses, passedIds]);
 
     const processedCourses = useMemo(() => {
         const coursesArray = Array.isArray(localPassedCourses) ? localPassedCourses : [];
@@ -2778,6 +2818,27 @@ export default function Tree({
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div className="bg-white border border-slate-200 p-4 rounded-[1.25rem] shadow-sm space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-[900] text-[12px] text-slate-800">📈 ملخص التقدم حسب النوع</h4>
+                                            <span className="text-[10px] font-bold text-slate-400">منجز / المطلوب</span>
+                                        </div>
+                                        {Object.values(typeProgress).map((item) => {
+                                            const pct = item.target > 0 ? Math.min((item.passed / item.target) * 100, 100) : 0;
+                                            return (
+                                                <div key={item.label} className="space-y-1">
+                                                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-600">
+                                                        <span>{item.label}</span>
+                                                        <span>{item.passed} / {item.target} س</span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className={`h-full bg-gradient-to-l ${item.color} transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]`} style={{ width: `${pct}%` }} />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
                                     {workloadAnalysis && (<div className={`p-3.5 rounded-xl border font-bold text-[12px] leading-relaxed shadow-sm ${workloadAnalysis.cls}`}>{workloadAnalysis.msg}</div>)}
