@@ -477,6 +477,14 @@ export default function Dashboard({
                 @keyframes sn-gradient-drift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
                 .hide-scrollbar::-webkit-scrollbar { display: none; }
                 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                @media print {
+                    body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    nav, header, footer, .no-print { display: none !important; }
+                    .max-w-7xl { max-width: 100% !important; padding: 0 !important; }
+                    .shadow-sm, .shadow-2xl { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+                    * { animation: none !important; transition: none !important; transform: none !important; opacity: 1 !important; color-adjust: exact !important; }
+                    .bg-white { border: 1px solid #e2e8f0 !important; }
+                }
             ` }} />
 
             <div className="py-6 sm:py-8 min-h-screen selection:bg-indigo-100 selection:text-indigo-900" dir="rtl">
@@ -504,6 +512,10 @@ export default function Dashboard({
                         </div>
 
                         <div className="relative z-10 p-6 sm:p-8 lg:p-10">
+                            <button onClick={() => window.print()} className="no-print absolute top-6 left-6 sm:top-8 sm:left-8 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-[12px] font-bold flex items-center gap-2 transition-all backdrop-blur-md shadow-sm active:scale-95">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                طباعة السجل
+                            </button>
                             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
                                 <div className="relative group shrink-0">
                                     <div className="absolute -inset-2 rounded-[1.4rem] opacity-0 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, #6366f1, #06b6d4)', filter: 'blur(18px)', animation: 'sn-glow 3s ease-in-out infinite', transition: 'opacity 700ms ease' }} />
@@ -603,149 +615,7 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    {/* 4. SMART SCHEDULE GENERATOR */}
-                    <div ref={smartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden" style={{ opacity: smartVis ? 1 : 0, transform: smartVis ? 'translateY(0)' : 'translateY(16px)', transition: `all 750ms ${spring}` }}>
-                        <div className="p-6 sm:p-8 border-b border-slate-100 bg-gradient-to-l from-cyan-50/60 via-white to-indigo-50/50">
-                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                                        <span className="text-2xl">🧠</span> الجدول الذكي للفصل القادم
-                                    </h3>
-                                    <p className="text-xs font-bold text-slate-500 mt-1">اختر أسلوبك، والنظام يقترح جدول بدون تعارض متطلبات وبحمل دراسي مناسب لك.</p>
-                                </div>
-                                <div className="flex items-center gap-2 text-[11px] font-black bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">
-                                    <span className="text-slate-400">الخطة الحالية:</span>
-                                    <span className="text-indigo-600">{cartTotalHours} ساعة</span>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                                <div>
-                                    <p className="text-[11px] font-black text-slate-500 mb-2">نمط الفصل</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {[
-                                            { id: 'light', label: 'خفيف', icon: '🏖️' },
-                                            { id: 'balanced', label: 'متوازن', icon: '⚖️' },
-                                            { id: 'heavy', label: 'مكثف', icon: '🚀' },
-                                        ].map((mode) => (
-                                            <button key={mode.id} onClick={() => setSmartPace(mode.id)} className={`rounded-xl border px-3 py-2 text-xs font-black transition-all ${smartPace === mode.id ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
-                                                <span className="ml-1">{mode.icon}</span>{mode.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <p className="text-[11px] font-black text-slate-500 mb-2">الأولوية</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {[
-                                            { id: 'major', label: 'مواد تخصص' },
-                                            { id: 'graduation', label: 'تسريع تخرج' },
-                                            { id: 'gpa', label: 'حماية المعدل' },
-                                        ].map((focus) => (
-                                            <button key={focus.id} onClick={() => setSmartFocus(focus.id)} className={`rounded-xl border px-2 py-2 text-[11px] font-black transition-all ${smartFocus === focus.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200/60' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>
-                                                {focus.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 bg-slate-50/60 cursor-pointer">
-                                    <div>
-                                        <p className="text-[12px] font-black text-slate-700">توازن الحمل</p>
-                                        <p className="text-[10px] font-bold text-slate-400">حد أقصى 3 مواد ثقيلة في الخطة المقترحة</p>
-                                    </div>
-                                    <button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-14 h-8 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                                        <span className={`block w-6 h-6 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-6'}`} />
-                                    </button>
-                                </label>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-3 mt-6">
-                                <button onClick={generateSmartPlan} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-[12px] font-black transition-colors shadow-lg shadow-indigo-200/60">
-                                    توليد جدول ذكي
-                                </button>
-                                <span className="text-[11px] font-bold text-slate-500">الهدف المتوقع: {smartPace === 'heavy' ? 18 : smartPace === 'light' ? 12 : 15} ساعة</span>
-                            </div>
-                        </div>
-
-                        <div className="p-6 sm:p-8 bg-white">
-                            {smartPlan.length > 0 ? (
-                                <>
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span className="text-[11px] font-black bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">{smartHours} ساعة مقترحة</span>
-                                            <span className="text-[11px] font-black bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">{smartPlan.length} مواد</span>
-                                            {smartPlanInsights ? <span className="text-[11px] font-black bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">{smartPlanInsights.majorCount} تخصص • {smartPlanInsights.universityCount} جامعة</span> : null}
-                                            {smartPlanInsights ? <span className="text-[11px] font-black bg-amber-50 text-amber-700 px-3 py-1 rounded-full border border-amber-200">صعوبة متوسطة {Math.round(smartPlanInsights.avgDifficulty)}%</span> : null}
-                                        </div>
-                                        <button onClick={applySmartPlan} disabled={isApplyingSmartPlan} className="bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl text-[12px] font-black transition-colors">
-                                            {isApplyingSmartPlan ? 'جاري التطبيق...' : 'اعتماد الخطة في التسجيل التجريبي'}
-                                        </button>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                                        {smartPlan.map((course, idx) => (
-                                            <div key={course.id} className="rounded-2xl border border-slate-100 p-4 hover:border-indigo-200 hover:bg-indigo-50/40 transition-all" style={{ animation: `sn-up 0.45s ${spring} ${idx * 45}ms both` }}>
-                                                <div className="flex items-center justify-between gap-2 mb-2">
-                                                    <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-1 rounded-md">{course.credit_hours} س</span>
-                                                    <span className="text-[10px] font-bold text-slate-400 font-mono">{course.code}</span>
-                                                </div>
-                                                <h4 className="text-[13px] font-black text-slate-800 line-clamp-2">{course.name}</h4>
-                                                <p className="text-[10px] font-bold text-slate-400 mt-2">{course.major_id !== null ? 'مادة تخصص' : 'متطلب جامعة'} • سنة {course.recommended_year} • صعوبة {Math.round(course.difficulty_score || 0)}%</p>
-                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${(course.recommendation_confidence || 0) >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (course.recommendation_confidence || 0) >= 55 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                                                        ثقة الترشيح {Math.round(course.recommendation_confidence || 0)}%
-                                                    </span>
-                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-md border ${(course.data_confidence || 0) >= 65 ? 'bg-sky-50 text-sky-700 border-sky-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                                                        موثوقية البيانات {Math.round(course.data_confidence || 0)}%
-                                                    </span>
-                                                </div>
-                                                <div className="mt-2 flex flex-wrap gap-1">
-                                                    {(course.recommendation_reasons || []).slice(0, 2).map((reason, reasonIdx) => (
-                                                        <span key={`${course.id}-${reasonIdx}`} className="text-[10px] font-bold text-slate-600 bg-white border border-slate-200 rounded-md px-2 py-0.5">{reason}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="text-center py-10 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60">
-                                    <span className="text-4xl opacity-60">📅</span>
-                                    <p className="text-sm font-black text-slate-700 mt-3">لا يوجد اقتراح بعد</p>
-                                    <p className="text-xs font-bold text-slate-400 mt-1">اضغط "توليد جدول ذكي" للحصول على أفضل خطة حسب وضعك الأكاديمي.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* 🔥 5. SMART SKILLS SECTION — الميزة الجديدة 🔥 */}
-                    <div ref={skillsRef} className="space-y-4" style={{ opacity: skillsVis ? 1 : 0, transform: skillsVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring}` }}>
-                        <div className="flex items-center justify-between px-2">
-                            <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                                <span className="text-xl">🚀</span> سيرة المهارات الذكية
-                            </h3>
-                            <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-widest">تحليل AI مباشر</span>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                            {/* استخدام safeSkills هنا لتجنب المشاكل */}
-                            {safeSkills.length > 0 ? safeSkills.map((skill, idx) => (
-                                <div key={idx} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all group relative overflow-hidden" style={{ animation: `sn-pop 0.5s ${spring} ${idx * 60}ms both` }}>
-                                    <div className="absolute top-0 right-0 w-8 h-8 bg-indigo-50 rounded-bl-xl -z-0 group-hover:scale-[4] transition-transform duration-500 opacity-30" />
-                                    <div className="relative z-10">
-                                        <p className="text-[13px] font-black text-slate-800 mb-1">{skill.name}</p>
-                                        <p className="text-[9px] font-bold text-slate-400 line-clamp-1">مكتسبة من: {skill.course_source}</p>
-                                    </div>
-                                </div>
-                            )) : (
-                                <div className="col-span-full py-6 text-center bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200">
-                                    <p className="text-xs font-bold text-slate-400">أنجز المزيد من المواد لتستخلص مهاراتك التقنية هنا!</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
                         
