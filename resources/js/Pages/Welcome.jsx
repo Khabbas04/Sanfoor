@@ -383,18 +383,7 @@ export default function Welcome({ auth }) {
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-                        <div className={`text-center mb-16 sm:mb-24 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold mb-6 border border-indigo-100">
-                                <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                                <span>ليش سنفور؟</span>
-                            </div>
-                            <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-slate-900 mb-5 tracking-tight leading-[1.15]">
-                                كل اللي تحتاجه <span className="txt-grad-dark">بمكان واحد.</span>
-                            </h2>
-                            <p className="text-slate-500 font-medium max-w-xl mx-auto text-sm sm:text-lg leading-relaxed">
-                                أدوات مصممة عشان تركز على دراستك بدل ما تضيع وقتك بالتخطيط المعقد.
-                            </p>
-                        </div>
+
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
                             {[
