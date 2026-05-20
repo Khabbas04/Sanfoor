@@ -1030,7 +1030,7 @@ export default function Tree({
         let remainingCourses = [...courses.filter(c => !simulatedPassed.has(c.id))];
         let generatedSemesters = [];
         let currentSem = 1;
-        const maxSemesters = 7; // 3.5 years max
+        const maxSemesters = 20; // Allow enough semesters to complete all requirements
 
         // تتبع الساعات المنجزة لكل نوع لضمان عدم تجاوز الخطة المطلوبة
         let categoryPassedHours = {
@@ -1042,7 +1042,9 @@ export default function Tree({
 
         // حدود الخطة الدراسية الثابتة
         const caps = { 
-            elective: 9 // كما طلب المستخدم: الاختياري 9 ساعات فقط، والإجباري ينزل كاملاً بدون حد
+            elective: 9, // الاختياري 9 ساعات
+            supporting: 6, // المساندة 6 ساعات
+            university_req: 30 // متطلبات الجامعة 30 ساعة
         };
 
         const normalizeName = (value) => String(value || '')
@@ -1070,9 +1072,8 @@ export default function Tree({
             let availableNow = remainingCourses.filter(c => {
                 const type = c.type || 'compulsory';
                 
-                // التخطيط الواقعي: تطبيق حد الساعات فقط على المواد الاختيارية (elective).
-                // جميع المواد الإجبارية يجب أن تكون موجودة في الخطة.
-                if (type === 'elective' && categoryPassedHours[type] >= caps.elective && !cartIds.includes(c.id)) return false;
+                // التخطيط الواقعي: تطبيق حد الساعات للمواد بناءً على الحدود الثابتة
+                if (caps[type] !== undefined && categoryPassedHours[type] >= caps[type] && !cartIds.includes(c.id)) return false;
 
                 const requiredHours = Number(c.minimum_passed_hours || 0);
                 if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
@@ -1124,7 +1125,7 @@ export default function Tree({
                     if (match.type === 'university_req') semOnlineCount += 1;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== match.id);
                     const type = match.type || 'compulsory';
-                    if (type === 'elective' && categoryPassedHours[type] + Number(match.credit_hours || 0) > caps.elective && !cartIds.includes(match.id)) return false;
+                    if (caps[type] !== undefined && categoryPassedHours[type] + Number(match.credit_hours || 0) > caps[type] && !cartIds.includes(match.id)) return false;
                     
                     if (categoryPassedHours[type] !== undefined) {
                         categoryPassedHours[type] += Number(match.credit_hours || 0);
@@ -1150,7 +1151,7 @@ export default function Tree({
                 if (mustPlaceOnline && semOnlineCount === 0 && !isOnline && availableNow.some(course => course.type === 'university_req')) continue;
 
                 const type = c.type || 'compulsory';
-                if (type === 'elective' && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps.elective && !cartIds.includes(c.id)) continue;
+                if (caps[type] !== undefined && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps[type] && !cartIds.includes(c.id)) continue;
 
                 if (semHours + c.credit_hours <= maxSemHours) {
                     semCourses.push({ ...c, isSummer, currentSem });
@@ -1170,7 +1171,7 @@ export default function Tree({
                     if (semHours >= minSemHours) break;
                     if (semHours + c.credit_hours > maxSemHours) continue;
                     const type = c.type || 'compulsory';
-                    if (type === 'elective' && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps.elective && !cartIds.includes(c.id)) continue;
+                    if (caps[type] !== undefined && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps[type] && !cartIds.includes(c.id)) continue;
 
                     semCourses.push({ ...c, isSummer, currentSem });
                     semHours += c.credit_hours;
