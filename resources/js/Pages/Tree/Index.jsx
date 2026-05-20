@@ -1043,8 +1043,8 @@ export default function Tree({
         // حدود الخطة الدراسية الثابتة
         const caps = { 
             elective: 9, // الاختياري 9 ساعات
-            supporting: 6, // المساندة 6 ساعات
-            university_req: 30 // متطلبات الجامعة 30 ساعة
+            supporting: 6 // المساندة 6 ساعات
+            // متطلبات الجامعة والإجباري يتم إنزالها بالكامل بدون حد
         };
 
         const normalizeName = (value) => String(value || '')
@@ -1074,6 +1074,10 @@ export default function Tree({
                 
                 // التخطيط الواقعي: تطبيق حد الساعات للمواد بناءً على الحدود الثابتة
                 if (caps[type] !== undefined && categoryPassedHours[type] >= caps[type] && !cartIds.includes(c.id)) return false;
+
+                // تأخير مواد التخرج لآخر فصل ممكن (أقل من 18 ساعة متبقية)
+                const isGraduationProject = nameHasAll(c.name, ['حلقة', 'بحث']) || nameHasAll(c.name, ['مشروع', 'تخرج']);
+                if (isGraduationProject && remainingHours > maxSemHours) return false;
 
                 const requiredHours = Number(c.minimum_passed_hours || 0);
                 if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
@@ -1243,7 +1247,12 @@ export default function Tree({
     }, [show4YearPlan, planDraft, approvedPlan, buildPlanFromPayload]);
 
     useEffect(() => {
-        if (show4YearPlan) return;
+        if (show4YearPlan) {
+            document.body.style.overflow = 'hidden';
+            return;
+        } else {
+            document.body.style.overflow = '';
+        }
         setPlanDraft(null);
         setPlanNotes('');
         setPlanSearch('');
@@ -2257,8 +2266,8 @@ export default function Tree({
                     </div>
 
                     <div className="flex-1 overflow-hidden bg-[#f8fafc]">
-                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] landscape:grid-cols-[250px_1fr] landscape:lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-hidden">
-                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm overflow-hidden landscape:py-2">
+                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] landscape:grid-cols-[250px_1fr] landscape:lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-y-auto lg:overflow-hidden relative">
+                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm max-h-[50vh] lg:max-h-none lg:overflow-hidden landscape:max-h-[60vh] landscape:lg:max-h-none landscape:py-2">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-[900] text-[13px] text-slate-800">📚 مكتبة المواد</h3>
                                     <label className="text-[10px] font-bold text-slate-500 flex items-center gap-2 cursor-pointer">
@@ -3431,7 +3440,7 @@ export default function Tree({
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'top-4 right-4 sm:top-5 sm:right-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : 'bottom-3 left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg'} z-[100] px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
+                            className={`absolute ${isFullScreen ? 'bottom-4 left-4 sm:bottom-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : 'bottom-3 left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg'} z-[100] px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
                         </button>
