@@ -376,7 +376,7 @@ export default function Welcome({ auth }) {
                     2. FEATURES
                 ════════════════════════════════════ */}
                 <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
                     <div className="absolute inset-0 dot-grid opacity-40 pointer-events-none z-0" />
@@ -461,7 +461,7 @@ export default function Welcome({ auth }) {
                     3. TREE PREVIEW (Animated SVG)
                 ════════════════════════════════════ */}
                 <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-white/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
                     </div>
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-5 z-0"></div>
@@ -528,7 +528,7 @@ export default function Welcome({ auth }) {
                     5. AI BOT SECTION
                 ════════════════════════════════════ */}
                 <section ref={aiRef} className="py-24 sm:py-32 bg-slate-50 relative overflow-hidden">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">SMART AI</span>
                     </div>
                     <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none z-0" />
@@ -609,7 +609,7 @@ export default function Welcome({ auth }) {
                     6. HOW IT WORKS
                 ════════════════════════════════════ */}
                 <section ref={howRef} className="py-20 sm:py-32 bg-white relative overflow-hidden">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">WORKFLOW</span>
                     </div>
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
