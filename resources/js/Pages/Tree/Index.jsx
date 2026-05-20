@@ -1087,10 +1087,13 @@ export default function Tree({
             const remainingSemestersEstimate = Math.max(1, Math.ceil(remainingHours / baseMaxSemHours));
             const mustPlaceOnline = remainingOnlineCount > 0 && remainingOnlineCount >= remainingSemestersEstimate;
 
-            // الترتيب الذكي: 
+            // الترتيب الذكي جداً والمبني على الأولويات المنطقية:
             // 1. الأولوية القصوى للمواد التي وضعها الطالب في التسجيل التجريبي.
-            // 2. تأخير المواد التي تتطلب 90 ساعة فأكثر (مثل مشاريع التخرج) لنهاية الخطة.
-            // 3. ثم المواد التي تفتح مسارات طويلة (المسار الحرج).
+            // 2. تأخير المواد التي تتطلب 90 ساعة فأكثر (مشاريع التخرج).
+            // 3. المسار الحرج (Depth): المواد التي تفتح سلسلة طويلة من المواد بعدها.
+            // 4. التأثير الإجمالي (Impact): المواد التي تفتح عدداً كبيراً من المواد.
+            // 5. الفصل الدراسي الموصى به (Semester): المواد المخصصة للسنة الأولى تُؤخذ قبل مواد السنة الرابعة.
+            // 6. عدد الساعات (الأكبر أولاً).
             availableNow.sort((a, b) => {
                 if (mustPlaceOnline) {
                     const aOnline = a.type === 'university_req';
@@ -1098,16 +1101,31 @@ export default function Tree({
                     if (aOnline && !bOnline) return -1;
                     if (!aOnline && bOnline) return 1;
                 }
+                
+                // 1. User Cart
                 if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
                 if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
                 
+                // 2. Late requirements (>= 90 hours)
                 const aReq = Number(a.minimum_passed_hours || 0);
                 const bReq = Number(b.minimum_passed_hours || 0);
                 if (aReq >= 90 && bReq < 90) return 1;
                 if (bReq >= 90 && aReq < 90) return -1;
 
+                // 3. Critical Path Length (Depth)
                 const depthDelta = getCourseDepth(b.id) - getCourseDepth(a.id);
                 if (depthDelta !== 0) return depthDelta;
+
+                // 4. Total Unlocked Courses (Impact)
+                const impactDelta = getTotalImpact(b.id) - getTotalImpact(a.id);
+                if (impactDelta !== 0) return impactDelta;
+
+                // 5. Recommended Semester (Earlier is better)
+                const semA = Number(a.semester || 99);
+                const semB = Number(b.semester || 99);
+                if (semA !== semB) return semA - semB;
+
+                // 6. Credit hours (Higher first)
                 return (Number(b.credit_hours) || 0) - (Number(a.credit_hours) || 0);
             });
 
