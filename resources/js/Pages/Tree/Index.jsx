@@ -2266,8 +2266,8 @@ export default function Tree({
                     </div>
 
                     <div className="flex-1 overflow-hidden bg-[#f8fafc]">
-                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] landscape:grid-cols-[250px_1fr] landscape:lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-y-auto lg:overflow-hidden relative">
-                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm max-h-[50vh] lg:max-h-none lg:overflow-hidden landscape:max-h-[60vh] landscape:lg:max-h-none landscape:py-2">
+                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-y-auto lg:overflow-hidden relative overscroll-contain">
+                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm max-h-[45vh] lg:max-h-none lg:h-full lg:overflow-hidden">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-[900] text-[13px] text-slate-800">📚 مكتبة المواد</h3>
                                     <label className="text-[10px] font-bold text-slate-500 flex items-center gap-2 cursor-pointer">
@@ -2344,7 +2344,7 @@ export default function Tree({
                                 </div>
                             </div>
 
-                            <div className="h-full overflow-y-auto hide-scrollbar">
+                            <div className="h-auto lg:h-full lg:overflow-y-auto hide-scrollbar pb-8 lg:pb-0">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                                     {semesters.map((sem, i) => {
                                         const semInfo = planSemesterWarnings[i] || { semHours: 0, warnings: [] };
