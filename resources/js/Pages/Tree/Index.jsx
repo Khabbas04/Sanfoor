@@ -1353,10 +1353,14 @@ export default function Tree({
                 return;
             }
         }
-        const generated = buildPredictivePlan();
-        setPlanDraft(generated);
+        const emptySemesters = Array.from({ length: 8 }).map((_, idx) => ({
+            semester: idx + 1,
+            is_summer: false,
+            courses: []
+        }));
+        setPlanDraft({ semesters: emptySemesters });
         setPlanNotes('');
-    }, [show4YearPlan, planDraft, approvedPlan, buildPlanFromPayload, buildPredictivePlan]);
+    }, [show4YearPlan, planDraft, approvedPlan, buildPlanFromPayload]);
 
     useEffect(() => {
         if (show4YearPlan) return;
@@ -2352,7 +2356,7 @@ export default function Tree({
         };
 
         return (
-            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-6">
+            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[999] flex items-center justify-center p-3 sm:p-6">
                 <div className="bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden landscape:h-[98vh]" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '16px 16px' }} />
@@ -2405,22 +2409,41 @@ export default function Tree({
                                     ))}
                                 </div>
                                 <div className="mt-3 text-[10px] font-bold text-slate-400">حدد الفصل ثم أضف المادة.</div>
-                                <div className="mt-3 flex-1 overflow-y-auto space-y-2 hide-scrollbar">
-                                    {planLibraryCourses.map((course) => {
-                                        const alreadyUsed = planCourseIds.has(course.id);
+                                <div className="mt-3 flex-1 overflow-y-auto space-y-4 hide-scrollbar">
+                                    {['compulsory', 'university_req', 'supporting', 'elective', 'other'].map(type => {
+                                        const groupCourses = planLibraryCourses.filter(c => {
+                                            const t = c.type || 'compulsory';
+                                            if (type === 'other') return !['compulsory', 'university_req', 'supporting', 'elective'].includes(t);
+                                            return t === type;
+                                        });
+                                        if (groupCourses.length === 0) return null;
+                                        
+                                        const typeLabels = { compulsory: 'إجباري تخصص', university_req: 'متطلبات الجامعة', supporting: 'متطلبات مساندة', elective: 'مواد اختيارية', other: 'أخرى' };
+                                        const typeColors = { compulsory: 'bg-indigo-100 text-indigo-800', university_req: 'bg-emerald-100 text-emerald-800', supporting: 'bg-fuchsia-100 text-fuchsia-800', elective: 'bg-amber-100 text-amber-800', other: 'bg-slate-100 text-slate-800' };
+
                                         return (
-                                            <div key={course.id} className={`border rounded-xl p-2.5 text-[11px] font-bold flex items-center justify-between gap-2 ${alreadyUsed ? 'bg-slate-50 text-slate-400 border-slate-200' : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-200'}`}>
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate">{course.name}</p>
-                                                    <p className="text-[9px] text-slate-400 mt-0.5">{course.code} • {course.credit_hours}س</p>
+                                            <div key={type} className="space-y-2">
+                                                <div className={`text-[10px] font-black px-2.5 py-1 rounded-lg inline-block ${typeColors[type]}`}>
+                                                    {typeLabels[type]} ({groupCourses.length})
                                                 </div>
-                                                <button
-                                                    disabled={alreadyUsed}
-                                                    onClick={() => addCourseToSemester(course, planSelectedSemester)}
-                                                    className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black text-[12px] border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                                                >
-                                                    +
-                                                </button>
+                                                {groupCourses.map((course) => {
+                                                    const alreadyUsed = planCourseIds.has(course.id);
+                                                    return (
+                                                        <div key={course.id} className={`border rounded-xl p-2.5 text-[11px] font-bold flex items-center justify-between gap-2 ${alreadyUsed ? 'bg-slate-50 text-slate-400 border-slate-200' : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-200'}`}>
+                                                            <div className="min-w-0 flex-1 cursor-grab" draggable={!alreadyUsed} onDragStart={(e) => { if(!alreadyUsed) setDragCourseMeta({ courseId: course.id, isLibrary: true }); }}>
+                                                                <p className="truncate">{course.name}</p>
+                                                                <p className="text-[9px] text-slate-400 mt-0.5">{course.code} • {course.credit_hours}س</p>
+                                                            </div>
+                                                            <button
+                                                                disabled={alreadyUsed}
+                                                                onClick={() => addCourseToSemester(course, planSelectedSemester)}
+                                                                className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 font-black text-[12px] border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                                            >
+                                                                +
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         );
                                     })}
@@ -2449,7 +2472,12 @@ export default function Tree({
                                                 onDrop={(e) => {
                                                     e.preventDefault();
                                                     if (!dragCourseMeta) return;
-                                                    moveCourseToSemester(dragCourseMeta.courseId, dragCourseMeta.fromIndex, i);
+                                                    if (dragCourseMeta.isLibrary) {
+                                                        const course = courses.find(c => c.id === dragCourseMeta.courseId);
+                                                        if (course) addCourseToSemester(course, i);
+                                                    } else {
+                                                        moveCourseToSemester(dragCourseMeta.courseId, dragCourseMeta.fromIndex, i);
+                                                    }
                                                     setDragCourseMeta(null);
                                                 }}
                                                 className={`bg-white border rounded-[1.25rem] p-4 shadow-sm hover:shadow-lg transition-all flex flex-col ${sem.is_summer ? 'border-amber-200' : 'border-slate-200/80'}`}
@@ -2472,25 +2500,11 @@ export default function Tree({
                                                         <div
                                                             key={course.id}
                                                             draggable
-                                                            onDragStart={() => setDragCourseMeta({ courseId: course.id, fromIndex: i })}
-                                                            className="text-[11px] bg-slate-50/80 border border-slate-100 hover:border-indigo-200 p-2.5 rounded-xl flex justify-between items-center font-bold text-slate-700 transition-colors group"
+                                                            onDragStart={() => setDragCourseMeta({ courseId: course.id, fromIndex: i, isLibrary: false })}
+                                                            className="text-[11px] bg-slate-50/80 border border-slate-100 hover:border-indigo-200 p-2.5 rounded-xl flex justify-between items-center font-bold text-slate-700 transition-colors group cursor-grab"
                                                         >
                                                             <span className="truncate flex-1 ml-2" title={course.name}>{course.name}</span>
                                                             <div className="flex items-center gap-1">
-                                                                <button
-                                                                    onClick={() => moveCourseToSemester(course.id, i, Math.max(0, i - 1))}
-                                                                    className="w-6 h-6 rounded-md bg-white text-slate-400 hover:text-indigo-600 border border-slate-200 text-[10px]"
-                                                                    title="نقل للأعلى"
-                                                                >
-                                                                    ↑
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => moveCourseToSemester(course.id, i, Math.min(semesters.length - 1, i + 1))}
-                                                                    className="w-6 h-6 rounded-md bg-white text-slate-400 hover:text-indigo-600 border border-slate-200 text-[10px]"
-                                                                    title="نقل للأسفل"
-                                                                >
-                                                                    ↓
-                                                                </button>
                                                                 <button
                                                                     onClick={() => removeCourseFromPlan(course.id)}
                                                                     className="w-6 h-6 rounded-md bg-white text-slate-400 hover:text-rose-600 border border-slate-200 text-[10px]"
