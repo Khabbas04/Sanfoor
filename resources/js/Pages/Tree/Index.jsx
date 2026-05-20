@@ -557,6 +557,104 @@ export default function Tree({
 
     // University aggregates (no free elective)
 
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    const handlePrint = useCallback(async () => {
+        if (!flowInstance) return;
+        try {
+            setIsPrinting(true);
+            const nodesBounds = getRectOfNodes(flowInstance.getNodes());
+            
+            const padding = 150;
+            const exportScale = 2; // For professional high-res quality
+            
+            const width = nodesBounds.width + padding * 2;
+            const height = nodesBounds.height + padding * 2 + 150; // Extra height for the template
+            
+            const transform = getTransformForBounds(
+                {
+                    x: nodesBounds.x,
+                    y: nodesBounds.y - 120, // Adjust Y up to show the title
+                    width: nodesBounds.width,
+                    height: nodesBounds.height + 120
+                },
+                width,
+                height,
+                0.1,
+                2
+            );
+
+            // Hide the background dots for a cleaner print
+            const elementsToHide = document.querySelectorAll('.react-flow__background');
+            elementsToHide.forEach(el => el.style.display = 'none');
+
+            // Inject the template header temporarily
+            const viewport = document.querySelector('.react-flow__viewport');
+            const header = document.createElement('div');
+            header.id = 'temp-print-header';
+            header.style.position = 'absolute';
+            header.style.top = `${nodesBounds.y - 120}px`;
+            header.style.left = `${nodesBounds.x + nodesBounds.width / 2}px`;
+            header.style.transform = 'translate(-50%, 0)';
+            header.style.textAlign = 'center';
+            header.style.width = 'max-content';
+            header.style.fontFamily = 'inherit';
+            header.innerHTML = `
+                <h1 style="font-size: 64px; font-weight: 900; color: #0f172a; margin: 0 0 15px 0; letter-spacing: -2px;">الخطة الشجرية</h1>
+                <p style="font-size: 28px; color: #64748b; font-weight: 800; margin: 0;">${student_name} • ${major_name || 'غير محدد'}</p>
+            `;
+            viewport.appendChild(header);
+
+            const dataUrl = await toPng(viewport, {
+                backgroundColor: '#ffffff',
+                width: width,
+                height: height,
+                style: {
+                    width: `${width}px`,
+                    height: `${height}px`,
+                    transform: `translate(${transform[0]}px, ${transform[1]}px) scale(${transform[2]})`,
+                    transformOrigin: 'top left'
+                },
+                pixelRatio: exportScale,
+                filter: (node) => node.id !== 'temp-print-header-ignore'
+            });
+
+            // Cleanup
+            if (header.parentNode) {
+                header.parentNode.removeChild(header);
+            }
+            elementsToHide.forEach(el => el.style.display = '');
+            
+            // Trigger download instead of window.print()
+            const link = document.createElement('a');
+            link.download = `study_plan_${major_name || 'plan'}.png`;
+            link.href = dataUrl;
+            link.click();
+            
+            setIsPrinting(false);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'تم التصدير بنجاح!',
+                text: 'تم حفظ الخطة كصورة احترافية بدقة عالية.',
+                ...swalTheme
+            });
+        } catch (error) {
+            console.error('Print failed', error);
+            setIsPrinting(false);
+            // Ensure cleanup runs even on error
+            const header = document.getElementById('temp-print-header');
+            if (header && header.parentNode) header.parentNode.removeChild(header);
+            document.querySelectorAll('.react-flow__background').forEach(el => el.style.display = '');
+
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ في التصدير',
+                text: 'حدث خطأ أثناء محاولة حفظ الصورة.',
+                ...swalTheme
+            });
+        }
+    }, [flowInstance, major_name, student_name]);
 
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
@@ -3027,7 +3125,14 @@ export default function Tree({
                                     <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400 text-[10px]">⌄</span>
                                 </div>
 
-
+                                <button
+                                    onClick={handlePrint}
+                                    disabled={isPrinting}
+                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
+                                    title="طباعة الخطة الشجرية"
+                                >
+                                    {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
+                                </button>
 
                                 {canEditTreePositions && !positionEditMode && (
                                     <button
