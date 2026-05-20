@@ -566,17 +566,21 @@ export default function Tree({
             const nodesBounds = getRectOfNodes(flowInstance.getNodes());
             
             const padding = 150;
+            const headerHeight = 220; // Height of the new header block
             const exportScale = 2; // For professional high-res quality
             
-            const width = nodesBounds.width + padding * 2;
-            const height = nodesBounds.height + padding * 2 + 150; // Extra height for the template
+            // Ensure the template width is at least wide enough for a good layout
+            const contentWidth = Math.max(nodesBounds.width, 1100);
+            
+            const width = contentWidth + padding * 2;
+            const height = nodesBounds.height + padding * 2 + headerHeight + 50; // 50px gap
             
             const transform = getTransformForBounds(
                 {
-                    x: nodesBounds.x,
-                    y: nodesBounds.y - 120, // Adjust Y up to show the title
-                    width: nodesBounds.width,
-                    height: nodesBounds.height + 120
+                    x: nodesBounds.x - (contentWidth - nodesBounds.width) / 2, // Center the tree if contentWidth > nodesBounds.width
+                    y: nodesBounds.y - headerHeight - 50,
+                    width: contentWidth,
+                    height: nodesBounds.height + headerHeight + 50
                 },
                 width,
                 height,
@@ -593,15 +597,45 @@ export default function Tree({
             const header = document.createElement('div');
             header.id = 'temp-print-header';
             header.style.position = 'absolute';
-            header.style.top = `${nodesBounds.y - 120}px`;
+            // Position above the nodes
+            header.style.top = `${nodesBounds.y - headerHeight - 50}px`;
             header.style.left = `${nodesBounds.x + nodesBounds.width / 2}px`;
             header.style.transform = 'translate(-50%, 0)';
-            header.style.textAlign = 'center';
-            header.style.width = 'max-content';
+            header.style.width = `${contentWidth}px`;
             header.style.fontFamily = 'inherit';
+            
+            // Replicate the exact design from the screenshot
             header.innerHTML = `
-                <h1 style="font-size: 64px; font-weight: 900; color: #0f172a; margin: 0 0 15px 0; letter-spacing: -2px;">الخطة الشجرية</h1>
-                <p style="font-size: 28px; color: #64748b; font-weight: 800; margin: 0;">${student_name} • ${major_name || 'غير محدد'}</p>
+                <div dir="rtl" style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #cbd5e1; border-radius: 20px; padding: 25px 40px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.02); width: 100%; box-sizing: border-box; height: ${headerHeight}px;">
+                    <!-- Right Section (University Info) -->
+                    <div style="text-align: right; flex: 1;">
+                        <h2 style="font-size: 20px; font-weight: 900; margin: 0; color: #0f172a;">جامعة الزرقاء</h2>
+                        <p style="font-size: 14px; font-weight: 700; margin: 6px 0 0; color: #475569;">كلية تكنولوجيا المعلومات</p>
+                        <p style="font-size: 14px; font-weight: 700; margin: 4px 0 0; color: #4f46e5;">تخصص ${major_name || 'غير محدد'}</p>
+                    </div>
+
+                    <!-- Center Section (Title) -->
+                    <div style="text-align: center; flex: 1.5;">
+                        <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+                            <svg style="width: 28px; height: 28px; color: #475569;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <h1 style="font-size: 22px; font-weight: 900; margin: 0; color: #0f172a;">الخطة الدراسية الاسترشادية الشجرية</h1>
+                        <p style="font-size: 12px; font-weight: bold; margin: 6px 0 0; color: #64748b; text-transform: uppercase;">STUDENT: ${student_name || 'طالب'}</p>
+                    </div>
+
+                    <!-- Left Section (App Info) -->
+                    <div style="text-align: left; flex: 1; display: flex; flex-direction: column; align-items: flex-end;">
+                        <div style="background: #f8fafc; padding: 12px 20px; border-radius: 14px; border: 1px dashed #cbd5e1; text-align: right; width: fit-content;">
+                            <p style="font-size: 12px; font-weight: 900; margin: 0; color: #0f172a; display: flex; align-items: center; gap: 6px; justify-content: flex-end;">
+                                رؤية المسار بمكان واحد <span style="color: #4f46e5;">✨</span>
+                            </p>
+                            <p style="font-size: 10px; font-weight: 800; margin: 6px 0 0; color: #64748b;">تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</p>
+                            <p style="font-size: 10px; font-weight: 800; margin: 3px 0 0; color: #10b981;">الخطة الأكاديمية الذكية (AI)</p>
+                        </div>
+                    </div>
+                </div>
             `;
             viewport.appendChild(header);
 
