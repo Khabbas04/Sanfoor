@@ -1235,7 +1235,6 @@ export default function Tree({
         setPlanNotes('');
         setPlanSearch('');
         setDragCourseMeta(null);
-        setPlanPrintMode(false);
     }, [show4YearPlan]);
 
     // 🆕 بطاقات التحليل الذكي
