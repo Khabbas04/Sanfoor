@@ -211,7 +211,6 @@ export default function Tree({
     const [planSearch, setPlanSearch] = useState('');
     const [planNotes, setPlanNotes] = useState('');
     const [isSavingPlan, setIsSavingPlan] = useState(false);
-    const [planPrintMode, setPlanPrintMode] = useState(false);
     const [dragCourseMeta, setDragCourseMeta] = useState(null);
     const [showAllPlanCourses, setShowAllPlanCourses] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
@@ -275,13 +274,6 @@ export default function Tree({
         return { semesters, notes: payload.notes || '' };
     }, [courseById]);
 
-
-    useEffect(() => {
-        if (!planPrintMode) return;
-        const handleAfterPrint = () => setPlanPrintMode(false);
-        window.addEventListener('afterprint', handleAfterPrint);
-        return () => window.removeEventListener('afterprint', handleAfterPrint);
-    }, [planPrintMode]);
 
     useEffect(() => {
         setApprovedPlan(approved_plan || null);
@@ -351,68 +343,80 @@ export default function Tree({
         setPlanDraft((prev) => (prev ? updater(prev) : prev));
     }, []);
 
-    const checkPrerequisitesForPlan = useCallback((course, targetSemesterIndex, currentSemesters) => {
-        if (!course) return { valid: true };
-
-        if (course.type === 'elective') {
-            const currentElectiveHours = currentSemesters.reduce((total, sem) => {
-                return total + (sem.courses || []).filter(c => c.type === 'elective' && c.id !== course.id).reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0);
-            }, 0);
-            const passedElectiveHours = localPassedCourses.filter(c => c.type === 'elective' && c.id !== course.id).reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0);
-            const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
-            const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
-            const electiveCap = Math.max(9, 132 - (totalCompulsory + totalSupporting + 30));
-            
-            if (currentElectiveHours + passedElectiveHours + (Number(course.credit_hours) || 0) > electiveCap) {
-                return { valid: false, isElectiveCap: true, limit: electiveCap };
+    const validatePlanState = useCallback((newSemesters) => {
+        const passedIds = new Set(localPassedCourses.map(c => c.id));
+        for (let i = 0; i < newSemesters.length; i++) {
+            const semCourses = newSemesters[i].courses || [];
+            for (let j = 0; j < semCourses.length; j++) {
+                const course = semCourses[j];
+                if (course.prerequisites && course.prerequisites.length > 0) {
+                    const missing = course.prerequisites.find(p => !passedIds.has(p.id));
+                    if (missing) {
+                        return { valid: false, brokenCourse: course, missingPrereq: missing };
+                    }
+                }
             }
+            semCourses.forEach(c => passedIds.add(c.id));
         }
-
-        if (!course.prerequisites || course.prerequisites.length === 0) return { valid: true };
-        const prevSemestersCourseIds = new Set();
-        localPassedCourses.forEach(c => prevSemestersCourseIds.add(c.id));
-        for (let i = 0; i < targetSemesterIndex; i++) {
-            (currentSemesters[i]?.courses || []).forEach(c => prevSemestersCourseIds.add(c.id));
-        }
-        const missing = course.prerequisites.filter(prereq => !prevSemestersCourseIds.has(prereq.id));
-        if (missing.length > 0) return { valid: false, missing };
         return { valid: true };
-    }, [localPassedCourses, courses]);
+    }, [localPassedCourses]);
 
     const addCourseToSemester = useCallback((course, targetIndex) => {
         if (!course) return;
         const currentSemesters = planDraft?.semesters || [];
-        const validation = checkPrerequisitesForPlan(course, targetIndex, currentSemesters);
-        if (!validation.valid) {
-            if (validation.isElectiveCap) {
-                Swal.fire({ icon: 'warning', title: 'تجاوز الحد المسموح', text: `لا يمكنك إضافة هذه المادة الاختيارية لتجاوز الحد الأقصى للمواد الاختيارية (${validation.limit} ساعات).`, ...swalTheme });
-            } else {
-                Swal.fire({ icon: 'warning', title: 'متطلب سابق مفقود', html: `لا يمكنك إضافة المادة قبل إنهاء:<br/><ul style="text-align:right;padding-right:20px;">${validation.missing.map(m => `<li>${m.name}</li>`).join('')}</ul>`, ...swalTheme });
+
+        // 1. Check Elective Cap
+        if (course.type === 'elective') {
+            const currentElectiveHours = currentSemesters.reduce((total, sem) => total + (sem.courses || []).filter(c => c.type === 'elective' && c.id !== course.id).reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0), 0);
+            const passedElectiveHours = localPassedCourses.filter(c => c.type === 'elective' && c.id !== course.id).reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0);
+            const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+            const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+            const electiveCap = Math.max(9, 132 - (totalCompulsory + totalSupporting + 30));
+            if (currentElectiveHours + passedElectiveHours + (Number(course.credit_hours) || 0) > electiveCap) {
+                Swal.fire({ icon: 'warning', title: 'تجاوز الحد المسموح', text: `لا يمكنك إضافة هذه المادة الاختيارية لتجاوز الحد الأقصى للمواد الاختيارية (${electiveCap} ساعات).`, ...swalTheme });
+                return;
             }
-            return;
         }
 
-        updatePlanDraft((prev) => {
-            const semesters = prev.semesters.map((sem) => ({
-                ...sem,
-                courses: Array.isArray(sem.courses) ? [...sem.courses] : [],
-            }));
-            if (!semesters[targetIndex]) return prev;
-            if (semesters[targetIndex].courses.some((c) => c.id === course.id)) return prev;
-            semesters[targetIndex].courses.push(course);
-            return { ...prev, semesters };
+        // 2. Simulate addition
+        const newSemesters = currentSemesters.map((sem, i) => {
+            let sCourses = Array.isArray(sem.courses) ? [...sem.courses] : [];
+            if (i === targetIndex && !sCourses.some(c => c.id === course.id)) {
+                sCourses.push(course);
+            }
+            return { ...sem, courses: sCourses };
         });
-    }, [updatePlanDraft, planDraft, checkPrerequisitesForPlan]);
+
+        // 3. Full Validation
+        const validation = validatePlanState(newSemesters);
+        if (!validation.valid) {
+             Swal.fire({ icon: 'warning', title: 'ترتيب غير منطقي', html: `لا يمكنك وضع المادة <b>${validation.brokenCourse.name}</b> قبل اجتياز متطلبها <b>${validation.missingPrereq.name}</b> في فصل يسبقها.`, ...swalTheme });
+             return;
+        }
+
+        updatePlanDraft((prev) => ({ ...prev, semesters: newSemesters }));
+    }, [updatePlanDraft, planDraft, validatePlanState, localPassedCourses, courses]);
 
     const removeCourseFromPlan = useCallback((courseId) => {
         updatePlanDraft((prev) => {
-            const semesters = prev.semesters.map((sem) => ({
+            const currentSemesters = prev.semesters || [];
+            
+            // Simulate removal
+            const newSemesters = currentSemesters.map((sem) => ({
                 ...sem,
                 courses: (sem.courses || []).filter((c) => c.id !== courseId),
             }));
-            return { ...prev, semesters };
+
+            // Full Validation after removal (to ensure we didn't remove a prerequisite that other courses depend on)
+            const validation = validatePlanState(newSemesters);
+            if (!validation.valid) {
+                Swal.fire({ icon: 'warning', title: 'إزالة غير ممكنة', html: `لا يمكنك إزالة هذه المادة لأن المادة <b>${validation.brokenCourse.name}</b> تعتمد عليها كمتطلب سابق!`, ...swalTheme });
+                return prev;
+            }
+
+            return { ...prev, semesters: newSemesters };
         });
-    }, [updatePlanDraft]);
+    }, [updatePlanDraft, validatePlanState]);
 
     const moveCourseToSemester = useCallback((courseId, fromIndex, toIndex) => {
         if (fromIndex === toIndex) return;
@@ -421,27 +425,25 @@ export default function Tree({
         const course = fromSem?.courses?.find(c => c.id === courseId);
         if (!course) return;
 
-        const validation = checkPrerequisitesForPlan(course, toIndex, currentSemesters);
-        if (!validation.valid && !validation.isElectiveCap) {
-            Swal.fire({ icon: 'warning', title: 'متطلب سابق مفقود', html: `لا يمكنك نقل المادة قبل إنهاء:<br/><ul style="text-align:right;padding-right:20px;">${validation.missing.map(m => `<li>${m.name}</li>`).join('')}</ul>`, ...swalTheme });
-            return;
+        // Simulate move
+        const newSemesters = currentSemesters.map((sem, i) => {
+            let sCourses = Array.isArray(sem.courses) ? [...sem.courses] : [];
+            if (i === fromIndex) sCourses = sCourses.filter(c => c.id !== courseId);
+            if (i === toIndex && !sCourses.some(c => c.id === courseId)) {
+                sCourses.push(course);
+            }
+            return { ...sem, courses: sCourses };
+        });
+
+        // Full Validation
+        const validation = validatePlanState(newSemesters);
+        if (!validation.valid) {
+             Swal.fire({ icon: 'warning', title: 'ترتيب غير منطقي', html: `هذا النقل يخالف التسلسل المنطقي! المادة <b>${validation.brokenCourse.name}</b> تعتمد على اجتياز <b>${validation.missingPrereq.name}</b> قبلها.`, ...swalTheme });
+             return;
         }
 
-        updatePlanDraft((prev) => {
-            const semesters = prev.semesters.map((sem) => ({
-                ...sem,
-                courses: Array.isArray(sem.courses) ? [...sem.courses] : [],
-            }));
-            const safeFromSem = semesters[fromIndex];
-            const safeToSem = semesters[toIndex];
-            if (!safeFromSem || !safeToSem) return prev;
-            safeFromSem.courses = safeFromSem.courses.filter((c) => c.id !== courseId);
-            if (!safeToSem.courses.some((c) => c.id === courseId)) {
-                safeToSem.courses.push(course);
-            }
-            return { ...prev, semesters };
-        });
-    }, [updatePlanDraft, planDraft, checkPrerequisitesForPlan]);
+        updatePlanDraft((prev) => ({ ...prev, semesters: newSemesters }));
+    }, [updatePlanDraft, planDraft, validatePlanState]);
 
     const yearOptions = useMemo(() => ([
         { value: 1, label: 'السنة الأولى' },
@@ -560,142 +562,6 @@ export default function Tree({
         if (!flowInstance) return;
         flowInstance.fitView({ padding: flowView.fitPadding, duration });
     }, [flowInstance, flowView.fitPadding]);
-
-    const [isPrinting, setIsPrinting] = useState(false);
-
-    const handlePrint = useCallback(async () => {
-        if (!flowInstance) return;
-        try {
-            setIsPrinting(true);
-            const nodesBounds = getRectOfNodes(flowInstance.getNodes());
-
-            // Define header width and print boundaries including the new academic header at the top
-            const headerWidth = Math.max(1000, nodesBounds.width);
-            const printBounds = {
-                x: nodesBounds.x - (headerWidth > nodesBounds.width ? (headerWidth - nodesBounds.width) / 2 : 0),
-                y: nodesBounds.y - 240, // 240px above the topmost node to accommodate the header
-                width: Math.max(headerWidth, nodesBounds.width),
-                height: nodesBounds.height + 280 // Extra height to include the header
-            };
-
-            const padding = 100;
-            const exportScale = 2; // For professional high-res quality
-
-            const width = printBounds.width + padding * 2;
-            const height = printBounds.height + padding * 2;
-
-            const transform = getTransformForBounds(
-                printBounds,
-                width,
-                height,
-                0.05,
-                2
-            );
-
-            // Create and style the premium academic header to insert into the exported image
-            const headerDiv = document.createElement('div');
-            headerDiv.id = 'print-plan-header';
-            headerDiv.style.position = 'absolute';
-            headerDiv.style.width = `${headerWidth}px`;
-            headerDiv.style.height = '140px';
-            headerDiv.style.left = `${(nodesBounds.x + nodesBounds.width / 2) - headerWidth / 2}px`;
-            headerDiv.style.top = `${nodesBounds.y - 190}px`;
-            headerDiv.style.zIndex = '9999';
-            
-            headerDiv.innerHTML = `
-                <div style="
-                    direction: rtl; 
-                    font-family: 'Cairo', 'Inter', sans-serif; 
-                    background: #ffffff; 
-                    border: 4px double #1e293b; 
-                    border-radius: 24px; 
-                    padding: 20px 40px; 
-                    box-sizing: border-box; 
-                    display: flex; 
-                    justify-content: space-between; 
-                    align-items: center; 
-                    width: 100%; 
-                    height: 100%;
-                    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
-                ">
-                    <!-- Right side: University info -->
-                    <div style="text-align: right; display: flex; flex-direction: column; justify-content: center;">
-                        <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a;">جامعة الزرقاء</h2>
-                        <h3 style="margin: 4px 0 0 0; font-size: 13px; font-weight: 700; color: #475569;">${college_name || 'كلية تكنولوجيا المعلومات'}</h3>
-                        <p style="margin: 4px 0 0 0; font-size: 11px; font-weight: 700; color: #6366f1;">تخصص ${major_name || 'هندسة البرمجيات'}</p>
-                    </div>
-
-                    <!-- Center: Title & Emblem -->
-                    <div style="text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                        <svg style="width: 36px; height: 36px; color: #0f172a; margin-bottom: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                        <h1 style="margin: 0; font-size: 20px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">الخطة الدراسية الاسترشادية الشجرية</h1>
-                        <span style="font-size: 9px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-top: 1px; letter-spacing: 0.5px;">Sanfoor Academic Infrastructure</span>
-                    </div>
-
-                    <!-- Left side: Plan Metadata -->
-                    <div style="text-align: left; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
-                        <div style="background: #f1f5f9; padding: 5px 12px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 4px;">
-                            <span style="font-size: 10px; font-weight: 800; color: #1e293b;">رقم إصدار الخطة: </span>
-                            <span style="font-size: 11px; font-weight: 900; color: #4f46e5;">خطة ${study_plan_version || 'معتمدة'}</span>
-                        </div>
-                        <p style="margin: 0; font-size: 10px; font-weight: 700; color: #64748b;">تاريخ التصدير: <span style="color: #0f172a; font-weight: 800;">${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}</span></p>
-                        <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: 700; color: #10b981;">الحالة الأكاديمية: معتمدة رسمياً</p>
-                    </div>
-                </div>
-            `;
-
-            // Hide the background dots for a cleaner print
-            const elementsToHide = document.querySelectorAll('.react-flow__background');
-            elementsToHide.forEach(el => el.style.display = 'none');
-
-            // Temporarily append the header to the React Flow viewport so html-to-image captures it
-            const viewport = document.querySelector('.react-flow__viewport');
-            viewport.appendChild(headerDiv);
-
-            const dataUrl = await toPng(viewport, {
-                backgroundColor: '#ffffff',
-                width: width,
-                height: height,
-                style: {
-                    width: `${width}px`,
-                    height: `${height}px`,
-                    transform: `translate(${transform[0]}px, ${transform[1]}px) scale(${transform[2]})`,
-                    transformOrigin: 'top left'
-                },
-                pixelRatio: exportScale,
-            });
-
-            // Clean up and remove the temporary header element
-            viewport.removeChild(headerDiv);
-            elementsToHide.forEach(el => el.style.display = '');
-
-            // Trigger download instead of window.print()
-            const link = document.createElement('a');
-            link.download = `study_plan_${major_name || 'plan'}.png`;
-            link.href = dataUrl;
-            link.click();
-
-            setIsPrinting(false);
-
-            Swal.fire({
-                icon: 'success',
-                title: 'تم التصدير بنجاح!',
-                text: 'تم حفظ الخطة كصورة احترافية بدقة عالية تحتوي على معلومات الخطة والتخصص.',
-                ...swalTheme
-            });
-        } catch (error) {
-            console.error('Print failed', error);
-            setIsPrinting(false);
-            Swal.fire({
-                icon: 'error',
-                title: 'خطأ في التصدير',
-                text: 'حدث خطأ أثناء محاولة حفظ الصورة.',
-                ...swalTheme
-            });
-        }
-    }, [flowInstance, major_name, college_name, study_plan_version]);
 
     const toggleFullScreen = useCallback(() => {
         setIsFullScreen((prev) => !prev);
@@ -2314,11 +2180,6 @@ export default function Tree({
             }
         };
 
-        const handlePrintPlan = () => {
-            setPlanPrintMode(true);
-            setTimeout(() => window.print(), 80);
-        };
-
         const handleRegeneratePlan = () => {
             const generated = buildPredictivePlan();
             setPlanDraft(generated);
@@ -2357,102 +2218,10 @@ export default function Tree({
         };
 
         return createPortal(
-            <div className={`fixed inset-0 backdrop-blur-md z-[1050] flex items-center justify-center p-3 sm:p-6 ${planPrintMode ? 'bg-white block overflow-y-auto' : 'bg-slate-900/70'}`} dir="rtl">
+            <div className="fixed inset-0 backdrop-blur-md z-[1050] flex items-center justify-center p-3 sm:p-6 bg-slate-900/70" dir="rtl">
                 
-                {/* 🖨️ PRINT TEMPLATE */}
-                {planPrintMode && planDraft && (
-                    <div className="w-full max-w-[21cm] mx-auto text-black bg-white my-8 print:block">
-                        <style>{`
-                            @media print {
-                                body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                                nav, header, footer, .no-print, .react-flow { display: none !important; }
-                                @page { margin: 1cm; }
-                            }
-                        `}</style>
-                        <div className="text-center border-b-2 border-slate-800 pb-6 mb-6">
-                            <h1 className="text-3xl font-black text-slate-900 mb-2">خطة التخرج الأكاديمية</h1>
-                            <h2 className="text-sm font-bold text-slate-600">{auth?.user?.major?.name || 'تخصص غير محدد'}</h2>
-                        </div>
-                        <div className="flex justify-between items-end border border-slate-300 rounded-xl p-5 mb-8">
-                            <div>
-                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">اسم الطالب</p>
-                                <p className="text-lg font-black text-slate-900">{auth?.user?.name || 'غير معروف'}</p>
-                                <p className="text-xs font-bold text-slate-600 mt-0.5">{auth?.user?.email}</p>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">عدد فصول الخطة</p>
-                                <p className="text-xl font-black text-slate-900">{(planDraft.semesters || []).length}</p>
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">تاريخ الإصدار</p>
-                                <p className="text-lg font-black text-slate-900">{new Date().toLocaleDateString('ar-SA')}</p>
-                            </div>
-                        </div>
-                        {planNotes && (
-                            <div className="mb-6 p-4 border border-slate-300 rounded-xl bg-slate-50 text-sm font-bold text-slate-700">
-                                <span className="text-slate-500 uppercase text-[11px] block mb-1">ملاحظات:</span>
-                                {planNotes}
-                            </div>
-                        )}
-                        <div className="space-y-6">
-                            {(planDraft.semesters || []).map((sem, idx) => {
-                                const totalCredits = (sem.courses || []).reduce((sum, c) => sum + (Number(c?.credit_hours) || 0), 0);
-                                return (
-                                    <div key={idx} className="break-inside-avoid">
-                                        <div className="bg-slate-100 px-4 py-2 flex justify-between items-center border border-slate-300 border-b-0 rounded-t-xl">
-                                            <h3 className="font-black text-sm text-slate-800">
-                                                {sem.is_summer ? 'الفصل الصيفي' : `الفصل ${sem.semester}`}
-                                            </h3>
-                                            <span className="text-xs font-bold text-slate-600">
-                                                إجمالي الساعات: {totalCredits}
-                                            </span>
-                                        </div>
-                                        <table className="w-full border-collapse border border-slate-300 text-sm">
-                                            <thead>
-                                                <tr className="bg-slate-50">
-                                                    <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700 w-24">الرمز</th>
-                                                    <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700">المادة</th>
-                                                    <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-20">الساعات</th>
-                                                    <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-24">النوع</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {(sem.courses || []).map((c, cIdx) => (
-                                                    <tr key={cIdx}>
-                                                        <td className="border border-slate-300 px-3 py-1.5 text-right font-mono text-xs">{c?.code}</td>
-                                                        <td className="border border-slate-300 px-3 py-1.5 text-right font-bold text-slate-800">{c?.name}</td>
-                                                        <td className="border border-slate-300 px-3 py-1.5 text-center">{c?.credit_hours}</td>
-                                                        <td className="border border-slate-300 px-3 py-1.5 text-center text-xs text-slate-600">
-                                                            {c?.type === 'university_req' ? 'متطلب جامعة' : 
-                                                             c?.type === 'elective' ? 'اختياري' :
-                                                             c?.type === 'supporting' ? 'مساندة' : 'إجباري'}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {(!sem.courses || sem.courses.length === 0) && (
-                                                    <tr>
-                                                        <td colSpan="4" className="border border-slate-300 px-3 py-4 text-center text-slate-400 font-bold">لا يوجد مواد في هذا الفصل</td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <div className="mt-8 text-center text-[10px] text-slate-400 font-bold border-t border-slate-200 pt-4">
-                            تم استخراج هذه الخطة التنبؤية من نظام سنفور الأكاديمي.
-                        </div>
-                        
-                        <div className="mt-8 flex justify-center gap-4 no-print">
-                            <button onClick={() => window.print()} className="px-6 py-2.5 rounded-xl font-[800] bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg">🖨️ طباعة الآن</button>
-                            <button onClick={() => setPlanPrintMode(false)} className="px-6 py-2.5 rounded-xl font-[800] bg-slate-100 text-slate-600 hover:bg-slate-200">العودة للتعديل</button>
-                        </div>
-                    </div>
-                )}
-
                 {/* 🖥️ INTERACTIVE UI */}
-                <div className={`bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex-col overflow-hidden landscape:h-[98vh] ${planPrintMode ? 'hidden' : 'flex'}`} style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
+                <div className="bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex-col overflow-hidden landscape:h-[98vh] flex" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '16px 16px' }} />
                         <div className="text-white relative z-10">
@@ -2468,7 +2237,6 @@ export default function Tree({
                             )}
                             <button onClick={handleClearPlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-rose-500/80 transition-all">🗑️ تصفير</button>
                             <button onClick={handleRegeneratePlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🔄 توليد ذكي</button>
-                            <button onClick={handlePrintPlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🖨️ طباعة</button>
                             <button onClick={handleApprovePlan} disabled={isSavingPlan} className="px-4 py-2.5 rounded-xl text-[11px] font-[900] bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                                 {isSavingPlan ? 'جارٍ الاعتماد...' : '✅ اعتماد الخطة'}
                             </button>
