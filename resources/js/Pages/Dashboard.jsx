@@ -54,6 +54,7 @@ export default function Dashboard({
     cart_courses = [],
     ai_skills = [],
     planner_courses = [],
+    graduation_plan = null,
 }) {
 
     // Compute high-level academic summaries once per data change.
@@ -630,6 +631,16 @@ export default function Dashboard({
                                     <p className="text-xs font-bold text-slate-500 mt-1">خطتك المنظمة للفصول القادمة حتى التخرج</p>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={() => {
+                                            if (window.confirm('هل أنت متأكد من رغبتك في حذف الخطة المعتمدة؟ يمكنك إعادة بنائها من الشجرة لاحقاً.')) {
+                                                router.delete(route('graduation-plan.destroy'), { preserveScroll: true });
+                                            }
+                                        }}
+                                        className="bg-rose-50 hover:bg-rose-100 text-rose-600 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2 border border-rose-100"
+                                    >
+                                        🗑️ حذف
+                                    </button>
                                     <button 
                                         onClick={() => { setPrintMode('plan'); setTimeout(() => window.print(), 100); }} 
                                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2"

@@ -47,12 +47,20 @@ class GraduationPlanController extends Controller
         }
 
         return response()->json([
-            'message' => 'تم اعتماد الخطة بنجاح.',
+            'message' => 'تم حفظ الخطة بنجاح.',
             'plan' => [
                 'id' => $plan->id,
                 'payload' => $plan->payload,
-                'approved_at' => optional($plan->approved_at)->toISOString(),
-            ],
+                'approved_at' => $plan->approved_at,
+            ]
         ]);
+    }
+
+    public function destroy(Request $request)
+    {
+        $user = $request->user();
+        GraduationPlan::where('user_id', $user->id)->delete();
+        
+        return redirect()->back()->with('success', 'تم حذف الخطة بنجاح.');
     }
 }

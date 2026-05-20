@@ -213,6 +213,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/tree/toggle', [TreeController::class, 'toggle'])->name('tree.toggle');
     Route::post('/tree/retake', [TreeController::class, 'retakeCourse'])->name('tree.retake');
     Route::post('/graduation-plan', [GraduationPlanController::class, 'store'])->name('graduation-plan.store');
+    Route::delete('/graduation-plan', [GraduationPlanController::class, 'destroy'])->name('graduation-plan.destroy');
 
     // Synchronize the simulation cart with the backend.
         // 🔥 Global heartbeat for all authenticated users (keep session alive)

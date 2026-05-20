@@ -350,8 +350,47 @@ export default function Tree({
         setPlanDraft((prev) => (prev ? updater(prev) : prev));
     }, []);
 
+    const checkPrerequisitesForPlan = useCallback((course, targetSemesterIndex, currentSemesters) => {
+        if (!course) return { valid: true };
+
+        if (course.type === 'elective') {
+            const currentElectiveHours = currentSemesters.reduce((total, sem) => {
+                return total + (sem.courses || []).filter(c => c.type === 'elective' && c.id !== course.id).reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0);
+            }, 0);
+            const passedElectiveHours = localPassedCourses.filter(c => c.type === 'elective' && c.id !== course.id).reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0);
+            const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+            const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
+            const electiveCap = Math.max(9, 132 - (totalCompulsory + totalSupporting + 30));
+            
+            if (currentElectiveHours + passedElectiveHours + (Number(course.credit_hours) || 0) > electiveCap) {
+                return { valid: false, isElectiveCap: true, limit: electiveCap };
+            }
+        }
+
+        if (!course.prerequisites || course.prerequisites.length === 0) return { valid: true };
+        const prevSemestersCourseIds = new Set();
+        localPassedCourses.forEach(c => prevSemestersCourseIds.add(c.id));
+        for (let i = 0; i < targetSemesterIndex; i++) {
+            (currentSemesters[i]?.courses || []).forEach(c => prevSemestersCourseIds.add(c.id));
+        }
+        const missing = course.prerequisites.filter(prereq => !prevSemestersCourseIds.has(prereq.id));
+        if (missing.length > 0) return { valid: false, missing };
+        return { valid: true };
+    }, [localPassedCourses, courses]);
+
     const addCourseToSemester = useCallback((course, targetIndex) => {
         if (!course) return;
+        const currentSemesters = planDraft?.semesters || [];
+        const validation = checkPrerequisitesForPlan(course, targetIndex, currentSemesters);
+        if (!validation.valid) {
+            if (validation.isElectiveCap) {
+                Swal.fire({ icon: 'warning', title: 'تجاوز الحد المسموح', text: `لا يمكنك إضافة هذه المادة الاختيارية لتجاوز الحد الأقصى للمواد الاختيارية (${validation.limit} ساعات).`, ...swalTheme });
+            } else {
+                Swal.fire({ icon: 'warning', title: 'متطلب سابق مفقود', html: `لا يمكنك إضافة المادة قبل إنهاء:<br/><ul style="text-align:right;padding-right:20px;">${validation.missing.map(m => `<li>${m.name}</li>`).join('')}</ul>`, ...swalTheme });
+            }
+            return;
+        }
+
         updatePlanDraft((prev) => {
             const semesters = prev.semesters.map((sem) => ({
                 ...sem,
@@ -362,7 +401,7 @@ export default function Tree({
             semesters[targetIndex].courses.push(course);
             return { ...prev, semesters };
         });
-    }, [updatePlanDraft]);
+    }, [updatePlanDraft, planDraft, checkPrerequisitesForPlan]);
 
     const removeCourseFromPlan = useCallback((courseId) => {
         updatePlanDraft((prev) => {
@@ -376,23 +415,32 @@ export default function Tree({
 
     const moveCourseToSemester = useCallback((courseId, fromIndex, toIndex) => {
         if (fromIndex === toIndex) return;
+        const currentSemesters = planDraft?.semesters || [];
+        const fromSem = currentSemesters[fromIndex];
+        const course = fromSem?.courses?.find(c => c.id === courseId);
+        if (!course) return;
+
+        const validation = checkPrerequisitesForPlan(course, toIndex, currentSemesters);
+        if (!validation.valid && !validation.isElectiveCap) {
+            Swal.fire({ icon: 'warning', title: 'متطلب سابق مفقود', html: `لا يمكنك نقل المادة قبل إنهاء:<br/><ul style="text-align:right;padding-right:20px;">${validation.missing.map(m => `<li>${m.name}</li>`).join('')}</ul>`, ...swalTheme });
+            return;
+        }
+
         updatePlanDraft((prev) => {
             const semesters = prev.semesters.map((sem) => ({
                 ...sem,
                 courses: Array.isArray(sem.courses) ? [...sem.courses] : [],
             }));
-            const fromSem = semesters[fromIndex];
-            const toSem = semesters[toIndex];
-            if (!fromSem || !toSem) return prev;
-            const course = fromSem.courses.find((c) => c.id === courseId);
-            if (!course) return prev;
-            fromSem.courses = fromSem.courses.filter((c) => c.id !== courseId);
-            if (!toSem.courses.some((c) => c.id === courseId)) {
-                toSem.courses.push(course);
+            const safeFromSem = semesters[fromIndex];
+            const safeToSem = semesters[toIndex];
+            if (!safeFromSem || !safeToSem) return prev;
+            safeFromSem.courses = safeFromSem.courses.filter((c) => c.id !== courseId);
+            if (!safeToSem.courses.some((c) => c.id === courseId)) {
+                safeToSem.courses.push(course);
             }
             return { ...prev, semesters };
         });
-    }, [updatePlanDraft]);
+    }, [updatePlanDraft, planDraft, checkPrerequisitesForPlan]);
 
     const yearOptions = useMemo(() => ([
         { value: 1, label: 'السنة الأولى' },
@@ -2272,6 +2320,28 @@ export default function Tree({
             setPlanNotes('');
         };
 
+        const handleClearPlan = () => {
+            Swal.fire({
+                title: 'مسح الخطة؟',
+                text: 'هل أنت متأكد أنك تريد تفريغ جميع الفصول للبدء من الصفر؟',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'نعم، مسح الكل',
+                cancelButtonText: 'تراجع',
+                ...swalTheme
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const emptySemesters = Array.from({ length: 8 }).map((_, idx) => ({
+                        semester: idx + 1,
+                        is_summer: false,
+                        courses: []
+                    }));
+                    setPlanDraft({ semesters: emptySemesters });
+                    setPlanNotes('');
+                }
+            });
+        };
+
         const handleLoadApproved = () => {
             if (!approvedPlan?.payload) return;
             const loaded = buildPlanFromPayload(approvedPlan.payload);
@@ -2283,7 +2353,7 @@ export default function Tree({
 
         return (
             <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] flex items-center justify-center p-3 sm:p-6">
-                <div className="bg-white w-full max-w-7xl h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
+                <div className="bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden landscape:h-[98vh]" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '16px 16px' }} />
                         <div className="text-white relative z-10">
@@ -2295,9 +2365,10 @@ export default function Tree({
                         </div>
                         <div className="flex flex-wrap items-center gap-2 relative z-10">
                             {approvedPlan?.payload && (
-                                <button onClick={handleLoadApproved} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">📥 تحميل المعتمدة</button>
+                                <button onClick={handleLoadApproved} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">📥 المعتمدة</button>
                             )}
-                            <button onClick={handleRegeneratePlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🔄 إعادة توليد</button>
+                            <button onClick={handleClearPlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-rose-500/80 transition-all">🗑️ تصفير</button>
+                            <button onClick={handleRegeneratePlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🔄 توليد ذكي</button>
                             <button onClick={handlePrintPlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🖨️ طباعة</button>
                             <button onClick={handleApprovePlan} disabled={isSavingPlan} className="px-4 py-2.5 rounded-xl text-[11px] font-[900] bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                                 {isSavingPlan ? 'جارٍ الاعتماد...' : '✅ اعتماد الخطة'}
@@ -2307,8 +2378,8 @@ export default function Tree({
                     </div>
 
                     <div className="flex-1 overflow-hidden bg-[#f8fafc]">
-                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-hidden">
-                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm overflow-hidden">
+                        <div className="h-full grid grid-cols-1 lg:grid-cols-[320px_1fr] landscape:grid-cols-[250px_1fr] landscape:lg:grid-cols-[320px_1fr] gap-4 p-4 sm:p-6 overflow-hidden">
+                            <div className="bg-white border border-slate-200 rounded-[1.5rem] p-4 flex flex-col shadow-sm overflow-hidden landscape:py-2">
                                 <div className="flex items-center justify-between">
                                     <h3 className="font-[900] text-[13px] text-slate-800">📚 مكتبة المواد</h3>
                                     <label className="text-[10px] font-bold text-slate-500 flex items-center gap-2 cursor-pointer">
