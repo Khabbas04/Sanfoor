@@ -2357,8 +2357,102 @@ export default function Tree({
         };
 
         return createPortal(
-            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-6" dir="rtl">
-                <div className="bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden landscape:h-[98vh]" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
+            <div className={`fixed inset-0 backdrop-blur-md z-[1050] flex items-center justify-center p-3 sm:p-6 ${planPrintMode ? 'bg-white block overflow-y-auto' : 'bg-slate-900/70'}`} dir="rtl">
+                
+                {/* 🖨️ PRINT TEMPLATE */}
+                {planPrintMode && planDraft && (
+                    <div className="w-full max-w-[21cm] mx-auto text-black bg-white my-8 print:block">
+                        <style>{`
+                            @media print {
+                                body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                                nav, header, footer, .no-print, .react-flow { display: none !important; }
+                                @page { margin: 1cm; }
+                            }
+                        `}</style>
+                        <div className="text-center border-b-2 border-slate-800 pb-6 mb-6">
+                            <h1 className="text-3xl font-black text-slate-900 mb-2">خطة التخرج الأكاديمية</h1>
+                            <h2 className="text-sm font-bold text-slate-600">{auth?.user?.major?.name || 'تخصص غير محدد'}</h2>
+                        </div>
+                        <div className="flex justify-between items-end border border-slate-300 rounded-xl p-5 mb-8">
+                            <div>
+                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">اسم الطالب</p>
+                                <p className="text-lg font-black text-slate-900">{auth?.user?.name || 'غير معروف'}</p>
+                                <p className="text-xs font-bold text-slate-600 mt-0.5">{auth?.user?.email}</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">عدد فصول الخطة</p>
+                                <p className="text-xl font-black text-slate-900">{(planDraft.semesters || []).length}</p>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">تاريخ الإصدار</p>
+                                <p className="text-lg font-black text-slate-900">{new Date().toLocaleDateString('ar-SA')}</p>
+                            </div>
+                        </div>
+                        {planNotes && (
+                            <div className="mb-6 p-4 border border-slate-300 rounded-xl bg-slate-50 text-sm font-bold text-slate-700">
+                                <span className="text-slate-500 uppercase text-[11px] block mb-1">ملاحظات:</span>
+                                {planNotes}
+                            </div>
+                        )}
+                        <div className="space-y-6">
+                            {(planDraft.semesters || []).map((sem, idx) => {
+                                const totalCredits = (sem.courses || []).reduce((sum, c) => sum + (Number(c?.credit_hours) || 0), 0);
+                                return (
+                                    <div key={idx} className="break-inside-avoid">
+                                        <div className="bg-slate-100 px-4 py-2 flex justify-between items-center border border-slate-300 border-b-0 rounded-t-xl">
+                                            <h3 className="font-black text-sm text-slate-800">
+                                                {sem.is_summer ? 'الفصل الصيفي' : `الفصل ${sem.semester}`}
+                                            </h3>
+                                            <span className="text-xs font-bold text-slate-600">
+                                                إجمالي الساعات: {totalCredits}
+                                            </span>
+                                        </div>
+                                        <table className="w-full border-collapse border border-slate-300 text-sm">
+                                            <thead>
+                                                <tr className="bg-slate-50">
+                                                    <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700 w-24">الرمز</th>
+                                                    <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700">المادة</th>
+                                                    <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-20">الساعات</th>
+                                                    <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-24">النوع</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(sem.courses || []).map((c, cIdx) => (
+                                                    <tr key={cIdx}>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-right font-mono text-xs">{c?.code}</td>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-right font-bold text-slate-800">{c?.name}</td>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-center">{c?.credit_hours}</td>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-center text-xs text-slate-600">
+                                                            {c?.type === 'university_req' ? 'متطلب جامعة' : 
+                                                             c?.type === 'elective' ? 'اختياري' :
+                                                             c?.type === 'supporting' ? 'مساندة' : 'إجباري'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(!sem.courses || sem.courses.length === 0) && (
+                                                    <tr>
+                                                        <td colSpan="4" className="border border-slate-300 px-3 py-4 text-center text-slate-400 font-bold">لا يوجد مواد في هذا الفصل</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="mt-8 text-center text-[10px] text-slate-400 font-bold border-t border-slate-200 pt-4">
+                            تم استخراج هذه الخطة التنبؤية من نظام سنفور الأكاديمي.
+                        </div>
+                        
+                        <div className="mt-8 flex justify-center gap-4 no-print">
+                            <button onClick={() => window.print()} className="px-6 py-2.5 rounded-xl font-[800] bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg">🖨️ طباعة الآن</button>
+                            <button onClick={() => setPlanPrintMode(false)} className="px-6 py-2.5 rounded-xl font-[800] bg-slate-100 text-slate-600 hover:bg-slate-200">العودة للتعديل</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* 🖥️ INTERACTIVE UI */}
+                <div className={`bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex-col overflow-hidden landscape:h-[98vh] ${planPrintMode ? 'hidden' : 'flex'}`} style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '16px 16px' }} />
                         <div className="text-white relative z-10">
@@ -3052,36 +3146,7 @@ export default function Tree({
                 }
             ` }} />
 
-            {planPrintMode && planDraft && (
-                <div id="plan-print-container" dir="rtl" className="bg-white text-slate-900" style={{ position: 'fixed', left: '-9999px', top: '-9999px' }}>
-                    <div className="w-full max-w-[1100px] mx-auto">
-                        <div className="mb-6 border-b border-slate-200 pb-4">
-                            <h1 className="text-2xl font-black">خطة التخرج المعتمدة</h1>
-                            <p className="text-sm font-bold text-slate-500">{student_name} • {major_name || 'غير محدد'}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            {planDraft.semesters.map((sem, index) => (
-                                <div key={`${sem.semester}-${index}`} className="border border-slate-200 rounded-xl p-4">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="font-black text-sm">{sem.is_summer ? 'صيفي' : 'اعتيادي'} {sem.semester}</span>
-                                        <span className="text-xs font-bold text-slate-500">
-                                            {(sem.courses || []).reduce((sum, c) => sum + Number(c.credit_hours || 0), 0)} ساعة
-                                        </span>
-                                    </div>
-                                    <ul className="space-y-1 text-xs font-bold text-slate-700">
-                                        {(sem.courses || []).map((course) => (
-                                            <li key={course.id} className="flex justify-between border-b border-slate-100 pb-1">
-                                                <span>{course.name}</span>
-                                                <span className="text-slate-500">{course.credit_hours}س</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Old print template removed */}
 
             {/* ═══ HEADER ═══ */}
             {!isFullScreen && (
