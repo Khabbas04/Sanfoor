@@ -1040,21 +1040,9 @@ export default function Tree({
             supporting: courses.filter(c => simulatedPassed.has(c.id) && c.type === 'supporting').reduce((s, c) => s + Number(c.credit_hours || 0), 0),
         };
 
-        // حساب الساعات المطلوبة ديناميكياً لكل تخصص بناءً على الشجرة الحالية
-        const totalCompulsory = courses.filter(c => c.type === 'compulsory').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
-        const totalSupporting = courses.filter(c => c.type === 'supporting').reduce((acc, c) => acc + (Number(c.credit_hours) || 0), 0);
-        const universityReqCap = 30; // متطلبات الجامعة ثابتة تقريباً 30
-        const totalPlanHours = 132; // الحد الأدنى للخطة
-        
-        // الاختياري هو ما يتبقى للوصول لـ 132 ساعة
-        const electiveCap = Math.max(0, totalPlanHours - (totalCompulsory + totalSupporting + universityReqCap));
-
-        // حدود الخطة الدراسية الديناميكية للتخصص الحالي
+        // حدود الخطة الدراسية الثابتة
         const caps = { 
-            university_req: universityReqCap, 
-            compulsory: totalCompulsory > 0 ? totalCompulsory : 87, 
-            elective: electiveCap > 0 ? electiveCap : 9, 
-            supporting: totalSupporting > 0 ? totalSupporting : 6 
+            elective: 9 // كما طلب المستخدم: الاختياري 9 ساعات فقط، والإجباري ينزل كاملاً بدون حد
         };
 
         const normalizeName = (value) => String(value || '')
@@ -1083,8 +1071,8 @@ export default function Tree({
                 const type = c.type || 'compulsory';
                 
                 // التخطيط الواقعي: تطبيق حد الساعات فقط على المواد الاختيارية (elective).
-                // جميع المواد الإجبارية (compulsory, supporting, university_req) يجب أن تكون موجودة في الخطة.
-                if (type === 'elective' && categoryPassedHours[type] >= (caps[type] || 999) && !cartIds.includes(c.id)) return false;
+                // جميع المواد الإجبارية يجب أن تكون موجودة في الخطة.
+                if (type === 'elective' && categoryPassedHours[type] >= caps.elective && !cartIds.includes(c.id)) return false;
 
                 const requiredHours = Number(c.minimum_passed_hours || 0);
                 if (requiredHours > 0 && simulatedPassedHours < requiredHours) return false;
@@ -1136,6 +1124,8 @@ export default function Tree({
                     if (match.type === 'university_req') semOnlineCount += 1;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== match.id);
                     const type = match.type || 'compulsory';
+                    if (type === 'elective' && categoryPassedHours[type] + Number(match.credit_hours || 0) > caps.elective && !cartIds.includes(match.id)) return false;
+                    
                     if (categoryPassedHours[type] !== undefined) {
                         categoryPassedHours[type] += Number(match.credit_hours || 0);
                     }
@@ -1159,13 +1149,15 @@ export default function Tree({
 
                 if (mustPlaceOnline && semOnlineCount === 0 && !isOnline && availableNow.some(course => course.type === 'university_req')) continue;
 
+                const type = c.type || 'compulsory';
+                if (type === 'elective' && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps.elective && !cartIds.includes(c.id)) continue;
+
                 if (semHours + c.credit_hours <= maxSemHours) {
                     semCourses.push({ ...c, isSummer, currentSem });
                     semHours += c.credit_hours;
                     if (isOnline) semOnlineCount++;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
                     
-                    const type = c.type || 'compulsory';
                     if (categoryPassedHours[type] !== undefined) {
                         categoryPassedHours[type] += Number(c.credit_hours || 0);
                     }
@@ -1177,12 +1169,14 @@ export default function Tree({
                 for (let c of relaxed) {
                     if (semHours >= minSemHours) break;
                     if (semHours + c.credit_hours > maxSemHours) continue;
+                    const type = c.type || 'compulsory';
+                    if (type === 'elective' && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps.elective && !cartIds.includes(c.id)) continue;
+
                     semCourses.push({ ...c, isSummer, currentSem });
                     semHours += c.credit_hours;
                     if (c.type === 'university_req') semOnlineCount++;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
 
-                    const type = c.type || 'compulsory';
                     if (categoryPassedHours[type] !== undefined) {
                         categoryPassedHours[type] += Number(c.credit_hours || 0);
                     }
