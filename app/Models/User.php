@@ -112,6 +112,15 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Chapters pinned by the user for quick access on their dashboard.
+     */
+    public function pinnedChapters(): BelongsToMany
+    {
+        return $this->belongsToMany(Chapter::class, 'user_chapters', 'user_id', 'chapter_id')
+            ->withTimestamps();
+    }
+
+    /**
      * Issue reports submitted by the user.
      */
     public function issueReports(): HasMany

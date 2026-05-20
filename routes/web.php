@@ -196,6 +196,15 @@ Route::get('/dashboard', function () {
         'ai_skills' => $user->getSkillsFromPassedCourses(),
         'planner_courses' => $plannerCourses,
         'graduation_plan' => $graduationPlanData,
+        'pinned_chapters' => $user->pinnedChapters()->with('course')->get()->map(function($ch) {
+            return [
+                'id' => $ch->id,
+                'title' => $ch->title,
+                'course_id' => $ch->course_id,
+                'course_name' => $ch->course?->name ?? null,
+                'google_drive_link' => $ch->google_drive_link,
+            ];
+        })->toArray(),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -248,6 +257,7 @@ Route::middleware('auth')->group(function () {
 
     // Course chapters browsing for students.
     Route::get('/chapters', [ChapterController::class, 'index'])->name('chapters.index');
+    Route::post('/chapters/pin', [ChapterController::class, 'togglePin'])->name('chapters.pin');
 
     // Quiz and practice system.
     Route::get('/quiz', [QuizController::class, 'index'])->name('quiz.index');

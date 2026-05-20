@@ -55,6 +55,7 @@ export default function Dashboard({
     ai_skills = [],
     planner_courses = [],
     graduation_plan = null,
+    pinned_chapters = [],
 }) {
 
     // Compute high-level academic summaries once per data change.
@@ -786,6 +787,31 @@ export default function Dashboard({
 
                         {/* 7. التسجيل التجريبي المصغر (الجانب الأيسر) */}
                         <div className="lg:col-span-4 space-y-7">
+                            {/* Pinned Chapters */}
+                            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="bg-indigo-50/30 border-b border-indigo-100/40 p-4 flex items-center justify-between">
+                                    <h4 className="text-sm font-[900] text-indigo-900 flex items-center gap-2">📌 الشباتر المفضلة</h4>
+                                    <p className="text-xs text-slate-500 font-bold">الوصول السريع</p>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                    {Array.isArray(pinned_chapters) && pinned_chapters.length > 0 ? pinned_chapters.map((ch) => (
+                                        <div key={ch.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all">
+                                            <div className="min-w-0">
+                                                <div className="font-[800] text-sm text-slate-800 truncate" title={ch.title}>{ch.title}</div>
+                                                <div className="text-[11px] text-slate-400 font-bold mt-0.5">{ch.course_name}</div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {ch.google_drive_link && (
+                                                    <a href={ch.google_drive_link} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-indigo-600 text-sm font-[800]">📥</a>
+                                                )}
+                                                <button onClick={() => router.get(route('quiz.start'), { course_id: ch.course_id, chapter_ids: [ch.id], mode: 'practice', count: 10 })} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-[800]">🧠 تدريب</button>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="p-4 text-sm text-slate-400">لم تضف أي شباتر بعد. اضغط على 📍 في صفحة الشباتر لإضافتها.</div>
+                                    )}
+                                </div>
+                            </div>
                             <div ref={cartRef} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[400px]" style={{ opacity: cartVis ? 1 : 0, transform: cartVis ? 'translateY(0)' : 'translateY(20px)', transition: `all 800ms ${spring} 200ms` }}>
                                 <div className="bg-gradient-to-br from-amber-50/50 to-orange-50/30 border-b border-amber-100/50 p-5 shrink-0">
                                     <div className="flex justify-between items-start">

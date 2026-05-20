@@ -48,11 +48,40 @@ class ChapterController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Provide the user's pinned chapter ids so the UI can reflect pinned state.
+        $pinnedIds = [];
+        if ($user) {
+            $pinnedIds = $user->pinnedChapters()->pluck('chapter_id')->toArray();
+        }
+
         return Inertia::render('Chapters/Index', [
             'courses' => $courses,
             'filters' => [
                 'search' => $search,
             ],
+            'pinned_chapter_ids' => $pinnedIds,
         ]);
+    }
+
+    /**
+     * Toggle pinned chapter for the authenticated user.
+     */
+    public function togglePin(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 401);
+
+        $chapterId = (int) $request->input('chapter_id');
+        $chapter = Chapter::find($chapterId);
+        if (!$chapter) return response()->json(['status' => 'error', 'message' => 'Not found'], 404);
+
+        $exists = $user->pinnedChapters()->where('chapter_id', $chapterId)->exists();
+        if ($exists) {
+            $user->pinnedChapters()->detach($chapterId);
+            return response()->json(['status' => 'removed']);
+        }
+
+        $user->pinnedChapters()->attach($chapterId);
+        return response()->json(['status' => 'added']);
     }
 }

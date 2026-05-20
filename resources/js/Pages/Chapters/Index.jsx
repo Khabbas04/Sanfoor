@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { Head, Link, router } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
@@ -13,11 +14,12 @@ function debounce(fn, delay) {
     };
 }
 
-export default function ChaptersIndex({ courses = [], filters = {} }) {
+export default function ChaptersIndex({ courses = [], filters = {}, pinned_chapter_ids = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const [search, setSearch] = useState(filters.search || '');
     const [selectedCourseId, setSelectedCourseId] = useState(null);
+    const [pinnedIds, setPinnedIds] = useState(Array.isArray(pinned_chapter_ids) ? pinned_chapter_ids : []);
 
     const selectedCourse = useMemo(() => {
         return courses.find(c => c.id === selectedCourseId);
@@ -128,21 +130,43 @@ export default function ChaptersIndex({ courses = [], filters = {} }) {
                                             </div>
                                         </div>
                                         
-                                        {chapter.google_drive_link && (
-                                            <a 
-                                                href={chapter.google_drive_link} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className={`shrink-0 flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm transition-all ${
-                                                    isDark 
-                                                        ? 'bg-slate-800 text-indigo-400 hover:bg-slate-700 hover:text-white' 
-                                                        : 'bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-lg shadow-indigo-500/5'
-                                                }`}
+                                        <div className="flex items-center gap-2">
+                                            {chapter.google_drive_link && (
+                                                <a 
+                                                    href={chapter.google_drive_link} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-sm transition-all ${
+                                                        isDark 
+                                                            ? 'bg-slate-800 text-indigo-400 hover:bg-slate-700 hover:text-white' 
+                                                            : 'bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white shadow-lg shadow-indigo-500/5'
+                                                    }`}
+                                                >
+                                                    <span>📥</span>
+                                                    <span className="hidden sm:inline">{t.download}</span>
+                                                </a>
+                                            )}
+
+                                            <button
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    try {
+                                                        const res = await axios.post(route('chapters.pin'), { chapter_id: chapter.id });
+                                                        if (res.data.status === 'added') {
+                                                            setPinnedIds(p => [...p, chapter.id]);
+                                                        } else if (res.data.status === 'removed') {
+                                                            setPinnedIds(p => p.filter(id => id !== chapter.id));
+                                                        }
+                                                    } catch (err) {
+                                                        console.error('Pin toggle failed', err);
+                                                    }
+                                                }}
+                                                className={`shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl text-sm font-black transition-all ${pinnedIds.includes(chapter.id) ? 'bg-emerald-500 text-white' : 'bg-white text-indigo-600 border border-slate-100'} shadow-sm`}
+                                                title={pinnedIds.includes(chapter.id) ? 'أزل من السريع' : 'أضف للسريع'}
                                             >
-                                                <span>📥</span>
-                                                <span className="hidden sm:inline">{t.download}</span>
-                                            </a>
-                                        )}
+                                                {pinnedIds.includes(chapter.id) ? '📌' : '📍'}
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
 
@@ -224,6 +248,25 @@ export default function ChaptersIndex({ courses = [], filters = {} }) {
                                                 <div key={chapter.id} className={`flex items-center gap-2.5 p-3 rounded-xl ${isDark ? 'bg-slate-900/40 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
                                                     <span className="text-[10px] w-5 h-5 rounded-md flex items-center justify-center bg-indigo-500 text-white font-bold">{chapter.order}</span>
                                                     <span className="text-[13px] font-bold truncate">{chapter.title}</span>
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                const res = await axios.post(route('chapters.pin'), { chapter_id: chapter.id });
+                                                                if (res.data.status === 'added') {
+                                                                    setPinnedIds(p => [...p, chapter.id]);
+                                                                } else if (res.data.status === 'removed') {
+                                                                    setPinnedIds(p => p.filter(id => id !== chapter.id));
+                                                                }
+                                                            } catch (err) {
+                                                                console.error('Pin toggle failed', err);
+                                                            }
+                                                        }}
+                                                        className={`ml-2 shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-md text-xs font-black transition-all ${pinnedIds.includes(chapter.id) ? 'bg-emerald-500 text-white' : 'bg-white text-indigo-600 border border-slate-100'}`}
+                                                        title={pinnedIds.includes(chapter.id) ? 'أزل من السريع' : 'أضف للسريع'}
+                                                    >
+                                                        {pinnedIds.includes(chapter.id) ? '📌' : '📍'}
+                                                    </button>
                                                 </div>
                                             ))}
                                             {(course.chapters || []).length > 2 && (
