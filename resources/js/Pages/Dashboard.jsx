@@ -1,6 +1,8 @@
 import MainLayout from '@/Layouts/MainLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import Swal from 'sweetalert2';
 
 // Resolve the deployment URL once for page-level SEO metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -224,6 +226,17 @@ export default function Dashboard({
     const [recordActiveTab, setRecordActiveTab] = useState(recordSemesters.length > 0 ? recordSemesters[0] : 'all');
 
     const [localCartCourses, setLocalCartCourses] = useState(Array.isArray(cart_courses) ? cart_courses : []);
+    const [shortlists, setShortlists] = useState(() => {
+        try {
+            const key = `sanfoor_shortlists_${auth.user?.id || 'guest'}`;
+            const raw = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            return [];
+        }
+    });
+    const [newShortlistName, setNewShortlistName] = useState('');
+    const [newShortlistSemester, setNewShortlistSemester] = useState(recordSemesters.length > 0 ? recordSemesters[0] : 'all');
     const [smartPace, setSmartPace] = useState('balanced');
     const [smartFocus, setSmartFocus] = useState('major');
     const [smartProtectGpa, setSmartProtectGpa] = useState(true);
@@ -234,6 +247,56 @@ export default function Dashboard({
     useEffect(() => {
         setLocalCartCourses(Array.isArray(cart_courses) ? cart_courses : []);
     }, [cart_courses]);
+
+    const shortlistsStorageKey = `sanfoor_shortlists_${auth.user?.id || 'guest'}`;
+
+    const persistShortlists = (next) => {
+        try {
+            if (typeof window !== 'undefined') localStorage.setItem(shortlistsStorageKey, JSON.stringify(next));
+        } catch (e) {
+            console.error('Failed to persist shortlists', e);
+        }
+    };
+
+    const createShortlist = () => {
+        if (!newShortlistName.trim()) {
+            Swal.fire({ icon: 'warning', title: 'اسم مطلوب', text: 'أدخل اسمًا للشباتر قبل الحفظ.' });
+            return;
+        }
+        const entry = {
+            id: `sl_${Date.now()}`,
+            name: newShortlistName.trim(),
+            semester: newShortlistSemester,
+            created_at: new Date().toISOString(),
+            courses: localCartCourses.map(c => ({ id: c.id, name: c.name, code: c.code, credit_hours: c.credit_hours }))
+        };
+        const next = [entry, ...shortlists];
+        setShortlists(next);
+        persistShortlists(next);
+        setNewShortlistName('');
+        Swal.fire({ icon: 'success', title: 'تم الحفظ', text: 'تم حفظ الشباتر محليًا.' });
+    };
+
+    const deleteShortlist = (id) => {
+        Swal.fire({ icon: 'question', title: 'حذف الشباتر', text: 'هل تريد حذف هذا الشباتر؟', showCancelButton: true }).then(res => {
+            if (!res.isConfirmed) return;
+            const next = shortlists.filter(s => s.id !== id);
+            setShortlists(next);
+            persistShortlists(next);
+            Swal.fire({ icon: 'success', title: 'تم الحذف' });
+        });
+    };
+
+    const loadShortlistToCart = (id) => {
+        const entry = shortlists.find(s => s.id === id);
+        if (!entry) return;
+        setLocalCartCourses(entry.courses.map(c => ({ ...c })));
+        const ids = entry.courses.map(c => c.id).filter(Boolean);
+        if (ids.length) {
+            router.post(route('cart.sync'), { course_ids: ids }, { preserveState: true, preserveScroll: true });
+        }
+        Swal.fire({ icon: 'success', title: 'تم التحميل', text: 'الشباتر تم تحميله إلى التسجيل التجريبي.' });
+    };
 
     const recordDisplayedCourses = useMemo(() => {
         if (recordActiveTab === 'all') return processedCourses;
@@ -300,6 +363,22 @@ export default function Dashboard({
             avgDifficulty: Number(avgDifficulty.toFixed(1)),
         };
     }, [smartPlan]);
+
+    // Mini sparkline data from recent semesters (credits)
+    const sparklineData = useMemo(() => {
+        const keys = recordSemesters.slice(-6);
+        return keys.map(k => ({ name: k, credits: semesterStats[k]?.credits || 0 }));
+    }, [recordSemesters, semesterStats]);
+
+    const nextAction = useMemo(() => {
+        if (smartPlan && smartPlan.length > 0) {
+            return { title: 'خطتك الذكية جاهزة', desc: `اقتراح ${smartPlan.length} مادة بمجموع ${smartHours} س`, action: 'applySmart', actionLabel: 'تطبيق الخطة' };
+        }
+        if (!localCartCourses || localCartCourses.length === 0) {
+            return { title: 'ابدأ من الشجرة', desc: 'اضف مواد للفصل القادم من الخريطة الشجرية للحصول على پیشنهادات ذكية.', action: 'goTree', actionLabel: 'الذهاب للشجرة' };
+        }
+        return { title: 'راجع تسجيلك التجريبي', desc: `لديك ${localCartCourses.length} مادة في التسجيل التجريبي (${cartTotalHours} س).`, action: 'reviewCart', actionLabel: 'مراجعة التسجيل' };
+    }, [smartPlan, smartHours, localCartCourses, cartTotalHours]);
 
     const generateSmartPlan = useCallback(() => {
         if (!plannerCourses.length) {
@@ -596,7 +675,35 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    {/* 3. AI INSIGHT BANNER */}
+                    {/* 3. Next Action + Mini Sparkline */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div className="bg-white p-4 rounded-[1.25rem] border border-slate-100 shadow-sm flex items-center justify-between">
+                            <div>
+                                <h4 className="text-sm font-[900] text-slate-800">{nextAction.title}</h4>
+                                <p className="text-xs text-slate-500 mt-1">{nextAction.desc}</p>
+                                <div className="mt-3">
+                                    {nextAction.action === 'applySmart' && (
+                                        <button onClick={applySmartPlan} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold">{nextAction.actionLabel}</button>
+                                    )}
+                                    {nextAction.action === 'goTree' && (
+                                        <Link href={route('tree.index')} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold">{nextAction.actionLabel}</Link>
+                                    )}
+                                    {nextAction.action === 'reviewCart' && (
+                                        <button onClick={() => { if (cartRef && cartRef.current) cartRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' }); else window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-bold">{nextAction.actionLabel}</button>
+                                    )}
+                                </div>
+                            </div>
+                            <div style={{ width: 160, height: 60 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                        <Line type="monotone" dataKey="credits" stroke="#6366f1" strokeWidth={2} dot={false} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. AI INSIGHT BANNER */}
                     <div ref={aiRef} className="relative overflow-hidden rounded-[1.4rem] shadow-sm" style={{ opacity: aiVis ? 1 : 0, transform: aiVis ? 'translateY(0)' : 'translateY(14px)', transition: `all 700ms ${spring} 80ms` }}>
                         <div className="absolute inset-0 rounded-[1.4rem] p-[1.5px]" style={{ background: 'linear-gradient(135deg, #c7d2fe, #a5f3fc, #c7d2fe, #a5f3fc)', backgroundSize: '300% 300%', animation: 'sn-gradient-drift 6s ease infinite' }}>
                             <div className="w-full h-full rounded-[calc(1.4rem-1.5px)] bg-gradient-to-l from-indigo-50/95 to-cyan-50/70 backdrop-blur-sm" />
@@ -829,6 +936,36 @@ export default function Dashboard({
                             </div>
 
                             <Link href={route('tree.index')} className="group block">
+                                    {/* Shortlists (شباتر) - saved quick sets per semester */}
+                                    <div className="bg-white rounded-[1.5rem] p-4 border border-slate-100 shadow-sm mt-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-[900] text-sm text-slate-800">شباترك الدراسية</h4>
+                                            <span className="text-xs text-slate-400">احفظ مجموعاتك المفضلة لكل فصل</span>
+                                        </div>
+                                        <div className="flex gap-2 mb-3">
+                                            <input value={newShortlistName} onChange={(e) => setNewShortlistName(e.target.value)} placeholder="اسم الشباتر" className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm" />
+                                            <select value={newShortlistSemester} onChange={(e) => setNewShortlistSemester(e.target.value)} className="rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                                                {recordSemesters.map(k => <option key={k} value={k}>{`فصل ${semesterStats[k]?.year || '-'} - ${semesterStats[k]?.term || '-'}`}</option>)}
+                                            </select>
+                                            <button onClick={createShortlist} className="bg-indigo-600 text-white px-3 py-2 rounded-xl font-bold">حفظ</button>
+                                        </div>
+                                        <div className="space-y-2 max-h-40 overflow-y-auto hide-scrollbar">
+                                            {shortlists.length === 0 && <div className="text-xs text-slate-400">لا يوجد شباتر محفوظة</div>}
+                                            {shortlists.map(s => (
+                                                <div key={s.id} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                                    <div>
+                                                        <div className="font-[800] text-sm">{s.name}</div>
+                                                        <div className="text-[11px] text-slate-400">{s.semester}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <button onClick={() => loadShortlistToCart(s.id)} className="text-sm px-3 py-1 rounded-md bg-emerald-50 text-emerald-700 font-[800]">تحميل</button>
+                                                        <button onClick={() => deleteShortlist(s.id)} className="text-sm px-3 py-1 rounded-md bg-rose-50 text-rose-700 font-[800]">حذف</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                
                                 <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-[1.5rem] p-5 shadow-lg shadow-indigo-200/50 flex items-center justify-between transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl backdrop-blur-md">🗺️</div>
