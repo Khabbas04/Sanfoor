@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import ReactFlow, { Controls, Background, MarkerType, useNodesState, useEdgesState, getRectOfNodes, getTransformForBounds } from 'reactflow';
 import dagre from 'dagre';
 import { toPng } from 'html-to-image';
@@ -2355,8 +2356,8 @@ export default function Tree({
             }
         };
 
-        return (
-            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[999] flex items-center justify-center p-3 sm:p-6">
+        return createPortal(
+            <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-6" dir="rtl">
                 <div className="bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden landscape:h-[98vh]" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
                         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '16px 16px' }} />
@@ -2525,7 +2526,8 @@ export default function Tree({
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     };
 
