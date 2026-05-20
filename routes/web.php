@@ -144,6 +144,48 @@ Route::get('/dashboard', function () {
         ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
         ->get();
 
+    // Fetch the approved graduation plan (if any) with course details.
+    $approvedPlan = \App\Models\GraduationPlan::query()
+        ->where('user_id', $user->id)
+        ->first();
+
+    $graduationPlanData = null;
+    if ($approvedPlan && is_array($approvedPlan->payload)) {
+        $allCourseIds = collect($approvedPlan->payload['semesters'] ?? [])
+            ->pluck('course_ids')
+            ->flatten()
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $planCourseMap = Course::whereIn('id', $allCourseIds)
+            ->select('id', 'name', 'code', 'credit_hours', 'type')
+            ->get()
+            ->keyBy('id');
+
+        $graduationPlanData = [
+            'id' => $approvedPlan->id,
+            'approved_at' => optional($approvedPlan->approved_at)->toISOString(),
+            'notes' => $approvedPlan->payload['notes'] ?? null,
+            'semesters' => collect($approvedPlan->payload['semesters'] ?? [])->map(function ($sem) use ($planCourseMap) {
+                return [
+                    'semester' => $sem['semester'] ?? 1,
+                    'is_summer' => $sem['is_summer'] ?? false,
+                    'courses' => collect($sem['course_ids'] ?? [])->map(function ($id) use ($planCourseMap) {
+                        $c = $planCourseMap->get($id);
+                        return $c ? [
+                            'id' => $c->id,
+                            'name' => $c->name,
+                            'code' => $c->code,
+                            'credit_hours' => $c->credit_hours,
+                            'type' => $c->type,
+                        ] : null;
+                    })->filter()->values()->toArray(),
+                ];
+            })->toArray(),
+        ];
+    }
+
     return Inertia::render('Dashboard', [
         'passed_hours' => (int) $passedHours,
         'total_hours' => 132,
@@ -153,6 +195,7 @@ Route::get('/dashboard', function () {
         'cart_courses' => $user->cartCourses,
         'ai_skills' => $user->getSkillsFromPassedCourses(),
         'planner_courses' => $plannerCourses,
+        'graduation_plan' => $graduationPlanData,
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 

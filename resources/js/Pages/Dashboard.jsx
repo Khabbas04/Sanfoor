@@ -100,6 +100,8 @@ export default function Dashboard({
     }, [gpa, has_academic_records, passed_hours]);
 
     const [mounted, setMounted] = useState(false);
+    const [printMode, setPrintMode] = useState(null); // 'transcript' or 'plan'
+    
     useEffect(() => {
         const t = setTimeout(() => setMounted(true), 50);
         return () => clearTimeout(t);
@@ -512,7 +514,7 @@ export default function Dashboard({
                         </div>
 
                         <div className="relative z-10 p-6 sm:p-8 lg:p-10">
-                            <button onClick={() => window.print()} className="no-print absolute top-6 left-6 sm:top-8 sm:left-8 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-[12px] font-bold flex items-center gap-2 transition-all backdrop-blur-md shadow-sm active:scale-95">
+                            <button onClick={() => { setPrintMode('transcript'); setTimeout(() => window.print(), 100); }} className="no-print absolute top-6 left-6 sm:top-8 sm:left-8 bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-[12px] font-bold flex items-center gap-2 transition-all backdrop-blur-md shadow-sm active:scale-95">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                 طباعة السجل
                             </button>
@@ -615,6 +617,70 @@ export default function Dashboard({
                         </div>
                     </div>
 
+
+
+                    {/* Graduation Plan Section */}
+                    {graduation_plan && graduation_plan.semesters && graduation_plan.semesters.length > 0 && (
+                        <div className="relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 shadow-sm mb-7">
+                            <div className="bg-indigo-50/50 border-b border-indigo-100/50 p-6 sm:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                        <span className="text-2xl">🎓</span> خطة التخرج المعتمدة
+                                    </h3>
+                                    <p className="text-xs font-bold text-slate-500 mt-1">خطتك المنظمة للفصول القادمة حتى التخرج</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={() => { setPrintMode('plan'); setTimeout(() => window.print(), 100); }} 
+                                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                                        طباعة الخطة
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="p-6 sm:px-8 py-8 overflow-x-auto hide-scrollbar">
+                                <div className="flex items-stretch gap-4 min-w-max pb-4">
+                                    {graduation_plan.semesters.map((sem, idx) => {
+                                        const totalCredits = (sem.courses || []).reduce((sum, c) => sum + (c?.credit_hours || 0), 0);
+                                        return (
+                                            <div key={idx} className="w-[300px] shrink-0 bg-slate-50 border border-slate-100 rounded-[1.5rem] p-5 flex flex-col">
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <h4 className="font-[900] text-slate-800 text-[14px]">
+                                                        {sem.is_summer ? 'الفصل الصيفي' : `الفصل ${sem.semester}`}
+                                                    </h4>
+                                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${sem.is_summer ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                                                        {totalCredits} ساعة
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1 space-y-2">
+                                                    {(sem.courses || []).map((c, cIdx) => (
+                                                        <div key={cIdx} className="bg-white border border-slate-100 rounded-xl p-3 flex justify-between items-center shadow-sm">
+                                                            <div>
+                                                                <div className="font-bold text-slate-700 text-[12px] line-clamp-1" title={c?.name}>{c?.name}</div>
+                                                                <div className="text-[10px] text-slate-400 font-bold mt-0.5">{c?.code}</div>
+                                                            </div>
+                                                            <div className="bg-slate-50 border border-slate-100 px-2 py-0.5 rounded text-[10px] font-bold text-slate-500 shrink-0">
+                                                                {c?.credit_hours} س
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {(!sem.courses || sem.courses.length === 0) && (
+                                                        <div className="text-center py-6 text-[11px] text-slate-400 font-bold">لا يوجد مواد</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                {graduation_plan.notes && (
+                                    <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-[1.25rem] text-sm text-amber-800 font-bold">
+                                        💡 ملاحظاتك: {graduation_plan.notes}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-7">
@@ -767,8 +833,8 @@ export default function Dashboard({
                     </div>
                 </div>
 
-                {/* 🖨️ PRINTABLE TRANSCRIPT (HIDDEN EXCEPT ON PRINT) */}
-                <div className="hidden print:block w-full max-w-[21cm] mx-auto text-black bg-white" dir="rtl">
+                {/* 🖨️ PRINTABLE TRANSCRIPT */}
+                <div className={`hidden ${printMode === 'transcript' ? 'print:block' : ''} w-full max-w-[21cm] mx-auto text-black bg-white`} dir="rtl">
                     <div className="text-center border-b-2 border-slate-800 pb-6 mb-6">
                         <h1 className="text-3xl font-black text-slate-900 mb-2">السجل الأكاديمي</h1>
                         <h2 className="text-sm font-bold text-slate-600">{auth.user?.major?.name || 'تخصص غير محدد'}</h2>
@@ -833,6 +899,90 @@ export default function Dashboard({
                         تم استخراج هذه الوثيقة من نظام سنفور الأكاديمي - السجل غير رسمي ومخصص للمتابعة الذاتية فقط.
                     </div>
                 </div>
+
+                {/* 🖨️ PRINTABLE GRADUATION PLAN */}
+                {graduation_plan && (
+                    <div className={`hidden ${printMode === 'plan' ? 'print:block' : ''} w-full max-w-[21cm] mx-auto text-black bg-white`} dir="rtl">
+                        <div className="text-center border-b-2 border-slate-800 pb-6 mb-6">
+                            <h1 className="text-3xl font-black text-slate-900 mb-2">خطة التخرج الأكاديمية</h1>
+                            <h2 className="text-sm font-bold text-slate-600">{auth.user?.major?.name || 'تخصص غير محدد'}</h2>
+                        </div>
+
+                        <div className="flex justify-between items-end border border-slate-300 rounded-xl p-5 mb-8">
+                            <div>
+                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">اسم الطالب</p>
+                                <p className="text-lg font-black text-slate-900">{auth.user?.name || 'غير معروف'}</p>
+                                <p className="text-xs font-bold text-slate-600 mt-0.5">{auth.user?.email}</p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">عدد فصول الخطة</p>
+                                <p className="text-xl font-black text-slate-900">{(graduation_plan.semesters || []).length}</p>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[11px] font-bold text-slate-500 mb-1 uppercase">تاريخ الاعتماد</p>
+                                <p className="text-lg font-black text-slate-900">{graduation_plan.approved_at ? new Date(graduation_plan.approved_at).toLocaleDateString('ar-SA') : 'غير محدد'}</p>
+                            </div>
+                        </div>
+
+                        {graduation_plan.notes && (
+                            <div className="mb-6 p-4 border border-slate-300 rounded-xl bg-slate-50 text-sm font-bold text-slate-700">
+                                <span className="text-slate-500 uppercase text-[11px] block mb-1">ملاحظات:</span>
+                                {graduation_plan.notes}
+                            </div>
+                        )}
+
+                        <div className="space-y-6">
+                            {(graduation_plan.semesters || []).map((sem, idx) => {
+                                const totalCredits = (sem.courses || []).reduce((sum, c) => sum + (c?.credit_hours || 0), 0);
+                                return (
+                                    <div key={idx} className="break-inside-avoid">
+                                        <div className="bg-slate-100 px-4 py-2 flex justify-between items-center border border-slate-300 border-b-0 rounded-t-xl">
+                                            <h3 className="font-black text-sm text-slate-800">
+                                                {sem.is_summer ? 'الفصل الصيفي' : `الفصل ${sem.semester}`}
+                                            </h3>
+                                            <span className="text-xs font-bold text-slate-600">
+                                                إجمالي الساعات: {totalCredits}
+                                            </span>
+                                        </div>
+                                        <table className="w-full border-collapse border border-slate-300 text-sm">
+                                            <thead>
+                                                <tr className="bg-slate-50">
+                                                    <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700 w-24">الرمز</th>
+                                                    <th className="border border-slate-300 px-3 py-2 text-right font-black text-slate-700">المادة</th>
+                                                    <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-20">الساعات</th>
+                                                    <th className="border border-slate-300 px-3 py-2 text-center font-black text-slate-700 w-24">النوع</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(sem.courses || []).map((c, cIdx) => (
+                                                    <tr key={cIdx}>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-right font-mono text-xs">{c?.code}</td>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-right font-bold text-slate-800">{c?.name}</td>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-center">{c?.credit_hours}</td>
+                                                        <td className="border border-slate-300 px-3 py-1.5 text-center text-xs text-slate-600">
+                                                            {c?.type === 'university_req' ? 'متطلب جامعة' : 
+                                                             c?.type === 'elective' ? 'اختياري' :
+                                                             c?.type === 'supporting' ? 'مساندة' : 'إجباري'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(!sem.courses || sem.courses.length === 0) && (
+                                                    <tr>
+                                                        <td colSpan="4" className="border border-slate-300 px-3 py-4 text-center text-slate-400 font-bold">لا يوجد مواد في هذا الفصل</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="mt-8 text-center text-[10px] text-slate-400 font-bold border-t border-slate-200 pt-4">
+                            تم استخراج هذه الخطة من نظام سنفور الأكاديمي.
+                        </div>
+                    </div>
+                )}
             </div>
         </MainLayout>
     );
