@@ -286,16 +286,21 @@ export default function Welcome({ auth }) {
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
-                        {/* Beta Badge */}
-                        <div className="hero-animate mb-10" style={{ animationDelay: '0.1s' }}>
-                            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white text-xs font-bold shadow-lg shadow-black/20 select-none">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-                                </span>
-                                <span className="font-i tracking-wide">النظام الذكي الأول في الجامعات</span>
+                        {/* Premium AI Badge */}
+                        <div className="hero-animate mb-10 flex justify-center" style={{ animationDelay: '0.1s' }}>
+                            <div className="relative inline-flex p-[1px] rounded-full overflow-hidden shadow-[0_0_35px_rgba(99,102,241,0.25)] group cursor-default select-none">
+                                <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#c4b5fd_0%,#4338ca_50%,#c4b5fd_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="inline-flex items-center gap-2.5 h-full w-full px-6 py-2 bg-[#020617]/90 rounded-full backdrop-blur-xl relative z-10">
+                                    <div className="flex items-center justify-center text-indigo-300 animate-pulse">
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2L14.1 9.9L22 12L14.1 14.1L12 22L9.9 14.1L2 12L9.9 9.9L12 2Z" />
+                                        </svg>
+                                    </div>
+                                    <span className="font-[900] text-[13px] tracking-wide text-transparent bg-clip-text bg-gradient-to-l from-indigo-200 via-white to-white drop-shadow-sm">
+                                        النظام الذكي الأول في الجامعات
+                                    </span>
+                                </div>
                             </div>
-
                         </div>
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
