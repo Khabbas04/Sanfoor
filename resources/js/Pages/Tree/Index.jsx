@@ -621,8 +621,9 @@ export default function Tree({
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                             </svg>
                         </div>
-                        <h1 style="font-size: 22px; font-weight: 900; margin: 0; color: #0f172a;">الخطة الدراسية الاسترشادية الشجرية</h1>
+                        <h1 style="font-size: 22px; font-weight: 900; margin: 0; color: #0f172a;">الخطة الشجرية</h1>
                         <p style="font-size: 12px; font-weight: bold; margin: 6px 0 0; color: #64748b; text-transform: uppercase;">STUDENT: ${student_name || 'طالب'}</p>
+                        <p style="font-size: 12px; font-weight: 900; margin: 6px 0 0; color: #0f172a;">رقم الخطة: ${study_plan_version || '—'}</p>
                     </div>
 
                     <!-- Left Section (App Info) -->
@@ -688,7 +689,7 @@ export default function Tree({
                 ...swalTheme
             });
         }
-    }, [flowInstance, major_name, student_name]);
+    }, [flowInstance, major_name, student_name, study_plan_version]);
 
     const fitViewSmart = useCallback((duration = 260) => {
         if (!flowInstance) return;
