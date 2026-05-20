@@ -3004,14 +3004,7 @@ export default function Tree({
                                     <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400 text-[10px]">⌄</span>
                                 </div>
 
-                                <button
-                                    onClick={handlePrint}
-                                    disabled={isPrinting}
-                                    className="px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 bg-white text-slate-900 shadow-sm hover:bg-slate-50 border border-slate-200/50 disabled:opacity-70"
-                                    title="طباعة الخطة الشجرية"
-                                >
-                                    {isPrinting ? '⏳ جاري التجهيز...' : '🖨️ طباعة'}
-                                </button>
+
 
                                 {canEditTreePositions && !positionEditMode && (
                                     <button
