@@ -87,6 +87,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function cartCourses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class, 'user_carts', 'user_id', 'course_id')
+            ->withPivot('target_year', 'target_term', 'is_summer')
             ->withTimestamps();
     }
 
