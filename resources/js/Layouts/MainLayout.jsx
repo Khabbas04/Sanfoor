@@ -368,16 +368,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <button onClick={() => setMobileOpen(false)} className="text-3xl opacity-70 hover:opacity-100 transition-opacity">&times;</button>
                         </div>
 
-                        {academicPeriodLabel && (
-                            <div className={`mx-4 mt-4 rounded-2xl border px-4 py-3 text-sm font-black ${isDark ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                                <div className="text-[11px] uppercase tracking-[0.18em] opacity-70 mb-1">{t.systemStatus}</div>
-                                <div className="flex items-center gap-2">
-                                    <span>📅</span>
-                                    <span>{academicPeriodLabel}</span>
-                                </div>
-                            </div>
-                        )}
-
                         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
                             <Link onClick={() => setMobileOpen(false)} href="/" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏠 {t.home}</Link>
 

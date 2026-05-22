@@ -1,5 +1,5 @@
 import MainLayout from '@/Layouts/MainLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
 // Resolve the deployment URL once for page-level SEO metadata.
@@ -103,6 +103,7 @@ export default function Dashboard({
 
     const [mounted, setMounted] = useState(false);
     const [printMode, setPrintMode] = useState(null); // 'transcript' or 'plan'
+    const { academic_period: academicPeriod = null } = usePage().props || {};
     
     useEffect(() => {
         const t = setTimeout(() => setMounted(true), 50);
@@ -142,6 +143,8 @@ export default function Dashboard({
         if (term === 2) return 'الثاني';
         return 'الصيفي';
     }, []);
+
+    const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
 
     const processedCourses = useMemo(() => {
         return passed_courses.map(c => {
@@ -536,7 +539,7 @@ export default function Dashboard({
                                         <p className="text-indigo-300/50 text-sm mt-1 truncate">{auth.user?.email || 'لا يوجد بريد إلكتروني'}</p>
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                                        {[{ text: auth.user?.major?.name || 'تخصص غير محدد', icon: '🎓', d: 200 }, { text: academicYear, icon: '📅', d: 320 }].map((badge, i) => (
+                                        {[{ text: auth.user?.major?.name || 'تخصص غير محدد', icon: '🎓', d: 200 }, { text: academicYear, icon: '📅', d: 320 }, ...(academicPeriodLabel ? [{ text: academicPeriodLabel, icon: '🗓️', d: 440 }] : [])].map((badge, i) => (
                                             <span key={i} className="bg-white/[0.07] backdrop-blur-md border border-white/[0.1] px-3.5 py-[6px] rounded-[10px] text-[11px] font-bold flex items-center gap-1.5 hover:bg-white/[0.13] transition-colors cursor-default" style={{ animation: mounted ? `sn-pop 0.55s ${spring} ${badge.d}ms both` : 'none' }}>
                                                 {badge.icon} {badge.text}
                                             </span>
