@@ -1347,7 +1347,7 @@ class AdminController extends Controller
         $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year')
             && Schema::hasColumn('user_carts', 'academic_term');
 
-        $courseDemand = Course::whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm) {
+        $courseDemand = Course::whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
             if ($periodYear && $periodTerm && $hasPeriodColumns) {
                 $query->where('user_carts.academic_year', $periodYear)
                     ->where('user_carts.academic_term', $periodTerm);
@@ -1361,7 +1361,7 @@ class AdminController extends Controller
             ->when($request->major_id, function ($query, $majorId) {
                 $query->where('major_id', $majorId);
             })
-            ->withCount(['cartUsers as cart_users_count' => function ($query) use ($periodYear, $periodTerm) {
+            ->withCount(['cartUsers as cart_users_count' => function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
                 if ($periodYear && $periodTerm && $hasPeriodColumns) {
                     $query->where('user_carts.academic_year', $periodYear)
                         ->where('user_carts.academic_term', $periodTerm);
@@ -1376,7 +1376,7 @@ class AdminController extends Controller
 
         // 🔥 تعديل جوهري: حساب إجمالي الطلاب "النشطين" (الذين لديهم مواد في التسجيل التجريبي) فقط
         // هذا يمنع ظهور نسبة 0% إذا كان هناك طلاب مسجلين ولكن لم يستخدموا التسجيل التجريبي بعد.
-        $totalStudents = User::whereHas('cartCourses', function ($query) use ($periodYear, $periodTerm) {
+        $totalStudents = User::whereHas('cartCourses', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
             if ($periodYear && $periodTerm && $hasPeriodColumns) {
                 $query->where('user_carts.academic_year', $periodYear)
                     ->where('user_carts.academic_term', $periodTerm);

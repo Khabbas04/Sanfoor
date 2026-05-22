@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -425,14 +426,19 @@ class TreeController extends Controller
 
             $currentPeriod = AcademicPeriod::current();
 
-            DB::table('user_carts')->insertOrIgnore([
+            $insert = [
                 'user_id' => Auth::id(),
                 'course_id' => $courseId,
-                'academic_year' => $currentPeriod?->academic_year,
-                'academic_term' => $currentPeriod?->academic_term,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            if (Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term')) {
+                $insert['academic_year'] = $currentPeriod?->academic_year;
+                $insert['academic_term'] = $currentPeriod?->academic_term;
+            }
+
+            DB::table('user_carts')->insertOrIgnore([$insert]);
 
             return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى التسجيل التجريبي بنجاح.']);
         } catch (\Throwable $e) {

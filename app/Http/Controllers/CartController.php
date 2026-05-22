@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class CartController extends Controller
 {
@@ -83,14 +84,21 @@ class CartController extends Controller
          * 2. المزامنة (Sync)
          * تحديث جدول user_carts فوراً لضمان ظهور البيانات في لوحة الأدمن.
          */
+        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
+
         $syncPayload = [];
         foreach ($allowedIds as $courseId) {
-            $syncPayload[$courseId] = [
-                'academic_year' => $periodYear,
-                'academic_term' => $periodTerm,
+            $payload = [
                 'updated_at' => now(),
                 'created_at' => now(),
             ];
+
+            if ($hasPeriodColumns) {
+                $payload['academic_year'] = $periodYear;
+                $payload['academic_term'] = $periodTerm;
+            }
+
+            $syncPayload[$courseId] = $payload;
         }
 
         $user->cartCourses()->sync($syncPayload);
