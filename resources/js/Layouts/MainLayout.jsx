@@ -32,6 +32,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const role = (safeUser.role || '').toLowerCase().trim();
     const isOwner = Boolean(safeUser.is_owner) || role === 'owner';
     const isAdminOrOwner = Boolean(safeUser.is_admin_or_owner) || ['admin', 'owner'].includes(role);
+    const isHomePage = safeRouteCurrent('welcome', '/') || (typeof window !== 'undefined' && window.location.pathname === '/');
 
     // UI state for the floating navbar and mobile drawer menu.
     const [scrolled, setScrolled] = useState(false);
@@ -412,9 +413,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                 </div>
             )}
 
-            {academicPeriodLabel && (
+            {isHomePage && academicPeriodLabel && (
                 <div className={`fixed ${lang === 'ar' ? 'right-4' : 'left-4'} top-[88px] sm:top-[104px] z-[95] hidden sm:flex pointer-events-none`}>
-                    <div className={`pointer-events-auto flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-[12px] font-black shadow-lg ${isDark ? 'bg-slate-900/90 text-emerald-300 border-emerald-500/20' : 'bg-white/95 text-emerald-700 border-emerald-200'}`} title={t.version}>
+                    <div className={`pointer-events-auto flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black shadow-lg ${isDark ? 'bg-slate-900/90 text-emerald-300 border-emerald-500/20' : 'bg-white/95 text-emerald-700 border-emerald-200'}`} title={t.version}>
                         <span>📅</span>
                         <span className="whitespace-nowrap">{academicPeriodLabel}</span>
                     </div>
