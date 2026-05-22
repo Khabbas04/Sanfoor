@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 export default function GlobalLoader() {
     const [loading, setLoading] = useState(false);
@@ -56,12 +56,8 @@ export default function GlobalLoader() {
         };
     }, []);
 
-    // Global heartbeat for all authenticated users to keep sessions alive and update last_activity
-    const { props } = usePage();
+    // Global heartbeat for all users (backend ignores unauthenticated); notify on close.
     useEffect(() => {
-        const authUser = props?.auth?.user || null;
-        if (!authUser) return;
-
         const sendHeartbeat = async () => {
             try {
                 await fetch(route('heartbeat'), {
@@ -82,9 +78,11 @@ export default function GlobalLoader() {
         const handleBeforeUnload = () => {
             const routePath = route('browser_close');
             if (navigator.sendBeacon) {
-                const payload = new FormData();
-                payload.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
-                navigator.sendBeacon(routePath, payload);
+                try {
+                    navigator.sendBeacon(routePath);
+                } catch (e) {
+                    // ignore
+                }
             }
         };
 
@@ -94,7 +92,7 @@ export default function GlobalLoader() {
             clearInterval(hb);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [props]);
+    }, []);
 
     // We use a floating dynamic pill so it doesn't block the beautiful page transitions
     return (
