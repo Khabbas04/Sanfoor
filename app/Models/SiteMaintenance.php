@@ -10,6 +10,8 @@ class SiteMaintenance extends Model
 {
     use HasFactory;
 
+    protected $table = 'site_maintenance';
+
     protected $fillable = [
         'is_enabled',
         'title',
