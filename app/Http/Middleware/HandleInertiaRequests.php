@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AcademicPeriod;
 use App\Models\IssueReport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -69,6 +70,8 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
+        $currentAcademicPeriod = AcademicPeriod::current();
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -78,6 +81,14 @@ class HandleInertiaRequests extends Middleware
                 'message' => fn () => $request->session()->get('message') ?? '',
                 'type' => fn () => $request->session()->get('type') ?? 'info',
             ],
+            'academic_period' => $currentAcademicPeriod ? [
+                'id' => $currentAcademicPeriod->id,
+                'academic_year' => $currentAcademicPeriod->academic_year,
+                'academic_term' => (int) $currentAcademicPeriod->academic_term,
+                'label' => $currentAcademicPeriod->label,
+                'display_label' => $currentAcademicPeriod->displayLabel(),
+                'is_current' => (bool) $currentAcademicPeriod->is_current,
+            ] : null,
             'admin_notifications' => $adminNotifications ?? (object)[],
         ];
     }

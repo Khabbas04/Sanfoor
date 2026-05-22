@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
@@ -32,6 +32,16 @@ const translations = {
         updatedAt: 'آخر تحديث',
         adminToolsTitle: 'أدوات إدارة النظام',
         adminToolsDesc: 'كل الإجراءات الإدارية مركزة هنا بدل الداشبورد.',
+        academicPeriodTitle: 'الفصل الأكاديمي الحالي',
+        academicPeriodDesc: 'هذا الإعداد يظهر للطلاب ويُستخدم كمرجع موحد للفصل النشط داخل النظام.',
+        academicYearLabel: 'السنة الأكاديمية',
+        academicTermLabel: 'الترم',
+        academicLabel: 'عنوان مخصص',
+        academicPreview: 'المعاينة الحالية',
+        saveAcademicPeriod: 'حفظ الفصل الحالي',
+        termFirst: 'الفصل الأول',
+        termSecond: 'الفصل الثاني',
+        termSummer: 'الفصل الصيفي',
         manageAdmins: 'إدارة الأدمنز',
         manageStudents: 'إدارة الطلاب',
         reports: 'بلاغات الطلاب',
@@ -67,6 +77,16 @@ const translations = {
         updatedAt: 'Last updated',
         adminToolsTitle: 'System Administration Tools',
         adminToolsDesc: 'All admin actions are centralized here instead of Dashboard.',
+        academicPeriodTitle: 'Current Academic Period',
+        academicPeriodDesc: 'This setting is visible to students and serves as the unified active term across the system.',
+        academicYearLabel: 'Academic Year',
+        academicTermLabel: 'Term',
+        academicLabel: 'Custom Label',
+        academicPreview: 'Current Preview',
+        saveAcademicPeriod: 'Save Current Period',
+        termFirst: 'First Term',
+        termSecond: 'Second Term',
+        termSummer: 'Summer Term',
         manageAdmins: 'Manage Admins',
         manageStudents: 'Manage Students',
         reports: 'Student Reports',
@@ -97,7 +117,7 @@ function roleBadge(role, isDark) {
     return isDark ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/60' : 'bg-emerald-100 text-emerald-700 border-emerald-200';
 }
 
-export default function Settings({ stats = {}, onlineUsers = [] }) {
+export default function Settings({ stats = {}, onlineUsers = [], currentAcademicPeriod = null }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const { auth } = usePage().props;
@@ -107,6 +127,20 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
     const [activeTab, setActiveTab] = useState('online');
     const [query, setQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
+    const [isSavingAcademicPeriod, setIsSavingAcademicPeriod] = useState(false);
+    const [academicForm, setAcademicForm] = useState({
+        academic_year: currentAcademicPeriod?.academic_year || new Date().getFullYear().toString(),
+        academic_term: String(currentAcademicPeriod?.academic_term || 1),
+        label: currentAcademicPeriod?.label || '',
+    });
+
+    useEffect(() => {
+        setAcademicForm({
+            academic_year: currentAcademicPeriod?.academic_year || new Date().getFullYear().toString(),
+            academic_term: String(currentAcademicPeriod?.academic_term || 1),
+            label: currentAcademicPeriod?.label || '',
+        });
+    }, [currentAcademicPeriod]);
 
     const initialOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
     const {
@@ -152,6 +186,30 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
 
         return actions;
     }, [isOwner, t]);
+
+    const currentAcademicPreview = currentAcademicPeriod?.display_label || (academicForm.label?.trim() || `${academicForm.academic_year} ${academicForm.academic_term}`);
+
+    const termOptions = [
+        { value: '1', label: t.termFirst },
+        { value: '2', label: t.termSecond },
+        { value: '3', label: t.termSummer },
+    ];
+
+    const saveAcademicPeriod = () => {
+        setIsSavingAcademicPeriod(true);
+        router.put(route('admin.settings.academic_period'), academicForm, {
+            preserveScroll: true,
+            onFinish: () => setIsSavingAcademicPeriod(false),
+            onSuccess: () => {
+                Swal.fire({
+                    icon: 'success',
+                    title: t.saveAcademicPeriod,
+                    text: `${t.academicPreview}: ${currentAcademicPreview}`,
+                    confirmButtonColor: '#4f46e5',
+                });
+            },
+        });
+    };
 
     return (
         <AdminLayout>
@@ -284,6 +342,63 @@ export default function Settings({ stats = {}, onlineUsers = [] }) {
                     <section className={`${card} border rounded-3xl p-6`}>
                         <h2 className={`text-xl font-black ${heading}`}>{t.adminToolsTitle}</h2>
                         <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.adminToolsDesc}</p>
+
+                        <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
+                            <div className={`${cardSoft} border rounded-2xl p-5`}>
+                                <p className={`text-[11px] font-black ${subtext}`}>{t.academicPeriodTitle}</p>
+                                <h3 className={`mt-2 text-2xl font-black ${heading}`}>{currentAcademicPreview}</h3>
+                                <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.academicPeriodDesc}</p>
+                                <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-bold ${isDark ? 'bg-slate-950/40 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
+                                    <span className="block text-[11px] font-black uppercase tracking-wider opacity-60">{t.academicPreview}</span>
+                                    <span className="block mt-1 text-base font-black text-indigo-600">{currentAcademicPreview}</span>
+                                </div>
+                            </div>
+
+                            <div className={`${cardSoft} border rounded-2xl p-5`}>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className={`block text-[11px] font-black mb-2 ${subtext}`}>{t.academicYearLabel}</label>
+                                        <input
+                                            type="text"
+                                            value={academicForm.academic_year}
+                                            onChange={(e) => setAcademicForm((prev) => ({ ...prev, academic_year: e.target.value }))}
+                                            className={`w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                            placeholder="2026"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-[11px] font-black mb-2 ${subtext}`}>{t.academicTermLabel}</label>
+                                        <select
+                                            value={academicForm.academic_term}
+                                            onChange={(e) => setAcademicForm((prev) => ({ ...prev, academic_term: e.target.value }))}
+                                            className={`w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-800'}`}
+                                        >
+                                            {termOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={`block text-[11px] font-black mb-2 ${subtext}`}>{t.academicLabel}</label>
+                                        <input
+                                            type="text"
+                                            value={academicForm.label}
+                                            onChange={(e) => setAcademicForm((prev) => ({ ...prev, label: e.target.value }))}
+                                            className={`w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                            placeholder="2026 الفصل الأول"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={saveAcademicPeriod}
+                                    disabled={isSavingAcademicPeriod}
+                                    className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-black px-4 py-2.5 transition-colors"
+                                >
+                                    {isSavingAcademicPeriod ? t.updatedNow : t.saveAcademicPeriod}
+                                </button>
+                            </div>
+                        </div>
 
                         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {adminActions.map((action) => (

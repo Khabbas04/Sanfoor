@@ -285,6 +285,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::post('/notes', [AdminController::class, 'storeAdminNote'])->name('notes.store');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+        Route::put('/settings/academic-period', [AdminController::class, 'updateAcademicPeriod'])->name('settings.academic_period');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
 

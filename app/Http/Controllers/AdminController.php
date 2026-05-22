@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Models\Major;
 use App\Models\College;
@@ -187,6 +188,7 @@ class AdminController extends Controller
      */
     public function settings()
     {
+        $currentAcademicPeriod = AcademicPeriod::current();
         $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
 
         $onlineUsers = DB::table('sessions as s')
@@ -214,6 +216,14 @@ class AdminController extends Controller
         })->count();
 
         return Inertia::render('Admin/Settings', [
+            'currentAcademicPeriod' => $currentAcademicPeriod ? [
+                'id' => $currentAcademicPeriod->id,
+                'academic_year' => $currentAcademicPeriod->academic_year,
+                'academic_term' => (int) $currentAcademicPeriod->academic_term,
+                'label' => $currentAcademicPeriod->label,
+                'display_label' => $currentAcademicPeriod->displayLabel(),
+                'is_current' => (bool) $currentAcademicPeriod->is_current,
+            ] : null,
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
@@ -221,6 +231,61 @@ class AdminController extends Controller
                 'active_admins_now' => $activeAdminsNow,
             ],
             'onlineUsers' => $onlineUsers,
+        ]);
+    }
+
+    /**
+     * Update the globally visible academic period.
+     */
+    public function updateAcademicPeriod(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->isAdminOrOwner(), 403);
+
+        if (!Schema::hasTable('academic_periods')) {
+            return redirect()->back()->with([
+                'message' => 'جدول الفصول الأكاديمية غير موجود. شغّل migrate أولاً.',
+                'type' => 'error',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'academic_year' => ['required', 'string', 'max:20'],
+            'academic_term' => ['required', 'integer', 'in:1,2,3'],
+            'label' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $currentPeriod = AcademicPeriod::current();
+
+            AcademicPeriod::query()->where('id', '!=', $currentPeriod?->id)->update([
+                'is_current' => false,
+                'updated_at' => now(),
+            ]);
+
+            if ($currentPeriod) {
+                $currentPeriod->update([
+                    'academic_year' => trim($validated['academic_year']),
+                    'academic_term' => (int) $validated['academic_term'],
+                    'label' => filled($validated['label']) ? trim($validated['label']) : null,
+                    'is_current' => true,
+                ]);
+            } else {
+                AcademicPeriod::create([
+                    'academic_year' => trim($validated['academic_year']),
+                    'academic_term' => (int) $validated['academic_term'],
+                    'label' => filled($validated['label']) ? trim($validated['label']) : null,
+                    'is_current' => true,
+                ]);
+            }
+        });
+
+        $updatedPeriod = AcademicPeriod::current();
+        $this->logAction('UPDATE_ACADEMIC_PERIOD', 'تم تحديث الفصل الأكاديمي الحالي إلى: ' . ($updatedPeriod?->displayLabel() ?? 'غير محدد'));
+
+        return redirect()->back()->with([
+            'message' => 'تم حفظ الفصل الأكاديمي الحالي بنجاح.',
+            'type' => 'success',
         ]);
     }
 
