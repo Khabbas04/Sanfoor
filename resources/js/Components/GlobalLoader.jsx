@@ -60,9 +60,14 @@ export default function GlobalLoader() {
     useEffect(() => {
         const sendHeartbeat = async () => {
             try {
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 await fetch(route('heartbeat'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+                    },
                     credentials: 'same-origin',
                 });
             } catch (e) {

@@ -502,7 +502,8 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                                                                 confirmButtonColor: '#e11d48'
                                                                             }).then((res) => {
                                                                                 if (res.isConfirmed) {
-                                                                                    router.delete(route('admin.students.cart.remove', [selectedStudent.id, course.id]), {
+                                                                                    const url = `/admin/students/${selectedStudent.id}/cart/${course.id}`;
+                                                                                    router.delete(url, {
                                                                                         onSuccess: () => {
                                                                                             Swal.fire({ icon: 'success', title: 'تمت الإزالة', confirmButtonColor: '#4f46e5' });
                                                                                             // Refresh the student profile by refetching the list
