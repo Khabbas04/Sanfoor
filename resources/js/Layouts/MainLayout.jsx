@@ -264,12 +264,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     </span>
                                 </Link>
 
-                                {academicPeriodLabel && (
-                                    <div className={`ml-1 flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12px] font-black border ${isDark ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`} title={t.version}>
-                                        <span>📅</span>
-                                        <span className="whitespace-nowrap">{academicPeriodLabel}</span>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Theme toggle, language switcher, and account actions. */}
@@ -414,6 +408,15 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <Link href={safeRoute('logout')} method="post" as="button" className="w-full py-3.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-sm transition-colors hover:bg-rose-100 dark:hover:bg-rose-500/20">👋 {t.logout}</Link>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {academicPeriodLabel && (
+                <div className={`fixed ${lang === 'ar' ? 'right-4' : 'left-4'} top-[88px] sm:top-[104px] z-[95] hidden sm:flex pointer-events-none`}>
+                    <div className={`pointer-events-auto flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-[12px] font-black shadow-lg ${isDark ? 'bg-slate-900/90 text-emerald-300 border-emerald-500/20' : 'bg-white/95 text-emerald-700 border-emerald-200'}`} title={t.version}>
+                        <span>📅</span>
+                        <span className="whitespace-nowrap">{academicPeriodLabel}</span>
                     </div>
                 </div>
             )}
