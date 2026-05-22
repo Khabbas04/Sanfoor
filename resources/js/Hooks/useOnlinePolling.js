@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
  * Handles live polling of online users, heartbeat, and browser close detection
  * for the admin dashboard.
  */
-export function useOnlinePolling(initialOnlineUsers, initialStats) {
+export function useOnlinePolling(initialOnlineUsers, initialStats, options = {}) {
     const [liveOnlineUsers, setLiveOnlineUsers] = useState(initialOnlineUsers || []);
     const [liveStats, setLiveStats] = useState({
         active_students_now: initialStats?.active_students_now || 0,
@@ -19,9 +19,13 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
         ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         : null;
 
+    const intervalMs = options.intervalMs ?? 15000; // default 15s
+    const minutes = options.minutes ?? 30; // look-back window
+
     const fetchOnlineUsers = async () => {
         try {
-            const response = await fetch(route('admin.api.online_users'), {
+            const url = route('admin.api.online_users', { minutes });
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
@@ -50,16 +54,16 @@ export function useOnlinePolling(initialOnlineUsers, initialStats) {
         }
     };
 
-    // 🔥 Polling for online users every 5 seconds
+    // 🔥 Polling for online users (configurable interval)
     useEffect(() => {
         // Initial poll
         fetchOnlineUsers();
 
         // Set up interval
-        const pollInterval = setInterval(fetchOnlineUsers, 5000);
+        const pollInterval = setInterval(fetchOnlineUsers, intervalMs);
 
         return () => clearInterval(pollInterval);
-    }, []);
+    }, [intervalMs, minutes]);
 
     // 🔥 Heartbeat: send activity every 60 seconds to keep session alive
     useEffect(() => {

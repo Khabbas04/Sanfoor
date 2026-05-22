@@ -189,7 +189,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         error,
         lastUpdatedAt,
         refreshNow,
-    } = useOnlinePolling(initialOnlineUsers, stats || {});
+    } = useOnlinePolling(initialOnlineUsers, stats || {}, { intervalMs: 15000, minutes: 30 });
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const cardSoft = isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200';
@@ -380,6 +380,22 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                                 <div className="flex items-center justify-between">
                                                     <span className={`text-[10px] font-black ${subtext}`}>{t.lastActivity}</span>
                                                     <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${subtext}`}>القسم</span>
+                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.major?.name || '—'}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${subtext}`}>مواد بالكارت</span>
+                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.cart_count ?? 0} ({user.cart_hours ?? 0} س)</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${subtext}`}>الساعات المكتملة</span>
+                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.passed_hours ?? 0} س</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className={`text-[10px] font-black ${subtext}`}>خطة معتمدة</span>
+                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.has_approved_plan ? 'نعم' : 'لا'}</span>
                                                 </div>
                                             </div>
                                         </div>
