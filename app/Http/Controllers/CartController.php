@@ -18,10 +18,7 @@ class CartController extends Controller
         // 1. التحقق من صحة البيانات القادمة
         $request->validate([
             'course_ids' => 'present|array', 
-            'course_ids.*' => 'integer|exists:courses,id',
-            'target_year' => 'nullable|integer|min:1|max:6',
-            'target_term' => 'nullable|integer|min:1|max:3',
-            'is_summer' => 'nullable|boolean',
+            'course_ids.*' => 'integer|exists:courses,id'
         ]);
 
         $user = Auth::user();
@@ -59,21 +56,7 @@ class CartController extends Controller
          * 2. المزامنة (Sync)
          * تحديث جدول user_carts فوراً لضمان ظهور البيانات في لوحة الأدمن.
          */
-        // Attach optional target term metadata to each synced record so admin
-        // and analytics can filter by the intended academic term.
-        $year = $request->input('target_year');
-        $term = $request->input('target_term');
-        $isSummer = filter_var($request->input('is_summer'), FILTER_VALIDATE_BOOLEAN);
-
-        $syncPayload = [];
-        foreach ($allowedIds as $id) {
-            $syncPayload[$id] = [];
-            if ($year !== null) $syncPayload[$id]['target_year'] = (int) $year;
-            if ($term !== null) $syncPayload[$id]['target_term'] = (int) $term;
-            $syncPayload[$id]['is_summer'] = $isSummer ? 1 : 0;
-        }
-
-        $user->cartCourses()->sync($syncPayload);
+        $user->cartCourses()->sync($allowedIds);
 
         if ($request->expectsJson()) {
             return response()->json([

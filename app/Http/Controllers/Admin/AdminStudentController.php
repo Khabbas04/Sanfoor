@@ -32,22 +32,6 @@ class AdminStudentController extends Controller
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%");
             })
-            ->when($request->target_year, function ($query, $year) {
-                $query->whereHas('cartCourses', function ($q) use ($year) {
-                    $q->where('user_carts.target_year', (int) $year);
-                });
-            })
-            ->when($request->target_term, function ($query, $term) {
-                $query->whereHas('cartCourses', function ($q) use ($term) {
-                    $q->where('user_carts.target_term', (int) $term);
-                });
-            })
-            ->when($request->has('is_summer'), function ($query) use ($request) {
-                $isSummer = filter_var($request->input('is_summer'), FILTER_VALIDATE_BOOLEAN);
-                $query->whereHas('cartCourses', function ($q) use ($isSummer) {
-                    $q->where('user_carts.is_summer', $isSummer ? 1 : 0);
-                });
-            })
             ->when($request->college_id, function ($query, $collegeId) {
                 $query->whereHas('major', function ($q) use ($collegeId) {
                     $q->where('college_id', $collegeId);
@@ -105,7 +89,7 @@ class AdminStudentController extends Controller
             'students' => $students,
             'colleges' => $colleges,
             'majors' => $majors,
-            'filters' => $request->only(['search', 'college_id', 'major_id', 'target_year', 'target_term', 'is_summer'])
+            'filters' => $request->only(['search', 'college_id', 'major_id'])
         ]);
     }
 

@@ -9,7 +9,7 @@ class UserCart extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'course_id', 'target_year', 'target_term', 'is_summer'];
+    protected $fillable = ['user_id'];
 
     public function user()
     {

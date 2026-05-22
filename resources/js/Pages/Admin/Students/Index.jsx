@@ -112,9 +112,6 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
     const t = translations[lang] || translations.ar;
 
     const [search, setSearch] = useState(filters.search || '');
-    const [filterYear, setFilterYear] = useState(filters.target_year || '');
-    const [filterTerm, setFilterTerm] = useState(filters.target_term || '');
-    const [filterIsSummer, setFilterIsSummer] = useState(filters.is_summer ? Boolean(filters.is_summer) : false);
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [activeTab, setActiveTab] = useState('passed'); // passed, cart, info
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -229,26 +226,6 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                 className={`w-full border rounded-xl py-3 ${lang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'} font-bold text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}
                             />
                             <span className={`absolute ${lang === 'ar' ? 'right-4' : 'left-4'} top-3.5 opacity-40`}>🔍</span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <select value={filterYear} onChange={(e) => { setFilterYear(e.target.value); router.get(route('admin.students.index'), { search, target_year: e.target.value || undefined, target_term: filterTerm || undefined, is_summer: filterIsSummer ? 1 : undefined }, { preserveState: true, replace: true }); }} className="rounded-xl border px-3 py-2 text-sm font-bold">
-                                <option value="">السنة</option>
-                                <option value="1">السنة الأولى</option>
-                                <option value="2">السنة الثانية</option>
-                                <option value="3">السنة الثالثة</option>
-                                <option value="4">السنة الرابعة</option>
-                                <option value="5">السنة الخامسة</option>
-                                <option value="6">السنة السادسة</option>
-                            </select>
-
-                            <select value={filterTerm} onChange={(e) => { const v = e.target.value; setFilterTerm(v); const isSummerFlag = v === '3'; setFilterIsSummer(isSummerFlag); router.get(route('admin.students.index'), { search, target_year: filterYear || undefined, target_term: v || undefined, is_summer: isSummerFlag ? 1 : undefined }, { preserveState: true, replace: true }); }} className="rounded-xl border px-3 py-2 text-sm font-bold">
-                                <option value="">الفصل</option>
-                                <option value="1">الفصل الأول</option>
-                                <option value="2">الفصل الثاني</option>
-                                <option value="3">الفصل الصيفي</option>
-                            </select>
-                        </div>
                         </div>
                     </div>
                 </div>
@@ -500,7 +477,6 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                                             <div>
                                                                 <h4 className={`font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-xs mb-1`}>{course.name}</h4>
                                                                 <p className="text-[9px] font-bold text-slate-400">{course.code} • {course.credit_hours} {t.creditHoursLabel}</p>
-                                                                <p className="text-[10px] font-bold text-slate-500 mt-1">{course.pivot ? (course.pivot.is_summer ? 'صيفي' : 'اعتيادي') + ' • سنة ' + (course.pivot.target_year || '?') + ' • فصل ' + (course.pivot.target_term || '?') : 'غير محدد'}</p>
                                                             </div>
                                                             <span className="text-amber-500 text-xs">🛒</span>
                                                         </div>

@@ -238,7 +238,7 @@ export default function Tree({
             year: Math.ceil(normalized / 3),
             term: ((normalized - 1) % 3) + 1,
         };
-    }, [targetYear, targetTerm]);
+    }, []);
 
     // Used to decode legacy plan-level semester numbering (1..12 regular terms only).
     const legacyPlanSemesterToYearTerm = useCallback((semesterValue) => {
@@ -956,7 +956,7 @@ export default function Tree({
     }, [targetSemester, semesterToYearTerm]);
 
     const syncCartWithDB = useCallback((ids) => {
-        router.post(route('cart.sync'), { course_ids: ids, target_year: targetYear, target_term: targetTerm, is_summer: (targetTerm === 3) }, {
+        router.post(route('cart.sync'), { course_ids: ids }, {
             preserveState: true,
             preserveScroll: true,
         });
@@ -964,7 +964,7 @@ export default function Tree({
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            axios.post(route('cart.sync'), { course_ids: cartIds, target_year: targetYear, target_term: targetTerm, is_summer: (targetTerm === 3) })
+            axios.post(route('cart.sync'), { course_ids: cartIds })
                 .catch(err => console.error("Failed to sync cart", err));
         }, 1000);
         return () => clearTimeout(timer);
