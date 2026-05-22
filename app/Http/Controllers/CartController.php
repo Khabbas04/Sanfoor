@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
@@ -29,9 +30,23 @@ class CartController extends Controller
             ->get()
             ->keyBy('id');
 
+        $currentPeriod = AcademicPeriod::current();
+        $periodYear = $currentPeriod?->academic_year;
+        $periodTerm = $currentPeriod?->academic_term;
+
         $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
         $allowedIds = [];
         $blockedCourses = [];
+
+        // Determine current term limits (summer vs regular)
+        $currentAcademic = \App\Models\AcademicPeriod::current();
+        $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
+        $maxTrialHours = $isSummer ? 9 : 18;
+
+        $accHours = 0;
+        // accumulate existing cart hours for user to allow replacing behavior
+        $existingCartHours = (int) $user->cartCourses()->sum('credit_hours');
+        $accHours = $existingCartHours;
 
         foreach ($requestedIds as $courseId) {
             $course = $courses->get($courseId);
@@ -49,14 +64,36 @@ class CartController extends Controller
                 continue;
             }
 
+            // Enforce trial hours cap per current academic term
+            $courseHours = (int) ($course->credit_hours ?? 0);
+            if (($accHours + $courseHours) > $maxTrialHours) {
+                $blockedCourses[] = [
+                    'name' => $course->name,
+                    'reason' => 'exceeds_max_trial_hours',
+                    'allowed_remaining' => max(0, $maxTrialHours - $accHours),
+                ];
+                continue;
+            }
+
             $allowedIds[] = $courseId;
+            $accHours += $courseHours;
         }
 
         /**
          * 2. المزامنة (Sync)
          * تحديث جدول user_carts فوراً لضمان ظهور البيانات في لوحة الأدمن.
          */
-        $user->cartCourses()->sync($allowedIds);
+        $syncPayload = [];
+        foreach ($allowedIds as $courseId) {
+            $syncPayload[$courseId] = [
+                'academic_year' => $periodYear,
+                'academic_term' => $periodTerm,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ];
+        }
+
+        $user->cartCourses()->sync($syncPayload);
 
         if ($request->expectsJson()) {
             return response()->json([

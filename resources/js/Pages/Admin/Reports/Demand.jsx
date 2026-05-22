@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -14,6 +14,9 @@ export default function Demand({
     const [selectedCollege, setSelectedCollege] = React.useState(filters.college_id || '');
     const [selectedMajor, setSelectedMajor] = React.useState(filters.major_id || '');
     const [query, setQuery] = React.useState('');
+    const { props } = usePage();
+    const academicPeriod = props?.academic_period || null;
+    const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
 
     const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'];
 
@@ -71,6 +74,12 @@ export default function Demand({
                             <p className="text-slate-500 dark:text-slate-400 font-bold mt-3 mr-2 text-sm leading-relaxed">
                                 تتبع رغبات الطلاب في "التسجيل التجريبي" لتوقع احتياجات الفصل القادم وفتح الشعب المناسبة.
                             </p>
+                            {academicPeriodLabel && (
+                                <div className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black border bg-indigo-50 text-indigo-700 border-indigo-200">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                    تحليل الطلب مربوط بالفصل الحالي: {academicPeriodLabel}
+                                </div>
+                            )}
                         </div>
                         
                         <div className="flex gap-3">

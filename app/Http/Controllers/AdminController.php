@@ -257,6 +257,8 @@ class AdminController extends Controller
             'label' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $previousPeriod = AcademicPeriod::current();
+
         DB::transaction(function () use ($validated) {
             $currentPeriod = AcademicPeriod::current();
 
@@ -281,6 +283,25 @@ class AdminController extends Controller
                 ]);
             }
         });
+
+        $updatedPeriod = AcademicPeriod::current();
+
+        // If the academic year or term changed to a different logical period, clear all user carts
+        $changed = false;
+        if (!$previousPeriod && $updatedPeriod) {
+            $changed = true;
+        } elseif ($previousPeriod && $updatedPeriod) {
+            if ((string) $previousPeriod->academic_year !== (string) $updatedPeriod->academic_year
+                || (int) $previousPeriod->academic_term !== (int) $updatedPeriod->academic_term) {
+                $changed = true;
+            }
+        }
+
+        if ($changed) {
+            // Clear pivot table entries for all users' carts
+            \DB::table('user_carts')->delete();
+            $this->logAction('RESET_ALL_CARTS', 'تم تفريغ تسجيلات التجريبية لجميع المستخدمين بسبب تغيير الفصل الأكاديمي.');
+        }
 
         $updatedPeriod = AcademicPeriod::current();
         $this->logAction('UPDATE_ACADEMIC_PERIOD', 'تم تحديث الفصل الأكاديمي الحالي إلى: ' . ($updatedPeriod?->displayLabel() ?? 'غير محدد'));
@@ -1320,7 +1341,16 @@ class AdminController extends Controller
      */
     public function demandReport(Request $request)
     {
-        $courseDemand = Course::whereHas('cartUsers')
+        $currentPeriod = AcademicPeriod::current();
+        $periodYear = $currentPeriod?->academic_year;
+        $periodTerm = $currentPeriod?->academic_term;
+
+        $courseDemand = Course::whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm) {
+            if ($periodYear && $periodTerm) {
+                $query->where('user_carts.academic_year', $periodYear)
+                    ->where('user_carts.academic_term', $periodTerm);
+            }
+        })
             ->when($request->college_id, function ($query, $collegeId) {
                 $query->whereHas('major', function ($q) use ($collegeId) {
                     $q->where('college_id', $collegeId);
@@ -1329,7 +1359,12 @@ class AdminController extends Controller
             ->when($request->major_id, function ($query, $majorId) {
                 $query->where('major_id', $majorId);
             })
-            ->withCount('cartUsers')
+            ->withCount(['cartUsers as cart_users_count' => function ($query) use ($periodYear, $periodTerm) {
+                if ($periodYear && $periodTerm) {
+                    $query->where('user_carts.academic_year', $periodYear)
+                        ->where('user_carts.academic_term', $periodTerm);
+                }
+            }])
             ->orderBy('cart_users_count', 'desc')
             ->take(15) 
             ->get();
@@ -1339,7 +1374,12 @@ class AdminController extends Controller
 
         // 🔥 تعديل جوهري: حساب إجمالي الطلاب "النشطين" (الذين لديهم مواد في التسجيل التجريبي) فقط
         // هذا يمنع ظهور نسبة 0% إذا كان هناك طلاب مسجلين ولكن لم يستخدموا التسجيل التجريبي بعد.
-        $totalStudents = User::whereHas('cartCourses')->count();
+        $totalStudents = User::whereHas('cartCourses', function ($query) use ($periodYear, $periodTerm) {
+            if ($periodYear && $periodTerm) {
+                $query->where('user_carts.academic_year', $periodYear)
+                    ->where('user_carts.academic_term', $periodTerm);
+            }
+        })->count();
 
         return Inertia::render('Admin/Reports/Demand', [
             'courseDemand' => $courseDemand,

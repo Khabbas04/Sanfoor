@@ -184,6 +184,8 @@ export default function Tree({
     const { isDark } = useTheme();
     const academicPeriod = props?.academic_period || null;
     const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
+    const isSummerTerm = Number(academicPeriod?.academic_term || 0) === 3;
+    const maxTrialHours = isSummerTerm ? 9 : 18;
     const authUser = props?.auth?.user;
     const canEditTreePositions = Boolean(authUser?.is_admin_or_owner);
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
@@ -1431,7 +1433,14 @@ export default function Tree({
 
         if (status === 'cart') {
             const cartHours = courses.filter(c => cartIds.includes(c.id)).reduce((s, c) => s + c.credit_hours, 0);
-            insights.push({ icon: '🛒', title: `في التسجيل التجريبي (${cartHours} ساعة إجمالي)`, desc: cartHours > 18 ? '⚠️ تجاوزت الحد الأقصى!' : cartHours >= 15 ? 'عبء جيد ومتوازن.' : 'عبء خفيف — ممكن تضيف المزيد.', color: cartHours > 18 ? 'rose' : 'amber', p: 50 });
+            const warningThreshold = Math.max(1, Math.floor(maxTrialHours * 0.85));
+            insights.push({
+                icon: '🛒',
+                title: `في التسجيل التجريبي (${cartHours} ساعة إجمالي)`,
+                desc: cartHours > maxTrialHours ? '⚠️ تجاوزت الحد الأقصى!' : cartHours >= warningThreshold ? 'عبء جيد ومتوازن.' : 'عبء خفيف — ممكن تضيف المزيد.',
+                color: cartHours > maxTrialHours ? 'rose' : 'amber',
+                p: 50,
+            });
         }
 
         return insights.sort((a, b) => b.p - a.p);
@@ -1978,11 +1987,11 @@ export default function Tree({
             .filter(c => cartIds.includes(c.id))
             .reduce((sum, c) => sum + (c.credit_hours || 0), 0);
 
-        if (currentCartHours + course.credit_hours > 18) {
+        if (currentCartHours + course.credit_hours > maxTrialHours) {
             Swal.fire({
                 icon: 'error',
                 title: 'تجاوزت الحد الأقصى!',
-                html: `التسجيل التجريبي حالياً <b>${currentCartHours} ساعة</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours} ساعات) ستتجاوز الحد الأقصى <b>18 ساعة</b>.<br/><br/>احذف مادة أولاً لتوفير مساحة.`,
+                html: `التسجيل التجريبي حالياً <b>${currentCartHours} ساعة</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours} ساعات) ستتجاوز الحد الأقصى <b>${maxTrialHours} ساعة</b>.<br/><br/>احذف مادة أولاً لتوفير مساحة.`,
                 ...swalTheme
             });
             return;
@@ -3288,8 +3297,24 @@ export default function Tree({
                                     <div className="bg-gradient-to-bl from-slate-900 to-indigo-950 p-5 rounded-[1.25rem] text-white shadow-xl relative overflow-hidden">
                                         <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/15 rounded-full blur-2xl" />
                                         <div className="relative z-10">
-                                            <div className="flex justify-between items-end mb-3"><p className="font-[800] text-base">الجدول المقترح</p><div className="text-right"><span className={`text-3xl font-[900] leading-none ${totalCartCredits > 18 ? 'text-rose-400' : 'text-amber-400'}`}>{totalCartCredits}</span><span className="text-slate-400 text-[10px] font-bold mr-1">/ 18 س</span></div></div>
-                                            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner"><div className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${totalCartCredits > 18 ? 'bg-rose-500' : 'bg-gradient-to-l from-indigo-400 to-indigo-500'}`} style={{ width: `${Math.min((totalCartCredits / 18) * 100, 100)}%` }} /></div>
+                                            <div className="flex justify-between items-end mb-3">
+                                                <div>
+                                                    <p className="font-[800] text-base">الجدول المقترح</p>
+                                                    {academicPeriodLabel && (
+                                                        <p className="text-[10px] font-bold text-slate-400 mt-1">التسجيل التجريبي لهذا الفصل: {academicPeriodLabel}</p>
+                                                    )}
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className={`text-3xl font-[900] leading-none ${totalCartCredits > maxTrialHours ? 'text-rose-400' : 'text-amber-400'}`}>{totalCartCredits}</span>
+                                                    <span className="text-slate-400 text-[10px] font-bold mr-1">/ {maxTrialHours} س</span>
+                                                </div>
+                                            </div>
+                                            <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${totalCartCredits > maxTrialHours ? 'bg-rose-500' : 'bg-gradient-to-l from-indigo-400 to-indigo-500'}`}
+                                                    style={{ width: `${Math.min((totalCartCredits / maxTrialHours) * 100, 100)}%` }}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 

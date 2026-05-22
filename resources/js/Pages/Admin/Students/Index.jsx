@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Head, router, Link } from '@inertiajs/react';
+import { Head, router, Link, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Swal from 'sweetalert2';
 import { useTheme } from '@/Contexts/ThemeContext';
@@ -54,6 +54,7 @@ const translations = {
         cancel: 'إلغاء',
         updateSuccess: 'تم التحديث!',
         updateSuccessText: 'تم تعديل بيانات الطالب بنجاح.',
+        cartTermLabel: 'التسجيل التجريبي تابع للفصل الحالي:',
     },
     en: {
         pageTitle: 'Manage Students - Admin',
@@ -103,6 +104,7 @@ const translations = {
         cancel: 'Cancel',
         updateSuccess: 'Updated!',
         updateSuccessText: "Student's information has been updated successfully.",
+        cartTermLabel: 'Trial registration is tied to:',
     },
 };
 
@@ -110,6 +112,9 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
+    const { props } = usePage();
+    const academicPeriod = props?.academic_period || null;
+    const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
 
     const [search, setSearch] = useState(filters.search || '');
     const [selectedStudent, setSelectedStudent] = useState(null);
@@ -215,6 +220,12 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                         <div>
                             <h1 className={`text-3xl font-[900] ${isDark ? 'text-slate-100' : 'text-slate-900'} tracking-tight flex items-center gap-3`}>{t.heading}</h1>
                             <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-bold mt-1 text-sm`}>{t.subheading}</p>
+                            {academicPeriodLabel && (
+                                <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black border ${isDark ? 'bg-slate-900/60 text-indigo-200 border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}>
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                    {t.cartTermLabel} {academicPeriodLabel}
+                                </div>
+                            )}
                         </div>
                         
                         <div className="relative w-full md:w-96">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\CourseTreeResource;
 use App\Http\Resources\PassedCourseResource;
+use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Models\GraduationPlan;
 use App\Support\CourseEligibility;
@@ -408,9 +409,27 @@ class TreeController extends Controller
                 return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
             }
 
+            // Enforce per-term trial hours limit
+            $currentAcademic = \App\Models\AcademicPeriod::current();
+            $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
+            $maxTrialHours = $isSummer ? 9 : 18;
+
+            $currentCartHours = (int) $user->cartCourses()->sum('credit_hours');
+            $courseHours = (int) ($course->credit_hours ?? 0);
+            if (($currentCartHours + $courseHours) > $maxTrialHours) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => "يتجاوز مجموع الساعات القصوى للتسجيل التجريبي في هذا الفصل ({$maxTrialHours} ساعة). لديك حالياً {$currentCartHours} ساعة.",
+                ], 422);
+            }
+
+            $currentPeriod = AcademicPeriod::current();
+
             DB::table('user_carts')->insertOrIgnore([
                 'user_id' => Auth::id(),
                 'course_id' => $courseId,
+                'academic_year' => $currentPeriod?->academic_year,
+                'academic_term' => $currentPeriod?->academic_term,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
