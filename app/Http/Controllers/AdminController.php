@@ -391,39 +391,69 @@ class AdminController extends Controller
     /**
      * API: جلب المستخدمين النشطين (للـ polling في لوحة الإدارة)
      */
-    public function getOnlineUsers()
+    public function getOnlineUsers(Request $request)
     {
-        $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
+        $minutes = max(1, (int) ($request->input('minutes', 30)));
+        $threshold = now()->subMinutes($minutes)->timestamp;
 
-        $onlineUsers = DB::table('sessions as s')
-            ->join('users as u', 's.user_id', '=', 'u.id')
-            ->select('u.id', 'u.name', 'u.email', 'u.role', 's.last_activity')
-            ->whereNotNull('s.user_id')
-            ->where('s.last_activity', '>=', $thirtyMinutesAgo)
-            ->orderByDesc('s.last_activity')
-            ->get()
-            ->unique('id')
+        $userIds = DB::table('sessions')
+            ->whereNotNull('user_id')
+            ->where('last_activity', '>=', $threshold)
+            ->distinct()
+            ->pluck('user_id')
+            ->filter()
             ->values()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'last_activity_ago' => \Carbon\Carbon::createFromTimestamp((int) $user->last_activity)->diffForHumans(),
-                ];
-            });
+            ->all();
 
-        $activeStudentsNow = $onlineUsers->where('role', 'student')->count();
-        $activeAdminsNow = $onlineUsers->filter(function ($u) {
-            return strtolower((string) $u['role']) === 'admin';
-        })->count();
+        if (empty($userIds)) {
+            return response()->json([
+                'online_users' => [],
+                'active_students_now' => 0,
+                'active_admins_now' => 0,
+                'total_online' => 0,
+            ]);
+        }
+
+        $users = User::whereIn('id', $userIds)
+            ->select('id', 'name', 'email', 'role', 'major_id', 'study_plan_version')
+            ->with(['major:id,name,college_id'])
+            ->get();
+
+        // eager load course relations to compute hours without N+1 queries
+        $users->loadMissing(['cartCourses:id,credit_hours', 'passedCourses:id,credit_hours']);
+
+        $payload = $users->map(function (User $u) use ($threshold) {
+            $lastActivity = DB::table('sessions')->where('user_id', $u->id)->where('last_activity', '>=', $threshold)->orderByDesc('last_activity')->value('last_activity');
+
+            $cartHours = (int) $u->cartCourses->sum('credit_hours');
+            $cartCount = (int) $u->cartCourses->count();
+            $passedHours = (int) $u->passedCourses->sum('credit_hours');
+            $approvedPlan = DB::table('graduation_plans')->where('user_id', $u->id)->exists();
+
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'role' => $u->role,
+                'major' => $u->major ? ['id' => $u->major->id, 'name' => $u->major->name, 'college_id' => $u->major->college_id] : null,
+                'study_plan_version' => (int) ($u->study_plan_version ?? 0),
+                'cart_count' => $cartCount,
+                'cart_hours' => $cartHours,
+                'passed_hours' => $passedHours,
+                'has_approved_plan' => $approvedPlan,
+                'last_activity' => $lastActivity,
+                'last_activity_ago' => $lastActivity ? \Carbon\Carbon::createFromTimestamp((int) $lastActivity)->diffForHumans() : null,
+            ];
+        })->sortByDesc('last_activity')->values();
+
+        $activeStudentsNow = $payload->where('role', 'student')->count();
+        $activeAdminsNow = $payload->where('role', 'admin')->count();
 
         return response()->json([
-            'online_users' => $onlineUsers,
+            'online_users' => $payload,
             'active_students_now' => $activeStudentsNow,
             'active_admins_now' => $activeAdminsNow,
-            'total_online' => $onlineUsers->count(),
+            'total_online' => $payload->count(),
         ]);
     }
 
