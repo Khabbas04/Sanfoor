@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 import { useTheme } from '@/Contexts/ThemeContext';
