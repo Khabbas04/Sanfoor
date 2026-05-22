@@ -10,6 +10,7 @@ use App\Models\College;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AdminStudentController extends Controller
 {
@@ -58,6 +59,14 @@ class AdminStudentController extends Controller
 
                 $gpa = $totalCredits > 0 ? round($weightedSum / $totalCredits, 2) : 0;
 
+                $cartHours = 0;
+                if ($student->cartCourses && $student->cartCourses->count() > 0) {
+                    $cartHours = (int) $student->cartCourses->sum('credit_hours');
+                }
+
+                $lastSession = DB::table('sessions')->where('user_id', $student->id)->max('last_activity');
+                $lastSeen = $lastSession ? Carbon::createFromTimestamp((int) $lastSession)->diffForHumans() : 'لم يسجل';
+
                 return [
                     'id' => $student->id,
                     'name' => $student->name,
@@ -65,9 +74,10 @@ class AdminStudentController extends Controller
                     'major_id' => $student->major_id,
                     'study_plan_version' => (int) ($student->study_plan_version ?? 12),
                     'ip_address' => $student->ip_address ?? 'غير مسجل',
-                    'last_login' => ($student->last_login_at instanceof \Carbon\Carbon) 
-                        ? $student->last_login_at->diffForHumans() 
+                    'last_login' => ($student->last_login_at instanceof \Carbon\Carbon)
+                        ? $student->last_login_at->diffForHumans()
                         : 'لم يسجل دخول',
+                    'last_seen' => $lastSeen,
                     'created_at' => $student->created_at ? $student->created_at->format('Y-m-d') : '---',
                     'major' => $student->major ? $student->major->name : 'غير محدد',
                     'college' => $student->major && $student->major->college ? $student->major->college->name : 'غير محدد',
@@ -75,6 +85,7 @@ class AdminStudentController extends Controller
                         'gpa' => $gpa,
                         'total_passed_credits' => $totalCredits,
                         'cart_courses_count' => $student->cartCourses ? $student->cartCourses->count() : 0,
+                        'cart_hours' => $cartHours,
                     ],
                     // ✅ تصحيح العلاقات لضمان ظهور البيانات في ملف الطالب (Sidebar)
                     'passed_courses' => $student->passedCourses, 
@@ -120,5 +131,22 @@ class AdminStudentController extends Controller
         $student->delete();
         $this->logAction('DELETE_STUDENT', "تم حذف حساب الطالب {$email}");
         return back()->with('message', 'تم حذف حساب الطالب بنجاح');
+    }
+
+    /**
+     * Remove a course from a student's trial cart (admin action).
+     */
+    public function removeCartCourse(Request $request, User $student, $courseId)
+    {
+        $this->logAction('REMOVE_CART_COURSE', "حذف مادة {$courseId} من تسجيل الطالب {$student->email}");
+
+        $exists = $student->cartCourses()->where('course_id', (int) $courseId)->exists();
+        if (!$exists) {
+            return back()->with('message', 'المادة غير موجودة في تسجيل الطالب');
+        }
+
+        $student->cartCourses()->detach((int) $courseId);
+
+        return back()->with('message', 'تمت إزالة المادة من تسجيل الطالب');
     }
 }

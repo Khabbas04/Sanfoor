@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 
 export default function GlobalLoader() {
     const [loading, setLoading] = useState(false);
@@ -55,6 +55,46 @@ export default function GlobalLoader() {
             clearInterval(progressInterval);
         };
     }, []);
+
+    // Global heartbeat for all authenticated users to keep sessions alive and update last_activity
+    const { props } = usePage();
+    useEffect(() => {
+        const authUser = props?.auth?.user || null;
+        if (!authUser) return;
+
+        const sendHeartbeat = async () => {
+            try {
+                await fetch(route('heartbeat'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+            } catch (e) {
+                // silent
+            }
+        };
+
+        // initial + interval
+        sendHeartbeat();
+        const hb = setInterval(sendHeartbeat, 60000);
+
+        // notify on close
+        const handleBeforeUnload = () => {
+            const routePath = route('browser_close');
+            if (navigator.sendBeacon) {
+                const payload = new FormData();
+                payload.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+                navigator.sendBeacon(routePath, payload);
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            clearInterval(hb);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [props]);
 
     // We use a floating dynamic pill so it doesn't block the beautiful page transitions
     return (

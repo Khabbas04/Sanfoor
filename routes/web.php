@@ -317,6 +317,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/students', [AdminStudentController::class, 'index'])->name('students.index');
         Route::put('/students/{student}', [AdminStudentController::class, 'update'])->name('students.update');
         Route::delete('/students/{student}', [AdminStudentController::class, 'destroy'])->name('students.destroy');
+        Route::delete('/students/{student}/cart/{course}', [AdminStudentController::class, 'removeCartCourse'])->name('students.cart.remove');
 
         // Course CRUD and import/export workflows.
         Route::get('/courses', [AdminController::class, 'index'])->name('courses');

@@ -484,13 +484,39 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                             <div className="space-y-3">
                                                 {selectedStudent?.cart_courses?.length > 0 ? (
                                                     selectedStudent.cart_courses.map(course => (
-                                                        <div key={course.id} className={`${isDark ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50/30 border-amber-100'} border p-3 rounded-xl shadow-sm flex justify-between items-center`}>
-                                                            <div>
-                                                                <h4 className={`font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-xs mb-1`}>{course.name}</h4>
-                                                                <p className="text-[9px] font-bold text-slate-400">{course.code} • {course.credit_hours} {t.creditHoursLabel}</p>
+                                                            <div key={course.id} className={`${isDark ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50/30 border-amber-100'} border p-3 rounded-xl shadow-sm flex justify-between items-center`}>
+                                                                <div>
+                                                                    <h4 className={`font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-xs mb-1`}>{course.name}</h4>
+                                                                    <p className="text-[9px] font-bold text-slate-400">{course.code} • {course.credit_hours} {t.creditHoursLabel}</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            Swal.fire({
+                                                                                title: 'تأكيد الإزالة',
+                                                                                text: 'هل تريد إزالة هذه المادة من تسجيل الطالب؟',
+                                                                                icon: 'warning',
+                                                                                showCancelButton: true,
+                                                                                confirmButtonText: 'نعم',
+                                                                                cancelButtonText: 'إلغاء',
+                                                                                confirmButtonColor: '#e11d48'
+                                                                            }).then((res) => {
+                                                                                if (res.isConfirmed) {
+                                                                                    router.delete(route('admin.students.cart.remove', [selectedStudent.id, course.id]), {
+                                                                                        onSuccess: () => {
+                                                                                            Swal.fire({ icon: 'success', title: 'تمت الإزالة', confirmButtonColor: '#4f46e5' });
+                                                                                            // Refresh the student profile by refetching the list
+                                                                                            router.reload();
+                                                                                        }
+                                                                                    });
+                                                                                }
+                                                                            });
+                                                                        }}
+                                                                        className="px-3 py-1 rounded-md bg-rose-600 text-white text-xs font-black"
+                                                                    >إزالة</button>
+                                                                    <span className="text-amber-500 text-xs">🛒</span>
+                                                                </div>
                                                             </div>
-                                                            <span className="text-amber-500 text-xs">🛒</span>
-                                                        </div>
                                                     ))
                                                 ) : (
                                                     <div className={`text-center py-10 ${isDark ? 'text-slate-500' : 'text-slate-400'} font-bold text-xs`}>{t.emptyCart}</div>
