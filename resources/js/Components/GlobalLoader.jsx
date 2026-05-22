@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { router } from '@inertiajs/react';
+import { csrfHeaders, getCsrfToken } from '@/utils/csrf';
 
 export default function GlobalLoader() {
     const [loading, setLoading] = useState(false);
@@ -60,14 +61,9 @@ export default function GlobalLoader() {
     useEffect(() => {
         const sendHeartbeat = async () => {
             try {
-                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 await fetch(route('heartbeat'), {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-                    },
+                    headers: csrfHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
                     credentials: 'same-origin',
                 });
             } catch (e) {
@@ -82,9 +78,12 @@ export default function GlobalLoader() {
         // notify on close
         const handleBeforeUnload = () => {
             const routePath = route('browser_close');
-            if (navigator.sendBeacon) {
+            const token = getCsrfToken();
+            if (navigator.sendBeacon && token) {
                 try {
-                    navigator.sendBeacon(routePath);
+                    const payload = new FormData();
+                    payload.append('_token', token);
+                    navigator.sendBeacon(routePath, payload);
                 } catch (e) {
                     // ignore
                 }

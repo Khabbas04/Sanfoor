@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { csrfHeaders, getCsrfToken } from '@/utils/csrf';
 
 /**
  * 🔥 useOnlinePolling Hook
@@ -14,10 +15,6 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
-
-    const csrfToken = typeof document !== 'undefined'
-        ? document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-        : null;
 
     const intervalMs = options.intervalMs ?? 15000; // default 15s
     const minutes = options.minutes ?? 30; // look-back window
@@ -71,12 +68,10 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
             try {
                 await fetch(route('admin.api.heartbeat'), {
                     method: 'POST',
-                    headers: {
+                    headers: csrfHeaders({
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                    },
+                        Accept: 'application/json',
+                    }),
                     credentials: 'same-origin',
                 });
             } catch (err) {
@@ -93,9 +88,10 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
     useEffect(() => {
         const handleBeforeUnload = () => {
             const routePath = route('admin.api.browser_close');
-            if (navigator.sendBeacon && csrfToken) {
+            const token = getCsrfToken();
+            if (navigator.sendBeacon && token) {
                 const payload = new FormData();
-                payload.append('_token', csrfToken);
+                payload.append('_token', token);
                 navigator.sendBeacon(routePath, payload);
             }
         };
