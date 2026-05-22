@@ -182,6 +182,8 @@ export default function Tree({
     const { props } = usePage();
     const { lang } = useLanguage();
     const { isDark } = useTheme();
+    const academicPeriod = props?.academic_period || null;
+    const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
     const authUser = props?.auth?.user;
     const canEditTreePositions = Boolean(authUser?.is_admin_or_owner);
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
@@ -3106,6 +3108,11 @@ export default function Tree({
                                 <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
                                     خطة {study_plan_version}
                                 </span>
+                                {academicPeriodLabel && (
+                                    <span className="hidden sm:inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
+                                        {academicPeriodLabel}
+                                    </span>
+                                )}
                             </p>
                         </div>
 

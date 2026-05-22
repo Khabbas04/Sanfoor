@@ -13,8 +13,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const { auth = {}, admin_notifications = [], flash = {} } = props;
     const safeAuth = auth || {};
     const safeUser = safeAuth.user || {};
-    const academicPeriod = props?.academic_period || null;
-    const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
     const safeRouteCurrent = (name, pattern) => {
         try {
             if (!name || typeof route === 'undefined') return false;
@@ -32,7 +30,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const role = (safeUser.role || '').toLowerCase().trim();
     const isOwner = Boolean(safeUser.is_owner) || role === 'owner';
     const isAdminOrOwner = Boolean(safeUser.is_admin_or_owner) || ['admin', 'owner'].includes(role);
-    const isHomePage = safeRouteCurrent('welcome', '/') || (typeof window !== 'undefined' && window.location.pathname === '/');
 
     // UI state for the floating navbar and mobile drawer menu.
     const [scrolled, setScrolled] = useState(false);
@@ -409,15 +406,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <Link href={safeRoute('logout')} method="post" as="button" className="w-full py-3.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-sm transition-colors hover:bg-rose-100 dark:hover:bg-rose-500/20">👋 {t.logout}</Link>
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {isHomePage && academicPeriodLabel && (
-                <div className={`fixed ${lang === 'ar' ? 'right-4' : 'left-4'} top-[88px] sm:top-[104px] z-[95] hidden sm:flex pointer-events-none`}>
-                    <div className={`pointer-events-auto flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-black shadow-lg ${isDark ? 'bg-slate-900/90 text-emerald-300 border-emerald-500/20' : 'bg-white/95 text-emerald-700 border-emerald-200'}`} title={t.version}>
-                        <span>📅</span>
-                        <span className="whitespace-nowrap">{academicPeriodLabel}</span>
                     </div>
                 </div>
             )}
