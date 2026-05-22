@@ -21,6 +21,7 @@ use App\Http\Controllers\AdminCollegeController;
 use App\Http\Controllers\ChapterController;
 use App\Http\Controllers\QuizController;
 use App\Models\Course;
+use App\Models\SiteMaintenance;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,23 @@ use Inertia\Inertia;
 
 // Expose the XML sitemap for search engines and crawler discovery.
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+
+// Dedicated maintenance page shown when the admin enables site maintenance.
+Route::get('/maintenance', function () {
+    $maintenance = SiteMaintenance::current();
+
+    return Inertia::render('System/Maintenance', [
+        'maintenance_mode' => $maintenance ? [
+            'id' => $maintenance->id,
+            'is_enabled' => (bool) $maintenance->is_enabled,
+            'title' => $maintenance->title,
+            'message' => $maintenance->message,
+            'expected_minutes' => $maintenance->expected_minutes !== null ? (int) $maintenance->expected_minutes : null,
+            'activated_at' => optional($maintenance->activated_at)->toISOString(),
+            'ended_at' => optional($maintenance->ended_at)->toISOString(),
+        ] : null,
+    ]);
+})->name('system.maintenance');
 
 // Public landing page.
 Route::get('/', function () {
@@ -286,6 +304,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/notes', [AdminController::class, 'storeAdminNote'])->name('notes.store');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::put('/settings/academic-period', [AdminController::class, 'updateAcademicPeriod'])->name('settings.academic_period');
+        Route::put('/settings/maintenance', [AdminController::class, 'updateMaintenanceMode'])->name('settings.maintenance');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
 

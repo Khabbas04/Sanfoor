@@ -13,6 +13,7 @@ use App\Models\IssueReport;
 use App\Models\Chapter;
 use App\Models\Question;
 use App\Models\QuizAttempt;
+use App\Models\SiteMaintenance;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Artisan;
@@ -224,6 +225,7 @@ class AdminController extends Controller
                 'display_label' => $currentAcademicPeriod->displayLabel(),
                 'is_current' => (bool) $currentAcademicPeriod->is_current,
             ] : null,
+            'siteMaintenance' => $this->formatMaintenancePayload(SiteMaintenance::current()),
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
@@ -287,6 +289,82 @@ class AdminController extends Controller
             'message' => 'تم حفظ الفصل الأكاديمي الحالي بنجاح.',
             'type' => 'success',
         ]);
+    }
+
+    /**
+     * Update the shared maintenance mode state.
+     */
+    public function updateMaintenanceMode(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->isAdminOrOwner(), 403);
+
+        if (!Schema::hasTable('site_maintenance')) {
+            return redirect()->back()->with([
+                'message' => 'جدول الصيانة غير موجود. شغّل migrate أولاً.',
+                'type' => 'error',
+            ]);
+        }
+
+        $validated = $request->validate([
+            'is_enabled' => ['required', 'boolean'],
+            'title' => ['required', 'string', 'max:255'],
+            'message' => ['nullable', 'string', 'max:2000'],
+            'expected_minutes' => ['nullable', 'integer', 'min:5', 'max:1440'],
+        ]);
+
+        $maintenance = SiteMaintenance::current();
+        $payload = [
+            'is_enabled' => (bool) $validated['is_enabled'],
+            'title' => trim($validated['title']),
+            'message' => filled($validated['message']) ? trim($validated['message']) : null,
+            'expected_minutes' => filled($validated['expected_minutes']) ? (int) $validated['expected_minutes'] : null,
+            'updated_at' => now(),
+        ];
+
+        if ((bool) $validated['is_enabled']) {
+            $payload['activated_at'] = $maintenance?->activated_at ?? now();
+            $payload['ended_at'] = null;
+        } else {
+            $payload['ended_at'] = now();
+        }
+
+        if ($maintenance) {
+            $maintenance->update($payload);
+        } else {
+            SiteMaintenance::create($payload + [
+                'activated_at' => $payload['activated_at'] ?? null,
+                'ended_at' => $payload['ended_at'] ?? null,
+            ]);
+        }
+
+        $current = SiteMaintenance::current();
+        $this->logAction(
+            (bool) $validated['is_enabled'] ? 'ENABLE_SITE_MAINTENANCE' : 'DISABLE_SITE_MAINTENANCE',
+            'تم ' . ((bool) $validated['is_enabled'] ? 'تفعيل' : 'إيقاف') . ' وضع الصيانة' . ($current?->title ? ' - ' . $current->title : '')
+        );
+
+        return redirect()->back()->with([
+            'message' => (bool) $validated['is_enabled'] ? 'تم تفعيل وضع الصيانة بنجاح.' : 'تم إيقاف وضع الصيانة بنجاح.',
+            'type' => 'success',
+        ]);
+    }
+
+    private function formatMaintenancePayload(?SiteMaintenance $maintenance): ?array
+    {
+        if (!$maintenance) {
+            return null;
+        }
+
+        return [
+            'id' => $maintenance->id,
+            'is_enabled' => (bool) $maintenance->is_enabled,
+            'title' => $maintenance->title,
+            'message' => $maintenance->message,
+            'expected_minutes' => $maintenance->expected_minutes !== null ? (int) $maintenance->expected_minutes : null,
+            'activated_at' => optional($maintenance->activated_at)->toISOString(),
+            'ended_at' => optional($maintenance->ended_at)->toISOString(),
+        ];
     }
 
     /**

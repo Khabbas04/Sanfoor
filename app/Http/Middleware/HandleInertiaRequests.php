@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\AcademicPeriod;
 use App\Models\IssueReport;
+use App\Models\SiteMaintenance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Middleware;
@@ -71,6 +72,17 @@ class HandleInertiaRequests extends Middleware
         }
 
         $currentAcademicPeriod = AcademicPeriod::current();
+        $currentMaintenance = SiteMaintenance::current();
+
+        $maintenanceMode = $currentMaintenance ? [
+            'id' => $currentMaintenance->id,
+            'is_enabled' => (bool) $currentMaintenance->is_enabled,
+            'title' => $currentMaintenance->title,
+            'message' => $currentMaintenance->message,
+            'expected_minutes' => $currentMaintenance->expected_minutes !== null ? (int) $currentMaintenance->expected_minutes : null,
+            'activated_at' => optional($currentMaintenance->activated_at)->toISOString(),
+            'ended_at' => optional($currentMaintenance->ended_at)->toISOString(),
+        ] : null;
 
         return [
             ...parent::share($request),
@@ -89,6 +101,7 @@ class HandleInertiaRequests extends Middleware
                 'display_label' => $currentAcademicPeriod->displayLabel(),
                 'is_current' => (bool) $currentAcademicPeriod->is_current,
             ] : null,
+            'maintenance_mode' => $maintenanceMode,
             'admin_notifications' => $adminNotifications ?? (object)[],
         ];
     }

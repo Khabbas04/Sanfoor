@@ -5,6 +5,7 @@ import ClearCacheButton from '@/Components/Admin/ClearCacheButton';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useOnlinePolling } from '@/Hooks/useOnlinePolling';
+import Swal from 'sweetalert2';
 
 const translations = {
     ar: {
@@ -39,6 +40,17 @@ const translations = {
         academicLabel: 'عنوان مخصص',
         academicPreview: 'المعاينة الحالية',
         saveAcademicPeriod: 'حفظ الفصل الحالي',
+        maintenanceTitle: 'وضع الصيانة',
+        maintenanceDesc: 'فعّل الصيانة عند الحاجة مع إبقاء الإدارة قادرة على الدخول والتعديل.',
+        maintenanceEnabled: 'الصيانة مفعلة',
+        maintenanceDisabled: 'الصيانة متوقفة',
+        maintenanceModeLabel: 'حالة الصيانة',
+        maintenanceNameLabel: 'عنوان الصيانة',
+        maintenanceMessageLabel: 'رسالة الظهور للطلاب',
+        maintenanceEtaLabel: 'المدة المتوقعة بالدقائق',
+        maintenanceHint: 'الأدمن والمالك سيستمرون بالوصول للوحة التحكم أثناء الصيانة.',
+        enableMaintenance: 'تفعيل الصيانة',
+        disableMaintenance: 'إيقاف الصيانة',
         termFirst: 'الفصل الأول',
         termSecond: 'الفصل الثاني',
         termSummer: 'الفصل الصيفي',
@@ -84,6 +96,17 @@ const translations = {
         academicLabel: 'Custom Label',
         academicPreview: 'Current Preview',
         saveAcademicPeriod: 'Save Current Period',
+        maintenanceTitle: 'Maintenance Mode',
+        maintenanceDesc: 'Enable maintenance when needed while keeping admin access available.',
+        maintenanceEnabled: 'Maintenance Enabled',
+        maintenanceDisabled: 'Maintenance Disabled',
+        maintenanceModeLabel: 'Maintenance State',
+        maintenanceNameLabel: 'Maintenance Title',
+        maintenanceMessageLabel: 'Student-facing Message',
+        maintenanceEtaLabel: 'Expected Minutes',
+        maintenanceHint: 'Admins and owners will still access the control panel during maintenance.',
+        enableMaintenance: 'Enable Maintenance',
+        disableMaintenance: 'Disable Maintenance',
         termFirst: 'First Term',
         termSecond: 'Second Term',
         termSummer: 'Summer Term',
@@ -117,7 +140,7 @@ function roleBadge(role, isDark) {
     return isDark ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/60' : 'bg-emerald-100 text-emerald-700 border-emerald-200';
 }
 
-export default function Settings({ stats = {}, onlineUsers = [], currentAcademicPeriod = null }) {
+export default function Settings({ stats = {}, onlineUsers = [], currentAcademicPeriod = null, siteMaintenance = null }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const { auth } = usePage().props;
@@ -128,10 +151,17 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
     const [query, setQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [isSavingAcademicPeriod, setIsSavingAcademicPeriod] = useState(false);
+    const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
     const [academicForm, setAcademicForm] = useState({
         academic_year: currentAcademicPeriod?.academic_year || new Date().getFullYear().toString(),
         academic_term: String(currentAcademicPeriod?.academic_term || 1),
         label: currentAcademicPeriod?.label || '',
+    });
+    const [maintenanceForm, setMaintenanceForm] = useState({
+        is_enabled: Boolean(siteMaintenance?.is_enabled),
+        title: siteMaintenance?.title || 'الموقع تحت الصيانة',
+        message: siteMaintenance?.message || 'نعمل الآن على تحسين الخدمة وإصلاح بعض الأمور. ستعود المنصة قريبًا.',
+        expected_minutes: siteMaintenance?.expected_minutes ? String(siteMaintenance.expected_minutes) : '',
     });
 
     useEffect(() => {
@@ -141,6 +171,15 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
             label: currentAcademicPeriod?.label || '',
         });
     }, [currentAcademicPeriod]);
+
+    useEffect(() => {
+        setMaintenanceForm({
+            is_enabled: Boolean(siteMaintenance?.is_enabled),
+            title: siteMaintenance?.title || 'الموقع تحت الصيانة',
+            message: siteMaintenance?.message || 'نعمل الآن على تحسين الخدمة وإصلاح بعض الأمور. ستعود المنصة قريبًا.',
+            expected_minutes: siteMaintenance?.expected_minutes ? String(siteMaintenance.expected_minutes) : '',
+        });
+    }, [siteMaintenance]);
 
     const initialOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
     const {
@@ -188,6 +227,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
     }, [isOwner, t]);
 
     const currentAcademicPreview = currentAcademicPeriod?.display_label || (academicForm.label?.trim() || `${academicForm.academic_year} ${academicForm.academic_term}`);
+    const currentMaintenancePreview = Boolean(maintenanceForm.is_enabled);
 
     const termOptions = [
         { value: '1', label: t.termFirst },
@@ -205,6 +245,22 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                     icon: 'success',
                     title: t.saveAcademicPeriod,
                     text: `${t.academicPreview}: ${currentAcademicPreview}`,
+                    confirmButtonColor: '#4f46e5',
+                });
+            },
+        });
+    };
+
+    const saveMaintenanceMode = () => {
+        setIsSavingMaintenance(true);
+        router.put(route('admin.settings.maintenance'), maintenanceForm, {
+            preserveScroll: true,
+            onFinish: () => setIsSavingMaintenance(false),
+            onSuccess: () => {
+                Swal.fire({
+                    icon: 'success',
+                    title: currentMaintenancePreview ? t.enableMaintenance : t.disableMaintenance,
+                    text: currentMaintenancePreview ? t.maintenanceEnabled : t.maintenanceDisabled,
                     confirmButtonColor: '#4f46e5',
                 });
             },
@@ -398,6 +454,75 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                     {isSavingAcademicPeriod ? t.updatedNow : t.saveAcademicPeriod}
                                 </button>
                             </div>
+                        </div>
+
+                        <div className={`${cardSoft} border rounded-2xl p-5 mt-4`}>
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                                <div>
+                                    <p className={`text-[11px] font-black ${subtext}`}>{t.maintenanceTitle}</p>
+                                    <h3 className={`mt-2 text-2xl font-black ${heading}`}>{maintenanceForm.title}</h3>
+                                    <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.maintenanceDesc}</p>
+                                </div>
+                                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black border ${currentMaintenancePreview ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                                    <span className={`w-2 h-2 rounded-full ${currentMaintenancePreview ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                    {currentMaintenancePreview ? t.maintenanceEnabled : t.maintenanceDisabled}
+                                </span>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-3">
+                                <label className={`text-[11px] font-black ${subtext}`}>{t.maintenanceModeLabel}</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setMaintenanceForm((prev) => ({ ...prev, is_enabled: !prev.is_enabled }))}
+                                    className={`w-full rounded-2xl border px-4 py-3 text-sm font-black transition-colors ${maintenanceForm.is_enabled ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}
+                                >
+                                    {maintenanceForm.is_enabled ? t.disableMaintenance : t.enableMaintenance}
+                                </button>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className={`block text-[11px] font-black mb-2 ${subtext}`}>{t.maintenanceNameLabel}</label>
+                                    <input
+                                        type="text"
+                                        value={maintenanceForm.title}
+                                        onChange={(e) => setMaintenanceForm((prev) => ({ ...prev, title: e.target.value }))}
+                                        className={`w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                    />
+                                </div>
+                                <div>
+                                    <label className={`block text-[11px] font-black mb-2 ${subtext}`}>{t.maintenanceEtaLabel}</label>
+                                    <input
+                                        type="number"
+                                        min="5"
+                                        max="1440"
+                                        value={maintenanceForm.expected_minutes}
+                                        onChange={(e) => setMaintenanceForm((prev) => ({ ...prev, expected_minutes: e.target.value }))}
+                                        className={`w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                        placeholder="60"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="mt-3">
+                                <label className={`block text-[11px] font-black mb-2 ${subtext}`}>{t.maintenanceMessageLabel}</label>
+                                <textarea
+                                    rows="3"
+                                    value={maintenanceForm.message}
+                                    onChange={(e) => setMaintenanceForm((prev) => ({ ...prev, message: e.target.value }))}
+                                    className={`w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none resize-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
+                                />
+                            </div>
+
+                            <p className={`mt-3 text-[11px] font-bold ${subtext}`}>{t.maintenanceHint}</p>
+
+                            <button
+                                onClick={saveMaintenanceMode}
+                                disabled={isSavingMaintenance}
+                                className="mt-4 inline-flex items-center justify-center rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-black px-4 py-2.5 transition-colors"
+                            >
+                                {isSavingMaintenance ? t.updatedNow : (maintenanceForm.is_enabled ? t.enableMaintenance : t.disableMaintenance)}
+                            </button>
                         </div>
 
                         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
