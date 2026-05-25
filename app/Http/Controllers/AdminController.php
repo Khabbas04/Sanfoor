@@ -192,22 +192,17 @@ class AdminController extends Controller
         $currentAcademicPeriod = AcademicPeriod::current();
         $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
 
-        $onlineUsers = DB::table('sessions as s')
-            ->join('users as u', 's.user_id', '=', 'u.id')
-            ->select('u.id', 'u.name', 'u.email', 'u.role', 's.last_activity')
-            ->whereNotNull('s.user_id')
-            ->where('s.last_activity', '>=', $thirtyMinutesAgo)
-            ->orderByDesc('s.last_activity')
+        $onlineUsers = User::whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', now()->subMinutes(30)->toDateTimeString())
+            ->orderByDesc('last_seen_at')
             ->get()
-            ->unique('id')
-            ->values()
             ->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'last_activity_ago' => \Carbon\Carbon::createFromTimestamp((int) $user->last_activity)->diffForHumans(),
+                    'last_activity_ago' => \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans(),
                 ];
             });
 
@@ -396,13 +391,9 @@ class AdminController extends Controller
         $minutes = max(1, (int) ($request->input('minutes', 30)));
         $threshold = now()->subMinutes($minutes)->timestamp;
 
-        $userIds = DB::table('sessions')
-            ->whereNotNull('user_id')
-            ->where('last_activity', '>=', $threshold)
-            ->distinct()
-            ->pluck('user_id')
-            ->filter()
-            ->values()
+        $userIds = User::whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', now()->subMinutes($minutes)->toDateTimeString())
+            ->pluck('id')
             ->all();
 
         if (empty($userIds)) {
@@ -422,8 +413,8 @@ class AdminController extends Controller
         // eager load course relations to compute hours without N+1 queries
         $users->loadMissing(['cartCourses:id,credit_hours', 'passedCourses:id,credit_hours']);
 
-        $payload = $users->map(function (User $u) use ($threshold) {
-            $lastActivity = DB::table('sessions')->where('user_id', $u->id)->where('last_activity', '>=', $threshold)->orderByDesc('last_activity')->value('last_activity');
+        $payload = $users->map(function (User $u) {
+            $lastActivityStr = $u->last_seen_at;
 
             $cartHours = (int) $u->cartCourses->sum('credit_hours');
             $cartCount = (int) $u->cartCourses->count();
@@ -441,8 +432,8 @@ class AdminController extends Controller
                 'cart_hours' => $cartHours,
                 'passed_hours' => $passedHours,
                 'has_approved_plan' => $approvedPlan,
-                'last_activity' => $lastActivity,
-                'last_activity_ago' => $lastActivity ? \Carbon\Carbon::createFromTimestamp((int) $lastActivity)->diffForHumans() : null,
+                'last_activity' => $lastActivityStr ? strtotime($lastActivityStr) : null,
+                'last_activity_ago' => $lastActivityStr ? \Carbon\Carbon::parse($lastActivityStr)->diffForHumans() : null,
             ];
         })->sortByDesc('last_activity')->values();
 
@@ -463,9 +454,7 @@ class AdminController extends Controller
     public function updateLastActivity()
     {
         if (Auth::check()) {
-            DB::table('sessions')
-                ->where('user_id', Auth::id())
-                ->update(['last_activity' => now()->timestamp]);
+            User::where('id', Auth::id())->update(['last_seen_at' => now()]);
         }
 
         return response()->json(['ok' => true]);
