@@ -3089,19 +3089,19 @@ export default function Tree({
                             <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
                         </div>
                     ) : (
-                        <section className="relative overflow-hidden py-4 sm:py-6 text-center">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none select-none z-0">
-                                <span className={`text-[4rem] sm:text-[6rem] md:text-[8rem] font-black tracking-tighter whitespace-nowrap ${isDark ? 'text-white/[0.02]' : 'text-slate-900/[0.03]'}`}>
-                                    STUDY TREE
-                                </span>
-                            </div>
-                            <div className="relative z-10">
+                        <section className="relative py-4 sm:py-6 md:flex md:flex-row items-center justify-between overflow-hidden text-center md:text-start">
+                            <div className="relative z-10 md:flex-1">
                                 <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                     الخطة الشجرية
                                 </h1>
                                 <p className={`text-sm md:text-base font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                     استعرض متطلبات المواد وخطط تسجيل فصولك
                                 </p>
+                            </div>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:static md:transform-none md:flex-1 md:text-end pointer-events-none select-none z-0">
+                                <span className={`text-[3.5rem] sm:text-[5rem] md:text-[6rem] font-black tracking-tighter whitespace-nowrap inline-block ${isDark ? 'text-white/[0.03]' : 'text-slate-900/[0.04]'}`} style={{ marginLeft: '-1rem' }}>
+                                    STUDY TREE
+                                </span>
                             </div>
                         </section>
                     )}

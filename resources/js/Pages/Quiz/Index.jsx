@@ -72,15 +72,15 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
             <Head title={t.title} />
 
             <div className="max-w-7xl mx-auto">
-                <section className="relative overflow-hidden py-10 sm:py-16 text-center mb-10">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none select-none z-0">
-                        <span className={`text-[5rem] sm:text-[9rem] md:text-[12rem] font-black tracking-tighter whitespace-nowrap ${isDark ? 'text-white/[0.02]' : 'text-slate-900/[0.03]'}`}>
-                            {lang === 'ar' ? 'QUESTION BANK' : 'بنك الأسئلة'}
-                        </span>
-                    </div>
-                    <div className="relative z-10">
+                <section className="relative py-10 sm:py-16 mb-10 md:flex md:flex-row items-center justify-between overflow-hidden text-center md:text-start">
+                    <div className="relative z-10 md:flex-1">
                         <h1 className={`text-4xl sm:text-5xl md:text-6xl font-[900] mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h1>
                         <p className={`text-base sm:text-lg font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
+                    </div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 md:static md:transform-none md:flex-1 md:text-end pointer-events-none select-none z-0">
+                        <span className={`text-[4.5rem] sm:text-[7rem] md:text-[9rem] font-black tracking-tighter whitespace-nowrap inline-block ${isDark ? 'text-white/[0.03]' : 'text-slate-900/[0.04]'}`} style={lang === 'ar' ? { marginLeft: '-1rem' } : { marginRight: '-1rem' }}>
+                            {lang === 'ar' ? 'QUESTION BANK' : 'بنك الأسئلة'}
+                        </span>
                     </div>
                 </section>
 
