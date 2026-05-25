@@ -45,8 +45,21 @@ class AdminController extends Controller
         $today = now()->toDateString();
         $notesEnabled = Schema::hasTable('admin_notes');
 
-        $demandReport = Course::whereHas('cartUsers') 
-            ->withCount('cartUsers')
+        $currentPeriod = AcademicPeriod::current();
+        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
+
+        $demandReport = Course::whereHas('cartUsers', function ($query) use ($currentPeriod, $hasPeriodColumns) {
+                if ($currentPeriod && $hasPeriodColumns) {
+                    $query->where('user_carts.academic_year', $currentPeriod->academic_year)
+                          ->where('user_carts.academic_term', $currentPeriod->academic_term);
+                }
+            })
+            ->withCount(['cartUsers' => function ($query) use ($currentPeriod, $hasPeriodColumns) {
+                if ($currentPeriod && $hasPeriodColumns) {
+                    $query->where('user_carts.academic_year', $currentPeriod->academic_year)
+                          ->where('user_carts.academic_term', $currentPeriod->academic_term);
+                }
+            }])
             ->orderBy('cart_users_count', 'desc')
             ->take(10)
             ->get();

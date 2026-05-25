@@ -362,10 +362,19 @@ class AiAdvisorController extends Controller
     public function getAdminReports()
     {
         try {
-            $topDemandedCourses = DB::table('user_carts')
+            $currentPeriod = \App\Models\AcademicPeriod::current();
+            $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
+
+            $query = DB::table('user_carts')
                 ->join('courses', 'user_carts.course_id', '=', 'courses.id')
-                ->select('courses.name', 'courses.code', DB::raw('count(user_carts.user_id) as student_count'))
-                ->groupBy('courses.id', 'courses.name', 'courses.code')
+                ->select('courses.name', 'courses.code', DB::raw('count(user_carts.user_id) as student_count'));
+
+            if ($currentPeriod && $hasPeriodColumns) {
+                $query->where('user_carts.academic_year', $currentPeriod->academic_year)
+                      ->where('user_carts.academic_term', $currentPeriod->academic_term);
+            }
+
+            $topDemandedCourses = $query->groupBy('courses.id', 'courses.name', 'courses.code')
                 ->orderByDesc('student_count')
                 ->limit(10)
                 ->get();
