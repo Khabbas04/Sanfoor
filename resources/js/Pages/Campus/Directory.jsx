@@ -144,16 +144,16 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
 
             <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)] py-8 sm:py-10" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
-                    <section className="relative py-12 sm:py-20 mb-10 overflow-hidden flex justify-center">
-                        <div className="relative flex flex-col md:flex-row items-center justify-center group w-fit mx-auto cursor-default">
-                            <div className="relative z-10 text-center md:text-start transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-105">
-                                <h1 className={`text-4xl sm:text-5xl md:text-7xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'} drop-shadow-sm`}>دليل المباني والكليات</h1>
-                                <p className={`text-base sm:text-lg md:text-xl font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>دليل مبسط للكليات ومعالم الجامعة</p>
-                            </div>
-                            <div className="pointer-events-none select-none z-0 mt-[-1.5rem] md:mt-0 md:-ms-16 lg:-ms-28 transition-all duration-700 ease-out group-hover:scale-[1.03] opacity-80 group-hover:opacity-100">
-                                <span className={`text-[4.5rem] sm:text-[6rem] md:text-[8.5rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.05]' : 'text-slate-900/[0.06]'}`}>
+                    <section className="relative py-8 sm:py-12 mb-10 overflow-hidden w-full flex justify-center">
+                        <div className="relative w-full max-w-6xl px-4 sm:px-6 flex flex-col">
+                            <div className="text-end w-full select-none z-0">
+                                <span className={`text-[4.5rem] sm:text-[7rem] md:text-[10rem] font-black tracking-tighter uppercase leading-[0.85] inline-block ${isDark ? 'text-white/[0.06]' : 'text-slate-900/[0.05]'}`}>
                                     CAMPUS
                                 </span>
+                            </div>
+                            <div className="text-start w-full mt-[-2rem] sm:mt-[-3.5rem] md:mt-[-5rem] relative z-10 sm:px-8">
+                                <h1 className={`text-4xl sm:text-6xl md:text-7xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'} drop-shadow-md`}>دليل المباني والكليات</h1>
+                                <p className={`text-base sm:text-xl font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>دليل مبسط للكليات ومعالم الجامعة</p>
                             </div>
                         </div>
                     </section>
