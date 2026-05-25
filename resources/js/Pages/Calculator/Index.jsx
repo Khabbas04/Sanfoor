@@ -210,15 +210,14 @@ export default function Calculator({ auth, initialCourses }) {
             
             <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)] py-8 sm:py-10" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-                    <section className="relative py-10 sm:py-16 mb-10 overflow-hidden flex justify-center">
-                        <div className="relative flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 w-fit mx-auto px-4">
-                            <div className="relative z-10 text-center md:text-start shrink-0">
-                                <h1 className={`text-4xl sm:text-5xl md:text-6xl font-[900] mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>حاسبة المعدل الذكية</h1>
-                                <p className={`text-base sm:text-lg font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>احسب نسبتك ومعدلك التراكمي بسهولة</p>
+                    <section className="relative py-12 sm:py-20 mb-10 overflow-hidden flex justify-center">
+                        <div className="relative flex flex-col md:flex-row items-center justify-center group w-fit mx-auto cursor-default">
+                            <div className="relative z-10 text-center md:text-start transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-105">
+                                <h1 className={`text-4xl sm:text-5xl md:text-7xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'} drop-shadow-sm`}>حاسبة المعدل الذكية</h1>
+                                <p className={`text-base sm:text-lg md:text-xl font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>احسب نسبتك ومعدلك التراكمي بسهولة</p>
                             </div>
-                            <div className={`hidden md:block w-1 h-20 rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200/80'}`}></div>
-                            <div className="pointer-events-none select-none z-0 shrink-0 text-center md:text-end">
-                                <span className={`text-[4.5rem] sm:text-[5.5rem] md:text-[7rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.04]' : 'text-slate-900/[0.05]'}`}>
+                            <div className="pointer-events-none select-none z-0 mt-[-1.5rem] md:mt-0 md:-ms-16 lg:-ms-28 transition-all duration-700 ease-out group-hover:scale-[1.03] opacity-80 group-hover:opacity-100">
+                                <span className={`text-[4.5rem] sm:text-[6rem] md:text-[8.5rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.05]' : 'text-slate-900/[0.06]'}`}>
                                     GPA CALCULATOR
                                 </span>
                             </div>

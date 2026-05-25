@@ -72,15 +72,14 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
             <Head title={t.title} />
 
             <div className="max-w-7xl mx-auto">
-                <section className="relative py-10 sm:py-16 mb-10 overflow-hidden flex justify-center">
-                    <div className="relative flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 w-fit mx-auto px-4">
-                        <div className="relative z-10 text-center md:text-start shrink-0">
-                            <h1 className={`text-4xl sm:text-5xl md:text-6xl font-[900] mb-3 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h1>
-                            <p className={`text-base sm:text-lg font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
+                <section className="relative py-12 sm:py-20 mb-10 overflow-hidden flex justify-center">
+                    <div className="relative flex flex-col md:flex-row items-center justify-center group w-fit mx-auto cursor-default">
+                        <div className="relative z-10 text-center md:text-start transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-105">
+                            <h1 className={`text-4xl sm:text-5xl md:text-7xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'} drop-shadow-sm`}>{t.title}</h1>
+                            <p className={`text-base sm:text-lg md:text-xl font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
                         </div>
-                        <div className={`hidden md:block w-1 h-20 rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200/80'}`}></div>
-                        <div className="pointer-events-none select-none z-0 shrink-0 text-center md:text-end">
-                            <span className={`text-[4.5rem] sm:text-[5.5rem] md:text-[7rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.04]' : 'text-slate-900/[0.05]'}`}>
+                        <div className="pointer-events-none select-none z-0 mt-[-1.5rem] md:mt-0 md:-ms-16 lg:-ms-28 transition-all duration-700 ease-out group-hover:scale-[1.03] opacity-80 group-hover:opacity-100">
+                            <span className={`text-[4.5rem] sm:text-[6rem] md:text-[8.5rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.05]' : 'text-slate-900/[0.06]'}`}>
                                 {lang === 'ar' ? 'QUESTION BANK' : 'بنك الأسئلة'}
                             </span>
                         </div>

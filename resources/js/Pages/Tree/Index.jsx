@@ -3089,19 +3089,18 @@ export default function Tree({
                             <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
                         </div>
                     ) : (
-                        <section className="relative py-4 sm:py-6 overflow-hidden flex justify-center">
-                            <div className="relative flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10 w-fit mx-auto px-4">
-                                <div className="relative z-10 text-center md:text-start shrink-0">
-                                    <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <section className="relative py-8 sm:py-12 overflow-hidden flex justify-center">
+                            <div className="relative flex flex-col md:flex-row items-center justify-center group w-fit mx-auto cursor-default">
+                                <div className="relative z-10 text-center md:text-start transition-all duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-105">
+                                    <h1 className={`text-2xl md:text-4xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'} drop-shadow-sm`}>
                                         الخطة الشجرية
                                     </h1>
                                     <p className={`text-sm md:text-base font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                         استعرض متطلبات المواد وخطط تسجيل فصولك
                                     </p>
                                 </div>
-                                <div className={`hidden md:block w-1 h-16 rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200/80'}`}></div>
-                                <div className="pointer-events-none select-none z-0 shrink-0 text-center md:text-end">
-                                    <span className={`text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.04]' : 'text-slate-900/[0.05]'}`}>
+                                <div className="pointer-events-none select-none z-0 mt-[-1rem] md:mt-0 md:-ms-8 lg:-ms-16 transition-all duration-700 ease-out group-hover:scale-[1.03] opacity-80 group-hover:opacity-100">
+                                    <span className={`text-[3.5rem] sm:text-[4.5rem] md:text-[6.5rem] font-black tracking-tighter whitespace-nowrap leading-none inline-block ${isDark ? 'text-white/[0.05]' : 'text-slate-900/[0.06]'}`}>
                                         STUDY TREE
                                     </span>
                                 </div>
