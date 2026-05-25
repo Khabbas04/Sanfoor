@@ -189,7 +189,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         error,
         lastUpdatedAt,
         refreshNow,
-    } = useOnlinePolling(initialOnlineUsers, stats || {}, { intervalMs: 15000, minutes: 30 });
+    } = useOnlinePolling(initialOnlineUsers, stats || {}, { intervalMs: 3000, minutes: 30 });
 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const cardSoft = isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200';

@@ -16,7 +16,7 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
     const [error, setError] = useState('');
     const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-    const intervalMs = options.intervalMs ?? 15000; // default 15s
+    const intervalMs = options.intervalMs ?? 5000; // default 5s
     const minutes = options.minutes ?? 30; // look-back window
 
     const fetchOnlineUsers = async () => {
