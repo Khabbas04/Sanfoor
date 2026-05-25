@@ -59,34 +59,30 @@ class AdminController extends Controller
         ];
 
         // 🔥 حساب النشطين حالياً (آخر 30 دقيقة)
-        $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
+        $thirtyMinutesAgoStr = now()->subMinutes(30)->toDateTimeString();
         
-        $activeStudentIds = DB::table('sessions')
-            ->whereIn('user_id', User::where('role', 'student')->pluck('id'))
-            ->where('last_activity', '>=', $thirtyMinutesAgo)
-            ->distinct('user_id')
-            ->pluck('user_id');
+        $activeStudentIds = User::where('role', 'student')
+            ->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
+            ->pluck('id');
         
-        $activeAdminIds = DB::table('sessions')
-            ->whereIn('user_id', User::whereRaw('LOWER(role) = ?', ['admin'])->pluck('id'))
-            ->where('last_activity', '>=', $thirtyMinutesAgo)
-            ->distinct('user_id')
-            ->pluck('user_id');
+        $activeAdminIds = User::whereRaw('LOWER(role) = ?', ['admin'])
+            ->whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
+            ->pluck('id');
 
         // 🔥 الحصول على قائمة المستخدمين النشطين مع تفاصيلهم
-        $onlineUsers = DB::table('sessions as s')
-            ->join('users as u', 's.user_id', '=', 'u.id')
-            ->select('u.id', 'u.name', 'u.email', 'u.role', 's.last_activity')
-            ->where('s.last_activity', '>=', $thirtyMinutesAgo)
-            ->orderByDesc('s.last_activity')
-            ->get()
+        $onlineUsers = User::whereNotNull('last_seen_at')
+            ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
+            ->orderByDesc('last_seen_at')
+            ->get(['id', 'name', 'email', 'role', 'last_seen_at'])
             ->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'last_activity_ago' => \Carbon\Carbon::createFromTimestamp($user->last_activity)->diffForHumans(),
+                    'last_activity_ago' => \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans(),
                 ];
             });
 
