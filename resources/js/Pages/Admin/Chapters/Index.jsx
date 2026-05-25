@@ -310,22 +310,45 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 {!isNewCourse && !editingId ? (
-                                    <select
-                                        value={data.course_name}
-                                        onChange={e => {
-                                            const c = courses.find(x => x.name === e.target.value);
-                                            setData(prev => ({
-                                                ...prev,
-                                                course_name: e.target.value,
-                                                course_code: c ? c.code : ''
-                                            }));
-                                        }}
-                                        className={inputCls}
-                                        required
-                                    >
-                                        <option value="">{lang === 'ar' ? 'اختر المادة...' : 'Select course...'}</option>
-                                        {courses.map(c => <option key={c.id} value={c.name}>{c.name} ({c.code})</option>)}
-                                    </select>
+                                    <div className="flex gap-2 items-center">
+                                        <select
+                                            value={data.course_name}
+                                            onChange={e => {
+                                                const c = courses.find(x => x.name === e.target.value);
+                                                setData(prev => ({
+                                                    ...prev,
+                                                    course_name: e.target.value,
+                                                    course_code: c ? c.code : ''
+                                                }));
+                                            }}
+                                            className={inputCls}
+                                            required
+                                        >
+                                            <option value="">{lang === 'ar' ? 'اختر المادة...' : 'Select course...'}</option>
+                                            {courses.map(c => <option key={c.id} value={c.name}>{c.name} ({c.code})</option>)}
+                                        </select>
+                                        
+                                        {data.course_name && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    const c = courses.find(x => x.name === data.course_name);
+                                                    if(c && confirm(lang === 'ar' ? 'هل أنت متأكد من حذف هذه المادة نهائياً؟ سيتم حذف كل الشباتر والأسئلة المتعلقة بها!' : 'Are you sure you want to delete this course completely?')) {
+                                                        router.delete(`/admin/courses/${c.id}`, {
+                                                            preserveScroll: true,
+                                                            onSuccess: () => {
+                                                                setData(prev => ({ ...prev, course_name: '', course_code: '' }));
+                                                            }
+                                                        });
+                                                    }
+                                                }}
+                                                className="px-4 py-3 bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white rounded-xl font-bold transition-all border border-rose-200 hover:border-rose-500 flex items-center justify-center shrink-0"
+                                                title={lang === 'ar' ? 'حذف المادة نهائياً' : 'Delete course permanently'}
+                                            >
+                                                🗑️
+                                            </button>
+                                        )}
+                                    </div>
                                 ) : (
                                     <input 
                                         type="text" 
