@@ -3089,21 +3089,19 @@ export default function Tree({
                             <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
                         </div>
                     ) : (
-                        <section className="relative py-4 sm:py-8 overflow-hidden w-full flex justify-center">
-                            <div className="relative w-full max-w-6xl px-4 sm:px-6 flex flex-col">
-                                <div className="text-end w-full select-none z-0">
-                                    <span className={`text-[3.5rem] sm:text-[5.5rem] md:text-[8rem] font-black tracking-tighter uppercase leading-[0.85] inline-block ${isDark ? 'text-white/[0.06]' : 'text-slate-900/[0.05]'}`}>
-                                        STUDY TREE
-                                    </span>
-                                </div>
-                                <div className="text-start w-full mt-[-1.5rem] sm:mt-[-2.5rem] md:mt-[-4rem] relative z-10 sm:px-8">
-                                    <h1 className={`text-3xl sm:text-5xl md:text-6xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'} drop-shadow-md`}>
-                                        الخطة الشجرية
-                                    </h1>
-                                    <p className={`text-sm sm:text-lg font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                        استعرض متطلبات المواد وخطط تسجيل فصولك
-                                    </p>
-                                </div>
+                        <section className="relative overflow-hidden py-4 sm:py-6 text-center">
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none select-none z-0">
+                                <span className={`text-[4rem] sm:text-[6rem] md:text-[8rem] font-black tracking-tighter whitespace-nowrap ${isDark ? 'text-white/[0.02]' : 'text-slate-900/[0.03]'}`}>
+                                    STUDY TREE
+                                </span>
+                            </div>
+                            <div className="relative z-10">
+                                <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                    الخطة الشجرية
+                                </h1>
+                                <p className={`text-sm md:text-base font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    استعرض متطلبات المواد وخطط تسجيل فصولك
+                                </p>
                             </div>
                         </section>
                     )}
