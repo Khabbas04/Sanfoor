@@ -345,7 +345,7 @@ export default function Welcome({ auth }) {
                         <div className="h-rise-slow flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-5" style={{ animationDelay: '1.35s' }}>
                             {auth.user ? (
                                 <MagneticButton>
-                                    <Link href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-l from-indigo-500 to-indigo-600 text-white text-base sm:text-lg font-extrabold rounded-2xl hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-xl shadow-indigo-600/30 active:scale-[0.96] w-full sm:w-auto">
+                                    <Link href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-base sm:text-lg font-extrabold rounded-2xl transition-all shadow-xl shadow-indigo-500/30 active:scale-[0.96] w-full sm:w-auto">
                                         <span>افتح خطتي الدراسية</span>
                                         <span className="text-xl group-hover:-translate-x-1.5 transition-transform duration-300">←</span>
                                     </Link>

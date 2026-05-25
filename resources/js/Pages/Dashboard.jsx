@@ -608,7 +608,7 @@ export default function Dashboard({
                         <div className="relative z-10 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="relative shrink-0">
-                                    <div className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-[1.4rem] shadow-lg shadow-indigo-300/40" style={{ animation: 'sn-float 3.5s ease-in-out infinite' }}>🤖</div>
+                                    <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 text-white rounded-xl flex items-center justify-center text-[1.4rem] shadow-lg shadow-indigo-300/40" style={{ animation: 'sn-float 3.5s ease-in-out infinite' }}>🤖</div>
                                     <div className="absolute -inset-1 rounded-xl border-2 border-indigo-400/30" style={{ animation: 'sn-ring-pulse 2.5s ease-out infinite' }} />
                                 </div>
                                 <div>
@@ -647,7 +647,7 @@ export default function Dashboard({
                                     </button>
                                     <button 
                                         onClick={() => { setPrintMode('plan'); setTimeout(() => window.print(), 100); }} 
-                                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                         طباعة الخطة
@@ -783,7 +783,7 @@ export default function Dashboard({
                                     <span className="text-5xl mb-4 opacity-50">📂</span>
                                     <h3 className="text-lg font-black text-slate-700 mb-2">سجلك الأكاديمي فارغ</h3>
                                     <p className="text-slate-400 text-sm mb-6 max-w-sm">قم بإضافة المواد التي أنجزتها من خلال الخطة الشجرية ليتم تفعيل حساب المعدل وإحصائيات التخرج.</p>
-                                    <Link href={route('tree.index')} className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200/50">الذهاب للشجرة 🌳</Link>
+                                    <Link href={route('tree.index')} className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-6 py-2.5 rounded-xl font-bold hover:from-indigo-700 hover:to-violet-700 transition-all shadow-lg shadow-indigo-200/50">الذهاب للشجرة 🌳</Link>
                                 </div>
                             )}
                         </div>
@@ -807,7 +807,7 @@ export default function Dashboard({
                                                 {ch.google_drive_link && (
                                                     <a href={ch.google_drive_link} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-indigo-600 text-sm font-[800]">📥</a>
                                                 )}
-                                                <button onClick={() => router.get(route('quiz.start'), { course_id: ch.course_id, chapter_ids: [ch.id], mode: 'practice', count: 10 })} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-[800]">🧠 تدريب</button>
+                                                <button onClick={() => router.get(route('quiz.start'), { course_id: ch.course_id, chapter_ids: [ch.id], mode: 'practice', count: 10 })} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-[800] hover:from-indigo-700 hover:to-violet-700 transition-all shadow-sm shadow-indigo-200/50">🧠 تدريب</button>
                                             </div>
                                         </div>
                                     )) : (

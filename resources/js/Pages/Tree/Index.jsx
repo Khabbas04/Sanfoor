@@ -2991,7 +2991,7 @@ export default function Tree({
                     {getStatus(selectedCourse) === 'available' && (
                         <>
                             <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-emerald-500/80 hover:bg-emerald-500 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                         </>
                     )}
                     {getStatus(selectedCourse) === 'cart' && (
@@ -3063,7 +3063,7 @@ export default function Tree({
                             <button onClick={() => retakeCourse(selectedCourse.id)} className={`w-full ${getStatus(selectedCourse) === 'failed' ? 'bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20' : 'bg-gradient-to-l from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 shadow-sky-500/20'} text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg active:scale-[0.97] flex items-center justify-center gap-2`}>
                                 🔄 إعادة المادة (محاولة جديدة)
                             </button>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/20 text-rose-300 hover:from-rose-500 hover:to-red-600 hover:text-white hover:border-transparent py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
                                 ✖ إلغاء تسجيلات المادة بالكامل
                             </button>
                         </>

@@ -248,7 +248,7 @@ export default function Register({ colleges, majors }) {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3"
+                            className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3"
                         >
                             {processing ? "جاري الإنشاء..." : "إنشاء حساب جديد"}
                             {!processing && <svg className="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>}

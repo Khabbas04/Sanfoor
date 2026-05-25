@@ -89,7 +89,7 @@ const ComparisonWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                             {active && (
                                 // 🆕 تم تمرير الساعات هنا: item.credit_hours
                                 <button onClick={(e) => { e.stopPropagation(); onToggleCourse(item.id, item.name, item.credit_hours); }} disabled={loadingCourseId === item.id}
-                                    className={`w-full py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${added ? 'bg-emerald-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200/30'}`}>
+                                    className={`w-full py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${added ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/30'}`}>
                                     {added ? '✅ في التسجيل التجريبي — اضغط للإزالة' : '➕ أضف للتسجيل التجريبي'}
                                 </button>
                             )}
@@ -248,7 +248,7 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
 
                                 {/* 🛡️ المادة مو بالتسجيل التجريبي → زر إضافة أزرق (بغض النظر عن verdict) */}
                                 {!inCart && (
-                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-indigo-200/30">
+                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-indigo-500/30">
                                         {loadingCourseId === c.id ? '⏳' : '➕ إضافة'}
                                     </button>
                                 )}
@@ -686,7 +686,7 @@ export default function Advisor() {
 
         {/* === Sidebar === */}
         <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
-            <button onClick={newChat} className="w-full bg-indigo-700 hover:bg-indigo-600 text-white p-3 rounded-2xl font-black text-[13px] shadow-md shadow-indigo-300/20 flex items-center justify-center gap-2.5 active:scale-[.97] group transition-all">
+            <button onClick={newChat} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white p-3 rounded-2xl font-black text-[13px] shadow-md shadow-indigo-500/30 flex items-center justify-center gap-2.5 active:scale-[.97] group transition-all">
                 <span className="group-hover:rotate-12 transition-transform">✨</span> محادثة جديدة
             </button>
 
@@ -840,7 +840,7 @@ export default function Advisor() {
                             className={`w-full ${remaining <= 0 ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
                             disabled={typing||loadingChat||generating||remaining <= 0}
                         />
-                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||remaining <= 0} className="absolute left-2 w-9 h-9 bg-indigo-700 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
+                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||remaining <= 0} className="absolute left-2 w-9 h-9 bg-gradient-to-tr from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
                         </button>
                     </form>

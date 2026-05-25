@@ -198,7 +198,7 @@ export default function Login({ status, canResetPassword }) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                             >
                                 {processing ? (
                                     <>
