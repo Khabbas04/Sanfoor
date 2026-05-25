@@ -1828,13 +1828,66 @@ export default function Tree({
                 syncCartWithDB(updatedCart);
             }
         }
+        let submitYear = targetYear;
+        let submitTerm = targetTerm;
+        let submitSemester = targetSemester;
+
+        if (!passedIds.includes(courseId)) {
+            const { value: formValues } = await Swal.fire({
+                title: 'تفاصيل إنجاز المادة',
+                html: `
+                    <div class="space-y-4 text-right mt-4" dir="rtl">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">السنة الدراسية:</label>
+                            <select id="swal-year" class="w-full border-slate-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none">
+                                <option value="1" ${targetYear === 1 ? 'selected' : ''}>السنة الأولى</option>
+                                <option value="2" ${targetYear === 2 ? 'selected' : ''}>السنة الثانية</option>
+                                <option value="3" ${targetYear === 3 ? 'selected' : ''}>السنة الثالثة</option>
+                                <option value="4" ${targetYear === 4 ? 'selected' : ''}>السنة الرابعة</option>
+                                <option value="5" ${targetYear === 5 ? 'selected' : ''}>السنة الخامسة</option>
+                                <option value="6" ${targetYear === 6 ? 'selected' : ''}>السنة السادسة</option>
+                                <option value="7" ${targetYear === 7 ? 'selected' : ''}>السنة السابعة</option>
+                            </select>
+                        </div>
+                        <div class="pt-2">
+                            <label class="block text-sm font-bold text-slate-700 mb-2">الفصل الدراسي:</label>
+                            <select id="swal-term" class="w-full border-slate-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none">
+                                <option value="1" ${targetTerm === 1 ? 'selected' : ''}>الفصل الأول</option>
+                                <option value="2" ${targetTerm === 2 ? 'selected' : ''}>الفصل الثاني</option>
+                                <option value="3" ${targetTerm === 3 ? 'selected' : ''}>الفصل الصيفي</option>
+                            </select>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'تأكيد الإنجاز ✅',
+                cancelButtonText: 'إلغاء',
+                focusConfirm: false,
+                ...swalTheme,
+                preConfirm: () => {
+                    const y = document.getElementById('swal-year');
+                    const t = document.getElementById('swal-term');
+                    if (!y || !t) return false;
+                    return {
+                        year: parseInt(y.value),
+                        term: parseInt(t.value)
+                    }
+                }
+            });
+
+            if (!formValues) return;
+
+            submitYear = formValues.year;
+            submitTerm = formValues.term;
+            submitSemester = yearTermToSemester(submitYear, submitTerm);
+        }
 
         try {
             const response = await axios.post(route('tree.toggle'), {
                 course_id: courseId,
-                studied_year: targetYear,
-                studied_term: targetTerm,
-                studied_semester: targetSemester,
+                studied_year: submitYear,
+                studied_term: submitTerm,
+                studied_semester: submitSemester,
             });
 
             if (response.data.status === 'added') {
@@ -1849,9 +1902,9 @@ export default function Tree({
                         ...addedCourse,
                         pivot: {
                             grade: null,
-                            studied_semester: targetSemester,
-                            studied_year: targetYear,
-                            studied_term: targetTerm,
+                            studied_semester: submitSemester,
+                            studied_year: submitYear,
+                            studied_term: submitTerm,
                         }
                     }]);
                 }
