@@ -63,7 +63,7 @@ class AdminChapterController extends Controller
             ->orderBy('study_plan_version', 'desc')
             ->pluck('study_plan_version');
 
-        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name')->get();
+        $courses = Course::select('id', 'name', 'code', 'major_id', 'study_plan_version')->orderBy('name')->get();
 
         return Inertia::render('Admin/Chapters/Index', [
             'chapters' => $chapters,
@@ -102,7 +102,7 @@ class AdminChapterController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])->where('is_quiz_only', 1)->first();
+        $course = Course::where('name', $data['course_name'])->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
@@ -147,7 +147,7 @@ class AdminChapterController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])->where('is_quiz_only', 1)->first();
+        $course = Course::where('name', $data['course_name'])->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
