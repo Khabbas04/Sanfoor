@@ -221,7 +221,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             {t.title}
                         </h2>
                     </div>
-                    <button onClick={openCreate} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-[800] text-[12px] shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all active:scale-[0.97]">
+                    <button onClick={() => openCreate()} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-[800] text-[12px] shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all active:scale-[0.97]">
                         <span className="text-lg">+</span> {t.addChapter}
                     </button>
                 </div>
