@@ -197,8 +197,13 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                     from { opacity: 0; transform: translateY(20px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
+                @keyframes floatBadge {
+                    0%, 100% { transform: translateY(0px) rotate(12deg); }
+                    50% { transform: translateY(-3px) rotate(16deg) scale(1.05); }
+                }
                 .animate-dropdown { animation: slideDownMenu 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
                 .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                .animate-float-badge { animation: floatBadge 3s ease-in-out infinite; }
                 
                 .nav-capsule { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
                 .nav-scrolled {
@@ -225,12 +230,12 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl" />
                                 </div>
                                 <div className="flex flex-col justify-center relative leading-none">
-                                    <div className="flex items-center gap-2">
+                                    <div className="relative w-fit">
                                         <span className={`text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-tight transition-all duration-300 pb-0.5`}>
                                             {lang === 'ar' ? 'سنفور' : 'Sanfoor'}
                                         </span>
-                                        <span className={`px-1.5 py-0.5 mt-0.5 rounded-md text-[8px] sm:text-[9px] font-black tracking-wide border ${isDark ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-200'} whitespace-nowrap`}>
-                                            ZU | جامعة الزرقاء
+                                        <span className={`absolute -top-1.5 sm:-top-2.5 ${lang === 'ar' ? '-left-3 sm:-left-4' : '-right-3 sm:-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-indigo-500 to-cyan-400 text-white text-[7px] sm:text-[9px] font-black rounded-md shadow-[0_0_10px_rgba(79,70,229,0.4)] animate-float-badge tracking-widest pointer-events-none z-10 border border-white/20`}>
+                                            ZU
                                         </span>
                                     </div>
                                     {lang === 'ar' && (
@@ -365,14 +370,14 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="h-32 border-b border-white/10 flex items-center justify-between px-6 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white">
                             <div className="flex items-center gap-4">
                                 <img src="/images/sanfoor.png" alt="Logo" className="w-14 h-14 object-contain drop-shadow-md" />
-                                <div className="flex flex-col leading-none">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex flex-col leading-none mt-1">
+                                    <div className="relative w-fit">
                                         <span className="text-2xl font-black">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</span>
-                                        <span className="px-1.5 py-0.5 mt-0.5 rounded-md text-[8px] font-black tracking-wide border bg-white/10 text-indigo-100 border-white/20 whitespace-nowrap">
-                                            ZU | جامعة الزرقاء
+                                        <span className={`absolute -top-2 ${lang === 'ar' ? '-left-4' : '-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-indigo-500 to-cyan-400 text-white text-[7px] font-black rounded-md shadow-lg animate-float-badge tracking-widest border border-white/20 z-10`}>
+                                            ZU
                                         </span>
                                     </div>
-                                    {lang === 'ar' && <span className="text-sm font-black uppercase tracking-widest opacity-80 mt-1">Sanfoor</span>}
+                                    {lang === 'ar' && <span className="text-sm font-black uppercase tracking-widest opacity-80 mt-0.5">Sanfoor</span>}
                                 </div>
                             </div>
                             <button onClick={() => setMobileOpen(false)} className="text-3xl opacity-70 hover:opacity-100 transition-opacity">&times;</button>
@@ -428,9 +433,14 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="xl:col-span-2 space-y-5">
                             <div className="flex items-center gap-4">
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
-                                <div className="flex flex-col leading-none">
-                                    <h3 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] tracking-tight pb-0.5">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
-                                    {lang === 'ar' && <span className="text-[0.65rem] sm:text-[0.8rem] font-black text-indigo-400 tracking-[0.2em] uppercase">Sanfoor</span>}
+                                <div className="flex flex-col leading-none mt-1">
+                                    <div className="relative w-fit">
+                                        <h3 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] tracking-tight pb-0.5">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
+                                        <span className={`absolute -top-2 sm:-top-3 ${lang === 'ar' ? '-left-3 sm:-left-4' : '-right-3 sm:-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-indigo-500 to-cyan-400 text-white text-[7px] sm:text-[9px] font-black rounded-md shadow-[0_0_10px_rgba(79,70,229,0.4)] animate-float-badge tracking-widest border border-white/20 z-10`}>
+                                            ZU
+                                        </span>
+                                    </div>
+                                    {lang === 'ar' && <span className="text-[0.65rem] sm:text-[0.8rem] font-black text-indigo-400 tracking-[0.2em] uppercase mt-0.5">Sanfoor</span>}
                                 </div>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed max-w-md">{t.footerDesc}</p>
