@@ -9,7 +9,7 @@ import Swal from 'sweetalert2';
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
-const swal = { confirmButtonColor: '#4338ca', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
+const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
 
 // Animate AI responses as they stream into the chat window.
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
@@ -49,7 +49,7 @@ const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' })
         <div className="flex items-center gap-2 sfr-fade-up">
             {/* 🆕 تم تمرير الساعات هنا: course.credit_hours */}
             <button onClick={() => onToggle(course.id, course.name, course.credit_hours)} disabled={isLoading}
-                className={`flex-1 font-black py-2.5 px-4 rounded-xl transition-all duration-200 flex justify-between items-center group/b text-[11.5px] ${rm ? 'bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200/60 hover:border-red-500' : isAdded ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-indigo-50/70 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200/50 hover:border-indigo-600 hover:shadow-lg hover:shadow-indigo-200/30'} ${isLoading ? 'opacity-50' : ''}`}>
+                className={`flex-1 font-black py-2.5 px-4 rounded-xl transition-all duration-200 flex justify-between items-center group/b text-[11.5px] ${rm ? 'bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200/60 hover:border-red-500' : isAdded ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-blue-50/70 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200/50 hover:border-blue-600 hover:shadow-lg hover:shadow-blue-200/30'} ${isLoading ? 'opacity-50' : ''}`}>
                 <span className="flex items-center gap-2">
                     {isLoading ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : rm ? '🗑' : isAdded ? '✅' : <span className="group-hover/b:rotate-90 transition-transform inline-block text-sm">+</span>}
                     {rm ? `إزالة ${course.name}` : isAdded ? `${course.name} ✓` : `إضافة ${course.name}`}
@@ -66,15 +66,15 @@ const ComparisonWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
     const diffLabel = ['', 'سهل جداً', 'سهل', 'متوسط', 'صعب', 'صعب جداً'];
     const diffColor = (d) => d <= 2 ? 'emerald' : d <= 3 ? 'amber' : 'red';
     return (
-        <div className="mt-4 pt-3 border-t border-indigo-100/40 sfr-fade-up">
-            <p className="text-[10px] font-black text-indigo-600 mb-3">📊 {widget.title || 'قارن واختر'}</p>
+        <div className="mt-4 pt-3 border-t border-blue-100/40 sfr-fade-up">
+            <p className="text-[10px] font-black text-blue-600 mb-3">📊 {widget.title || 'قارن واختر'}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {(widget.items || []).map((item, i) => {
                     const dc = diffColor(item.difficulty || 3);
                     const active = sel === i;
                     const added = addedCourses[item.id];
                     return (
-                        <div key={i} onClick={() => setSel(i)} className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all ${active ? 'border-indigo-500 bg-indigo-50/40 shadow-lg shadow-indigo-100/40 scale-[1.01]' : 'border-slate-200/50 bg-white hover:border-indigo-200 hover:shadow-sm'}`}>
+                        <div key={i} onClick={() => setSel(i)} className={`relative p-4 rounded-2xl border-2 cursor-pointer transition-all ${active ? 'border-blue-500 bg-blue-50/40 shadow-lg shadow-blue-100/40 scale-[1.01]' : 'border-slate-200/50 bg-white hover:border-blue-200 hover:shadow-sm'}`}>
                             {item.recommendation && <span className="absolute -top-2.5 right-3 text-[8px] bg-amber-400 text-amber-950 px-2 py-0.5 rounded-full font-black shadow-sm">{item.recommendation}</span>}
                             <p className="font-black text-[13px] text-slate-800">{item.name}</p>
                             <p className="text-[9px] text-slate-400 font-mono mb-3">{item.code} • {item.credit_hours} ساعة</p>
@@ -83,13 +83,13 @@ const ComparisonWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                                 <div className="w-full h-1.5 bg-slate-100 rounded-full"><div className={`h-full rounded-full bg-${dc}-500 transition-all duration-500`} style={{ width: `${((item.difficulty || 1) / 5) * 100}%` }} /></div>
                             </div>
                             <div className="flex justify-between text-[9px] font-bold mb-3">
-                                <span className="text-violet-600">🔓 تفتح {item.unlocks || 0} مواد</span>
+                                <span className="text-blue-600">🔓 تفتح {item.unlocks || 0} مواد</span>
                                 <span className={`px-1.5 py-0.5 rounded ${item.gpa_impact === 'مرتفع' ? 'bg-emerald-50 text-emerald-700' : item.gpa_impact === 'متوسط' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-500'}`}>المعدل: {item.gpa_impact || '—'}</span>
                             </div>
                             {active && (
                                 // 🆕 تم تمرير الساعات هنا: item.credit_hours
                                 <button onClick={(e) => { e.stopPropagation(); onToggleCourse(item.id, item.name, item.credit_hours); }} disabled={loadingCourseId === item.id}
-                                    className={`w-full py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${added ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-md shadow-indigo-500/30'}`}>
+                                    className={`w-full py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${added ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' : 'bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white shadow-md shadow-blue-500/30'}`}>
                                     {added ? '✅ في التسجيل التجريبي — اضغط للإزالة' : '➕ أضف للتسجيل التجريبي'}
                                 </button>
                             )}
@@ -107,18 +107,18 @@ const PollWidget = ({ widget, onSubmit }) => {
     const [sent, setSent] = useState(false);
     const pick = (opt) => { if (sent) return; setChosen(opt.value); setSent(true); setTimeout(() => onSubmit(`أولويتي هالفصل: ${opt.label}`), 500); };
     return (
-        <div className="mt-4 pt-3 border-t border-violet-100/40 sfr-fade-up">
-            <p className="text-[10px] font-black text-violet-600 mb-3">🗳️ {widget.question}</p>
+        <div className="mt-4 pt-3 border-t border-blue-100/40 sfr-fade-up">
+            <p className="text-[10px] font-black text-blue-600 mb-3">🗳️ {widget.question}</p>
             <div className="space-y-1.5">
                 {(widget.options || []).map((opt, i) => (
                     <button key={i} onClick={() => pick(opt)} disabled={sent}
-                        className={`w-full py-3 px-4 rounded-xl font-black text-[12px] transition-all flex items-center justify-between ${chosen === opt.value ? 'bg-violet-600 text-white shadow-lg shadow-violet-200/40 scale-[1.01]' : sent ? 'bg-slate-50 text-slate-300 border border-slate-100' : 'bg-violet-50/70 text-violet-700 border border-violet-200/50 hover:bg-violet-100 active:scale-[.98]'}`}>
+                        className={`w-full py-3 px-4 rounded-xl font-black text-[12px] transition-all flex items-center justify-between ${chosen === opt.value ? 'bg-blue-600 text-white shadow-lg shadow-blue-200/40 scale-[1.01]' : sent ? 'bg-slate-50 text-slate-300 border border-slate-100' : 'bg-blue-50/70 text-blue-700 border border-blue-200/50 hover:bg-blue-100 active:scale-[.98]'}`}>
                         <span>{opt.label}</span>
                         {chosen === opt.value && <span className="text-sm">✓</span>}
                     </button>
                 ))}
             </div>
-            {sent && <p className="text-[9px] text-violet-400 font-bold text-center mt-2.5 animate-pulse">⏳ جاري تحليل أولويتك...</p>}
+            {sent && <p className="text-[9px] text-blue-400 font-bold text-center mt-2.5 animate-pulse">⏳ جاري تحليل أولويتك...</p>}
         </div>
     );
 };
@@ -172,9 +172,9 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
         if (!inCart) {
             return {
                 type: 'suggest_add',        // مادة مقترحة قابلة للإضافة
-                borderClass: 'border-indigo-200 bg-indigo-50/40',
+                borderClass: 'border-blue-200 bg-blue-50/40',
                 icon: '💡',
-                badge: { text: 'أضفها', bg: 'bg-indigo-100 text-indigo-700' },
+                badge: { text: 'أضفها', bg: 'bg-blue-100 text-blue-700' },
                 reason: c.reason || 'مادة مقترحة من المرشد الذكي',
             };
         }
@@ -212,11 +212,11 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
         <div className="mt-4 pt-3 border-t border-slate-200/40 sfr-fade-up">
             <p className="text-[10px] font-black text-slate-600 mb-3">📋 {widget.title || 'مراجعة التسجيل التجريبي'}</p>
             {s.recommendation && (
-                <div className="bg-gradient-to-l from-slate-50 to-indigo-50/30 rounded-xl p-3 mb-3 border border-slate-200/50 flex items-center justify-between transition-all">
+                <div className="bg-gradient-to-l from-slate-50 to-blue-50/30 rounded-xl p-3 mb-3 border border-slate-200/50 flex items-center justify-between transition-all">
                     <div className="flex gap-5">
                         <div className="text-center">
                             <p className="text-[7px] font-bold text-slate-400 uppercase">الساعات</p>
-                            <p className={`text-lg font-black transition-colors ${currentWidgetHours > (s.max_hours || 18) ? 'text-red-600' : 'text-indigo-700'}`}>
+                            <p className={`text-lg font-black transition-colors ${currentWidgetHours > (s.max_hours || 18) ? 'text-red-600' : 'text-blue-700'}`}>
                                 {currentWidgetHours}
                                 <span className="text-[9px] text-slate-400">/{s.max_hours || 18}</span>
                             </p>
@@ -226,7 +226,7 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                             <p className="text-[12px] font-black text-slate-700">{s.overall_difficulty || '—'}</p>
                         </div>
                     </div>
-                    <p className="text-[10px] font-bold text-indigo-600 max-w-[45%] text-left leading-snug">{s.recommendation}</p>
+                    <p className="text-[10px] font-bold text-blue-600 max-w-[45%] text-left leading-snug">{s.recommendation}</p>
                 </div>
             )}
             <div className="space-y-1.5">
@@ -248,7 +248,7 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
 
                                 {/* 🛡️ المادة مو بالتسجيل التجريبي → زر إضافة أزرق (بغض النظر عن verdict) */}
                                 {!inCart && (
-                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-indigo-500/30">
+                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-blue-500/30">
                                         {loadingCourseId === c.id ? '⏳' : '➕ إضافة'}
                                     </button>
                                 )}
@@ -304,9 +304,9 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
-                {u ? <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white">{name?.charAt(0)||'أ'}</div>
-                    : <div className="w-8 h-8 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
-                <div className={`group/m ${u ? 'bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white rounded-2xl rounded-se-sm shadow-lg shadow-indigo-200/20 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
+                {u ? <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white">{name?.charAt(0)||'أ'}</div>
+                    : <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
+                <div className={`group/m ${u ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-2xl rounded-se-sm shadow-lg shadow-blue-500/10 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
                             <div className="sfr-ai-shell">
@@ -316,10 +316,10 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                                     </div>
                                 </div>
                             </div>
-                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-indigo-100/40 sfr-fade-up"><p className="text-[9px] font-black text-indigo-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
+                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
                             {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
                             {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
-                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 transition-all active:scale-95">{q}</button>)}</div></div>}
+                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
                             {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
                         </div>
                     )}
@@ -332,7 +332,7 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
 // ========== ProgressRing ==========
 const Ring = ({pct, size=40, s=3.5}) => {
     const r=(size-s)/2, c=2*Math.PI*r;
-    return <svg width={size} height={size} className="-rotate-90"><circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={s}/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke="url(#rg)" strokeWidth={s} strokeDasharray={c} strokeDashoffset={c-(pct/100)*c} strokeLinecap="round" className="transition-all duration-700"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#4338ca"/><stop offset="100%" stopColor="#7c3aed"/></linearGradient></defs></svg>;
+    return <svg width={size} height={size} className="-rotate-90"><circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={s}/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke="url(#rg)" strokeWidth={s} strokeDasharray={c} strokeDashoffset={c-(pct/100)*c} strokeLinecap="round" className="transition-all duration-700"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#38bdf8"/><stop offset="100%" stopColor="#3b82f6"/></linearGradient></defs></svg>;
 };
 
 // ======================================================================
@@ -614,8 +614,8 @@ export default function Advisor() {
     },[newChat,generating,stop,showCommandMenu]);
 
     const cmds = [
-        { text: "قارن لي أفضل المواد المتاحة", icon: "📊", desc: "بطاقات مقارنة", color: "indigo" },
-        { text: "شو أولويتي هالفصل؟", icon: "🗳️", desc: "استطلاع سريع", color: "violet" },
+        { text: "قارن لي أفضل المواد المتاحة", icon: "📊", desc: "بطاقات مقارنة", color: "blue" },
+        { text: "شو أولويتي هالفصل؟", icon: "🗳️", desc: "استطلاع سريع", color: "sky" },
         { text: "كم ساعة أسجل هالفصل؟", icon: "⏱️", desc: "سلايدر الساعات", color: "teal" },
         { text: "راجع التسجيل التجريبي وقيّمه", icon: "📋", desc: "مراجعة تفاعلية", color: "slate" },
     ];
@@ -630,8 +630,8 @@ export default function Advisor() {
 
     const ChatItem = ({c}) => (
         <div className="relative group/i">
-            <button onClick={()=>loadChat(c.id)} className={`w-full text-right p-2.5 rounded-xl transition-all flex items-center gap-2 ${activeId===c.id?'bg-indigo-50 border border-indigo-200/50':'hover:bg-slate-50 border border-transparent'}`}>
-                <span className={`text-[10.5px] font-bold truncate flex-1 ${activeId===c.id?'text-indigo-700':'text-slate-500'}`}>{c.title}</span>
+            <button onClick={()=>loadChat(c.id)} className={`w-full text-right p-2.5 rounded-xl transition-all flex items-center gap-2 ${activeId===c.id?'bg-blue-50 border border-blue-200/50':'hover:bg-slate-50 border border-transparent'}`}>
+                <span className={`text-[10.5px] font-bold truncate flex-1 ${activeId===c.id?'text-blue-700':'text-slate-500'}`}>{c.title}</span>
             </button>
             <button onClick={e=>delChat(c.id,e)} className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/i:opacity-100 p-1 hover:bg-red-50 rounded transition-all text-[10px] text-red-400">✕</button>
         </div>
@@ -646,17 +646,17 @@ export default function Advisor() {
             <link rel="canonical" href={`${siteUrl}/ai-advisor`} />
         </Head>
         <style dangerouslySetInnerHTML={{ __html: `
-            :root { --sfr-primary: #4338ca; --sfr-accent: #7c3aed; }
+            :root { --sfr-primary: #3b82f6; --sfr-accent: #06b6d4; }
             .sfr-scrollbar::-webkit-scrollbar { width: 3px; }
-            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(165,180,252,.3); border-radius: 10px; }
-            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(165,180,252,.5); }
+            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(186,230,253,.3); border-radius: 10px; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(186,230,253,.5); }
             .typing-dot { animation: sfr-bounce 1.4s infinite ease-in-out both; }
             .typing-dot:nth-child(1) { animation-delay: -.32s; }
             .typing-dot:nth-child(2) { animation-delay: -.16s; }
             @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
             .sfr-md p { margin-bottom: .4rem; line-height: 1.8; }
             .sfr-md p:last-child { margin-bottom: 0; }
-            .sfr-md p:first-child { background: rgba(99,102,241,.10); border-right: 3px solid #4338ca; padding: .35rem .5rem; border-radius: 10px; }
+            .sfr-md p:first-child { background: rgba(59,130,246,.10); border-right: 3px solid #3b82f6; padding: .35rem .5rem; border-radius: 10px; }
             .sfr-md strong { color: #1e1b4b; font-weight: 900; background: rgba(253,224,71,.35); padding: 0 .2rem; border-radius: 6px; }
             .sfr-md em { color: #0f766e; font-style: normal; font-weight: 800; }
             .sfr-md ul { list-style: none; padding-right: .15rem; margin-bottom: .4rem; }
@@ -666,12 +666,12 @@ export default function Advisor() {
             .sfr-slide-up { animation: sfr-su .25s ease-out forwards; }
             @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
             .sfr-fade-up { animation: sfr-fu .2s ease-out forwards; }
-            @keyframes sfr-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(67,56,202,.2); } 50% { box-shadow: 0 0 0 5px rgba(67,56,202,0); } }
+            @keyframes sfr-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,.2); } 50% { box-shadow: 0 0 0 5px rgba(59,130,246,0); } }
             .sfr-glow { animation: sfr-glow 3s infinite; }
             .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .15s; cursor: pointer; }
             .sfr-action-btn:hover { background: #f1f5f9; }
             .sfr-ai-shell { background: linear-gradient(135deg, rgba(253,230,138,.55), rgba(199,210,254,.45), rgba(167,243,208,.45)); padding: 1px; border-radius: 18px; }
-            .sfr-ai-card { background: rgba(255,255,255,.98); border-radius: 18px; padding: .8rem .9rem; border: 1px solid rgba(99,102,241,.12); box-shadow: 0 18px 40px -28px rgba(15,23,42,.55); }
+            .sfr-ai-card { background: rgba(255,255,255,.98); border-radius: 18px; padding: .8rem .9rem; border: 1px solid rgba(59,130,246,.12); box-shadow: 0 18px 40px -28px rgba(15,23,42,.55); }
         ` }} />
 
         <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
@@ -680,13 +680,13 @@ export default function Advisor() {
         {/* === Mobile === */}
         <div className="lg:hidden sticky top-2 z-30 flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
             <button onClick={()=>setSidebar(true)} className="flex items-center gap-1.5 p-2.5 bg-white rounded-xl border border-slate-200/70 shadow-sm active:scale-95 text-[11px] font-black text-slate-600"><svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>المحادثات</button>
-            <button onClick={newChat} className="flex-1 bg-indigo-700 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97]">✨ محادثة جديدة</button>
+            <button onClick={newChat} className="flex-1 bg-gradient-to-r from-sky-400 to-blue-500 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] shadow-blue-500/20">✨ محادثة جديدة</button>
         </div>
         {sidebar&&<div className="lg:hidden fixed inset-0 z-50 flex"><div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={()=>setSidebar(false)}/><div className="relative w-[80%] max-w-[280px] bg-white h-full shadow-2xl overflow-y-auto p-4 space-y-3 sfr-scrollbar"><div className="flex items-center justify-between"><h3 className="font-black text-slate-700 text-[13px]">📂 المحادثات</h3><button onClick={()=>setSidebar(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">✕</button></div>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[11px] py-8">📭 فارغ</p>}</div></div>}
 
         {/* === Sidebar === */}
         <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
-            <button onClick={newChat} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white p-3 rounded-2xl font-black text-[13px] shadow-md shadow-indigo-500/30 flex items-center justify-center gap-2.5 active:scale-[.97] group transition-all">
+            <button onClick={newChat} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3 rounded-2xl font-black text-[13px] shadow-md shadow-blue-500/30 flex items-center justify-center gap-2.5 active:scale-[.97] group transition-all">
                 <span className="group-hover:rotate-12 transition-transform">✨</span> محادثة جديدة
             </button>
 
@@ -694,12 +694,12 @@ export default function Advisor() {
             {st && (
                 <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3.5">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center text-lg font-black text-indigo-700 shrink-0">{st.name?.charAt(0)||'أ'}</div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center text-lg font-black text-blue-700 shrink-0">{st.name?.charAt(0)||'أ'}</div>
                         <div className="min-w-0"><p className="font-black text-[13px] text-slate-800 truncate">{st.name}</p><p className="text-[9px] text-slate-400 font-bold">{st.major||'—'}</p></div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                        {st.gpa != null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل %</p><p className="text-[15px] font-black text-indigo-700">{st.has_academic_records ? `${st.gpa}%` : 'لا يوجد بعد'}</p>{st.is_probation&&<span className="text-[6px] bg-red-100 text-red-600 px-1 rounded font-black">إنذار</span>}</div>}
-                        {st.hours_completed!=null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">منجزة</p><p className="text-[15px] font-black text-violet-700">{st.hours_completed}</p>{st.total_plan_hours&&<p className="text-[7px] text-slate-400">/{st.total_plan_hours}</p>}</div>}
+                        {st.gpa != null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل %</p><p className="text-[15px] font-black text-blue-700">{st.has_academic_records ? `${st.gpa}%` : 'لا يوجد بعد'}</p>{st.is_probation&&<span className="text-[6px] bg-red-100 text-red-600 px-1 rounded font-black">إنذار</span>}</div>}
+                        {st.hours_completed!=null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">منجزة</p><p className="text-[15px] font-black text-sky-700">{st.hours_completed}</p>{st.total_plan_hours&&<p className="text-[7px] text-slate-400">/{st.total_plan_hours}</p>}</div>}
                         {st.progress_percent!=null && <div className="flex flex-col items-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">التخرج</p><Ring pct={st.progress_percent} size={32} s={3}/><p className="text-[9px] font-black text-slate-700 mt-0.5">{st.progress_percent}%</p></div>}
                     </div>
                     {/* 🆕 تحديث الساعات في Sidebar لتكون ديناميكية */}
@@ -727,11 +727,11 @@ export default function Advisor() {
             <div className="px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3">
                     <div className="relative">
-                        <div className="w-10 h-10 bg-white border-2 border-indigo-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
+                        <div className="w-10 h-10 bg-white border-2 border-blue-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-lg">🤖</span>';}}/></div>
                         <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${(isFallback || !isAiActive) ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}/>
                     </div>
                     <div>
-                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-indigo-700'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
+                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
                         <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`}/>
                             {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? 'مستشار سنفور (الوضع المحلي) 🔴' : 'مستشار سنفور (الوضع الذكي) 🟢')}
@@ -740,10 +740,10 @@ export default function Advisor() {
                 </div>
                 <div className="flex items-center gap-2">
                     {isMobileViewport && (
-                        <button onClick={newChat} className="md:hidden bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-lg text-[10px] font-black active:scale-95 transition-all">✨ جديدة</button>
+                        <button onClick={newChat} className="md:hidden bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1.5 rounded-lg text-[10px] font-black active:scale-95 transition-all">✨ جديدة</button>
                     )}
                     {st&&<div className="hidden md:flex items-center gap-2">
-                        {st.gpa&&<div className="bg-slate-50 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-indigo-700">{st.gpa}</p></div>}
+                        {st.gpa&&<div className="bg-slate-50 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-blue-700">{st.gpa}</p></div>}
                         {st.progress_percent!=null&&<div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100"><Ring pct={st.progress_percent} size={24} s={2.5}/><span className="text-[10px] font-black text-slate-700">{st.progress_percent}%</span></div>}
                         {/* 🆕 تحديث الساعات في Header لتكون ديناميكية */}
                         {addedCount>0&&<div className="bg-emerald-50 rounded-lg px-2.5 py-1.5 border border-emerald-100"><span className="text-[10px] font-black text-emerald-700">🛒 {addedCount} مواد • {cartHours}س</span></div>}
@@ -753,10 +753,10 @@ export default function Advisor() {
 
             {/* Messages */}
             <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-[#fafbfc] sfr-scrollbar">
-                {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-indigo-400"><div className="w-7 h-7 border-[3px] border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
+                {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-blue-400"><div className="w-7 h-7 border-[3px] border-blue-100 border-t-blue-600 rounded-full animate-spin mb-2"/><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                 <div className="space-y-3">
                     {msgs.map(m=><Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id===lastAi} onRegen={regen} onFb={fb} onFollow={send}/>)}
-                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-indigo-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-indigo-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-indigo-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
+                    {typing&&<div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover"/></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot"/><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot"/>{regenning&&<span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
                 </div>)}<div className="h-2"/>
             </div>
 
@@ -766,8 +766,8 @@ export default function Advisor() {
             <div className="bg-white border-t border-slate-100/70 z-20 pb-[env(safe-area-inset-bottom)]">
                 {/* 🆕 قائمة الأوامر السحرية (تظهر عند كتابة /) */}
                 {showCommandMenu && (
-                    <div className="px-3 py-2 border-b border-indigo-100/50 bg-gradient-to-b from-indigo-50/50 to-white max-h-[240px] overflow-y-auto">
-                        <p className="text-[9px] font-[800] text-indigo-500 mb-2 px-1 flex items-center gap-1.5">⚡ أوامر سريعة — اكتب <kbd className="bg-indigo-100 px-1 py-0.5 rounded text-[8px] font-mono">/</kbd> ثم اسم الأمر:</p>
+                    <div className="px-3 py-2 border-b border-blue-100/50 bg-gradient-to-b from-blue-50/50 to-white max-h-[240px] overflow-y-auto">
+                        <p className="text-[9px] font-[800] text-blue-500 mb-2 px-1 flex items-center gap-1.5">⚡ أوامر سريعة — اكتب <kbd className="bg-blue-100 px-1 py-0.5 rounded text-[8px] font-mono">/</kbd> ثم اسم الأمر:</p>
                         <div className="space-y-1">
                             {magicCommands
                                 .filter(c => !commandFilter || c.cmd.includes(commandFilter) || c.label.includes(commandFilter))
@@ -780,17 +780,17 @@ export default function Advisor() {
                                             setInput('');
                                             send(c.message);
                                         }}
-                                        className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-indigo-50 transition-all text-right group active:scale-[0.98]"
+                                        className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-blue-50 transition-all text-right group active:scale-[0.98]"
                                     >
                                         <span className="text-lg shrink-0 group-hover:scale-110 transition-transform">{c.icon}</span>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[11px] font-[800] text-indigo-700">{c.label}</span>
-                                                <span className="text-[9px] font-mono text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded">{c.cmd}</span>
+                                                <span className="text-[11px] font-[800] text-blue-700">{c.label}</span>
+                                                <span className="text-[9px] font-mono text-blue-400 bg-blue-50 px-1.5 py-0.5 rounded">{c.cmd}</span>
                                             </div>
                                             <p className="text-[9px] text-slate-400 font-bold truncate mt-0.5">{c.message}</p>
                                         </div>
-                                        <span className="text-slate-300 text-[10px] shrink-0 group-hover:text-indigo-500 transition-colors">↵</span>
+                                        <span className="text-slate-300 text-[10px] shrink-0 group-hover:text-blue-500 transition-colors">↵</span>
                                     </button>
                                 ))
                             }
@@ -837,17 +837,17 @@ export default function Advisor() {
                                 }
                             }} 
                             placeholder={remaining <= 0 ? "⚠️ لقد استهلكت محاولاتك الـ 5 المتاحة لليوم. عد غداً ⏳" : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
-                            className={`w-full ${remaining <= 0 ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
+                            className={`w-full ${remaining <= 0 ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
                             disabled={typing||loadingChat||generating||remaining <= 0}
                         />
-                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||remaining <= 0} className="absolute left-2 w-9 h-9 bg-gradient-to-tr from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
+                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||remaining <= 0} className="absolute left-2 w-9 h-9 bg-gradient-to-tr from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
                         </button>
                     </form>
                     <p className="text-[7.5px] font-bold text-center mt-1.5 flex items-center justify-center gap-1.5">
                         <span className="text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300"/>
-                        <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${remaining > 0 ? 'bg-indigo-50 text-indigo-700' : 'bg-red-50 text-red-600 animate-pulse'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${remaining > 0 ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-600 animate-pulse'}`}>
                             {remaining > 0 ? `الرسائل المتبقية لليوم: ${remaining}/5` : '⚠️ انتهت رسائلك المتاحة اليوم'}
                         </span>
                     </p>

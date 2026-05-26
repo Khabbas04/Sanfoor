@@ -231,15 +231,15 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 </div>
                                 <div className="flex flex-col justify-center relative leading-none">
                                     <div className="relative w-fit">
-                                        <span className={`text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-tight transition-all duration-300 pb-0.5`}>
+                                        <span className={`text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-tight transition-all duration-300 pb-0.5`}>
                                             {lang === 'ar' ? 'سنفور' : 'Sanfoor'}
                                         </span>
-                                        <span className={`absolute -top-1.5 sm:-top-2.5 ${lang === 'ar' ? '-left-3 sm:-left-4' : '-right-3 sm:-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-indigo-500 to-cyan-400 text-white text-[7px] sm:text-[9px] font-black rounded-md shadow-[0_0_10px_rgba(79,70,229,0.4)] animate-float-badge tracking-widest pointer-events-none z-10 border border-white/20`}>
+                                        <span className={`absolute -top-1.5 sm:-top-2.5 ${lang === 'ar' ? '-left-3 sm:-left-4' : '-right-3 sm:-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-sky-400 to-blue-500 text-white text-[7px] sm:text-[9px] font-black rounded-md shadow-[0_0_10px_rgba(59,130,246,0.4)] animate-float-badge tracking-widest pointer-events-none z-10 border border-white/20`}>
                                             ZU
                                         </span>
                                     </div>
                                     {lang === 'ar' && (
-                                        <span className={`text-[0.65rem] sm:text-[0.8rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-[0.2em] uppercase transition-all duration-300 mt-0.5`}>
+                                        <span className={`text-[0.65rem] sm:text-[0.8rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-[0.2em] uppercase transition-all duration-300 mt-0.5`}>
                                             Sanfoor
                                         </span>
                                     )}
@@ -248,25 +248,25 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                             {/* Central Links with Icons */}
                             <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-[1.25rem] border transition-all duration-500 hover:shadow-lg ${isDark ? 'bg-slate-900/50 border-white/5 hover:border-white/10' : 'bg-slate-100/60 border-white/60 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] hover:bg-slate-100/80'}`}>
-                                <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('welcome', '/') && window.location.pathname === '/' ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('welcome', '/') && window.location.pathname === '/' ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span className="transition-transform group-hover:scale-110">🏠</span> {t.home}
                                 </Link>
 
-                                <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span className="transition-transform group-hover:scale-110">🌳</span> {t.tree}
                                 </Link>
 
-                                <Link href={safeRoute('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('calculator.index', '/calculator') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <Link href={safeRoute('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('calculator.index', '/calculator') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span className="transition-transform group-hover:scale-110">📈</span> {t.calc}
                                 </Link>
 
-                                <Link href={safeRoute('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('campus.directory', '/campus-directory') ? (isDark ? 'bg-indigo-600 text-white' : 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <Link href={safeRoute('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('campus.directory', '/campus-directory') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                                 </Link>
 
                                 {/* Academic Content removed from central nav to keep header compact */}
 
-                                <Link href={safeRoute('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${safeRouteCurrent('ai.advisor', '/ai-advisor') ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20'}`}>
+                                <Link href={safeRoute('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${safeRouteCurrent('ai.advisor', '/ai-advisor') ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'text-blue-600 bg-sky-50 hover:bg-sky-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20'}`}>
                                     <span className="relative z-10 flex items-center gap-2">
                                         <span className="group-hover:animate-pulse text-base">🤖</span> {t.ai}
                                     </span>
@@ -277,17 +277,17 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             {/* Theme toggle, language switcher, and account actions. */}
                             <div className="flex items-center gap-2 sm:gap-3">
                                 <div className="relative group pointer-events-auto">
-                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 mr-1 ${isDark ? 'bg-slate-800 border border-white/10 text-indigo-400 hover:bg-slate-700 hover:border-indigo-500' : 'bg-white border border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-indigo-300'}`}>
+                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 mr-1 ${isDark ? 'bg-slate-800 border border-white/10 text-blue-400 hover:bg-slate-700 hover:border-blue-500' : 'bg-white border border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-blue-300'}`}>
                                         📚
                                     </button>
                                     <div className={`absolute ${lang === 'ar' ? 'right-0' : 'left-0'} top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${academicOpen ? 'opacity-100 visible' : ''}`}>
                                         <div className={`w-48 rounded-2xl shadow-xl border p-2 animate-dropdown ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
-                                            <Link href="/chapters" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-indigo-50/50 text-slate-600 hover:text-indigo-600 hover:scale-[1.02]'}`}>📖 {t.chapters}</Link>
-                                            <Link href="/quiz" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-indigo-50/50 text-slate-600 hover:text-indigo-600 hover:scale-[1.02]'}`}>❓ {t.quiz}</Link>
+                                            <Link href="/chapters" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-sky-50/50 text-slate-600 hover:text-blue-600 hover:scale-[1.02]'}`}>📖 {t.chapters}</Link>
+                                            <Link href="/quiz" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-sky-50/50 text-slate-600 hover:text-blue-600 hover:scale-[1.02]'}`}>❓ {t.quiz}</Link>
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-indigo-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-indigo-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-blue-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
                                     {lang === 'ar' ? 'EN' : 'AR'}
                                 </button>
                                 <button onClick={toggleTheme} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 text-yellow-400 border border-white/10 hover:bg-slate-700' : 'bg-white text-slate-400 border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
@@ -296,17 +296,17 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                                 {safeUser.id ? (
                                     <div className="relative group hidden lg:block pointer-events-auto">
-                                        <button className={`flex items-center gap-3 pl-2 pr-1.5 py-1.5 rounded-[1.25rem] border transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 hover:border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-300 shadow-sm hover:shadow-md'}`}>
+                                        <button className={`flex items-center gap-3 pl-2 pr-1.5 py-1.5 rounded-[1.25rem] border transition-all duration-300 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 hover:border-blue-500' : 'bg-white border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-md'}`}>
                                             <div className="flex flex-col items-end leading-none ml-2">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{(safeUser.name ?? '').split(' ')[0] || '?'}</span>
-                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-blue-800'}`}>
                                                         {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : 'STUDENT'}
                                                     </span>
                                                 </div>
                                                 {safeUser.major && <span className="text-[10px] font-bold text-slate-400 mt-1 max-w-[100px] truncate">{safeUser.major.name}</span>}
                                             </div>
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-black text-sm shadow-inner relative overflow-hidden">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-500 text-white flex items-center justify-center font-black text-sm shadow-inner relative overflow-hidden">
                                                 {safeUser.name?.charAt(0) ?? '?'}
                                             </div>
                                         </button>
@@ -315,7 +315,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                         <div className={`absolute ${lang === 'ar' ? 'left-0' : 'right-0'} top-full pt-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50`}>
                                             <div className={`w-72 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border p-3 overflow-hidden animate-dropdown ${isDark ? 'bg-[#0F172A] border-white/10' : 'bg-white border-slate-100'}`}>
                                                 <div className={`px-4 py-3 rounded-xl mb-3 flex items-center gap-3 ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
-                                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">📧</div>
+                                                    <div className="w-8 h-8 rounded-full bg-sky-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">📧</div>
                                                     <p className="text-xs font-bold truncate opacity-70">{safeUser.email}</p>
                                                 </div>
                                                 {isAdminOrOwner && (
@@ -343,7 +343,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                         </div>
                                     </div>
                                 ) : (
-                                    <Link href={safeRoute('login')} className="hidden lg:inline-flex bg-slate-900 dark:bg-indigo-600 text-white px-7 py-2.5 rounded-xl font-black text-[13px] shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 transition-all pointer-events-auto">
+                                    <Link href={safeRoute('login')} className="hidden lg:inline-flex bg-slate-900 dark:bg-blue-600 text-white px-7 py-2.5 rounded-xl font-black text-[13px] shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 transition-all pointer-events-auto">
                                         {t.login}
                                     </Link>
                                 )}
@@ -367,13 +367,13 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                 <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
                     <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
-                        <div className="h-32 border-b border-white/10 flex items-center justify-between px-6 bg-gradient-to-r from-indigo-600 to-indigo-800 text-white">
+                        <div className="h-32 border-b border-white/10 flex items-center justify-between px-6 bg-gradient-to-r from-sky-400 to-blue-600 text-white">
                             <div className="flex items-center gap-4">
                                 <img src="/images/sanfoor.png" alt="Logo" className="w-14 h-14 object-contain drop-shadow-md" />
                                 <div className="flex flex-col leading-none mt-1">
                                     <div className="relative w-fit">
                                         <span className="text-2xl font-black">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</span>
-                                        <span className={`absolute -top-2 ${lang === 'ar' ? '-left-4' : '-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-indigo-500 to-cyan-400 text-white text-[7px] font-black rounded-md shadow-lg animate-float-badge tracking-widest border border-white/20 z-10`}>
+                                        <span className={`absolute -top-2 ${lang === 'ar' ? '-left-4' : '-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-sky-400 to-blue-500 text-white text-[7px] font-black rounded-md shadow-lg animate-float-badge tracking-widest border border-white/20 z-10`}>
                                             ZU
                                         </span>
                                     </div>
@@ -391,7 +391,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <Link onClick={() => setMobileOpen(false)} href={safeRoute('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
                             <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
                             <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
-                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-center shadow-lg shadow-indigo-500/30 hover:opacity-90 transition-opacity">🤖 {t.ai}</Link>
+                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {t.ai}</Link>
 
                             {safeUser.id && (
                                 <>
@@ -425,8 +425,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent opacity-50"></div>
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-50"></div>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 relative z-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-8 border-b border-white/10 pb-12">
@@ -435,20 +435,20 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
                                 <div className="flex flex-col leading-none mt-1">
                                     <div className="relative w-fit">
-                                        <h3 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] tracking-tight pb-0.5">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
-                                        <span className={`absolute -top-2 sm:-top-3 ${lang === 'ar' ? '-left-3 sm:-left-4' : '-right-3 sm:-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-indigo-500 to-cyan-400 text-white text-[7px] sm:text-[9px] font-black rounded-md shadow-[0_0_10px_rgba(79,70,229,0.4)] animate-float-badge tracking-widest border border-white/20 z-10`}>
+                                        <h3 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-500 from-[50%] to-white to-[50%] tracking-tight pb-0.5">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
+                                        <span className={`absolute -top-2 sm:-top-3 ${lang === 'ar' ? '-left-3 sm:-left-4' : '-right-3 sm:-right-4'} px-1.5 py-0.5 bg-gradient-to-br from-sky-400 to-blue-500 text-white text-[7px] sm:text-[9px] font-black rounded-md shadow-[0_0_10px_rgba(59,130,246,0.4)] animate-float-badge tracking-widest border border-white/20 z-10`}>
                                             ZU
                                         </span>
                                     </div>
-                                    {lang === 'ar' && <span className="text-[0.65rem] sm:text-[0.8rem] font-black text-indigo-400 tracking-[0.2em] uppercase mt-0.5">Sanfoor</span>}
+                                    {lang === 'ar' && <span className="text-[0.65rem] sm:text-[0.8rem] font-black text-blue-400 tracking-[0.2em] uppercase mt-0.5">Sanfoor</span>}
                                 </div>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed max-w-md">{t.footerDesc}</p>
-                            <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-4 max-w-md">
-                                <p className="text-xs font-black text-indigo-200 mb-1">{t.supportCenter}</p>
+                            <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-4 max-w-md">
+                                <p className="text-xs font-black text-blue-200 mb-1">{t.supportCenter}</p>
                                 <p className="text-[12px] text-slate-300 font-bold leading-relaxed">{t.supportHint}</p>
                                 <div className="mt-3 flex items-center gap-3">
-                                    <Link href={safeRoute('support.issue.create')} className="inline-flex items-center gap-2 text-sm font-black text-indigo-300 hover:text-indigo-200 transition-colors">
+                                    <Link href={safeRoute('support.issue.create')} className="inline-flex items-center gap-2 text-sm font-black text-blue-300 hover:text-blue-200 transition-colors">
                                         🛠️ {t.reportIssue}
                                     </Link>
                                 </div>
@@ -458,30 +458,30 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.studentTools}</h4>
                             <ul className="space-y-2.5">
-                                <li><Link href="/" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.home}</Link></li>
-                                <li><Link href={safeRoute('tree.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.tree}</Link></li>
-                                <li><Link href="/chapters" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.chapters}</Link></li>
-                                <li><Link href="/quiz" className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.quiz}</Link></li>
-                                <li><Link href={safeRoute('calculator.index')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
-                                <li><Link href={safeRoute('ai.advisor')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.ai}</Link></li>
+                                <li><Link href="/" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.home}</Link></li>
+                                <li><Link href={safeRoute('tree.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.tree}</Link></li>
+                                <li><Link href="/chapters" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.chapters}</Link></li>
+                                <li><Link href="/quiz" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.quiz}</Link></li>
+                                <li><Link href={safeRoute('calculator.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
+                                <li><Link href={safeRoute('ai.advisor')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.ai}</Link></li>
                             </ul>
                         </div>
 
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.resources}</h4>
                             <ul className="space-y-2.5">
-                                <li><Link href={safeRoute('public.how_it_works')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.howItWorks}</Link></li>
-                                <li><Link href={safeRoute('public.faq')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.faq}</Link></li>
-                                <li><Link href={safeRoute('public.contact')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.contact}</Link></li>
-                                <li><Link href={safeRoute('legal.about')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.about}</Link></li>
+                                <li><Link href={safeRoute('public.how_it_works')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.howItWorks}</Link></li>
+                                <li><Link href={safeRoute('public.faq')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.faq}</Link></li>
+                                <li><Link href={safeRoute('public.contact')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.contact}</Link></li>
+                                <li><Link href={safeRoute('legal.about')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.about}</Link></li>
                             </ul>
                         </div>
 
                         <div className="space-y-4">
                             <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.legal}</h4>
                             <ul className="space-y-2.5">
-                                <li><Link href={safeRoute('legal.terms')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.terms}</Link></li>
-                                <li><Link href={safeRoute('legal.privacy')} className="text-slate-400 hover:text-indigo-300 transition-colors text-sm font-bold">{t.privacy}</Link></li>
+                                <li><Link href={safeRoute('legal.terms')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.terms}</Link></li>
+                                <li><Link href={safeRoute('legal.privacy')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.privacy}</Link></li>
                             </ul>
                         </div>
                     </div>
@@ -496,7 +496,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 href="https://www.linkedin.com/in/asem-alkhabbas-667471371/"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-indigo-400 hover:text-indigo-300 transition-all border-b border-indigo-400/30 hover:border-indigo-400 pb-0.5"
+                                className="text-blue-400 hover:text-blue-300 transition-all border-b border-blue-400/30 hover:border-blue-400 pb-0.5"
                             >
                                 Asem Alkhabbas
                             </a>

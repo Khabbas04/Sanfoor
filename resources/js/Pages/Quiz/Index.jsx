@@ -64,7 +64,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
     const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
 
     const inputCls = `w-full p-4 rounded-2xl border-2 transition-all outline-none font-bold text-sm ${
-        isDark ? 'bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500' : 'bg-white border-slate-100 text-slate-900 focus:border-indigo-500 shadow-sm'
+        isDark ? 'bg-slate-900/50 border-slate-800 text-white focus:border-blue-500' : 'bg-white border-slate-100 text-slate-900 focus:border-blue-500 shadow-sm'
     }`;
 
     return (
@@ -98,8 +98,8 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                         placeholder={t.searchPlaceholder}
                         className={`w-full ${lang === 'ar' ? 'pr-14 pl-6' : 'pl-14 pr-6'} py-5 rounded-[2rem] border-2 transition-all outline-none font-bold text-lg ${
                             isDark 
-                                ? 'bg-slate-900/50 border-slate-800 text-white focus:border-indigo-500/50 focus:bg-slate-900' 
-                                : 'bg-white border-slate-100 text-slate-900 focus:border-indigo-500/30 shadow-xl shadow-indigo-500/5'
+                                ? 'bg-slate-900/50 border-slate-800 text-white focus:border-blue-500/50 focus:bg-slate-900' 
+                                : 'bg-white border-slate-100 text-slate-900 focus:border-blue-500/30 shadow-xl shadow-blue-500/5'
                         }`}
                     />
                 </div>
@@ -117,12 +117,12 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                     }}
                                     className={`group p-6 rounded-[2rem] border-2 text-right transition-all duration-300 hover:-translate-y-1 ${
                                         selectedCourse?.id === course.id 
-                                            ? 'border-indigo-500 bg-indigo-500/5 shadow-xl shadow-indigo-500/10' 
-                                            : card + ' border-transparent hover:border-indigo-500/30'
+                                            ? 'border-blue-500 bg-blue-500/5 shadow-xl shadow-blue-500/10' 
+                                            : card + ' border-transparent hover:border-blue-500/30'
                                     }`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg transition-transform group-hover:scale-110`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-lg transition-transform group-hover:scale-110`}>
                                             📚
                                         </div>
                                         <div className="text-left">
@@ -132,7 +132,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                         </div>
                                     </div>
                                     <h3 className={`text-lg font-black mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{course.name}</h3>
-                                    <p className="text-indigo-500 font-bold text-xs uppercase tracking-widest">{course.code}</p>
+                                    <p className="text-blue-500 font-bold text-xs uppercase tracking-widest">{course.code}</p>
                                 </button>
                             ))}
                         </div>
@@ -148,9 +148,9 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                     {/* Config & Recent Area */}
                     <div className="space-y-6">
                         {selectedCourse ? (
-                            <div className={`p-8 rounded-[3rem] border-2 border-indigo-500/30 sticky top-8 shadow-2xl ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                            <div className={`p-8 rounded-[3rem] border-2 border-blue-500/30 sticky top-8 shadow-2xl ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
                                 <div className="mb-6">
-                                    <p className="text-indigo-500 font-black text-xs tracking-widest uppercase mb-1">{selectedCourse.code}</p>
+                                    <p className="text-blue-500 font-black text-xs tracking-widest uppercase mb-1">{selectedCourse.code}</p>
                                     <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedCourse.name}</h2>
                                 </div>
                                 
@@ -166,7 +166,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedChapters(selectedCourse.chapters.map(ch => ch.id))}
-                                                        className={`text-[10px] font-black transition-colors ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-800'}`}
+                                                        className={`text-[10px] font-black transition-colors ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'}`}
                                                     >
                                                         {lang === 'ar' ? 'تحديد الكل' : 'Select All'}
                                                     </button>
@@ -174,7 +174,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                                     <button
                                                         type="button"
                                                         onClick={() => setSelectedChapters([])}
-                                                        className={`text-[10px] font-black transition-colors ${isDark ? 'text-rose-400 hover:text-rose-300' : 'text-rose-600 hover:text-rose-805'}`}
+                                                        className={`text-[10px] font-black transition-colors ${isDark ? 'text-rose-400 hover:text-rose-300' : 'text-rose-600 hover:text-rose-800'}`}
                                                     >
                                                         {lang === 'ar' ? 'إلغاء الكل' : 'Clear All'}
                                                     </button>
@@ -199,14 +199,14 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                                             }}
                                                             className={`w-full p-3 px-4 rounded-xl border-2 text-right transition-all flex items-center justify-between gap-3 ${
                                                                 isChecked
-                                                                    ? (isDark ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-indigo-600 bg-indigo-50 text-indigo-900')
-                                                                    : (isDark ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700' : 'border-slate-100 bg-slate-50 text-slate-655 hover:border-slate-200')
+                                                                    ? (isDark ? 'border-blue-500 bg-blue-500/10 text-white' : 'border-blue-600 bg-blue-50 text-blue-900')
+                                                                    : (isDark ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:border-slate-700' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200')
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-3 min-w-0">
                                                                 <span className={`w-5 h-5 rounded-md flex items-center justify-center border text-[10px] transition-all shrink-0 ${
                                                                     isChecked
-                                                                        ? 'bg-indigo-600 border-indigo-600 text-white font-black'
+                                                                        ? 'bg-blue-600 border-blue-600 text-white font-black'
                                                                         : (isDark ? 'border-slate-700 bg-slate-850' : 'border-slate-300 bg-white')
                                                                 }`}>
                                                                     {isChecked ? '✓' : ''}
@@ -215,7 +215,7 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                                             </div>
                                                             <span className={`text-[9px] font-black shrink-0 px-2 py-0.5 rounded-md ${
                                                                 isChecked
-                                                                    ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-700')
+                                                                    ? (isDark ? 'bg-blue-500/20 text-blue-300' : 'bg-blue-100 text-blue-700')
                                                                     : (isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-200/60 text-slate-500')
                                                             }`}>
                                                                 {ch.questions_count} Q
@@ -241,13 +241,13 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                                             type="range" min="5" max="50" step="5"
                                             value={questionCount}
                                             onChange={e => setQuestionCount(e.target.value)}
-                                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                         />
                                     </div>
                                 </div>
-
+ 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <button onClick={() => handleStart('quiz')} className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-lg shadow-indigo-500/30 group">
+                                    <button onClick={() => handleStart('quiz')} className="flex flex-col items-center gap-3 p-5 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white transition-all shadow-lg shadow-blue-500/30 group">
                                         <span className="text-3xl group-hover:scale-125 transition-transform duration-300">🏆</span>
                                         <span className="font-[900] text-sm">{t.quiz}</span>
                                     </button>
@@ -270,12 +270,12 @@ export default function QuizIndex({ courses = [], filters = {}, recentAttempts =
                             </h3>
                             <div className="space-y-3">
                                 {recentAttempts.map(attempt => (
-                                    <div key={attempt.id} className={`p-4 rounded-2xl border transition-all hover:bg-indigo-500/5 ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                                    <div key={attempt.id} className={`p-4 rounded-2xl border transition-all hover:bg-blue-500/5 ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${attempt.mode === 'quiz' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${attempt.mode === 'quiz' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                                                 {attempt.mode === 'quiz' ? t.modeQuiz : t.modePractice}
                                             </span>
-                                            <span className="text-indigo-500 font-black text-sm">{attempt.score_percentage}%</span>
+                                            <span className="text-blue-500 font-black text-sm">{attempt.score_percentage}%</span>
                                         </div>
                                         <p className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{attempt.course?.name}</p>
                                         <p className="text-[10px] font-bold text-slate-500 mt-1">{new Date(attempt.created_at).toLocaleDateString()}</p>

@@ -280,7 +280,7 @@ export default function Welcome({ auth }) {
                     </div>
 
                     {/* Decorative Orbs */}
-                    <div className="absolute hidden md:block w-[220px] h-[220px] bg-indigo-400/10 blur-[80px] top-[2%] right-[6%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[220px] h-[220px] bg-sky-400/10 blur-[80px] top-[2%] right-[6%] pointer-events-none z-0" />
                     <div className="absolute hidden md:block w-[200px] h-[200px] bg-cyan-300/10 blur-[80px] bottom-[6%] left-[6%] pointer-events-none z-0" />
 
                     {/* Content */}
@@ -288,15 +288,15 @@ export default function Welcome({ auth }) {
 
                         {/* Premium AI Badge */}
                         <div className="hero-animate mb-10 flex justify-center" style={{ animationDelay: '0.1s' }}>
-                            <div className="relative inline-flex p-[1px] rounded-full overflow-hidden shadow-[0_0_35px_rgba(99,102,241,0.25)] group cursor-default select-none">
-                                <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#c4b5fd_0%,#4338ca_50%,#c4b5fd_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+                            <div className="relative inline-flex p-[1px] rounded-full overflow-hidden shadow-[0_0_35px_rgba(56,189,248,0.25)] group cursor-default select-none">
+                                <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#bae6fd_0%,#3b82f6_50%,#bae6fd_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="inline-flex items-center gap-2.5 h-full w-full px-6 py-2 bg-[#020617]/90 rounded-full backdrop-blur-xl relative z-10">
-                                    <div className="flex items-center justify-center text-indigo-300 animate-pulse">
+                                    <div className="flex items-center justify-center text-sky-300 animate-pulse">
                                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M12 2L14.1 9.9L22 12L14.1 14.1L12 22L9.9 14.1L2 12L9.9 9.9L12 2Z" />
                                         </svg>
                                     </div>
-                                    <span className="font-[900] text-[13px] tracking-wide text-transparent bg-clip-text bg-gradient-to-l from-indigo-200 via-white to-white drop-shadow-sm">
+                                    <span className="font-[900] text-[13px] tracking-wide text-transparent bg-clip-text bg-gradient-to-l from-sky-200 via-white to-white drop-shadow-sm">
                                         النظام الذكي الأول في الجامعات
                                     </span>
                                 </div>
@@ -305,7 +305,7 @@ export default function Welcome({ auth }) {
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
                         <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
-                            <div className="absolute inset-0 bg-indigo-400/12 rounded-full blur-2xl"></div>
+                            <div className="absolute inset-0 bg-sky-400/12 rounded-full blur-2xl"></div>
                             <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
@@ -345,7 +345,7 @@ export default function Welcome({ auth }) {
                         <div className="h-rise-slow flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-5" style={{ animationDelay: '1.35s' }}>
                             {auth.user ? (
                                 <MagneticButton>
-                                    <Link href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-base sm:text-lg font-extrabold rounded-2xl transition-all shadow-xl shadow-indigo-500/30 active:scale-[0.96] w-full sm:w-auto">
+                                    <Link href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white text-base sm:text-lg font-extrabold rounded-2xl transition-all shadow-xl shadow-blue-500/30 active:scale-[0.96] w-full sm:w-auto">
                                         <span>افتح خطتي الدراسية</span>
                                         <span className="text-xl group-hover:-translate-x-1.5 transition-transform duration-300">←</span>
                                     </Link>
@@ -391,8 +391,8 @@ export default function Welcome({ auth }) {
                                     icon: "🌳",
                                     title: 'الشجرة التفاعلية',
                                     desc: 'خريطة مرئية كاملة لموادك، تتحدث تلقائياً لتظهر لك ما تم إنجازه وما فُتح لك للتسجيل بألوان واضحة.',
-                                    gradient: 'from-indigo-500 to-blue-600',
-                                    accentBg: 'bg-indigo-50',
+                                    gradient: 'from-sky-400 to-blue-500',
+                                    accentBg: 'bg-sky-50',
                                     delay: 0,
                                 },
                                 {
@@ -423,7 +423,7 @@ export default function Welcome({ auth }) {
                                     icon: "📝",
                                     title: 'بنك الأسئلة',
                                     desc: 'تجميعة أسئلة مختارة وتمارين متدرجة عشان تختبر نفسك قبل الامتحان بثقة.',
-                                    gradient: 'from-sky-500 to-indigo-500',
+                                    gradient: 'from-sky-400 to-blue-500',
                                     accentBg: 'bg-sky-50',
                                     delay: 600,
                                 },
@@ -465,7 +465,7 @@ export default function Welcome({ auth }) {
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-white/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
                     </div>
                     <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-5 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
 
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className={`text-center mb-12 sm:mb-16 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${previewIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
@@ -474,7 +474,7 @@ export default function Welcome({ auth }) {
                                 <span>شكل الخطة الشجرية</span>
                             </div>
                             <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-white mb-5 tracking-tight leading-[1.15]">
-                                شوف خطتك كأنك <span className="text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 to-indigo-400">بتلعب لعبة</span>
+                                شوف خطتك كأنك <span className="text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 to-blue-400">بتلعب لعبة</span>
                             </h2>
                             <p className="text-slate-400 font-medium max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
                                 الأخضر منجز، الأزرق متاح، الرمادي مقفل. الخطة الأكاديمية عمرها ما كانت بهالوضوح.
@@ -502,8 +502,8 @@ export default function Welcome({ auth }) {
                                         <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.5} />
 
                                         {/* Nodes */}
-                                        <TreeNode x="104" y="8" delay={0.4} color="#4f46e5" label="متطلب 1" />
-                                        <TreeNode x="344" y="8" delay={0.5} color="#4f46e5" label="متطلب 2" />
+                                        <TreeNode x="104" y="8" delay={0.4} color="#3b82f6" label="متطلب 1" />
+                                        <TreeNode x="344" y="8" delay={0.5} color="#3b82f6" label="متطلب 2" />
 
                                         <TreeNode x="44" y="95" delay={0.7} color="#10b981" label="منجزة ✓" />
                                         <TreeNode x="164" y="95" delay={0.8} color="#10b981" label="منجزة ✓" />
@@ -538,13 +538,13 @@ export default function Welcome({ auth }) {
 
                             {/* Text Info */}
                             <div className={`transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${aiIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-14'}`}>
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-100 text-violet-700 text-xs font-bold mb-6 border border-violet-200">
-                                    <span className="w-1.5 h-1.5 bg-violet-500 rounded-full" />
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-100 text-sky-700 border-sky-200">
+                                    <span className="w-1.5 h-1.5 bg-sky-500 rounded-full" />
                                     <span>ميزة حصرية</span>
                                 </div>
                                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight leading-[1.2]">
                                     محتار شو تنزل؟ <br />
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-600">اسأل مستشارك الذكي.</span>
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500">اسأل مستشارك الذكي.</span>
                                 </h2>
                                 <p className="text-slate-500 font-medium text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
                                     دربنا نموذج ذكاء اصطناعي خصيصاً ليقرأ خطتك الجامعية، يفهم القوانين، ويقترح عليك أفضل خيارات التسجيل اللي بترفع معدلك وبتقربك من التخرج.
@@ -561,12 +561,12 @@ export default function Welcome({ auth }) {
 
                             {/* Chat Simulation */}
                             <div className={`relative transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] delay-200 ${aiIn ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-14'}`}>
-                                <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/20 to-indigo-500/20 rounded-[2.5rem] blur-3xl transform rotate-6"></div>
+                                <div className="absolute inset-0 bg-gradient-to-tr from-sky-500/20 to-blue-500/20 rounded-[2.5rem] blur-3xl transform rotate-6"></div>
                                 <div className="relative bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl p-6 sm:p-8 flex flex-col gap-6" dir="rtl">
 
                                     {/* Student Message */}
                                     {aiIn && (
-                                        <div className="chat-msg-1 self-end bg-indigo-600 text-white p-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md">
+                                        <div className="chat-msg-1 self-end bg-blue-600 text-white p-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md">
                                             <p className="text-sm font-bold leading-relaxed">
                                                 شو أنزل مواد الفصل الجاي؟ بدي أرفع معدلي عشان هيك بدي مواد خفيفة.
                                             </p>
@@ -576,13 +576,13 @@ export default function Welcome({ auth }) {
                                     {/* AI Message */}
                                     {aiIn && (
                                         <div className="chat-msg-2 self-start bg-slate-50 border border-slate-200 text-slate-700 p-5 rounded-2xl rounded-tl-sm max-w-[90%] shadow-sm relative">
-                                            <div className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs shadow-md border-2 border-white">
+                                            <div className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-600 rounded-full flex items-center justify-center text-white text-xs shadow-md border-2 border-white">
                                                 🤖
                                             </div>
                                             <p className="text-sm font-semibold leading-loose">
                                                 أهلاً بك! بناءً على خطتك، أنصحك بتنزيل:
                                                 <br />
-                                                <strong className="text-indigo-600">1. برمجة متقدمة (3س):</strong> ضرورية لأنها تفتح 3 مواد للفصل القادم.
+                                                <strong className="text-blue-600">1. برمجة متقدمة (3س):</strong> ضرورية لأنها تفتح 3 مواد للفصل القادم.
                                                 <br />
                                                 <strong className="text-emerald-600">2. مهارات حياتية (3س):</strong> متطلب جامعة سهل يساعد برفع المعدل.
                                             </p>
@@ -620,7 +620,7 @@ export default function Welcome({ auth }) {
                                 <span>كيف بيشتغل؟</span>
                             </div>
                             <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-slate-900 mb-5 tracking-tight">
-                                ثلاث خطوات <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-indigo-500">وبتكون جاهز.</span>
+                                ثلاث خطوات <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500">وبتكون جاهز.</span>
                             </h2>
                         </div>
 
@@ -634,7 +634,7 @@ export default function Welcome({ auth }) {
                             </svg>
 
                             {[
-                                { step: '01', title: 'اختار تخصصك', desc: 'حدد تخصصك، و سنفور بيجهز لك المواد والمتطلبات تلقائياً بثوانٍ.', gradient: 'from-indigo-500 to-indigo-600', glow: 'shadow-indigo-500/30' },
+                                { step: '01', title: 'اختار تخصصك', desc: 'حدد تخصصك، و سنفور بيجهز لك المواد والمتطلبات تلقائياً بثوانٍ.', gradient: 'from-sky-400 to-blue-500', glow: 'shadow-blue-500/30' },
                                 { step: '02', title: 'حدد المواد المنجزة', desc: 'علّم على المواد اللي نجحت فيها. الشجرة بتتحدث فوراً وبتفتحلك المتاح.', gradient: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/30' },
                                 { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم التسجيل التجريبي الذكي أو اسأل المرشد الآلي لترتيب جدولك صح.', gradient: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/30' },
                             ].map((s, i) => (
@@ -661,7 +661,7 @@ export default function Welcome({ auth }) {
                 {!auth.user && (
                     <section ref={ctaRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800">
                         <div className="absolute inset-0 noise opacity-30 pointer-events-none" />
-                        <div className="morph-orb absolute w-[400px] h-[400px] bg-indigo-500/10 blur-[80px] top-[-20%] right-[-10%] pointer-events-none" />
+                        <div className="morph-orb absolute w-[400px] h-[400px] bg-sky-500/10 blur-[80px] top-[-20%] right-[-10%] pointer-events-none" />
                         <div className="morph-orb absolute w-[300px] h-[300px] bg-cyan-400/10 blur-[100px] bottom-[-20%] left-[-8%] pointer-events-none" style={{ animationDelay: '-6s' }} />
 
                         <div className={`max-w-4xl mx-auto px-4 relative z-10 text-center transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${ctaIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
@@ -673,12 +673,12 @@ export default function Welcome({ auth }) {
                             <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white mb-5 leading-tight tracking-tight">
                                 جاهز تبدأ مشوارك <br className="hidden sm:block" />بأذكى طريقة؟
                             </h2>
-                            <p className="text-indigo-200/80 font-medium text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+                            <p className="text-sky-200/80 font-medium text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
                                 انضم للطلاب اللي حولوا خطتهم لنجاح حقيقي. سجّل حسابك وابدأ التخطيط لفصلك القادم.
                             </p>
                             <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                                 <MagneticButton>
-                                    <a href={route('auth.microsoft.redirect')} className="shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-indigo-700 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
+                                    <a href={route('auth.microsoft.redirect')} className="shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-white text-blue-600 text-base sm:text-lg font-black rounded-2xl hover:bg-slate-100 transition-all shadow-2xl shadow-black/40 active:scale-[0.96] w-full sm:w-auto">
                                         تسجيل الدخول (Microsoft)
                                     </a>
                                 </MagneticButton>

@@ -494,7 +494,7 @@ export default function Dashboard({
                 }
             ` }} />
 
-            <div className="py-6 sm:py-8 min-h-screen selection:bg-indigo-100 selection:text-indigo-900" dir="rtl">
+            <div className="py-6 sm:py-8 min-h-screen selection:bg-blue-100 selection:text-blue-900" dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7 print:hidden">
 
                     {/* 1. STUDENT ID — HERO CARD */}
@@ -511,8 +511,8 @@ export default function Dashboard({
                         }}
                     >
                          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                            <div className="absolute top-0 right-0 w-[70%] h-full bg-gradient-to-l from-indigo-600/25 via-indigo-600/8 to-transparent" />
-                            <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full" style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * -22}px, ${my * -22}px)`, transition: `transform 800ms ${spring}` }} />
+                            <div className="absolute top-0 right-0 w-[70%] h-full bg-gradient-to-l from-blue-600/25 via-blue-600/8 to-transparent" />
+                            <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full" style={{ background: 'radial-gradient(circle, rgba(59,130,246,0.35) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * -22}px, ${my * -22}px)`, transition: `transform 800ms ${spring}` }} />
                             <div className="absolute -bottom-14 -left-14 w-44 h-44 rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.25) 0%, transparent 70%)', filter: 'blur(40px)', transform: `translate(${mx * 18}px, ${my * 18}px)`, transition: `transform 800ms ${spring}` }} />
                             <div className="absolute inset-0 opacity-[0.025]" style={{ backgroundImage: 'radial-gradient(circle, #fff 0.8px, transparent 0.8px)', backgroundSize: '18px 18px' }} />
                             <div className="absolute top-0 left-0 w-full h-[1px] overflow-hidden"><div className="w-1/3 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent" style={{ animation: 'sn-shimmer 4.5s ease-in-out infinite' }} /></div>
@@ -525,9 +525,9 @@ export default function Dashboard({
                             </button>
                             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
                                 <div className="relative group shrink-0">
-                                    <div className="absolute -inset-2 rounded-[1.4rem] opacity-0 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, #6366f1, #06b6d4)', filter: 'blur(18px)', animation: 'sn-glow 3s ease-in-out infinite', transition: 'opacity 700ms ease' }} />
+                                    <div className="absolute -inset-2 rounded-[1.4rem] opacity-0 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)', filter: 'blur(18px)', animation: 'sn-glow 3s ease-in-out infinite', transition: 'opacity 700ms ease' }} />
                                     <div className="relative w-[78px] h-[78px] sm:w-[90px] sm:h-[90px] rounded-[1.3rem] p-[3px] overflow-hidden">
-                                        <div className="absolute inset-0" style={{ background: 'conic-gradient(from 0deg, #6366f1, #06b6d4, #8b5cf6, #6366f1)', animation: 'sn-rotate-border 5s linear infinite' }} />
+                                        <div className="absolute inset-0" style={{ background: 'conic-gradient(from 0deg, #3b82f6, #06b6d4, #60a5fa, #3b82f6)', animation: 'sn-rotate-border 5s linear infinite' }} />
                                         <div className="relative w-full h-full bg-[#0f172a] rounded-[calc(1.3rem-3px)] flex items-center justify-center text-2xl sm:text-3xl font-[900] z-10 select-none">
                                             {auth.user?.name?.charAt(0) || 'S'}
                                         </div>
@@ -536,7 +536,7 @@ export default function Dashboard({
                                 <div className="space-y-3 flex-1 min-w-0 text-center sm:text-right">
                                     <div>
                                         <h1 className="text-[1.55rem] sm:text-[1.9rem] font-[900] tracking-tight truncate leading-tight">{auth.user?.name || 'طالب مجهول'}</h1>
-                                        <p className="text-indigo-300/50 text-sm mt-1 truncate">{auth.user?.email || 'لا يوجد بريد إلكتروني'}</p>
+                                        <p className="text-blue-300/50 text-sm mt-1 truncate">{auth.user?.email || 'لا يوجد بريد إلكتروني'}</p>
                                     </div>
                                     <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                                         {[{ text: auth.user?.major?.name || 'تخصص غير محدد', icon: '🎓', d: 200 }, { text: academicYear, icon: '📅', d: 320 }, ...(academicPeriodLabel ? [{ text: academicPeriodLabel, icon: '🗓️', d: 440 }] : [])].map((badge, i) => (
@@ -548,7 +548,7 @@ export default function Dashboard({
                                             {standing.icon} {standing.label}
                                         </span>
                                     </div>
-                                    <p className="text-[12px] text-indigo-200/35 mt-1 hidden sm:block" style={{ animation: mounted ? `sn-up 0.65s ${spring} 550ms both` : 'none' }}>
+                                    <p className="text-[12px] text-blue-200/35 mt-1 hidden sm:block" style={{ animation: mounted ? `sn-up 0.65s ${spring} 550ms both` : 'none' }}>
                                         💡 {motivation}
                                     </p>
                                 </div>
@@ -571,14 +571,14 @@ export default function Dashboard({
                         </div>
 
                         <div className="bg-white p-6 rounded-[1.6rem] border border-slate-100 relative overflow-hidden group cursor-default hover:-translate-y-1.5 transition-all duration-500 shadow-sm" style={{ opacity: metricsVis ? 1 : 0, transform: metricsVis ? undefined : 'translateY(20px)', transition: `opacity 650ms ${spring}, transform 650ms ${spring}`, transitionDelay: '130ms' }}>
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-50 to-transparent rounded-bl-[3rem] -z-0 transition-transform group-hover:scale-[3] duration-[800ms] ease-out" />
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-sky-50 to-transparent rounded-bl-[3rem] -z-0 transition-transform group-hover:scale-[3] duration-[800ms] ease-out" />
                             <div className="relative z-10 flex justify-between items-start">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">المعدل المئوي (%)</p>
                                     <h3 className="text-[2.15rem] font-[900] text-slate-800 leading-none"><AnimatedCounter target={gpa} decimals={2} duration={1800} /><span className="text-sm font-bold text-slate-300 mr-1">%</span></h3>
-                                    <div className="mt-3 w-full bg-slate-100 h-[5px] rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-indigo-400 to-indigo-500 rounded-full" style={{ width: metricsVis ? `${Math.min(parseFloat(gpa) || 0, 100)}%` : '0%', transition: `width 2000ms ${spring} 450ms` }} /></div>
+                                    <div className="mt-3 w-full bg-slate-100 h-[5px] rounded-full overflow-hidden"><div className="h-full bg-gradient-to-l from-sky-400 to-blue-500 rounded-full" style={{ width: metricsVis ? `${Math.min(parseFloat(gpa) || 0, 100)}%` : '0%', transition: `width 2000ms ${spring} 450ms` }} /></div>
                                 </div>
-                                <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl border border-indigo-100 shrink-0">🎯</div>
+                                <div className="w-12 h-12 rounded-xl bg-sky-50 text-blue-500 flex items-center justify-center text-xl border border-sky-100 shrink-0">🎯</div>
                             </div>
                         </div>
 
@@ -588,35 +588,35 @@ export default function Dashboard({
                                     <circle cx="43" cy="43" r="38" stroke="#f1f5f9" strokeWidth="7" fill="transparent" />
                                     <circle cx="43" cy="43" r="38" stroke="url(#progressGrad)" strokeWidth="7" fill="transparent" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={metricsVis ? circumference - (circumference * progressPct) / 100 : circumference} style={{ transition: `stroke-dashoffset 2200ms ${spring} 500ms` }} />
                                     <defs>
-                                        <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#4f46e5" /><stop offset="50%" stopColor="#6366f1" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient>
+                                        <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#3b82f6" /><stop offset="50%" stopColor="#60a5fa" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient>
                                     </defs>
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center flex-col"><span className="text-[1.15rem] font-[900] text-slate-800 leading-none">{progressPct}%</span><span className="text-[8px] font-bold text-slate-400 mt-0.5">مكتمل</span></div>
                             </div>
                             <div className="relative z-10 flex-1 min-w-0">
                                 <h4 className="text-[1rem] font-[800] text-slate-800 mb-1">رحلة التخرج 🎓</h4>
-                                <p className="text-[12px] text-slate-500 leading-relaxed">{remaining > 0 ? <>بقيت <span className="text-indigo-600 font-bold">{remaining} ساعة</span> لترتدي روب التخرج!</> : <span className="text-emerald-600 font-bold">مبروك! أنت جاهز للتخرج 🎉</span>}</p>
+                                <p className="text-[12px] text-slate-500 leading-relaxed">{remaining > 0 ? <>بقيت <span className="text-blue-600 font-bold">{remaining} ساعة</span> لترتدي روب التخرج!</> : <span className="text-emerald-600 font-bold">مبروك! أنت جاهز للتخرج 🎉</span>}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* 3. AI INSIGHT BANNER */}
                     <div ref={aiRef} className="relative overflow-hidden rounded-[1.4rem] shadow-sm" style={{ opacity: aiVis ? 1 : 0, transform: aiVis ? 'translateY(0)' : 'translateY(14px)', transition: `all 700ms ${spring} 80ms` }}>
-                        <div className="absolute inset-0 rounded-[1.4rem] p-[1.5px]" style={{ background: 'linear-gradient(135deg, #c7d2fe, #a5f3fc, #c7d2fe, #a5f3fc)', backgroundSize: '300% 300%', animation: 'sn-gradient-drift 6s ease infinite' }}>
-                            <div className="w-full h-full rounded-[calc(1.4rem-1.5px)] bg-gradient-to-l from-indigo-50/95 to-cyan-50/70 backdrop-blur-sm" />
+                        <div className="absolute inset-0 rounded-[1.4rem] p-[1.5px]" style={{ background: 'linear-gradient(135deg, #bae6fd, #a5f3fc, #bae6fd, #a5f3fc)', backgroundSize: '300% 300%', animation: 'sn-gradient-drift 6s ease infinite' }}>
+                            <div className="w-full h-full rounded-[calc(1.4rem-1.5px)] bg-gradient-to-l from-sky-50/95 to-cyan-50/70 backdrop-blur-sm" />
                         </div>
                         <div className="relative z-10 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="relative shrink-0">
-                                    <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 text-white rounded-xl flex items-center justify-center text-[1.4rem] shadow-lg shadow-indigo-300/40" style={{ animation: 'sn-float 3.5s ease-in-out infinite' }}>🤖</div>
-                                    <div className="absolute -inset-1 rounded-xl border-2 border-indigo-400/30" style={{ animation: 'sn-ring-pulse 2.5s ease-out infinite' }} />
+                                    <div className="w-12 h-12 bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-xl flex items-center justify-center text-[1.4rem] shadow-lg shadow-blue-300/40" style={{ animation: 'sn-float 3.5s ease-in-out infinite' }}>🤖</div>
+                                    <div className="absolute -inset-1 rounded-xl border-2 border-blue-400/30" style={{ animation: 'sn-ring-pulse 2.5s ease-out infinite' }} />
                                 </div>
                                 <div>
-                                    <h4 className="text-[14px] font-[800] text-indigo-900 mb-0.5">نصيحة المرشد الذكي</h4>
-                                    <p className="text-[12px] text-indigo-700/55 leading-relaxed max-w-lg">المرشد الذكي الآن قادر على قراءة تسجيلك التجريبي وإضافة جداول كاملة لك بضغطة زر. تحدث معه الآن!</p>
+                                    <h4 className="text-[14px] font-[800] text-blue-900 mb-0.5">نصيحة المرشد الذكي</h4>
+                                    <p className="text-[12px] text-blue-700/55 leading-relaxed max-w-lg">المرشد الذكي الآن قادر على قراءة تسجيلك التجريبي وإضافة جداول كاملة لك بضغطة زر. تحدث معه الآن!</p>
                                 </div>
                             </div>
-                            <Link href={route('ai.advisor')} className="bg-white text-indigo-600 hover:bg-indigo-600 hover:text-white border border-indigo-200 hover:border-indigo-600 px-6 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 shadow-sm active:scale-[0.96] whitespace-nowrap shrink-0 flex items-center gap-2">
+                            <Link href={route('ai.advisor')} className="bg-white text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 hover:border-blue-600 px-6 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 shadow-sm active:scale-[0.96] whitespace-nowrap shrink-0 flex items-center gap-2">
                                 تحدث مع المرشد <svg className="w-4 h-4 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                             </Link>
                         </div>
@@ -627,7 +627,7 @@ export default function Dashboard({
                     {/* Graduation Plan Section */}
                     {graduation_plan && graduation_plan.semesters && graduation_plan.semesters.length > 0 && (
                         <div className="relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 shadow-sm mb-7">
-                            <div className="bg-indigo-50/50 border-b border-indigo-100/50 p-6 sm:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="bg-sky-50/50 border-b border-sky-100/50 p-6 sm:px-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div>
                                     <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
                                         <span className="text-2xl">🎓</span> خطة التخرج المعتمدة
@@ -647,7 +647,7 @@ export default function Dashboard({
                                     </button>
                                     <button 
                                         onClick={() => { setPrintMode('plan'); setTimeout(() => window.print(), 100); }} 
-                                        className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2"
+                                        className="bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/30 active:scale-95 flex items-center gap-2"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                         طباعة الخطة
@@ -664,7 +664,7 @@ export default function Dashboard({
                                                     <h4 className="font-[900] text-slate-800 text-[14px]">
                                                         {sem.is_summer ? 'الفصل الصيفي' : `الفصل ${sem.semester}`}
                                                     </h4>
-                                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${sem.is_summer ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg ${sem.is_summer ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
                                                         {totalCredits} ساعة
                                                     </span>
                                                 </div>
@@ -805,9 +805,9 @@ export default function Dashboard({
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {ch.google_drive_link && (
-                                                    <a href={ch.google_drive_link} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-indigo-600 text-sm font-[800]">📥</a>
+                                                    <a href={ch.google_drive_link} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-blue-600 text-sm font-[800]">📥</a>
                                                 )}
-                                                <button onClick={() => router.get(route('quiz.start'), { course_id: ch.course_id, chapter_ids: [ch.id], mode: 'practice', count: 10 })} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-[800] hover:from-indigo-700 hover:to-violet-700 transition-all shadow-sm shadow-indigo-200/50">🧠 تدريب</button>
+                                                <button onClick={() => router.get(route('quiz.start'), { course_id: ch.course_id, chapter_ids: [ch.id], mode: 'practice', count: 10 })} className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sky-400 to-blue-500 text-white text-sm font-[800] hover:from-sky-500 hover:to-blue-600 transition-all shadow-sm shadow-blue-500/30">🧠 تدريب</button>
                                             </div>
                                         </div>
                                     )) : (
@@ -858,12 +858,12 @@ export default function Dashboard({
                             </div>
 
                             <Link href={route('tree.index')} className="group block">
-                                <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 rounded-[1.5rem] p-5 shadow-lg shadow-indigo-200/50 flex items-center justify-between transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+                                <div className="bg-gradient-to-r from-sky-400 to-blue-500 rounded-[1.5rem] p-5 shadow-lg shadow-blue-500/30 flex items-center justify-between transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl backdrop-blur-md">🗺️</div>
                                         <div>
                                             <h4 className="text-white font-black text-sm">استكشاف الخريطة الشجرية</h4>
-                                            <p className="text-indigo-200 text-[10px] font-bold mt-0.5">اكتشف المسار الحرج والمتطلبات</p>
+                                            <p className="text-blue-100 text-[10px] font-bold mt-0.5">اكتشف المسار الحرج والمتطلبات</p>
                                         </div>
                                     </div>
                                     <svg className="w-5 h-5 text-white transform rtl:rotate-180 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" /></svg>

@@ -21,7 +21,7 @@ export default function ForgotPassword({ status }) {
             <div dir="rtl">
                 {/* عنوان */}
                 <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-indigo-100">
+                    <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-blue-100">
                         🔑
                     </div>
                     <h2 className="text-2xl font-black text-slate-800 mb-2">استعادة كلمة المرور</h2>
@@ -59,7 +59,7 @@ export default function ForgotPassword({ status }) {
                     <div className="text-center pt-4 border-t border-slate-100">
                         <Link
                             href={route('login')}
-                            className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+                            className="text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors"
                         >
                             → العودة لتسجيل الدخول
                         </Link>

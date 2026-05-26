@@ -29,7 +29,7 @@ export default function Login({ status, canResetPassword }) {
     });
 
     // Reusable styles consistent with Register page
-    const inputCls = "w-full py-3.5 pr-12 pl-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 text-[13px] font-bold text-slate-700 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 focus:bg-white transition-all duration-300 outline-none";
+    const inputCls = "w-full py-3.5 pr-12 pl-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 text-[13px] font-bold text-slate-700 placeholder:text-slate-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 focus:bg-white transition-all duration-300 outline-none";
     const labelCls = "block text-[12px] font-black text-slate-700 mb-2";
     const iconContainerCls = "absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 pointer-events-none";
 
@@ -43,15 +43,15 @@ export default function Login({ status, canResetPassword }) {
                 <div className="flex items-center justify-center gap-5 mb-10 group" style={stagger(0)}>
                     {/* اللوجو العملاق */}
                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3">
-                        <div className="absolute inset-0 bg-indigo-500/15 rounded-full blur-2xl opacity-100 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-blue-500/15 rounded-full blur-2xl opacity-100 pointer-events-none"></div>
                         <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl relative z-10" />
                     </div>
                     {/* النص المزدوج المكدس */}
                     <div className="flex flex-col justify-center text-right leading-none">
-                        <span className="text-3xl sm:text-[2.6rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] to-slate-900 to-[50%] tracking-tight py-1 transition-all duration-300">
+                        <span className="text-3xl sm:text-[2.6rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-tight py-1 transition-all duration-300">
                             سنفور
                         </span>
-                        <span className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] to-slate-900 to-[50%] tracking-[0.15em] uppercase transition-all duration-300">
+                        <span className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-[0.15em] uppercase transition-all duration-300">
                             Sanfoor
                         </span>
                     </div>
@@ -68,7 +68,7 @@ export default function Login({ status, canResetPassword }) {
                     <div className="space-y-6">
                         <div style={stagger(1)} className="p-8 sm:p-10 bg-white/80 backdrop-blur-xl border border-white/80 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] relative overflow-hidden text-center space-y-6">
                             {/* Background Glows */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/80 rounded-full blur-3xl opacity-60 -z-10 pointer-events-none"></div>
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/80 rounded-full blur-3xl opacity-60 -z-10 pointer-events-none"></div>
                             <div className="absolute bottom-0 left-0 w-64 h-64 bg-sky-50/80 rounded-full blur-3xl opacity-60 -z-10 pointer-events-none"></div>
 
                             <div className="w-20 h-20 bg-white shadow-xl shadow-sky-100/50 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-sky-50 relative group">
@@ -94,7 +94,7 @@ export default function Login({ status, canResetPassword }) {
                                 href={route('auth.microsoft.redirect')}
                                 className="relative group w-full flex items-center justify-center gap-3 bg-slate-900 text-white py-4 px-6 rounded-2xl font-black text-[14px] transition-all duration-300 shadow-xl shadow-slate-900/20 active:scale-[0.98] overflow-hidden mt-8"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-sky-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                <div className="absolute inset-0 bg-gradient-to-r from-sky-400 via-blue-500 to-sky-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                 <span className="relative z-10 flex items-center gap-3">
                                     المتابعة باستخدام حساب الجامعة
                                     <svg className="w-5 h-5 rtl:rotate-180 group-hover:-translate-x-1.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
@@ -146,7 +146,7 @@ export default function Login({ status, canResetPassword }) {
                                 {canResetPassword && (
                                     <Link
                                         href={route('password.request')}
-                                        className="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
+                                        className="text-[11px] font-bold text-blue-500 hover:text-blue-700 transition-colors"
                                     >
                                         نسيت كلمة المرور؟
                                     </Link>
@@ -167,7 +167,7 @@ export default function Login({ status, canResetPassword }) {
                                 <button
                                     type="button"
                                     onClick={() => setShowPw(!showPw)}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors p-0.5"
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors p-0.5"
                                     tabIndex={-1}
                                 >
                                     {showPw ? '🙈' : '👁️'}
@@ -184,7 +184,7 @@ export default function Login({ status, canResetPassword }) {
                                         name="remember"
                                         checked={data.remember}
                                         onChange={(e) => setData('remember', e.target.checked)}
-                                        className="rounded-md border-slate-200 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                        className="rounded-md border-slate-200 text-blue-600 shadow-sm focus:ring-blue-500"
                                     />
                                 </div>
                                 <span className="text-[12px] font-bold text-slate-500 group-hover:text-slate-700 transition-colors select-none">
@@ -198,7 +198,7 @@ export default function Login({ status, canResetPassword }) {
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-sky-400 hover:to-blue-500 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-3"
                             >
                                 {processing ? (
                                     <>

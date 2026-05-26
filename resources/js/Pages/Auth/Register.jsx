@@ -38,7 +38,7 @@ export default function Register({ colleges, majors }) {
         if (/[^A-Za-z0-9]/.test(pw)) score++;
         if (score <= 1) return { level: 1, label: 'ضعيفة', color: 'bg-rose-400' };
         if (score <= 2) return { level: 2, label: 'متوسطة', color: 'bg-amber-400' };
-        if (score <= 3) return { level: 3, label: 'جيدة', color: 'bg-indigo-400' };
+        if (score <= 3) return { level: 3, label: 'جيدة', color: 'bg-blue-400' };
         return { level: 4, label: 'قوية', color: 'bg-emerald-400' };
     }, [data.password]);
 
@@ -50,8 +50,8 @@ export default function Register({ colleges, majors }) {
     });
 
     // Styles
-    const inputCls = "w-full py-3.5 pr-12 pl-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 text-[13px] font-bold text-slate-700 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 focus:bg-white transition-all duration-300 outline-none";
-    const selectCls = "w-full py-3.5 pr-12 pl-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 text-[13px] font-bold text-slate-700 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 focus:bg-white transition-all duration-300 outline-none disabled:bg-slate-100/50 disabled:text-slate-400 disabled:border-slate-100 appearance-none";
+    const inputCls = "w-full py-3.5 pr-12 pl-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 text-[13px] font-bold text-slate-700 placeholder:text-slate-300 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 focus:bg-white transition-all duration-300 outline-none";
+    const selectCls = "w-full py-3.5 pr-12 pl-4 rounded-xl border-2 border-slate-100 bg-slate-50/50 text-[13px] font-bold text-slate-700 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 focus:bg-white transition-all duration-300 outline-none disabled:bg-slate-100/50 disabled:text-slate-400 disabled:border-slate-100 appearance-none";
     const labelCls = "block text-[12px] font-black text-slate-700 mb-2";
     const iconContainerCls = "absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-white flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 pointer-events-none";
 
@@ -65,15 +65,15 @@ export default function Register({ colleges, majors }) {
                 <div className="flex items-center justify-center gap-5 mb-10 group" style={stagger(0)}>
                     {/* اللوجو العملاق */}
                     <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3">
-                        <div className="absolute inset-0 bg-indigo-500/15 rounded-full blur-2xl opacity-100 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-blue-500/15 rounded-full blur-2xl opacity-100 pointer-events-none"></div>
                         <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl relative z-10" />
                     </div>
                     {/* النص المزدوج المكدس */}
                     <div className="flex flex-col justify-center text-right leading-none">
-                        <span className="text-3xl sm:text-[2.6rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] to-slate-900 to-[50%] tracking-tight py-1 transition-all duration-300">
+                        <span className="text-3xl sm:text-[2.6rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-tight py-1 transition-all duration-300">
                             سنفور
                         </span>
-                        <span className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] to-slate-900 to-[50%] tracking-[0.15em] uppercase transition-all duration-300">
+                        <span className="text-lg sm:text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-[0.15em] uppercase transition-all duration-300">
                             Sanfoor
                         </span>
                     </div>
@@ -124,9 +124,9 @@ export default function Register({ colleges, majors }) {
                     </div>
 
                     {/* ── Academic Structure ── */}
-                    <div className="p-5 bg-indigo-50/30 rounded-[1.25rem] border border-indigo-100/50 space-y-4" style={stagger(3)}>
+                    <div className="p-5 bg-blue-50/30 rounded-[1.25rem] border border-blue-100/50 space-y-4" style={stagger(3)}>
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">🎓</span>
+                            <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-xs">🎓</span>
                             <p className="text-[12px] font-black text-indigo-900">بياناتك الأكاديمية</p>
                         </div>
 
@@ -211,7 +211,7 @@ export default function Register({ colleges, majors }) {
                                 <button
                                     type="button"
                                     onClick={() => setShowPw(!showPw)}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors p-0.5"
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors p-0.5"
                                     tabIndex={-1}
                                 >
                                     {showPw ? '🙈' : '👁️'}
@@ -248,7 +248,7 @@ export default function Register({ colleges, majors }) {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-indigo-600 hover:to-violet-600 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3"
+                            className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-sky-400 hover:to-blue-500 text-white py-4 rounded-xl font-black text-[14px] transition-all duration-300 shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-3"
                         >
                             {processing ? "جاري الإنشاء..." : "إنشاء حساب جديد"}
                             {!processing && <svg className="w-5 h-5 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>}
@@ -259,7 +259,7 @@ export default function Register({ colleges, majors }) {
                     <div className="text-center pt-4" style={stagger(6)}>
                         <p className="text-[13px] font-bold text-slate-500">
                             لديك حساب بالفعل؟{' '}
-                            <Link href={route('login')} className="text-indigo-600 font-black hover:underline ml-1">
+                            <Link href={route('login')} className="text-blue-600 font-black hover:underline ml-1">
                                 سجل دخولك
                             </Link>
                         </p>

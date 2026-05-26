@@ -158,7 +158,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                     <div className="text-center">
                         <div className="text-5xl mb-4">😕</div>
                         <p className={`text-lg font-bold text-slate-400`}>{t.noQuestions}</p>
-                        <button onClick={() => router.visit('/quiz')} className="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-xl font-[800] text-sm">{t.backToQuiz}</button>
+                        <button onClick={() => router.visit('/quiz')} className="mt-6 px-6 py-3 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-xl font-[800] text-sm shadow-lg shadow-blue-500/20">{t.backToQuiz}</button>
                     </div>
                 </div>
             );
@@ -173,11 +173,11 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                     <div className="max-w-3xl mx-auto px-4">
                         <div className={`rounded-[2.5rem] border p-8 sm:p-10 text-center shadow-xl mb-8 ${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                             <h2 className={`text-xl font-[900] mb-6 ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.resultTitle}</h2>
-                            <div className={`text-7xl sm:text-8xl font-[900] mb-3 text-indigo-500`}>{results.score_percentage}%</div>
+                            <div className={`text-7xl sm:text-8xl font-[900] mb-3 text-blue-500`}>{results.score_percentage}%</div>
                             <p className="text-sm font-bold text-slate-500">{results.correct} / {results.total}</p>
                             <div className="flex gap-3 justify-center mt-8">
                                 <button onClick={() => router.visit('/quiz')} className="px-6 py-3 rounded-xl bg-slate-100 text-slate-700 font-[800] text-[12px]">{t.backToQuiz}</button>
-                                <button onClick={() => { setShowResult(false); setResults(null); setAnswers({}); setCurrentIndex(0); }} className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-[800] text-[12px]">{t.tryAgain}</button>
+                                <button onClick={() => { setShowResult(false); setResults(null); setAnswers({}); setCurrentIndex(0); }} className="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white font-[800] text-[12px] shadow-md shadow-blue-500/20">{t.tryAgain}</button>
                             </div>
                         </div>
                     </div>
@@ -194,7 +194,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                             <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{course.name}</h2>
                             {chapters.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5 mt-2">
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-700'}`}>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700'}`}>
                                         {lang === 'ar' ? 'الشباتر النشطة:' : 'Selected Chapters:'}
                                     </span>
                                     {chapters.map(ch => (
@@ -210,7 +210,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                         </div>
                     </div>
                     <div className={`w-full h-2 rounded-full mb-8 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
-                        <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                        <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
                     </div>
                     <div key={currentQ.id} className={`rounded-[2rem] border p-6 sm:p-8 shadow-sm mb-6 ${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'}`}>
                         <p className={`text-[15px] sm:text-[16px] font-[800] leading-relaxed mb-6 ${isDark ? 'text-white' : 'text-slate-900'}`}>{currentQ.question_text}</p>
@@ -222,13 +222,13 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                                 const isWrong = isRevealed && isSelected && !practiceResult?.is_correct;
 
                                 let cls = isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-100';
-                                if (isSelected) cls = isDark ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400' : 'bg-indigo-50 border-indigo-500 text-indigo-600';
+                                if (isSelected) cls = isDark ? 'bg-blue-500/10 border-blue-500 text-blue-400' : 'bg-blue-50 border-blue-500 text-blue-600';
                                 if (isCorrect) cls = isDark ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' : 'bg-emerald-50 border-emerald-500 text-emerald-700';
                                 if (isWrong) cls = isDark ? 'bg-rose-500/20 border-rose-500 text-rose-400' : 'bg-rose-50 border-rose-500 text-rose-700';
 
                                 return (
                                     <button key={opt} onClick={() => selectOption(opt)} className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all text-right font-bold ${cls}`}>
-                                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border-2 ${isSelected ? 'border-indigo-500 bg-indigo-500 text-white' : (isDark ? 'border-slate-700' : 'border-slate-200')}`}>
+                                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border-2 ${isSelected ? 'border-blue-500 bg-blue-500 text-white' : (isDark ? 'border-slate-700' : 'border-slate-200')}`}>
                                             {isRevealed && isCorrect ? '✓' : (isRevealed && isWrong ? '✕' : opt.toUpperCase())}
                                         </span>
                                         <span className="text-[14px]">{currentQ[`option_${opt}`]}</span>
@@ -238,25 +238,25 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                         </div>
 
                         {isPractice && practiceRevealed && practiceResult && (
-                            <div className={`mt-8 p-6 rounded-3xl border-2 transition-all animate-in fade-in slide-in-from-bottom-4 ${practiceResult.is_correct ? (isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDark ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-800')}`}>
+                            <div className={`mt-8 p-6 rounded-3xl border-2 transition-all animate-in fade-in slide-in-from-bottom-4 ${practiceResult.is_correct ? (isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-800') : (isDark ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-800')}`}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <span className="text-2xl">{practiceResult.is_correct ? '🎉' : '💡'}</span>
                                     <h4 className="text-sm font-[900]">{practiceResult.is_correct ? t.correct : t.explanation}</h4>
                                 </div>
                                 <p className="text-[13px] leading-relaxed font-bold">{practiceResult.explanation || (practiceResult.is_correct ? 'أحسنت! إجابة صحيحة.' : `الإجابة الصحيحة هي: ${practiceResult.correct.toUpperCase()}`)}</p>
                                 
-                                <button onClick={goNext} className="mt-6 w-full py-4 bg-indigo-600 text-white rounded-2xl font-[900] text-sm shadow-xl shadow-indigo-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                                <button onClick={goNext} className="mt-6 w-full py-4 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-2xl font-[900] text-sm shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
                                     {currentIndex < total - 1 ? t.nextQuestion : t.submit}
                                 </button>
                             </div>
                         )}
                     </div>
                     <div className="flex items-center justify-between">
-                        <button onClick={goPrev} disabled={currentIndex === 0} className="px-5 py-3 bg-white border rounded-xl disabled:opacity-30">{t.previous}</button>
+                        <button onClick={goPrev} disabled={currentIndex === 0} className="px-5 py-3 bg-white border rounded-xl disabled:opacity-30 active:scale-95 transition-all">{"← " + t.previous}</button>
                         {currentIndex < total - 1 ? (
-                            <button onClick={goNext} className="px-5 py-3 bg-indigo-600 text-white rounded-xl">{t.next}</button>
+                            <button onClick={goNext} className="px-5 py-3 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-xl shadow-sm shadow-blue-500/20 active:scale-95 transition-all">{t.next + " →"}</button>
                         ) : (
-                            <button onClick={handleSubmit} className="px-5 py-3 bg-indigo-600 text-white rounded-xl">{t.submit}</button>
+                            <button onClick={handleSubmit} className="px-5 py-3 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-xl shadow-sm shadow-blue-500/20 active:scale-95 transition-all">{t.submit}</button>
                         )}
                     </div>
                 </div>

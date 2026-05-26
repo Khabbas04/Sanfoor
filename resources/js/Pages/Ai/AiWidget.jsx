@@ -110,7 +110,7 @@ export default function AiWidget({ user }) {
                 >
                     <div className="w-[calc(100vw-1rem)] max-w-[380px] h-[70dvh] max-h-[520px] min-h-[360px] bg-white dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl border border-slate-200 dark:border-white/10 flex flex-col overflow-hidden">
                         {/* Header */}
-                        <div className="p-4 bg-gradient-to-l from-indigo-600 to-violet-600 text-white flex justify-between items-center shadow-lg relative overflow-hidden">
+                        <div className="p-4 bg-gradient-to-l from-sky-400 to-blue-500 text-white flex justify-between items-center shadow-lg relative overflow-hidden">
                             <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'radial-gradient(circle,#fff 0.8px,transparent 0.8px)', backgroundSize: '12px 12px' }} />
                             <div className="flex items-center gap-2.5 relative z-10">
                                 <div className="w-10 h-10 rounded-full overflow-hidden">
@@ -118,7 +118,7 @@ export default function AiWidget({ user }) {
                                 </div>
                                 <div>
                                     <span className="font-black text-sm block leading-tight">مساعد سنفور الذكي</span>
-                                    <span className="text-[9px] font-bold text-indigo-200/70 flex items-center gap-1">
+                                    <span className="text-[9px] font-bold text-blue-100/70 flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
                                         نشط ويستمع
                                     </span>
@@ -134,7 +134,7 @@ export default function AiWidget({ user }) {
                             {messages.map(m => (
                                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[85%] p-3 rounded-2xl text-[13px] font-bold leading-relaxed shadow-sm ${
-                                        m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-200 border dark:border-white/5'
+                                        m.role === 'user' ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white' : 'bg-white dark:bg-slate-800 dark:text-slate-200 border dark:border-white/5'
                                     }`}>
                                         <ReactMarkdown>{m.content}</ReactMarkdown>
                                     </div>
@@ -142,9 +142,9 @@ export default function AiWidget({ user }) {
                             ))}
                             {isTyping && (
                                 <div className="flex gap-1.5 p-2 items-center">
-                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '75ms' }}></div>
-                                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '75ms' }}></div>
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                                 </div>
                             )}
                         </div>
@@ -155,7 +155,7 @@ export default function AiWidget({ user }) {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 placeholder="اسأل سنفور..."
-                                className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                                className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-blue-500 dark:text-white"
                             />
                         </form>
                     </div>
@@ -170,7 +170,7 @@ export default function AiWidget({ user }) {
                         onTouchStart={onHandleTouchStart}
                         onTouchMove={onHandleTouchMove}
                         onTouchEnd={onHandleTouchEnd}
-                        className={`h-14 w-10 rounded-l-2xl bg-slate-900/90 text-white text-[10px] font-black shadow-lg border border-white/10 backdrop-blur-md flex items-center justify-center gap-1 transition-all active:scale-95 ${isOpen ? 'ring-2 ring-indigo-300 ring-offset-2' : ''}`}
+                        className={`h-14 w-10 rounded-l-2xl bg-slate-900/90 text-white text-[10px] font-black shadow-lg border border-white/10 backdrop-blur-md flex items-center justify-center gap-1 transition-all active:scale-95 ${isOpen ? 'ring-2 ring-blue-300 ring-offset-2' : ''}`}
                         style={{ touchAction: 'pan-y' }}
                         aria-label="AI chat"
                         title="اسحب أو اضغط"
@@ -181,12 +181,12 @@ export default function AiWidget({ user }) {
             ) : (
                 <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 sm:bottom-8 sm:right-8 z-[100]">
                     {!isOpen && (
-                        <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 ai-ping-ring" />
+                        <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-sky-400 to-blue-500 ai-ping-ring" />
                     )}
 
                     <button
                         onClick={handleToggle}
-                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-visible shadow-lg shadow-indigo-500/40 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-indigo-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/50'}`}
+                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-visible shadow-lg shadow-blue-500/30 flex items-center justify-center transition-all duration-300 active:scale-90 group ${showEntrance ? 'ai-float-in' : ''} ${isOpen ? 'rotate-0 ring-2 ring-blue-300 ring-offset-2' : 'hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/40'}`}
                     >
                         <span className="w-full h-full rounded-full overflow-hidden bg-white/90 border border-white/80">
                             <img

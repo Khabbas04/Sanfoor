@@ -224,7 +224,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             {t.title}
                         </h2>
                     </div>
-                    <button onClick={() => openCreate()} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-[800] text-[12px] shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all active:scale-[0.97]">
+                    <button onClick={() => openCreate()} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-xl font-[800] text-[12px] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all active:scale-[0.97]">
                         <span className="text-lg">+</span> {t.addChapter}
                     </button>
                 </div>
@@ -294,7 +294,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                         setIsNewCourse(false);
                                         setData(prev => ({ ...prev, course_name: '', course_code: '' }));
                                     }}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-indigo-600 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                                 >
                                     {lang === 'ar' ? 'اختر مادة موجودة' : 'Select Existing Course'}
                                 </button>
@@ -304,7 +304,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                         setIsNewCourse(true);
                                         setData(prev => ({ ...prev, course_name: '', course_code: '' }));
                                     }}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-indigo-600 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                                 >
                                     {lang === 'ar' ? 'إنشاء مادة جديدة' : 'إنشاء مادة جديدة'}
                                 </button>
@@ -439,7 +439,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                         </div>
 
                         <div className="flex gap-3 pt-1">
-                                <button type="submit" disabled={processing} className="px-7 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50 transition-all">
+                                <button type="submit" disabled={processing} className="px-7 py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50 transition-all">
                                     {editingId ? t.update : t.save}
                                 </button>
                                 <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`px-6 py-2.5 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}`}>
