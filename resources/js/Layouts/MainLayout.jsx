@@ -225,11 +225,16 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl" />
                                 </div>
                                 <div className="flex flex-col justify-center relative leading-none">
-                                    <span className={`text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-tight transition-all duration-300 pb-0.5`}>
-                                        {lang === 'ar' ? 'سنفور' : 'Sanfoor'}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-tight transition-all duration-300 pb-0.5`}>
+                                            {lang === 'ar' ? 'سنفور' : 'Sanfoor'}
+                                        </span>
+                                        <span className={`px-1.5 py-0.5 mt-0.5 rounded-md text-[8px] sm:text-[9px] font-black tracking-wide border ${isDark ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border-indigo-200'} whitespace-nowrap`}>
+                                            ZU | جامعة الزرقاء
+                                        </span>
+                                    </div>
                                     {lang === 'ar' && (
-                                        <span className={`text-[0.65rem] sm:text-[0.8rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-[0.2em] uppercase transition-all duration-300`}>
+                                        <span className={`text-[0.65rem] sm:text-[0.8rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-[0.2em] uppercase transition-all duration-300 mt-0.5`}>
                                             Sanfoor
                                         </span>
                                     )}
@@ -361,8 +366,13 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             <div className="flex items-center gap-4">
                                 <img src="/images/sanfoor.png" alt="Logo" className="w-14 h-14 object-contain drop-shadow-md" />
                                 <div className="flex flex-col leading-none">
-                                    <span className="text-2xl font-black">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</span>
-                                    {lang === 'ar' && <span className="text-sm font-black uppercase tracking-widest opacity-80">Sanfoor</span>}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-2xl font-black">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</span>
+                                        <span className="px-1.5 py-0.5 mt-0.5 rounded-md text-[8px] font-black tracking-wide border bg-white/10 text-indigo-100 border-white/20 whitespace-nowrap">
+                                            ZU | جامعة الزرقاء
+                                        </span>
+                                    </div>
+                                    {lang === 'ar' && <span className="text-sm font-black uppercase tracking-widest opacity-80 mt-1">Sanfoor</span>}
                                 </div>
                             </div>
                             <button onClick={() => setMobileOpen(false)} className="text-3xl opacity-70 hover:opacity-100 transition-opacity">&times;</button>
