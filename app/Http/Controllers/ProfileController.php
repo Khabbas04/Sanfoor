@@ -29,11 +29,11 @@ class ProfileController extends Controller
 
         try {
             if (Schema::hasTable('colleges')) {
-                $colleges = College::query()->select('id', 'name')->orderBy('name')->get();
+                $colleges = College::withoutGlobalScopes()->select('id', 'name')->orderBy('name')->get();
             }
 
             if (Schema::hasTable('majors')) {
-                $majors = Major::query()->select('id', 'college_id', 'name')->orderBy('name')->get();
+                $majors = Major::withoutGlobalScopes()->select('id', 'college_id', 'name')->orderBy('name')->get();
             }
         } catch (Throwable $exception) {
             Log::warning('Failed loading profile academic lists', [
@@ -107,7 +107,7 @@ class ProfileController extends Controller
             && filled($updatePayload['major_id'] ?? null)
             && filled($validated['college_id'] ?? null)
         ) {
-            $majorBelongsToCollege = Major::query()
+            $majorBelongsToCollege = Major::withoutGlobalScopes()
                 ->whereKey((int) $updatePayload['major_id'])
                 ->where('college_id', (int) $validated['college_id'])
                 ->exists();

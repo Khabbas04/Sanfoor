@@ -10,6 +10,13 @@ class QuizAttempt extends Model
 {
     use HasFactory;
 
+    protected static function booted()
+    {
+        static::addGlobalScope('college_filter', function ($builder) {
+            $builder->whereHas('course');
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'course_id',

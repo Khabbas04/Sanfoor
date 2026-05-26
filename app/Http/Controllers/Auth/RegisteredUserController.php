@@ -26,8 +26,8 @@ class RegisteredUserController extends Controller
         return Inertia::render('Auth/Register', [
             // 🔥 إرسال الهيكلة الأكاديمية كاملة لصفحة التسجيل لتشغيل القوائم المترابطة
             'universities' => University::all(),
-            'colleges' => College::all(),
-            'majors' => Major::all(),
+            'colleges' => College::withoutGlobalScopes()->get(),
+            'majors' => Major::withoutGlobalScopes()->get(),
         ]);
     }
 

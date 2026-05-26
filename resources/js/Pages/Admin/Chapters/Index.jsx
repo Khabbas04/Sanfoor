@@ -92,6 +92,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const { data, setData, post, put, processing, reset, errors } = useForm({
         course_name: '',
         course_code: '',
+        college_id: '',
         title: '',
         description: '',
         google_drive_link: '',
@@ -146,6 +147,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
             setData({
                 course_name: course.name,
                 course_code: course.code,
+                college_id: course.college_id || '',
                 title: '',
                 description: '',
                 google_drive_link: '',
@@ -162,6 +164,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         setData({ 
             course_name: chapter.course?.name || '', 
             course_code: chapter.course?.code || '',
+            college_id: chapter.course?.college_id || '',
             title: chapter.title, 
             description: chapter.description || '', 
             google_drive_link: chapter.google_drive_link || '',
@@ -306,7 +309,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className={`grid grid-cols-1 ${isNewCourse || editingId ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 {!isNewCourse && !editingId ? (
@@ -318,7 +321,8 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                                 setData(prev => ({
                                                     ...prev,
                                                     course_name: e.target.value,
-                                                    course_code: c ? c.code : ''
+                                                    course_code: c ? c.code : '',
+                                                    college_id: c ? c.college_id : ''
                                                 }));
                                             }}
                                             className={inputCls}
@@ -383,6 +387,22 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
+                            {(isNewCourse || editingId) && (
+                                <div>
+                                    <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
+                                    <select
+                                        value={data.college_id}
+                                        onChange={e => setData('college_id', e.target.value)}
+                                        className={inputCls}
+                                        required
+                                        disabled={!!editingId}
+                                    >
+                                        <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
+                                        {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                    {errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.college_id}</p>}
+                                </div>
+                            )}
                         </div>
 
                         <div>

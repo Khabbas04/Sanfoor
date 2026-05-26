@@ -14,12 +14,40 @@ class Course extends Model
 
     protected static function booted()
     {
-        static::addGlobalScope('it_only', function ($builder) {
+        static::addGlobalScope('college_filter', function ($builder) {
+            if (app()->runningInConsole()) {
+                return;
+            }
+            if (auth()->check()) {
+                $user = auth()->user();
+                if ($user->isAdminOrOwner()) {
+                    return;
+                }
+                if ($user->major_id) {
+                    $collegeId = $user->major->college_id;
+                    $builder->where(function ($query) use ($collegeId) {
+                        $query->where('courses.college_id', $collegeId)
+                              ->orWhereHas('major', function ($q) use ($collegeId) {
+                                  $q->where('college_id', $collegeId);
+                              })
+                              ->orWhere(function ($q) {
+                                  $q->whereNull('courses.major_id')
+                                    ->whereNull('courses.college_id');
+                              });
+                    });
+                    return;
+                }
+            }
+            // Guest or no major: default to College 1 (IT) + university requirements
             $builder->where(function ($query) {
-                $query->whereHas('major', function ($q) {
-                    $q->where('college_id', 1);
-                })->orWhereNull('major_id')
-                  ->orWhere('is_quiz_only', 1);
+                $query->where('courses.college_id', 1)
+                      ->orWhereHas('major', function ($q) {
+                          $q->where('college_id', 1);
+                      })
+                      ->orWhere(function ($q) {
+                          $q->whereNull('courses.major_id')
+                            ->whereNull('courses.college_id');
+                      });
             });
         });
     }
@@ -36,6 +64,7 @@ class Course extends Model
         'tree_position_x',
         'tree_position_y',
         'major_id',
+        'college_id',
         'study_plan_version',
         'is_quiz_only',
         'description',
@@ -47,6 +76,14 @@ class Course extends Model
     public function major(): BelongsTo
     {
         return $this->belongsTo(Major::class);
+    }
+
+    /**
+     * The college this course belongs to.
+     */
+    public function college(): BelongsTo
+    {
+        return $this->belongsTo(College::class);
     }
 
     /**

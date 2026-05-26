@@ -11,6 +11,13 @@ class Chapter extends Model
 {
     use HasFactory;
 
+    protected static function booted()
+    {
+        static::addGlobalScope('college_filter', function ($builder) {
+            $builder->whereHas('course');
+        });
+    }
+
     protected $fillable = [
         'course_id',
         'title',

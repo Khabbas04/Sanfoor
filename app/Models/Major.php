@@ -13,7 +13,20 @@ class Major extends Model
 
     protected static function booted()
     {
-        static::addGlobalScope('it_only', function ($builder) {
+        static::addGlobalScope('college_filter', function ($builder) {
+            if (app()->runningInConsole()) {
+                return;
+            }
+            if (auth()->check()) {
+                $user = auth()->user();
+                if ($user->isAdminOrOwner()) {
+                    return;
+                }
+                if ($user->major_id) {
+                    $builder->where('college_id', $user->major->college_id);
+                    return;
+                }
+            }
             $builder->where('college_id', 1);
         });
     }

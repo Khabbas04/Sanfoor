@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminLog;
+use App\Models\College;
 use App\Models\Chapter;
 use App\Models\Course;
 use App\Models\Major;
@@ -49,13 +50,15 @@ class AdminQuestionController extends Controller
             ->latest()
             ->get();
 
-        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code')->orderBy('name')->get();
+        $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code', 'college_id')->orderBy('name')->get();
         $chapters = Chapter::whereHas('course', function($q) { $q->where('is_quiz_only', 1); })->select('id', 'title', 'course_id')->orderBy('order')->get();
+        $colleges = College::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Admin/Questions/Index', [
             'questions' => $questions,
             'courses' => $courses,
             'chapters' => $chapters,
+            'colleges' => $colleges,
             'filters' => [
                 'course_id' => $courseId,
                 'chapter_id' => $chapterId,
@@ -79,6 +82,7 @@ class AdminQuestionController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
+            'college_id' => 'required|exists:colleges,id',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -92,11 +96,15 @@ class AdminQuestionController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])->where('is_quiz_only', 1)->first();
+        $course = Course::where('name', $data['course_name'])
+            ->where('college_id', $data['college_id'])
+            ->where('is_quiz_only', 1)
+            ->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
                 'code' => $data['course_code'],
+                'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
@@ -141,6 +149,7 @@ class AdminQuestionController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
+            'college_id' => 'required|exists:colleges,id',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -154,11 +163,15 @@ class AdminQuestionController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])->where('is_quiz_only', 1)->first();
+        $course = Course::where('name', $data['course_name'])
+            ->where('college_id', $data['college_id'])
+            ->where('is_quiz_only', 1)
+            ->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
                 'code' => $data['course_code'],
+                'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',

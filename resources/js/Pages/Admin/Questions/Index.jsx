@@ -4,7 +4,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 
-export default function AdminQuestions({ questions = [], courses = [], chapters = [], filters = {}, stats = {} }) {
+export default function AdminQuestions({ questions = [], courses = [], chapters = [], colleges = [], filters = {}, stats = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
 
@@ -12,6 +12,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     questions = questions || [];
     courses = courses || [];
     chapters = chapters || [];
+    colleges = colleges || [];
     filters = filters || {};
     stats = stats || {};
 
@@ -113,6 +114,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const { data, setData, post, put, processing, reset, errors } = useForm({
         course_name: '',
         course_code: '',
+        college_id: '',
         chapter_title: '',
         question_text: '',
         option_a: '',
@@ -132,6 +134,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         setData({
             course_name: q.course?.name || '',
             course_code: q.course?.code || '',
+            college_id: q.course?.college_id || '',
             chapter_title: q.chapter?.title || '',
             question_text: q.question_text,
             option_a: q.option_a,
@@ -273,7 +276,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         )}
 
                         {/* Row 1: Course Name, Course Code, Chapter Title, Difficulty */}
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className={`grid grid-cols-1 ${isNewCourse || editingId ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-4`}>
                             <div className="sm:col-span-1">
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 {!isNewCourse && !editingId ? (
@@ -284,7 +287,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                             setData(prev => ({
                                                 ...prev,
                                                 course_name: e.target.value,
-                                                course_code: c ? c.code : ''
+                                                course_code: c ? c.code : '',
+                                                college_id: c ? c.college_id : ''
                                             }));
                                         }}
                                         className={inputCls}
@@ -327,6 +331,22 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
+                            {(isNewCourse || editingId) && (
+                                <div>
+                                    <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
+                                    <select
+                                        value={data.college_id}
+                                        onChange={e => setData('college_id', e.target.value)}
+                                        className={inputCls}
+                                        required
+                                        disabled={!!editingId}
+                                    >
+                                        <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
+                                        {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    </select>
+                                    {errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.college_id}</p>}
+                                </div>
+                            )}
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.chapter}</label>
                                 <input 
