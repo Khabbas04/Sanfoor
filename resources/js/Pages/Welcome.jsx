@@ -297,7 +297,7 @@ export default function Welcome({ auth }) {
                                         </svg>
                                     </div>
                                     <span className="font-[900] text-[13px] tracking-wide text-transparent bg-clip-text bg-gradient-to-l from-indigo-200 via-white to-white drop-shadow-sm">
-                                        النظام الذكي الأول لطلاب جامعة الزرقاء ZU
+                                        النظام الذكي الأول لطلاب الجامعات
                                     </span>
                                 </div>
                             </div>
