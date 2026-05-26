@@ -68,23 +68,23 @@ export default function Welcome({ auth }) {
     return (
         <MainLayout>
             <Head>
-                <title>سنفور | Sanfoor - المرشد الأكاديمي الذكي</title>
-                <meta name="description" content="منصة سنفور تساعد طلاب الجامعات على تخطيط المسار الأكاديمي، إدارة الخطة الدراسية، واختيار المواد بذكاء مدعوم بالذكاء الاصطناعي." />
-                <meta name="keywords" content="سنفور, Sanfoor, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, اختيار المواد, GPA" />
+                <title>سنفور | Sanfoor - المرشد الأكاديمي لطلاب جامعة الزرقاء</title>
+                <meta name="description" content="منصة سنفور الأولى لطلاب جامعة الزرقاء (ZU). تساعدك على تخطيط المسار الأكاديمي، إدارة الخطة الدراسية، وحساب المعدل بذكاء مدعوم بالذكاء الاصطناعي." />
+                <meta name="keywords" content="سنفور, Sanfoor, جامعة الزرقاء, ZU, Zarqa University, المرشد الأكاديمي, خطة دراسية, حساب المعدل, GPA, تسجيل مواد جامعة الزرقاء" />
                 <meta name="author" content={creatorName} />
                 <meta name="creator" content={creatorName} />
                 <meta name="publisher" content={creatorName} />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/`} />
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="سنفور | Sanfoor - المرشد الأكاديمي الذكي" />
-                <meta property="og:description" content="خطط مسارك الجامعي بذكاء، وتابع تقدمك الدراسي من مكان واحد." />
+                <meta property="og:title" content="سنفور | Sanfoor - لطلاب جامعة الزرقاء (ZU)" />
+                <meta property="og:description" content="خطط مسارك الجامعي بذكاء، احسب معدلك التراكمي، وتابع تقدمك الدراسي في جامعة الزرقاء من مكان واحد." />
                 <meta property="og:url" content={`${siteUrl}/`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
                 <meta property="article:author" content={creatorName} />
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="سنفور | Sanfoor - المرشد الأكاديمي الذكي" />
-                <meta name="twitter:description" content="دليلك الذكي لاختيار المواد وفهم الخطة الجامعية." />
+                <meta name="twitter:title" content="سنفور | Sanfoor - منصة طلاب جامعة الزرقاء" />
+                <meta name="twitter:description" content="دليلك الذكي لاختيار المواد، فهم الخطة الجامعية، والتفوق في جامعة الزرقاء." />
                 <meta name="twitter:image" content={`${siteUrl}/images/sanfoor.png`} />
                 <script
                     type="application/ld+json"
@@ -92,7 +92,7 @@ export default function Welcome({ auth }) {
                         __html: JSON.stringify({
                             '@context': 'https://schema.org',
                             '@type': 'WebPage',
-                            name: 'سنفور | Sanfoor - المرشد الأكاديمي الذكي',
+                            name: 'سنفور | Sanfoor - المرشد الأكاديمي لطلاب جامعة الزرقاء (ZU)',
                             url: `${siteUrl}/`,
                             author: {
                                 '@type': 'Person',
