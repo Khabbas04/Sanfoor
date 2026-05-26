@@ -243,11 +243,13 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
                 {/* Create / Edit Form */}
                 {showForm && (
-                    <form onSubmit={handleSubmit} className={`rounded-2xl border p-6 shadow-md space-y-5 ${card}`}>
-                        <div className="flex items-center justify-between">
-                            <h3 className={`text-[15px] font-[900] ${heading}`}>{editingId ? `✏️ ${t.update}` : `➕ ${t.addQuestion}`}</h3>
-                            <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
-                        </div>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+                        <div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl my-8 transition-all scale-100 ${card}`}>
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <h3 className={`text-[15px] font-[900] ${heading}`}>{editingId ? `✏️ ${t.update}` : `➕ ${t.addQuestion}`}</h3>
+                                    <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
+                                </div>
 
                         {/* Course selection toggle */}
                         {!editingId && courses.length > 0 && (
@@ -339,7 +341,6 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                         onChange={e => setData('college_id', e.target.value)}
                                         className={inputCls}
                                         required
-                                        disabled={!!editingId}
                                     >
                                         <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
                                         {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -417,12 +418,14 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 <span className={`text-[12px] font-bold ${subtext}`}>{t.active}</span>
                             </label>
 
-                            <div className="flex gap-3">
-                                <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`px-6 py-2.5 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.cancel}</button>
-                                <button type="submit" disabled={processing} className="px-7 py-2.5 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50">{editingId ? t.update : t.save}</button>
+                                <div className="flex gap-3">
+                                    <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`px-6 py-2.5 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.cancel}</button>
+                                    <button type="submit" disabled={processing} className="px-7 py-2.5 bg-gradient-to-r from-violet-600 to-pink-600 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50">{editingId ? t.update : t.save}</button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
+                </div>
                 )}
 
                 {/* Questions List */}
