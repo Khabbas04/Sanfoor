@@ -16,7 +16,7 @@
 })();
 </script>
 
-<title inertia>{{ config('app.name', 'Sanfoor') }}</title>
+<title inertia>{{ config('app.name', 'سنفور جامعة الزرقاء | Sanfoor ZU') }}</title>
 
 @php
     $appUrl = rtrim(config('app.url', url('/')), '/');
@@ -65,7 +65,7 @@
 				'@id' => "{$appUrl}/#webpage",
 				'@type' => 'WebPage',
 				'url' => "{$appUrl}/",
-				'name' => 'Sanfoor - المرشد الأكاديمي الذكي',
+				'name' => 'Sanfoor - المرشد الأكاديمي الذكي لجامعة الزرقاء ZU',
 				'isPartOf' => [
 					'@id' => "{$appUrl}/#website",
 				],
@@ -80,18 +80,18 @@
 	];
 @endphp
 
-<meta name="description" content="سنفور - المرشد الأكاديمي الذكي لطلاب الجامعات.">
-<meta name="keywords" content="Sanfoor, سنفور, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, University Planner, GPA Calculator">
+<meta name="description" content="سنفور - المرشد الأكاديمي الذكي لطلاب جامعة الزرقاء (Zarqa University - ZU).">
+<meta name="keywords" content="Sanfoor, سنفور, جامعة الزرقاء, Zarqa University, ZU, المرشد الأكاديمي, AI Academic Advisor, خطة دراسية, University Planner, GPA Calculator, ZU Advisor">
 <meta name="author" content="Asem Alkhabbas">
 <meta name="creator" content="{{ $creatorName }}">
 <meta name="publisher" content="{{ $creatorName }}">
 <meta name="copyright" content="{{ now()->year }} {{ $creatorName }}">
 <meta name="robots" content="index,follow">
 <meta name="theme-color" content="#0f172a">
-<meta property="og:site_name" content="Sanfoor">
+<meta property="og:site_name" content="Sanfoor ZU">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Sanfoor - المرشد الأكاديمي الذكي">
-<meta property="og:description" content="سنفور - المرشد الأكاديمي الذكي لطلاب الجامعات.">
+<meta property="og:title" content="Sanfoor - المرشد الأكاديمي الذكي لجامعة الزرقاء ZU">
+<meta property="og:description" content="سنفور - المرشد الأكاديمي الذكي لطلاب جامعة الزرقاء (Zarqa University - ZU).">
 <meta property="og:url" content="{{ $appUrl }}/">
 <meta property="og:image" content="{{ $appUrl }}/images/sanfoor.png">
 <meta property="og:locale" content="ar_JO">

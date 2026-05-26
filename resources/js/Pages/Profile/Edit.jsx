@@ -18,7 +18,7 @@ export default function Edit({ auth, mustVerifyEmail, status, colleges, majors, 
 
     return (
         <MainLayout user={auth.user}>
-            <Head title="حسابي الشخصي - جامعة سنفور" />
+            <Head title="حسابي الشخصي - سنفور جامعة الزرقاء ZU" />
 
             <div className="py-10 bg-slate-50 min-h-screen" dir="rtl">
                 <div className="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-8">

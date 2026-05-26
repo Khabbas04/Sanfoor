@@ -34,13 +34,13 @@ export default function Faq() {
     return (
         <MainLayout>
             <Head>
-                <title>الأسئلة الشائعة | سنفور</title>
-                <meta name="description" content="إجابات سريعة عن أكثر الأسئلة شيوعًا حول استخدام منصة سنفور وخدماتها الأكاديمية." />
+                <title>الأسئلة الشائعة | سنفور - جامعة الزرقاء ZU</title>
+                <meta name="description" content="إجابات سريعة عن أكثر الأسئلة شيوعًا حول استخدام منصة سنفور وخدماتها الأكاديمية لطلاب جامعة الزرقاء ZU." />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/faq`} />
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="الأسئلة الشائعة | سنفور" />
-                <meta property="og:description" content="اعرف أهم الإجابات حول استخدام سنفور، المسار الشجري، والمرشد الذكي." />
+                <meta property="og:title" content="الأسئلة الشائعة | سنفور - جامعة الزرقاء ZU" />
+                <meta property="og:description" content="اعرف أهم الإجابات حول استخدام سنفور، المسار الشجري، والمرشد الذكي لطلاب جامعة الزرقاء ZU." />
                 <meta property="og:url" content={`${siteUrl}/faq`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>

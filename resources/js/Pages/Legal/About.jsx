@@ -48,22 +48,22 @@ export default function About() {
     return (
         <MainLayout>
             <Head>
-                <title>من نحن | سنفور</title>
-                <meta name="description" content="تعرف على سنفور: منصة الإرشاد الأكاديمي الذكي التي تساعد الطالب على فهم خطته، اختيار مواده، واتخاذ قرارات أدق بثقة." />
+                <title>من نحن | سنفور - جامعة الزرقاء ZU</title>
+                <meta name="description" content="تعرف على سنفور: منصة الإرشاد الأكاديمي الذكي التي تساعد طلاب جامعة الزرقاء ZU على فهم خطتهم، اختيار موادهم، واتخاذ قرارات أدق بثقة." />
                 <meta name="author" content={founderName} />
                 <meta name="creator" content={founderName} />
                 <meta name="publisher" content={founderName} />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/about-us`} />
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="من نحن | سنفور" />
-                <meta property="og:description" content="قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب الجامعات." />
+                <meta property="og:title" content="من نحن | سنفور - جامعة الزرقاء ZU" />
+                <meta property="og:description" content="قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب جامعة الزرقاء ZU." />
                 <meta property="og:url" content={`${siteUrl}/about-us`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
                 <meta property="article:author" content={founderName} />
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="من نحن | سنفور" />
-                <meta name="twitter:description" content="تعرف على رؤية سنفور لبناء مساعد أكاديمي رقمي للطلاب." />
+                <meta name="twitter:title" content="من نحن | سنفور - جامعة الزرقاء ZU" />
+                <meta name="twitter:description" content="تعرف على رؤية سنفور لبناء مساعد أكاديمي رقمي لطلاب جامعة الزرقاء ZU." />
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
@@ -72,10 +72,10 @@ export default function About() {
                             '@graph': [
                                 {
                                     '@type': 'AboutPage',
-                                    name: 'من نحن | سنفور',
+                                    name: 'من نحن | سنفور - جامعة الزرقاء ZU',
                                     url: `${siteUrl}/about-us`,
                                     description:
-                                        'قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب الجامعات.',
+                                        'قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب جامعة الزرقاء ZU.',
                                     author: {
                                         '@type': 'Person',
                                         name: founderName,

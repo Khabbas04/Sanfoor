@@ -42,13 +42,13 @@ export default function HowItWorks() {
     return (
         <MainLayout>
             <Head>
-                <title>كيف يعمل سنفور | Sanfoor</title>
-                <meta name="description" content="تعرف على طريقة استخدام سنفور خطوة بخطوة: من إنشاء الحساب حتى التخطيط الذكي للفصل الدراسي." />
+                <title>كيف يعمل سنفور | Sanfoor - جامعة الزرقاء ZU</title>
+                <meta name="description" content="تعرف على طريقة استخدام سنفور لطلاب جامعة الزرقاء ZU خطوة بخطوة: من إنشاء الحساب حتى التخطيط الذكي للفصل الدراسي." />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/how-it-works`} />
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="كيف يعمل سنفور | Sanfoor" />
-                <meta property="og:description" content="دليل سريع لرحلتك داخل سنفور من البداية حتى قرار تسجيل المواد." />
+                <meta property="og:title" content="كيف يعمل سنفور | Sanfoor - جامعة الزرقاء ZU" />
+                <meta property="og:description" content="دليل سريع لطلاب جامعة الزرقاء ZU داخل سنفور من البداية حتى قرار تسجيل المواد." />
                 <meta property="og:url" content={`${siteUrl}/how-it-works`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>

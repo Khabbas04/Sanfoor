@@ -51,13 +51,13 @@ export default function Contact() {
     return (
         <MainLayout>
             <Head>
-                <title>تواصل معنا | سنفور</title>
-                <meta name="description" content="تواصل مع فريق سنفور للاستفسارات العامة، الدعم، أو الشراكات." />
+                <title>تواصل معنا | سنفور - جامعة الزرقاء ZU</title>
+                <meta name="description" content="تواصل مع فريق سنفور للاستفسارات العامة، الدعم، أو الشراكات الخاصة بطلاب جامعة الزرقاء ZU." />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/contact-us`} />
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="تواصل معنا | سنفور" />
-                <meta property="og:description" content="قنوات التواصل الرسمية مع فريق سنفور." />
+                <meta property="og:title" content="تواصل معنا | سنفور - جامعة الزرقاء ZU" />
+                <meta property="og:description" content="قنوات التواصل الرسمية مع فريق سنفور لخدمة طلاب جامعة الزرقاء ZU." />
                 <meta property="og:url" content={`${siteUrl}/contact-us`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>
