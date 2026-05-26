@@ -228,11 +228,13 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <span className={`text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-tight transition-all duration-300 pb-0.5`}>
                                         {lang === 'ar' ? 'سنفور' : 'Sanfoor'}
                                     </span>
-                                    {lang === 'ar' && (
-                                        <span className={`text-[0.65rem] sm:text-[0.8rem] font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-600 from-[50%] ${isDark ? 'to-white' : 'to-slate-900'} to-[50%] tracking-[0.2em] uppercase transition-all duration-300`}>
-                                            Sanfoor
+                                    <span className={`mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[0.6rem] sm:text-[0.65rem] font-bold w-max shadow-sm ${isDark ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'}`}>
+                                        <span className="relative flex h-1.5 w-1.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
                                         </span>
-                                    )}
+                                        {lang === 'ar' ? 'خاص بطلبة جامعة الزرقاء' : 'For Zarqa University Students'}
+                                    </span>
                                 </div>
                             </Link>
 
@@ -362,7 +364,13 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <img src="/images/sanfoor.png" alt="Logo" className="w-14 h-14 object-contain drop-shadow-md" />
                                 <div className="flex flex-col leading-none">
                                     <span className="text-2xl font-black">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</span>
-                                    {lang === 'ar' && <span className="text-sm font-black uppercase tracking-widest opacity-80">Sanfoor</span>}
+                                    <span className="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[0.6rem] font-bold w-max bg-white/20 text-white border border-white/30">
+                                        <span className="relative flex h-1.5 w-1.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                                        </span>
+                                        {lang === 'ar' ? 'جامعة الزرقاء' : 'Zarqa University'}
+                                    </span>
                                 </div>
                             </div>
                             <button onClick={() => setMobileOpen(false)} className="text-3xl opacity-70 hover:opacity-100 transition-opacity">&times;</button>
@@ -420,7 +428,13 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
                                 <div className="flex flex-col leading-none">
                                     <h3 className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-indigo-500 from-[50%] to-white to-[50%] tracking-tight pb-0.5">{lang === 'ar' ? 'سنفور' : 'Sanfoor'}</h3>
-                                    {lang === 'ar' && <span className="text-[0.65rem] sm:text-[0.8rem] font-black text-indigo-400 tracking-[0.2em] uppercase">Sanfoor</span>}
+                                    <span className="mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[0.6rem] font-bold w-max bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                        <span className="relative flex h-1.5 w-1.5">
+                                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                                        </span>
+                                        {lang === 'ar' ? 'جامعة الزرقاء' : 'Zarqa University'}
+                                    </span>
                                 </div>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed max-w-md">{t.footerDesc}</p>
