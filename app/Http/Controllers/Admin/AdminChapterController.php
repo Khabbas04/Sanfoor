@@ -103,14 +103,21 @@ class AdminChapterController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])
-            ->where('college_id', $data['college_id'])
-            ->where('is_quiz_only', 1)
+        $courseName = trim($data['course_name']);
+        $courseCode = trim($data['course_code']);
+        
+        $course = Course::where('college_id', $data['college_id'])
+            ->where(function($q) use ($courseName, $courseCode) {
+                $q->whereRaw('LOWER(name) = ?', [strtolower($courseName)])
+                  ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower($courseName)])
+                  ->orWhere('code', $courseCode);
+            })
             ->first();
+
         if (!$course) {
             $course = Course::create([
-                'name' => $data['course_name'],
-                'code' => $data['course_code'],
+                'name' => $courseName,
+                'code' => $courseCode,
                 'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
@@ -153,14 +160,21 @@ class AdminChapterController extends Controller
         ]);
 
         // Find or create course non-destructively
-        $course = Course::where('name', $data['course_name'])
-            ->where('college_id', $data['college_id'])
-            ->where('is_quiz_only', 1)
+        $courseName = trim($data['course_name']);
+        $courseCode = trim($data['course_code']);
+        
+        $course = Course::where('college_id', $data['college_id'])
+            ->where(function($q) use ($courseName, $courseCode) {
+                $q->whereRaw('LOWER(name) = ?', [strtolower($courseName)])
+                  ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower($courseName)])
+                  ->orWhere('code', $courseCode);
+            })
             ->first();
+
         if (!$course) {
             $course = Course::create([
-                'name' => $data['course_name'],
-                'code' => $data['course_code'],
+                'name' => $courseName,
+                'code' => $courseCode,
                 'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,

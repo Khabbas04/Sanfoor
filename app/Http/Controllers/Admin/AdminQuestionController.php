@@ -100,7 +100,6 @@ class AdminQuestionController extends Controller
         $courseCode = trim($data['course_code']);
         
         $course = Course::where('college_id', $data['college_id'])
-            ->where('is_quiz_only', 1)
             ->where(function($q) use ($courseName, $courseCode) {
                 $q->whereRaw('LOWER(name) = ?', [strtolower($courseName)])
                   ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower($courseName)])
@@ -187,7 +186,6 @@ class AdminQuestionController extends Controller
         $courseCode = trim($data['course_code']);
         
         $course = Course::where('college_id', $data['college_id'])
-            ->where('is_quiz_only', 1)
             ->where(function($q) use ($courseName, $courseCode) {
                 $q->whereRaw('LOWER(name) = ?', [strtolower($courseName)])
                   ->orWhereRaw('LOWER(TRIM(name)) = ?', [strtolower($courseName)])
