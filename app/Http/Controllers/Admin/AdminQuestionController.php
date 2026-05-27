@@ -83,7 +83,7 @@ class AdminQuestionController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
-            'college_id' => 'required|exists:colleges,id',
+            'college_id' => 'nullable|exists:colleges,id',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -117,7 +117,7 @@ class AdminQuestionController extends Controller
             $course = Course::create([
                 'name' => $courseName,
                 'code' => $courseCode,
-                'college_id' => $data['college_id'],
+                'college_id' => $data['college_id'] ?? 1,
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
@@ -173,7 +173,7 @@ class AdminQuestionController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
-            'college_id' => 'required|exists:colleges,id',
+            'college_id' => 'nullable|exists:colleges,id',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -207,7 +207,7 @@ class AdminQuestionController extends Controller
             $course = Course::create([
                 'name' => $courseName,
                 'code' => $courseCode,
-                'college_id' => $data['college_id'],
+                'college_id' => $data['college_id'] ?? 1,
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
