@@ -94,7 +94,7 @@ class AdminChapterController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
-            'college_id' => 'required|exists:colleges,id',
+            'college_id' => 'nullable|exists:colleges,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
             'google_drive_link' => 'nullable|url|max:255',
@@ -104,14 +104,14 @@ class AdminChapterController extends Controller
 
         // Find or create course non-destructively
         $course = Course::where('name', $data['course_name'])
-            ->where('college_id', $data['college_id'])
+            ->when(!empty($data['college_id']), fn($q) => $q->where('college_id', $data['college_id']))
             ->where('is_quiz_only', 1)
             ->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
                 'code' => $data['course_code'],
-                'college_id' => $data['college_id'],
+                'college_id' => $data['college_id'] ?? null,
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
@@ -144,7 +144,7 @@ class AdminChapterController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
-            'college_id' => 'required|exists:colleges,id',
+            'college_id' => 'nullable|exists:colleges,id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:2000',
             'google_drive_link' => 'nullable|url|max:255',
@@ -154,14 +154,14 @@ class AdminChapterController extends Controller
 
         // Find or create course non-destructively
         $course = Course::where('name', $data['course_name'])
-            ->where('college_id', $data['college_id'])
+            ->when(!empty($data['college_id']), fn($q) => $q->where('college_id', $data['college_id']))
             ->where('is_quiz_only', 1)
             ->first();
         if (!$course) {
             $course = Course::create([
                 'name' => $data['course_name'],
                 'code' => $data['course_code'],
-                'college_id' => $data['college_id'],
+                'college_id' => $data['college_id'] ?? null,
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
@@ -205,13 +205,13 @@ class AdminChapterController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:20|unique:courses,code,' . $course->id,
-            'college_id' => 'required|exists:colleges,id',
+            'college_id' => 'nullable|exists:colleges,id',
         ]);
 
         $course->update([
             'name' => $data['name'],
             'code' => $data['code'],
-            'college_id' => $data['college_id'],
+            'college_id' => $data['college_id'] ?? null,
         ]);
 
         $this->logAction('UPDATE_COURSE', "تم تعديل المادة من إدارة الشباتر: \"{$course->name}\" #{$course->id}");

@@ -319,7 +319,7 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                             </div>
                         )}
 
-                        <div className={`grid grid-cols-1 ${isNewCourse || editingId ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-4`}>
+                        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4`}>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 {!isNewCourse && !editingId ? (
@@ -397,21 +397,6 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
-                            {(isNewCourse || editingId) && (
-                                <div>
-                                    <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
-                                    <select
-                                        value={data.college_id}
-                                        onChange={e => setData('college_id', e.target.value)}
-                                        className={inputCls}
-                                        required
-                                    >
-                                        <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
-                                        {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                    {errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.college_id}</p>}
-                                </div>
-                            )}
                         </div>
 
                         <div>
@@ -504,20 +489,6 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                             placeholder="مثلاً: 1503335"
                                         />
                                         {courseForm.errors.code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{courseForm.errors.code}</p>}
-                                    </div>
-
-                                    <div>
-                                        <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
-                                        <select
-                                            value={courseForm.data.college_id}
-                                            onChange={e => courseForm.setData('college_id', e.target.value)}
-                                            className={inputCls}
-                                            required
-                                        >
-                                            <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
-                                            {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
-                                        {courseForm.errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{courseForm.errors.college_id}</p>}
                                     </div>
                                 </div>
 
