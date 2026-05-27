@@ -8,7 +8,6 @@ use App\Models\College;
 use App\Models\Chapter;
 use App\Models\Course;
 use App\Models\Major;
-use App\Support\ArabicNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -36,7 +35,7 @@ class AdminChapterController extends Controller
         $search = $request->query('search');
 
         $chapters = Chapter::query()
-            ->with('course:id,name,code,major_id,college_id')
+            ->with('course:id,name,code,major_id')
             ->withCount('questions')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
             ->when($majorId && !$courseId, function ($q) use ($majorId) {
@@ -103,27 +102,15 @@ class AdminChapterController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Find or create course non-destructively (ignoring college_id for matching, auto-backfilling it if null)
-        $courseName = trim($data['course_name']);
-        $courseCode = trim($data['course_code']);
-        
-        $course = Course::where('code', $courseCode)->first();
+        // Find or create course non-destructively
+        $course = Course::where('name', $data['course_name'])
+            ->where('college_id', $data['college_id'])
+            ->where('is_quiz_only', 1)
+            ->first();
         if (!$course) {
-            $normalizedInputName = ArabicNormalizer::normalize($courseName);
-            $course = Course::all()->first(function ($c) use ($normalizedInputName) {
-                return ArabicNormalizer::normalize($c->name) === $normalizedInputName;
-            });
-        }
-
-        if ($course) {
-            // Auto-backfill college_id if it was null
-            if (empty($course->college_id) && !empty($data['college_id'])) {
-                $course->update(['college_id' => $data['college_id']]);
-            }
-        } else {
             $course = Course::create([
-                'name' => $courseName,
-                'code' => $courseCode,
+                'name' => $data['course_name'],
+                'code' => $data['course_code'],
                 'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
@@ -165,27 +152,15 @@ class AdminChapterController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Find or create course non-destructively (ignoring college_id for matching, auto-backfilling it if null)
-        $courseName = trim($data['course_name']);
-        $courseCode = trim($data['course_code']);
-        
-        $course = Course::where('code', $courseCode)->first();
+        // Find or create course non-destructively
+        $course = Course::where('name', $data['course_name'])
+            ->where('college_id', $data['college_id'])
+            ->where('is_quiz_only', 1)
+            ->first();
         if (!$course) {
-            $normalizedInputName = ArabicNormalizer::normalize($courseName);
-            $course = Course::all()->first(function ($c) use ($normalizedInputName) {
-                return ArabicNormalizer::normalize($c->name) === $normalizedInputName;
-            });
-        }
-
-        if ($course) {
-            // Auto-backfill college_id if it was null
-            if (empty($course->college_id) && !empty($data['college_id'])) {
-                $course->update(['college_id' => $data['college_id']]);
-            }
-        } else {
             $course = Course::create([
-                'name' => $courseName,
-                'code' => $courseCode,
+                'name' => $data['course_name'],
+                'code' => $data['course_code'],
                 'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
@@ -229,13 +204,7 @@ class AdminChapterController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => [
-                'required',
-                'string',
-                'max:20',
-                \Illuminate\Validation\Rule::unique('courses', 'code')
-                    ->ignore($course->id)
-            ],
+            'code' => 'required|string|max:20|unique:courses,code,' . $course->id,
             'college_id' => 'required|exists:colleges,id',
         ]);
 

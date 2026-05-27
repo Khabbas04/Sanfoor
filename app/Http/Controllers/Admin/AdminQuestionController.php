@@ -9,7 +9,6 @@ use App\Models\Chapter;
 use App\Models\Course;
 use App\Models\Major;
 use App\Models\Question;
-use App\Support\ArabicNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -83,7 +82,7 @@ class AdminQuestionController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
-            'college_id' => 'nullable|exists:colleges,id',
+            'college_id' => 'required|exists:colleges,id',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -96,28 +95,16 @@ class AdminQuestionController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Find or create course non-destructively (ignoring college_id for matching, auto-backfilling it if null)
-        $courseName = trim($data['course_name']);
-        $courseCode = trim($data['course_code']);
-        
-        $course = Course::where('code', $courseCode)->first();
+        // Find or create course non-destructively
+        $course = Course::where('name', $data['course_name'])
+            ->where('college_id', $data['college_id'])
+            ->where('is_quiz_only', 1)
+            ->first();
         if (!$course) {
-            $normalizedInputName = ArabicNormalizer::normalize($courseName);
-            $course = Course::all()->first(function ($c) use ($normalizedInputName) {
-                return ArabicNormalizer::normalize($c->name) === $normalizedInputName;
-            });
-        }
-
-        if ($course) {
-            // Auto-backfill college_id if it was null
-            if (empty($course->college_id) && !empty($data['college_id'])) {
-                $course->update(['college_id' => $data['college_id']]);
-            }
-        } else {
             $course = Course::create([
-                'name' => $courseName,
-                'code' => $courseCode,
-                'college_id' => $data['college_id'] ?? 1,
+                'name' => $data['course_name'],
+                'code' => $data['course_code'],
+                'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
@@ -125,24 +112,13 @@ class AdminQuestionController extends Controller
             ]);
         }
 
-        // Find or create chapter if title provided, with robust Arabic normalization
+        // Find or create chapter if title provided
         $chapterId = null;
         if (!empty($data['chapter_title'])) {
-            $chapterTitle = trim($data['chapter_title']);
-            $normalizedInputTitle = ArabicNormalizer::normalize($chapterTitle);
-            
-            $chapter = Chapter::where('course_id', $course->id)->get()->first(function ($ch) use ($normalizedInputTitle) {
-                return ArabicNormalizer::normalize($ch->title) === $normalizedInputTitle;
-            });
-
-            if (!$chapter) {
-                $chapter = Chapter::create([
-                    'course_id' => $course->id,
-                    'title' => $chapterTitle,
-                    'is_active' => true,
-                    'order' => 0
-                ]);
-            }
+            $chapter = Chapter::firstOrCreate(
+                ['course_id' => $course->id, 'title' => $data['chapter_title']],
+                ['is_active' => true, 'order' => 0]
+            );
             $chapterId = $chapter->id;
         }
 
@@ -173,7 +149,7 @@ class AdminQuestionController extends Controller
         $data = $request->validate([
             'course_name' => 'required|string|max:255',
             'course_code' => 'required|string|max:20',
-            'college_id' => 'nullable|exists:colleges,id',
+            'college_id' => 'required|exists:colleges,id',
             'chapter_title' => 'nullable|string|max:255',
             'question_text' => 'required|string|max:5000',
             'option_a' => 'required|string|max:1000',
@@ -186,28 +162,16 @@ class AdminQuestionController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        // Find or create course non-destructively (ignoring college_id for matching, auto-backfilling it if null)
-        $courseName = trim($data['course_name']);
-        $courseCode = trim($data['course_code']);
-        
-        $course = Course::where('code', $courseCode)->first();
+        // Find or create course non-destructively
+        $course = Course::where('name', $data['course_name'])
+            ->where('college_id', $data['college_id'])
+            ->where('is_quiz_only', 1)
+            ->first();
         if (!$course) {
-            $normalizedInputName = ArabicNormalizer::normalize($courseName);
-            $course = Course::all()->first(function ($c) use ($normalizedInputName) {
-                return ArabicNormalizer::normalize($c->name) === $normalizedInputName;
-            });
-        }
-
-        if ($course) {
-            // Auto-backfill college_id if it was null
-            if (empty($course->college_id) && !empty($data['college_id'])) {
-                $course->update(['college_id' => $data['college_id']]);
-            }
-        } else {
             $course = Course::create([
-                'name' => $courseName,
-                'code' => $courseCode,
-                'college_id' => $data['college_id'] ?? 1,
+                'name' => $data['course_name'],
+                'code' => $data['course_code'],
+                'college_id' => $data['college_id'],
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
@@ -215,24 +179,13 @@ class AdminQuestionController extends Controller
             ]);
         }
 
-        // Find or create chapter if title provided, with robust Arabic normalization
+        // Find or create chapter
         $chapterId = null;
         if (!empty($data['chapter_title'])) {
-            $chapterTitle = trim($data['chapter_title']);
-            $normalizedInputTitle = ArabicNormalizer::normalize($chapterTitle);
-            
-            $chapter = Chapter::where('course_id', $course->id)->get()->first(function ($ch) use ($normalizedInputTitle) {
-                return ArabicNormalizer::normalize($ch->title) === $normalizedInputTitle;
-            });
-
-            if (!$chapter) {
-                $chapter = Chapter::create([
-                    'course_id' => $course->id,
-                    'title' => $chapterTitle,
-                    'is_active' => true,
-                    'order' => 0
-                ]);
-            }
+            $chapter = Chapter::firstOrCreate(
+                ['course_id' => $course->id, 'title' => $data['chapter_title']],
+                ['is_active' => true, 'order' => 0]
+            );
             $chapterId = $chapter->id;
         }
 
