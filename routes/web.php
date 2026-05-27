@@ -335,12 +335,12 @@ Route::middleware('auth')->group(function () {
 
         // Academic structure management (Structure page).
         Route::post('/colleges', [AdminController::class, 'storeCollege'])->name('colleges.store');
-        Route::put('/colleges/{college}', [AdminController::class, 'updateCollege'])->name('colleges.quick_update');
-        Route::delete('/colleges/{college}', [AdminController::class, 'destroyCollege'])->name('colleges.quick_destroy');
+        Route::put('/colleges/{college}/quick-update', [AdminController::class, 'updateCollege'])->name('colleges.quick_update');
+        Route::delete('/colleges/{college}/quick-destroy', [AdminController::class, 'destroyCollege'])->name('colleges.quick_destroy');
 
         Route::post('/majors', [AdminController::class, 'storeMajor'])->name('majors.store');
-        Route::put('/majors/{major}', [AdminController::class, 'updateMajor'])->name('majors.quick_update');
-        Route::delete('/majors/{major}', [AdminController::class, 'destroyMajor'])->name('majors.quick_destroy');
+        Route::put('/majors/{major}/quick-update', [AdminController::class, 'updateMajor'])->name('majors.quick_update');
+        Route::delete('/majors/{major}/quick-destroy', [AdminController::class, 'destroyMajor'])->name('majors.quick_destroy');
 
         // Colleges and landmarks management - complete CRUD with UI forms.
         Route::get('/colleges/list', [AdminCollegeController::class, 'indexColleges'])->name('colleges.index');
