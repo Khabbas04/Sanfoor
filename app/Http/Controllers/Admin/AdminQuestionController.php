@@ -40,7 +40,7 @@ class AdminQuestionController extends Controller
         $search = $request->query('search');
 
         $questions = Question::query()
-            ->with('course:id,name,code,major_id', 'chapter:id,title')
+            ->with('course:id,name,code,college_id,major_id', 'chapter:id,title')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
             ->when($chapterId, fn($q) => $q->where('chapter_id', $chapterId))
             ->when($difficulty, fn($q) => $q->where('difficulty', $difficulty))
