@@ -36,7 +36,7 @@ class AdminChapterController extends Controller
         $search = $request->query('search');
 
         $chapters = Chapter::query()
-            ->with('course:id,name,code,major_id')
+            ->with('course:id,name,code,major_id,college_id')
             ->withCount('questions')
             ->when($courseId, fn($q) => $q->where('course_id', $courseId))
             ->when($majorId && !$courseId, function ($q) use ($majorId) {
