@@ -479,6 +479,17 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                     <button type="button" onClick={() => { setShowCourseForm(false); setEditingCourse(null); courseForm.reset(); }} className={`text-lg opacity-50 hover:opacity-100 transition-opacity`}>✕</button>
                                 </div>
 
+                                {Object.keys(courseForm.errors).length > 0 && (
+                                    <div className="bg-rose-500/10 border border-rose-500/50 text-rose-500 p-4 rounded-xl text-xs font-bold font-mono text-left" dir="ltr">
+                                        <p className="mb-1 uppercase text-rose-600 font-black">Validation Errors:</p>
+                                        <ul className="list-disc list-inside">
+                                            {Object.keys(courseForm.errors).map(key => (
+                                                <li key={key}>{courseForm.errors[key]}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
                                 <div className="space-y-4">
                                     <div>
                                         <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'اسم المادة' : 'Course Name'} *</label>
