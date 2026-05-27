@@ -196,4 +196,26 @@ class AdminChapterController extends Controller
 
         return back()->with(['message' => 'تم حذف الشابتر بنجاح.', 'type' => 'success']);
     }
+
+    /**
+     * Update an existing course (quick edit from chapter management).
+     */
+    public function quickUpdateCourse(Request $request, Course $course): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:20|unique:courses,code,' . $course->id,
+            'college_id' => 'required|exists:colleges,id',
+        ]);
+
+        $course->update([
+            'name' => $data['name'],
+            'code' => $data['code'],
+            'college_id' => $data['college_id'],
+        ]);
+
+        $this->logAction('UPDATE_COURSE', "تم تعديل المادة من إدارة الشباتر: \"{$course->name}\" #{$course->id}");
+
+        return back()->with(['message' => 'تم تعديل المادة بنجاح.', 'type' => 'success']);
+    }
 }

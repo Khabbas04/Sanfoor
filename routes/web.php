@@ -394,6 +394,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/chapters', [AdminChapterController::class, 'store'])->name('chapters.store');
         Route::put('/chapters/{chapter}', [AdminChapterController::class, 'update'])->name('chapters.update');
         Route::delete('/chapters/{chapter}', [AdminChapterController::class, 'destroy'])->name('chapters.destroy');
+        Route::put('/courses/{course}/quick-update', [AdminChapterController::class, 'quickUpdateCourse'])->name('courses.quick_update');
 
         // Question management for admin.
         Route::get('/questions', [AdminQuestionController::class, 'index'])->name('questions.index');

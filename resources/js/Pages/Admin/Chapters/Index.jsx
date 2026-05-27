@@ -19,6 +19,8 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
     const [editingId, setEditingId] = useState(null);
     const [localSearch, setLocalSearch] = useState(filters.search || '');
     const [isNewCourse, setIsNewCourse] = useState(courses.length === 0);
+    const [showCourseForm, setShowCourseForm] = useState(false);
+    const [editingCourse, setEditingCourse] = useState(null);
 
     const t = lang === 'ar' ? {
         title: 'إدارة الشابترز',
@@ -98,6 +100,12 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
         google_drive_link: '',
         order: 0,
         is_active: true,
+    });
+
+    const courseForm = useForm({
+        name: '',
+        code: '',
+        college_id: '',
     });
 
     // Filtered lists for the form
@@ -451,6 +459,81 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                 </div>
                 )}
 
+                {/* Edit Course Form Modal */}
+                {showCourseForm && editingCourse && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
+                        <div className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl my-8 transition-all scale-100 ${card}`}>
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                courseForm.put(`/admin/courses/${editingCourse.id}/quick-update`, {
+                                    preserveScroll: true,
+                                    onSuccess: () => {
+                                        setShowCourseForm(false);
+                                        setEditingCourse(null);
+                                        courseForm.reset();
+                                    }
+                                });
+                            }} className="space-y-5">
+                                <div className="flex items-center justify-between">
+                                    <h3 className={`text-[15px] font-[900] ${heading}`}>✏️ {lang === 'ar' ? 'تعديل بيانات المادة' : 'Edit Course Details'}</h3>
+                                    <button type="button" onClick={() => { setShowCourseForm(false); setEditingCourse(null); courseForm.reset(); }} className={`text-lg opacity-50 hover:opacity-100 transition-opacity`}>✕</button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'اسم المادة' : 'Course Name'} *</label>
+                                        <input 
+                                            type="text" 
+                                            value={courseForm.data.name} 
+                                            onChange={e => courseForm.setData('name', e.target.value)} 
+                                            className={inputCls} 
+                                            required 
+                                            placeholder="مثلاً: هندسة البرمجيات..."
+                                        />
+                                        {courseForm.errors.name && <p className="text-[10px] text-rose-500 mt-1 font-bold">{courseForm.errors.name}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'رمز المادة' : 'Course Code'} *</label>
+                                        <input 
+                                            type="text" 
+                                            value={courseForm.data.code} 
+                                            onChange={e => courseForm.setData('code', e.target.value)} 
+                                            className={inputCls} 
+                                            required 
+                                            placeholder="مثلاً: 1503335"
+                                        />
+                                        {courseForm.errors.code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{courseForm.errors.code}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
+                                        <select
+                                            value={courseForm.data.college_id}
+                                            onChange={e => courseForm.setData('college_id', e.target.value)}
+                                            className={inputCls}
+                                            required
+                                        >
+                                            <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
+                                            {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        {courseForm.errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{courseForm.errors.college_id}</p>}
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-1">
+                                    <button type="submit" disabled={courseForm.processing} className="px-7 py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50 transition-all">
+                                        {lang === 'ar' ? 'تحديث' : 'Update'}
+                                    </button>
+                                    <button type="button" onClick={() => { setShowCourseForm(false); setEditingCourse(null); courseForm.reset(); }} className={`px-6 py-2.5 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'}`}>
+                                        {t.cancel}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
                 {/* Chapters grouped by course */}
                 {chapters.length === 0 ? (
                     <div className={`rounded-2xl border p-16 text-center ${card}`}>
@@ -475,10 +558,28 @@ export default function AdminChapters({ chapters = [], courses = [], majors = []
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <button 
+                                            onClick={() => {
+                                                courseForm.setData({
+                                                    name: group.course?.name || '',
+                                                    code: group.course?.code || '',
+                                                    college_id: group.course?.college_id || '',
+                                                });
+                                                setEditingCourse(group.course);
+                                                setShowCourseForm(true);
+                                            }}
+                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                                                isDark 
+                                                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white' 
+                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-indigo-600'
+                                            }`}
+                                        >
+                                            ✏️ {lang === 'ar' ? 'تعديل المادة' : 'Edit Course'}
+                                        </button>
+                                        <button 
                                             onClick={() => openCreate(group.course)} 
                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black transition-all ${
                                                 isDark 
-                                                    ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white' 
+                                                    ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-50 hover:text-white' 
                                                     : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white'
                                             }`}
                                         >
