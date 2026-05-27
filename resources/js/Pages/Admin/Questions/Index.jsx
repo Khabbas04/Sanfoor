@@ -264,7 +264,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     type="button"
                                     onClick={() => {
                                         setIsNewCourse(false);
-                                        setData(prev => ({ ...prev, course_name: '', course_code: '', college_id: '' }));
+                                        setData('course_name', '');
+                                        setData('course_code', '');
+                                        setData('college_id', '');
                                     }}
                                     className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                                 >
@@ -274,7 +276,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     type="button"
                                     onClick={() => {
                                         setIsNewCourse(true);
-                                        setData(prev => ({ ...prev, course_name: '', course_code: '', college_id: '' }));
+                                        setData('course_name', '');
+                                        setData('course_code', '');
+                                        setData('college_id', '');
                                     }}
                                     className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                                 >
@@ -291,13 +295,16 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     <select
                                         value={data.course_name}
                                         onChange={e => {
-                                            const c = courses.find(x => x.name === e.target.value);
-                                            setData(prev => ({
-                                                ...prev,
-                                                course_name: e.target.value,
-                                                course_code: c ? c.code : '',
-                                                college_id: c ? c.college_id : ''
-                                            }));
+                                            const val = e.target.value;
+                                            setData('course_name', val);
+                                            const c = courses.find(x => String(x.name) === String(val));
+                                            if (c) {
+                                                setData('course_code', c.code || '');
+                                                setData('college_id', c.college_id || '');
+                                            } else {
+                                                setData('course_code', '');
+                                                setData('college_id', '');
+                                            }
                                         }}
                                         className={inputCls}
                                         required
