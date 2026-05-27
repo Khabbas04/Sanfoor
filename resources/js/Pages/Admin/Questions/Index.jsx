@@ -250,6 +250,12 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     <h3 className={`text-[15px] font-[900] ${heading}`}>{editingId ? `✏️ ${t.update}` : `➕ ${t.addQuestion}`}</h3>
                                     <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
                                 </div>
+                                {Object.keys(errors).length > 0 && (
+                                    <div className="bg-rose-500/10 border border-rose-500/50 text-rose-500 p-4 rounded-xl text-xs font-bold font-mono text-left" dir="ltr">
+                                        <p className="mb-2 uppercase text-rose-600">Validation Errors:</p>
+                                        <pre className="whitespace-pre-wrap">{JSON.stringify(errors, null, 2)}</pre>
+                                    </div>
+                                )}
 
                         {/* Course selection toggle */}
                         {!editingId && courses.length > 0 && (
