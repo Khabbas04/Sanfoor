@@ -346,22 +346,20 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
-                            {(isNewCourse || editingId || data.college_id !== '') && (
-                                <div>
-                                    <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
-                                    <select
-                                        value={data.college_id}
-                                        onChange={e => setData('college_id', e.target.value)}
-                                        className={inputCls}
-                                        required
-                                        disabled={!isNewCourse || !!editingId}
-                                    >
-                                        <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
-                                        {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                    {errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.college_id}</p>}
-                                </div>
-                            )}
+                            <div>
+                                <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
+                                <select
+                                    value={data.college_id}
+                                    onChange={e => setData('college_id', e.target.value)}
+                                    className={inputCls}
+                                    required
+                                    disabled={!!editingId || (!isNewCourse && data.college_id !== '')}
+                                >
+                                    <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
+                                    {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                                {errors.college_id && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.college_id}</p>}
+                            </div>
                             <div>
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.chapter}</label>
                                 <input 
