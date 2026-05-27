@@ -300,7 +300,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                             const c = courses.find(x => String(x.name) === String(val));
                                             if (c) {
                                                 setData('course_code', c.code || '');
-                                                setData('college_id', c.college_id || '');
+                                                setData('college_id', c.college_id ? String(c.college_id) : '');
                                             } else {
                                                 setData('course_code', '');
                                                 setData('college_id', '');
@@ -346,7 +346,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 />
                                 {errors.course_code && <p className="text-[10px] text-rose-500 mt-1 font-bold">{errors.course_code}</p>}
                             </div>
-                            {(isNewCourse || editingId) && (
+                            {(isNewCourse || editingId || data.college_id !== '') && (
                                 <div>
                                     <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{lang === 'ar' ? 'الكلية' : 'College'} *</label>
                                     <select
@@ -354,7 +354,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                         onChange={e => setData('college_id', e.target.value)}
                                         className={inputCls}
                                         required
-                                        disabled={!!editingId}
+                                        disabled={!isNewCourse || !!editingId}
                                     >
                                         <option value="">{lang === 'ar' ? 'اختر الكلية...' : 'Select college...'}</option>
                                         {colleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
