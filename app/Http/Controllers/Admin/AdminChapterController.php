@@ -204,7 +204,14 @@ class AdminChapterController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|max:20|unique:courses,code,' . $course->id,
+            'code' => [
+                'required',
+                'string',
+                'max:20',
+                \Illuminate\Validation\Rule::unique('courses', 'code')
+                    ->ignore($course->id)
+                    ->where(fn($q) => $q->where('is_quiz_only', 1))
+            ],
             'college_id' => 'required|exists:colleges,id',
         ]);
 
