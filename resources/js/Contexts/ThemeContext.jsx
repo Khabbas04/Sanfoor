@@ -109,11 +109,11 @@ function restoreAutoDark() {
 }
 
 export function ThemeProvider({ children }) {
-    // Initialize from local storage first, then fall back to the OS preference.
+    // Initialize from local storage first, defaulting to light mode (false) if not set.
     const [isDark, setIsDark] = useState(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('theme') === 'dark' ||
-                (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            const saved = localStorage.getItem('theme');
+            return saved === 'dark';
         }
         return false;
     });
