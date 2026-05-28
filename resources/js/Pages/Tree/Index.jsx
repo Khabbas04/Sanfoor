@@ -2490,7 +2490,7 @@ export default function Tree({
                                     ))}
                                 </div>
                                 <div className="mt-3 text-[10px] font-bold text-slate-400">حدد الفصل ثم أضف المادة.</div>
-                                <div className="mt-3 flex-1 overflow-y-auto space-y-4">
+                                <div className="mt-3 flex-1 overflow-y-auto space-y-4 hide-scrollbar">
                                     {['compulsory', 'university_req', 'supporting', 'elective', 'other'].map(type => {
                                         const groupCourses = planLibraryCourses.filter(c => {
                                             const t = c.type || 'compulsory';
@@ -3285,7 +3285,7 @@ export default function Tree({
                 </div>
             )}
 
-            <div className="flex-1 flex w-full h-full relative overflow-hidden">
+            <div className="flex-1 flex w-full min-h-0 relative overflow-hidden">
                 {show4YearPlan && render4YearPlan()}
                 {isSidebarOpen && isMobile && !isLandscapeMobile && !isFullScreen && (
                     <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
@@ -3323,7 +3323,7 @@ export default function Tree({
                             <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
                         </div>
 
-                        <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'}`}>
+                        <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
 
                             {/* ═══ DETAILS TAB ═══ */}
                             {activeTab === 'details' && renderDetailsPanel()}
@@ -3634,9 +3634,9 @@ export default function Tree({
                             elementsSelectable={true}
                             selectionOnDrag={false}
                             panOnDrag={!positionEditMode}
-                            panOnScroll={!positionEditMode}
+                            panOnScroll={isMobile && !positionEditMode}
                             zoomOnPinch={true}
-                            zoomOnScroll={false}
+                            zoomOnScroll={!isMobile && !positionEditMode}
                             zoomOnDoubleClick={!isMobile && !positionEditMode}
                             proOptions={{ hideAttribution: true }}
                             className="react-flow-rtl-fix"
@@ -3665,7 +3665,7 @@ export default function Tree({
                                         ✕
                                     </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+                                <div className="flex-1 overflow-y-auto overscroll-contain p-4 hide-scrollbar">
                                     {renderDetailsPanel({ showCloseButton: false })}
                                 </div>
                             </div>
