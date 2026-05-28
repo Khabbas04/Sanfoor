@@ -2624,19 +2624,26 @@ export default function Tree({
                 {/* Course Header */}
                 <div className="bg-white/10 backdrop-blur-md p-5 rounded-[1.25rem] border border-white/15 shadow-lg relative overflow-hidden">
                     <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
-                    {/* Close Button */}
-                    {showCloseButton && (
-                        <button onClick={() => setSelectedCourse(null)} className="absolute top-3 left-3 w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center text-white/60 hover:text-white text-xs transition-all z-20 backdrop-blur-sm border border-white/10">✕</button>
-                    )}
                     <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-3.5">
+                        <div className="flex justify-between items-start mb-3.5 gap-2">
                             <div className="flex gap-2">
                                 <span className="bg-white/15 text-white/90 px-2.5 py-1 rounded-lg font-mono text-[11px] font-[800] border border-white/10 shadow-sm backdrop-blur-sm">{selectedCourse.code}</span>
                                 <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border backdrop-blur-sm ${selectedCourse.type === 'compulsory' ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/20' : selectedCourse.type === 'elective' ? 'bg-amber-500/20 text-amber-200 border-amber-400/20' : selectedCourse.type === 'supporting' ? 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-400/20' : 'bg-cyan-500/20 text-cyan-200 border-cyan-400/20'}`}>
                                     {selectedCourse.type === 'compulsory' ? 'إجباري' : selectedCourse.type === 'elective' ? 'اختياري' : selectedCourse.type === 'supporting' ? 'مساندة' : 'متطلب جامعة'}
                                 </span>
                             </div>
-                            <span className="text-white/60 font-[800] text-[11px] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">{selectedCourse.credit_hours} ساعات</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-white/60 font-[800] text-[11px] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">{selectedCourse.credit_hours} ساعات</span>
+                                {showCloseButton && (
+                                    <button
+                                        onClick={() => setSelectedCourse(null)}
+                                        className="w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center text-white/60 hover:text-white text-xs transition-all backdrop-blur-sm border border-white/10"
+                                        title="إغلاق"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         <h2 className="text-xl font-[900] text-white leading-tight">{selectedCourse.name}</h2>
                     </div>

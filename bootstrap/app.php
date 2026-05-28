@@ -29,5 +29,23 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        // Keep the default exception handling for now.
+        $exceptions->respond(function ($response, $e, $request) {
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return $response;
+            }
+
+            if ($response->getStatusCode() === 404) {
+                return \Inertia\Inertia::render('System/Error', [
+                    'status' => 404,
+                ])->toResponse($request)->setStatusCode(404);
+            }
+
+            if (!app()->environment('local') && in_array($response->getStatusCode(), [500, 503, 403])) {
+                return \Inertia\Inertia::render('System/Error', [
+                    'status' => $response->getStatusCode(),
+                ])->toResponse($request)->setStatusCode($response->getStatusCode());
+            }
+
+            return $response;
+        });
     })->create();
