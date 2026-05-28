@@ -239,6 +239,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tree', [TreeController::class, 'index'])->name('tree.index');
     Route::post('/tree/toggle', [TreeController::class, 'toggle'])->name('tree.toggle');
     Route::post('/tree/retake', [TreeController::class, 'retakeCourse'])->name('tree.retake');
+    Route::post('/tree/update-grade', [TreeController::class, 'updateGrade'])->name('tree.update_grade');
     Route::post('/graduation-plan', [GraduationPlanController::class, 'store'])->name('graduation-plan.store');
     Route::delete('/graduation-plan', [GraduationPlanController::class, 'destroy'])->name('graduation-plan.destroy');
 

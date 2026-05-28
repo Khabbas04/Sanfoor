@@ -224,6 +224,7 @@ class TreeController extends Controller
                 'studied_year' => 'nullable|integer|min:1|max:6',
                 'studied_term' => 'nullable|integer|in:1,2,3',
                 'studied_semester' => 'nullable|integer|min:1|max:18',
+                'grade' => 'nullable|numeric|min:0|max:100',
             ]);
 
             $userId = Auth::id();
@@ -331,12 +332,16 @@ class TreeController extends Controller
             $studiedYear = max(1, min(6, (int) $studiedYear));
             $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
 
+            $grade = $request->input('grade');
+            $cleanGrade = ($grade === '' || is_null($grade)) ? null : (float) $grade;
+
             DB::table('course_user')->updateOrInsert(
                 [
                     'user_id' => $userId,
                     'course_id' => $courseId,
                 ],
                 [
+                    'grade' => $cleanGrade,
                     'studied_semester' => $targetSemester,
                     'studied_year' => $studiedYear,
                     'studied_term' => $studiedTerm,
@@ -357,6 +362,68 @@ class TreeController extends Controller
 
             return response()->json([
                 'message' => 'تعذر تحديث حالة المادة الآن. حاول مرة أخرى.',
+            ], 500);
+        }
+    }
+
+    /**
+     * تحديث علامة مادة منجزة مباشرة من الشجرة الأكاديمية
+     */
+    public function updateGrade(Request $request)
+    {
+        try {
+            $request->validate([
+                'course_id' => 'required|exists:courses,id',
+                'grade' => 'nullable|numeric|min:0|max:100',
+            ]);
+
+            $userId = Auth::id();
+            $courseId = $request->course_id;
+            $grade = $request->input('grade');
+            $cleanGrade = ($grade === '' || is_null($grade)) ? null : (float) $grade;
+
+            // تحديث علامة آخر محاولة للمادة
+            $latestAttempt = DB::table('course_user')
+                ->where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->orderByDesc('attempt_number')
+                ->first();
+
+            if (!$latestAttempt) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'يجب تسجيل اجتياز المادة أولاً قبل إضافة علامة لها.',
+                ], 404);
+            }
+
+            DB::table('course_user')
+                ->where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->where('attempt_number', $latestAttempt->attempt_number)
+                ->update([
+                    'grade' => $cleanGrade,
+                    'updated_at' => now(),
+                ]);
+
+            self::flushCourseTreeCache();
+
+            $user = Auth::user();
+            $newGpa = $user->calculateGPA();
+
+            return response()->json([
+                'status' => 'success',
+                'grade' => $cleanGrade,
+                'new_percentage' => $newGpa['percentage']
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Tree updateGrade failed', [
+                'user_id' => Auth::id(),
+                'course_id' => $request->input('course_id'),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'تعذر تحديث العلامة الآن. حاول مرة أخرى.',
             ], 500);
         }
     }

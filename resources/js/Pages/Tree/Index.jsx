@@ -191,6 +191,112 @@ export default function Tree({
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
     const [cartIds, setCartIds] = useState(initial_cart_ids || []);
     const [localPassedCourses, setLocalPassedCourses] = useState(passed_courses || []);
+    const [gradeInputs, setGradeInputs] = useState({});
+    const [isSavingGrade, setIsSavingGrade] = useState(null);
+
+    const calculatedGpa = useMemo(() => {
+        const coursesWithGrades = localPassedCourses.filter(c => c.pivot?.grade !== null && c.pivot?.grade !== undefined && String(c.pivot?.grade).trim() !== '');
+        
+        if (coursesWithGrades.length === 0) {
+            return { percentage: 0, hasRecords: false };
+        }
+
+        const bestGrades = {};
+        coursesWithGrades.forEach(course => {
+            const courseId = course.id;
+            const rawGrade = parseFloat(course.pivot.grade);
+            const effectiveGrade = rawGrade < 35 ? 0 : rawGrade;
+            const hours = Number(course.credit_hours || 0);
+
+            if (!bestGrades[courseId] || effectiveGrade > bestGrades[courseId].grade) {
+                bestGrades[courseId] = {
+                    grade: effectiveGrade,
+                    hours: hours
+                };
+            }
+        });
+
+        let totalHours = 0;
+        let weightedSum = 0;
+
+        Object.values(bestGrades).forEach(entry => {
+            totalHours += entry.hours;
+            weightedSum += (entry.grade * entry.hours);
+        });
+
+        if (totalHours === 0) {
+            return { percentage: 0, hasRecords: false };
+        }
+
+        const pct = weightedSum / totalHours;
+        return {
+            percentage: Number(pct.toFixed(2)),
+            hasRecords: true
+        };
+    }, [localPassedCourses]);
+
+    const handleGradeInputChange = (courseId, value) => {
+        setGradeInputs(prev => ({
+            ...prev,
+            [courseId]: value
+        }));
+    };
+
+    const saveCourseGrade = async (courseId) => {
+        const value = gradeInputs[courseId];
+        let cleanGrade = value === undefined ? null : String(value).trim();
+        
+        if (cleanGrade !== null && cleanGrade !== '') {
+            const num = parseFloat(cleanGrade);
+            if (isNaN(num) || num < 0 || num > 100) {
+                Swal.fire({ icon: 'error', title: 'خطأ', text: 'يرجى إدخال علامة صحيحة بين 0 و 100.', ...swalTheme });
+                return;
+            }
+        } else {
+            cleanGrade = null;
+        }
+
+        setIsSavingGrade(courseId);
+
+        try {
+            const response = await axios.post(route('tree.update_grade'), {
+                course_id: courseId,
+                grade: cleanGrade
+            });
+
+            if (response.data.status === 'success') {
+                setLocalPassedCourses(prev => prev.map(c => {
+                    if (c.id === courseId) {
+                        return {
+                            ...c,
+                            pivot: {
+                                ...c.pivot,
+                                grade: cleanGrade
+                            }
+                        };
+                    }
+                    return c;
+                }));
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم حفظ العلامة!',
+                    text: `تم تحديث علامة المادة بنجاح. المعدل التراكمي الجديد: ${response.data.new_percentage}%`,
+                    ...swalTheme
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'خطأ!',
+                text: error.response?.data?.msg || error.response?.data?.message || 'تعذر حفظ العلامة. حاول مرة أخرى.',
+                ...swalTheme
+            });
+        } finally {
+            setIsSavingGrade(null);
+        }
+    };
+
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [targetSemester, setTargetSemester] = useState(1);
     const [targetYear, setTargetYear] = useState(1);
@@ -1831,15 +1937,16 @@ export default function Tree({
         let submitYear = targetYear;
         let submitTerm = targetTerm;
         let submitSemester = targetSemester;
+        let submitGrade = null;
 
         if (!passedIds.includes(courseId)) {
             const { value: formValues } = await Swal.fire({
                 title: 'تفاصيل إنجاز المادة',
                 html: `
-                    <div class="space-y-4 text-right mt-4" dir="rtl">
+                    <div class="space-y-4 text-right mt-4" dir="rtl font-t">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-2">السنة الدراسية:</label>
-                            <select id="swal-year" class="w-full border-slate-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none">
+                            <select id="swal-year" class="w-full border border-slate-200 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none font-bold">
                                 <option value="1" ${targetYear === 1 ? 'selected' : ''}>السنة الأولى</option>
                                 <option value="2" ${targetYear === 2 ? 'selected' : ''}>السنة الثانية</option>
                                 <option value="3" ${targetYear === 3 ? 'selected' : ''}>السنة الثالثة</option>
@@ -1851,11 +1958,15 @@ export default function Tree({
                         </div>
                         <div class="pt-2">
                             <label class="block text-sm font-bold text-slate-700 mb-2">الفصل الدراسي:</label>
-                            <select id="swal-term" class="w-full border-slate-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none">
+                            <select id="swal-term" class="w-full border border-slate-200 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none font-bold">
                                 <option value="1" ${targetTerm === 1 ? 'selected' : ''}>الفصل الأول</option>
                                 <option value="2" ${targetTerm === 2 ? 'selected' : ''}>الفصل الثاني</option>
                                 <option value="3" ${targetTerm === 3 ? 'selected' : ''}>الفصل الصيفي</option>
                             </select>
+                        </div>
+                        <div class="pt-2">
+                            <label class="block text-sm font-bold text-slate-700 mb-2">العلامة (اختياري، من 100):</label>
+                            <input id="swal-grade" type="number" min="0" max="100" placeholder="مثال: 85" class="w-full border border-slate-200 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-slate-50 text-slate-700 outline-none font-bold">
                         </div>
                     </div>
                 `,
@@ -1867,10 +1978,22 @@ export default function Tree({
                 preConfirm: () => {
                     const y = document.getElementById('swal-year');
                     const t = document.getElementById('swal-term');
+                    const g = document.getElementById('swal-grade');
                     if (!y || !t) return false;
+
+                    const gradeVal = g.value.trim();
+                    if (gradeVal !== '') {
+                        const num = parseFloat(gradeVal);
+                        if (isNaN(num) || num < 0 || num > 100) {
+                            Swal.showValidationMessage('يرجى إدخال علامة صحيحة بين 0 و 100');
+                            return false;
+                        }
+                    }
+
                     return {
                         year: parseInt(y.value),
-                        term: parseInt(t.value)
+                        term: parseInt(t.value),
+                        grade: gradeVal !== '' ? parseFloat(gradeVal) : null
                     }
                 }
             });
@@ -1880,6 +2003,7 @@ export default function Tree({
             submitYear = formValues.year;
             submitTerm = formValues.term;
             submitSemester = yearTermToSemester(submitYear, submitTerm);
+            submitGrade = formValues.grade;
         }
 
         try {
@@ -1888,6 +2012,7 @@ export default function Tree({
                 studied_year: submitYear,
                 studied_term: submitTerm,
                 studied_semester: submitSemester,
+                grade: submitGrade,
             });
 
             if (response.data.status === 'added') {
@@ -1901,7 +2026,7 @@ export default function Tree({
                     setLocalPassedCourses(prev => [...prev, {
                         ...addedCourse,
                         pivot: {
-                            grade: null,
+                            grade: submitGrade,
                             studied_semester: submitSemester,
                             studied_year: submitYear,
                             studied_term: submitTerm,
@@ -3008,73 +3133,97 @@ export default function Tree({
                     )}
                     
                     {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
-                    {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (
-                        <>
-                            <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-rose-500/10 border-rose-400/20' : 'bg-emerald-500/10 border-emerald-400/20'} border p-4 rounded-xl backdrop-blur-sm`}>
-                                <div className="flex items-start gap-3">
-                                    <span className="text-xl mt-0.5">{getStatus(selectedCourse) === 'failed' ? '❌' : '✅'}</span>
-                                    <div>
-                                        <h4 className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-200' : 'text-emerald-200'} font-[900] text-[13px]`}>
-                                            {getStatus(selectedCourse) === 'failed' ? 'مادة مرسوبة' : 'مادة منجزة (متاحة للإعادة)'}
-                                        </h4>
-                                        <p className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-300/70' : 'text-emerald-300/70'} text-[11px] font-bold mt-0.5 leading-relaxed`}>
-                                            {(() => {
-                                                const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
-                                                const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
-                                                const grade = latest?.pivot?.grade;
-                                                const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
-                                                
-                                                if (getStatus(selectedCourse) === 'passed') {
-                                                    return gradeVal !== null 
+                    {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (() => {
+                        const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
+                        const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
+                        const grade = latest?.pivot?.grade;
+                        const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
+                        
+                        return (
+                            <>
+                                <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-rose-500/10 border-rose-400/20' : 'bg-emerald-500/10 border-emerald-400/20'} border p-4 rounded-xl backdrop-blur-sm`}>
+                                    <div className="flex items-start gap-3">
+                                        <span className="text-xl mt-0.5">{getStatus(selectedCourse) === 'failed' ? '❌' : '✅'}</span>
+                                        <div>
+                                            <h4 className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-200' : 'text-emerald-200'} font-[900] text-[13px]`}>
+                                                {getStatus(selectedCourse) === 'failed' ? 'مادة مرسوبة' : 'مادة منجزة (متاحة للإعادة)'}
+                                            </h4>
+                                            <p className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-300/70' : 'text-emerald-300/70'} text-[11px] font-bold mt-0.5 leading-relaxed`}>
+                                                {getStatus(selectedCourse) === 'passed' ? (
+                                                    gradeVal !== null 
                                                         ? `العلامة الحالية: ${grade}%. يمكنك إعادة تسجيل المادة مرة أخرى لرفع معدلك التراكمي.`
-                                                        : `لقد اجتزت هذه المادة، ولكن يمكنك إعادتها لرفع معدلك التراكمي إذا رغبت.`;
-                                                }
+                                                        : `لقد اجتزت هذه المادة، ولكن يمكنك إعادتها لرفع معدلك التراكمي إذا رغبت.`
+                                                ) : (
+                                                    gradeVal !== null && gradeVal < 35 
+                                                        ? `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`
+                                                        : gradeVal !== null && gradeVal < 50 
+                                                            ? `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`
+                                                            : 'يمكنك إعادة هذه المادة.'
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-xl backdrop-blur-sm space-y-3">
+                                    <label className="block text-[11px] font-[800] text-slate-300">تحديث علامة المادة (من 100):</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            min="0" max="100"
+                                            placeholder="مثال: 85"
+                                            value={gradeInputs[selectedCourse.id] !== undefined ? gradeInputs[selectedCourse.id] : (grade !== null && grade !== undefined ? grade : '')}
+                                            onChange={(e) => handleGradeInputChange(selectedCourse.id, e.target.value)}
+                                            className="flex-1 bg-white/10 border border-white/15 rounded-lg text-white text-[12px] py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold"
+                                        />
+                                        <button
+                                            onClick={() => saveCourseGrade(selectedCourse.id)}
+                                            disabled={isSavingGrade === selectedCourse.id}
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black px-4 py-1.5 rounded-lg active:scale-95 transition-all shadow-md shrink-0 disabled:opacity-50"
+                                        >
+                                            {isSavingGrade === selectedCourse.id ? 'حفظ...' : 'حفظ'}
+                                        </button>
+                                    </div>
+                                </div>
 
-                                                if (gradeVal !== null && gradeVal < 35) return `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`;
-                                                if (gradeVal !== null && gradeVal < 50) return `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`;
-                                                return 'يمكنك إعادة هذه المادة.';
-                                            })()}
-                                        </p>
+                                <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-amber-500/10 border-amber-400/20' : 'bg-sky-500/10 border-sky-400/20'} border p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5`}>
+                                    <span className={`text-[12px] font-[800] ${getStatus(selectedCourse) === 'failed' ? 'text-amber-300' : 'text-sky-300'} flex items-center gap-2`}>📅 تحديد فصل الإعادة:</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>السنة الدراسية</label>
+                                            <select
+                                                value={targetYear}
+                                                onChange={(e) => handleTargetYearChange(e.target.value)}
+                                                className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                            >
+                                                {yearOptions.map(year => (
+                                                    <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>الفصل</label>
+                                            <select
+                                                value={targetTerm}
+                                                onChange={(e) => handleTargetTermChange(e.target.value)}
+                                                className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                            >
+                                                {termOptions.map(term => (
+                                                    <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-amber-500/10 border-amber-400/20' : 'bg-sky-500/10 border-sky-400/20'} border p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5`}>
-                                <span className={`text-[12px] font-[800] ${getStatus(selectedCourse) === 'failed' ? 'text-amber-300' : 'text-sky-300'} flex items-center gap-2`}>📅 تحديد فصل الإعادة:</span>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>السنة الدراسية</label>
-                                        <select
-                                            value={targetYear}
-                                            onChange={(e) => handleTargetYearChange(e.target.value)}
-                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                        >
-                                            {yearOptions.map(year => (
-                                                <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>الفصل</label>
-                                        <select
-                                            value={targetTerm}
-                                            onChange={(e) => handleTargetTermChange(e.target.value)}
-                                            className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                        >
-                                            {termOptions.map(term => (
-                                                <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            <button onClick={() => retakeCourse(selectedCourse.id)} className={`w-full ${getStatus(selectedCourse) === 'failed' ? 'bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20' : 'bg-gradient-to-l from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 shadow-sky-500/20'} text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg active:scale-[0.97] flex items-center justify-center gap-2`}>
-                                🔄 إعادة المادة (محاولة جديدة)
-                            </button>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/20 text-rose-300 hover:from-rose-500 hover:to-red-600 hover:text-white hover:border-transparent py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                ✖ إلغاء تسجيلات المادة بالكامل
-                            </button>
-                        </>
-                    )}
+                                <button onClick={() => retakeCourse(selectedCourse.id)} className={`w-full ${getStatus(selectedCourse) === 'failed' ? 'bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20' : 'bg-gradient-to-l from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 shadow-sky-500/20'} text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg active:scale-[0.97] flex items-center justify-center gap-2`}>
+                                    🔄 إعادة المادة (محاولة جديدة)
+                                </button>
+                                <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/20 text-rose-300 hover:from-rose-500 hover:to-red-600 hover:text-white hover:border-transparent py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                                    ✖ إلغاء تسجيلات المادة بالكامل
+                                </button>
+                            </>
+                        );
+                    })()}
                 </div>
             </motion.div>
         ) : (
@@ -3172,7 +3321,7 @@ export default function Tree({
                                 {isSidebarOpen ? '✕' : '☰'}
                             </button>
 
-                            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5">
+                            <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5 flex-wrap">
                                 <span>{major_name && `${major_name} • `}{student_name}</span>
                                 <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
                                     خطة {study_plan_version}
@@ -3182,11 +3331,22 @@ export default function Tree({
                                         {academicPeriodLabel}
                                     </span>
                                 )}
+                                {calculatedGpa.hasRecords && (
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
+                                        🎓 المعدل {calculatedGpa.percentage}%
+                                    </span>
+                                )}
                             </p>
                         </div>
 
                         {/* 🆕 Header مع Mini Stats */}
                         <div className="hidden md:flex items-center gap-4">
+                            {calculatedGpa.hasRecords && (
+                                <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 shadow-sm">
+                                    <span className="text-[12px] font-black">🎓 المعدل:</span>
+                                    <span className="text-[13px] font-black font-mono">{calculatedGpa.percentage}%</span>
+                                </div>
+                            )}
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
                                 {miniStats.criticalCount > 0 && (
