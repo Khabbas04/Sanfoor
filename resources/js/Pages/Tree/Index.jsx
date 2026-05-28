@@ -3674,7 +3674,7 @@ export default function Tree({
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'bottom-4 left-4 sm:bottom-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : 'bottom-3 left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg'} z-[100] px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
+                            className={`absolute ${isFullScreen ? 'top-4 left-4 sm:top-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : 'top-3 left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg'} z-[100] px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
                         </button>
