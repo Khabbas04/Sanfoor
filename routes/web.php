@@ -226,6 +226,24 @@ Route::get('/dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// Lightweight browser heartbeat endpoints used by the global loader.
+// They intentionally avoid the heavier student/admin page middleware stack.
+Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])
+    ->name('heartbeat')
+    ->withoutMiddleware([
+        \App\Http\Middleware\EnsureSiteMaintenance::class,
+        \App\Http\Middleware\HandleInertiaRequests::class,
+        \App\Http\Middleware\UpdateLastSeenAt::class,
+    ]);
+
+Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])
+    ->name('browser_close')
+    ->withoutMiddleware([
+        \App\Http\Middleware\EnsureSiteMaintenance::class,
+        \App\Http\Middleware\HandleInertiaRequests::class,
+        \App\Http\Middleware\UpdateLastSeenAt::class,
+    ]);
+
 // Student-only application features.
 Route::middleware('auth')->group(function () {
     // Portal scraping sync is intentionally disabled for now.
@@ -244,10 +262,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/graduation-plan', [GraduationPlanController::class, 'store'])->name('graduation-plan.store');
     Route::delete('/graduation-plan', [GraduationPlanController::class, 'destroy'])->name('graduation-plan.destroy');
 
-    // Synchronize the simulation cart with the backend.
-        // 🔥 Global heartbeat for all authenticated users (keep session alive)
-        Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])->name('heartbeat');
-        Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])->name('browser_close');
     Route::post('/cart/sync', [CartController::class, 'sync'])->name('cart.sync');
 
     // Toggle a single course from either the tree view or AI advisor flows.
