@@ -26,6 +26,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 
 /*
@@ -105,24 +106,28 @@ Route::post('/contact-us', [ContactMessageController::class, 'store'])->name('pu
 Route::get('/dashboard', function () {
     $user = Auth::user();
 
+    $hasCourseUser = Schema::hasTable('course_user');
+    $hasUserCarts = Schema::hasTable('user_carts');
+    $hasGraduationPlans = Schema::hasTable('graduation_plans');
+    $hasUserChapters = Schema::hasTable('user_chapters');
+    $hasChapters = Schema::hasTable('chapters');
+
     // Load the academic relations needed by the dashboard cards and widgets.
-    $user->load('major', 'cartCourses', 'passedCourses');
+    $relations = ['major'];
+    if ($hasUserCarts) {
+        $relations[] = 'cartCourses';
+    }
+    if ($hasCourseUser) {
+        $relations[] = 'passedCourses';
+    }
+    $user->load($relations);
 
-    $passedHours = $user->passedCourses->sum('credit_hours');
-    $gpaData = $user->calculateGPA();
-
-    $courseStatsSubquery = DB::table('course_user')
-        ->selectRaw('course_id')
-        ->selectRaw('AVG(grade) as avg_grade')
-        ->selectRaw('COUNT(*) as graded_attempts')
-        ->selectRaw('SUM(CASE WHEN grade < 60 THEN 1 ELSE 0 END) as failed_attempts')
-        ->whereNotNull('grade')
-        ->groupBy('course_id');
+    $passedHours = $hasCourseUser ? $user->passedCourses->sum('credit_hours') : 0;
+    $gpaData = $hasCourseUser
+        ? $user->calculateGPA()
+        : ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
 
     $plannerCoursesQuery = Course::query()
-        ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
-            $join->on('courses.id', '=', 'course_stats.course_id');
-        })
         ->select([
             'courses.id',
             'courses.name',
@@ -132,12 +137,33 @@ Route::get('/dashboard', function () {
             'courses.semester',
             'courses.major_id',
         ])
-        ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
-        ->selectRaw('COALESCE(course_stats.graded_attempts, 0) as graded_attempts')
-        ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
-        ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate')
         ->withCount('prerequisites')
         ->with(['prerequisites:id']);
+
+    if ($hasCourseUser) {
+        $courseStatsSubquery = DB::table('course_user')
+            ->selectRaw('course_id')
+            ->selectRaw('AVG(grade) as avg_grade')
+            ->selectRaw('COUNT(*) as graded_attempts')
+            ->selectRaw('SUM(CASE WHEN grade < 60 THEN 1 ELSE 0 END) as failed_attempts')
+            ->whereNotNull('grade')
+            ->groupBy('course_id');
+
+        $plannerCoursesQuery
+            ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
+                $join->on('courses.id', '=', 'course_stats.course_id');
+            })
+            ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
+            ->selectRaw('COALESCE(course_stats.graded_attempts, 0) as graded_attempts')
+            ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
+            ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate');
+    } else {
+        $plannerCoursesQuery
+            ->selectRaw('72 as avg_grade')
+            ->selectRaw('0 as graded_attempts')
+            ->selectRaw('0 as failed_attempts')
+            ->selectRaw('18 as fail_rate');
+    }
 
     if ($user->major_id) {
         $plannerCoursesQuery->where(function ($query) use ($user) {
@@ -157,15 +183,19 @@ Route::get('/dashboard', function () {
     $plannerCourses = $plannerCoursesQuery->get();
 
     // Keep the payload focused on the fields rendered in the dashboard UI.
-    $passedCourses = $user->passedCourses()
-        ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
-        ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
-        ->get();
+    $passedCourses = $hasCourseUser
+        ? $user->passedCourses()
+            ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
+            ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
+            ->get()
+        : collect();
 
     // Fetch the approved graduation plan (if any) with course details.
-    $approvedPlan = \App\Models\GraduationPlan::query()
-        ->where('user_id', $user->id)
-        ->first();
+    $approvedPlan = $hasGraduationPlans
+        ? \App\Models\GraduationPlan::query()
+            ->where('user_id', $user->id)
+            ->first()
+        : null;
 
     $graduationPlanData = null;
     if ($approvedPlan && is_array($approvedPlan->payload)) {
@@ -210,19 +240,21 @@ Route::get('/dashboard', function () {
         'gpa' => isset($gpaData['percentage']) ? number_format((float) $gpaData['percentage'], 2) : '0.00',
         'has_academic_records' => !empty($gpaData['has_records']),
         'passed_courses' => $passedCourses,
-        'cart_courses' => $user->cartCourses,
-        'ai_skills' => $user->getSkillsFromPassedCourses(),
+        'cart_courses' => $hasUserCarts ? $user->cartCourses : collect(),
+        'ai_skills' => $hasCourseUser ? $user->getSkillsFromPassedCourses() : collect(),
         'planner_courses' => $plannerCourses,
         'graduation_plan' => $graduationPlanData,
-        'pinned_chapters' => $user->pinnedChapters()->with('course')->get()->map(function($ch) {
-            return [
-                'id' => $ch->id,
-                'title' => $ch->title,
-                'course_id' => $ch->course_id,
-                'course_name' => $ch->course?->name ?? null,
-                'google_drive_link' => $ch->google_drive_link,
-            ];
-        })->toArray(),
+        'pinned_chapters' => ($hasUserChapters && $hasChapters)
+            ? $user->pinnedChapters()->with('course')->get()->map(function ($ch) {
+                return [
+                    'id' => $ch->id,
+                    'title' => $ch->title,
+                    'course_id' => $ch->course_id,
+                    'course_name' => $ch->course?->name ?? null,
+                    'google_drive_link' => $ch->google_drive_link,
+                ];
+            })->toArray()
+            : [],
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
