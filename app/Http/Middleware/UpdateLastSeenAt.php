@@ -6,7 +6,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use App\Models\User;
 
 class UpdateLastSeenAt
@@ -18,7 +17,7 @@ class UpdateLastSeenAt
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && Schema::hasColumn('users', 'last_seen_at')) {
+        if (Auth::check()) {
             // Update the last_seen_at column for the currently authenticated user
             User::where('id', Auth::id())->update(['last_seen_at' => now()]);
         }
