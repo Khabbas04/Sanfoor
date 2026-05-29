@@ -1491,8 +1491,8 @@ class AiAdvisorController extends Controller
                         $status = 'active';
                         $statusMessage = 'يعمل بشكل طبيعي';
                     } elseif ($response->status() === 429) {
-                        $status = 'exhausted';
-                        $statusMessage = 'تم استنفاد الحصة اليومية (429)';
+                        $status = 'rate_limited';
+                        $statusMessage = '429: تم الوصول لحد الطلبات/الحصة مؤقتاً. قد تكون الحصة مشتركة بين جميع المفاتيح.';
                     } elseif (in_array($response->status(), [401, 403])) {
                         $status = 'invalid';
                         $statusMessage = 'المفتاح غير صالح أو محظور (' . $response->status() . ')';
@@ -1505,11 +1505,13 @@ class AiAdvisorController extends Controller
                     $statusMessage = 'فشل الاتصال: ' . class_basename($e);
                 }
 
+                $ttlMinutes = $status === 'rate_limited' ? 1 : 5;
+
                 Cache::put($healthCacheKey, [
                     'status' => $status,
                     'message' => $statusMessage,
                     'checked_at' => now()->toDateTimeString(),
-                ], now()->addMinutes(5));
+                ], now()->addMinutes($ttlMinutes));
             }
 
             $results[] = [
@@ -1528,7 +1530,7 @@ class AiAdvisorController extends Controller
         $totalTodayUsage = collect($results)->sum('today_usage');
         $totalWeeklyUsage = collect($results)->sum('weekly_usage');
         $activeKeys = collect($results)->where('status', 'active')->count();
-        $exhaustedKeys = collect($results)->where('status', 'exhausted')->count();
+        $rateLimitedKeys = collect($results)->where('status', 'rate_limited')->count();
         $invalidKeys = collect($results)->whereIn('status', ['invalid', 'error'])->count();
 
         // Total AI chats and messages today
@@ -1543,7 +1545,8 @@ class AiAdvisorController extends Controller
             'summary' => [
                 'total_keys' => count($results),
                 'active_keys' => $activeKeys,
-                'exhausted_keys' => $exhaustedKeys,
+                'exhausted_keys' => $rateLimitedKeys,
+                'rate_limited_keys' => $rateLimitedKeys,
                 'invalid_keys' => $invalidKeys,
                 'today_total_usage' => $totalTodayUsage,
                 'weekly_total_usage' => $totalWeeklyUsage,

@@ -76,13 +76,15 @@ const translations = {
         refreshingKeys: 'جاري الفحص...',
         statusActive: 'يعمل',
         statusExhausted: 'منتهي',
+        statusRateLimited: 'مقيد مؤقتاً',
         statusInvalid: 'غير صالح',
         aiStatusError: 'خطأ',
         statusUnknown: 'غير معروف',
         summaryTitle: 'ملخص عام',
         totalKeys: 'إجمالي المفاتيح',
         activeKeys: 'مفاتيح نشطة',
-        exhaustedKeys: 'منتهية',
+        exhaustedKeys: 'مقيدة مؤقتاً',
+        rateLimitedKeys: 'مفاتيح مقيّدة',
         todayRequests: 'طلبات اليوم',
         weeklyRequests: 'طلبات الأسبوع',
         totalChats: 'إجمالي المحادثات',
@@ -159,13 +161,15 @@ const translations = {
         refreshingKeys: 'Checking...',
         statusActive: 'Active',
         statusExhausted: 'Exhausted',
+        statusRateLimited: 'Rate Limited',
         statusInvalid: 'Invalid',
         aiStatusError: 'Error',
         statusUnknown: 'Unknown',
         summaryTitle: 'Overall Summary',
         totalKeys: 'Total Keys',
         activeKeys: 'Active Keys',
-        exhaustedKeys: 'Exhausted',
+        exhaustedKeys: 'Rate Limited',
+        rateLimitedKeys: 'Rate Limited Keys',
         todayRequests: 'Today Requests',
         weeklyRequests: 'Weekly Requests',
         totalChats: 'Total Chats',
@@ -680,7 +684,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                                 <Stat title={t.totalKeys} value={aiKeyData.summary.total_keys} icon="🔑" isDark={isDark} />
                                 <Stat title={t.activeKeys} value={aiKeyData.summary.active_keys} icon="✅" isDark={isDark} />
-                                <Stat title={t.exhaustedKeys} value={aiKeyData.summary.exhausted_keys} icon="⛔" isDark={isDark} />
+                                <Stat title={t.rateLimitedKeys} value={aiKeyData.summary.rate_limited_keys ?? aiKeyData.summary.exhausted_keys} icon="⛔" isDark={isDark} />
                                 <Stat title={t.todayRequests} value={aiKeyData.summary.today_total_usage} icon="📊" isDark={isDark} />
                                 <Stat title={t.weeklyRequests} value={aiKeyData.summary.weekly_total_usage} icon="📈" isDark={isDark} />
                                 <Stat title={t.totalChats} value={aiKeyData.summary.total_chats} icon="💬" isDark={isDark} />
@@ -740,7 +744,14 @@ function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
             text: isDark ? 'text-amber-300' : 'text-amber-700',
             dot: 'bg-amber-500',
             glow: 'shadow-[0_0_12px_rgba(245,158,11,0.4)]',
-            label: t.statusExhausted,
+            label: t.statusRateLimited,
+        },
+        rate_limited: {
+            bg: isDark ? 'bg-orange-900/40 border-orange-700/60' : 'bg-orange-50 border-orange-200',
+            text: isDark ? 'text-orange-300' : 'text-orange-700',
+            dot: 'bg-orange-500',
+            glow: 'shadow-[0_0_12px_rgba(249,115,22,0.35)]',
+            label: t.statusRateLimited,
         },
         invalid: {
             bg: isDark ? 'bg-rose-900/40 border-rose-700/60' : 'bg-rose-50 border-rose-200',
