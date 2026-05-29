@@ -3593,12 +3593,7 @@ export default function Tree({
                                                     <div className="min-w-0 flex-1 ml-3">
                                                         <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
                                                         <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code} • سنة {c.recommended_year} • صعوبة {Math.round(c.difficulty_score)}%</p>
-                                                        {smartMetaByCourseId[c.id] ? (
-                                                            <div className="mt-1.5 flex flex-wrap gap-1">
-                                                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-md border ${(smartMetaByCourseId[c.id].confidence || 0) >= 75 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : (smartMetaByCourseId[c.id].confidence || 0) >= 55 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>ثقة {Math.round(smartMetaByCourseId[c.id].confidence || 0)}%</span>
-                                                                <span className="text-[9px] font-black px-2 py-0.5 rounded-md border bg-sky-50 text-sky-700 border-sky-200">بيانات {Math.round(smartMetaByCourseId[c.id].dataConfidence || 0)}%</span>
-                                                            </div>
-                                                        ) : null}
+                                                        
                                                     </div>
                                                     <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
                                                 </div>
