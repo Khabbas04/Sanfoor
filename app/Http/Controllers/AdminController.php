@@ -623,7 +623,7 @@ class AdminController extends Controller
      */
     public function updateLastActivity()
     {
-        if (Auth::check()) {
+        if (Auth::check() && Schema::hasColumn('users', 'last_seen_at')) {
             User::where('id', Auth::id())->update(['last_seen_at' => now()]);
         }
 
