@@ -304,7 +304,7 @@ export default function Tree({
     const [activeTab, setActiveTab] = useState('details');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showAiSettings, setShowAiSettings] = useState(false);
-    const [targetHours, setTargetHours] = useState(15);
+    const [targetHours, setTargetHours] = useState(isSummerTerm ? 9 : 15);
     const [schedulePace, setSchedulePace] = useState('balanced');
     const [smartFocus, setSmartFocus] = useState('major');
     const [smartProtectGpa, setSmartProtectGpa] = useState(true);
@@ -388,6 +388,10 @@ export default function Tree({
     useEffect(() => {
         setApprovedPlan(approved_plan || null);
     }, [approved_plan]);
+
+    useEffect(() => {
+        setTargetHours(isSummerTerm ? 9 : 15);
+    }, [isSummerTerm]);
 
     useEffect(() => {
         if (!planDraft?.semesters?.length) return;
@@ -2321,20 +2325,28 @@ export default function Tree({
         let electiveHours = passedElectiveHours;
         const targetOnline = schedulePace === 'light' ? 2 : (schedulePace === 'balanced' ? 1 : 0);
         const selectedMeta = {};
+        const finalTargetHours = isSummerTerm ? Math.min(targetHours, maxTrialHours) : targetHours;
 
-        const addCourse = (entry) => {
+        const addCourse = (entry, relaxConstraints = false) => {
             const { course, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence, isOnline } = entry;
-            if (currentHours + course.credit_hours <= targetHours && !newCart.includes(course.id)) {
+            if (currentHours + course.credit_hours <= finalTargetHours && !newCart.includes(course.id)) {
                 
-                // Enforce exact online course target to make it highly realistic
-                if (isOnline && onlineCount >= targetOnline) return false;
+                if (!relaxConstraints) {
+                    // Enforce exact online course target to make it highly realistic
+                    if (isOnline && onlineCount >= targetOnline) return false;
 
-                // Adjust difficulty thresholds slightly so it doesn't fail to generate a full schedule
-                if (schedulePace === 'light' && difficulty > 65) return false;
-                if (schedulePace === 'balanced' && difficulty > 85) return false;
+                    // Adjust difficulty thresholds slightly so it doesn't fail to generate a full schedule
+                    if (schedulePace === 'light' && difficulty > 65) return false;
+                    if (schedulePace === 'balanced' && difficulty > 85) return false;
+                    
+                    if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
+                } else {
+                    // Relaxed constraints phase: ignore online count target and max heavy constraints,
+                    // and allow up to 80% difficulty for light schedules.
+                    if (schedulePace === 'light' && difficulty > 80) return false;
+                }
+
                 if (course.type === 'elective' && electiveHours + course.credit_hours > ELECTIVE_MAX_HOURS) return false;
-                
-                if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
 
                 const confidence = Math.max(
                     0,
@@ -2369,7 +2381,13 @@ export default function Tree({
             return false;
         };
 
-        scored.forEach((entry) => addCourse(entry));
+        // First pass: strict constraints
+        scored.forEach((entry) => addCourse(entry, false));
+
+        // Second pass: relaxed constraints if target hours not met
+        if (currentHours < finalTargetHours) {
+            scored.forEach((entry) => addCourse(entry, true));
+        }
 
         const avgDifficulty = newCart.length
             ? (newCart.reduce((sum, courseId) => sum + Number(coursesWithDifficulty.find((course) => course.id === courseId)?.difficulty_score || 0), 0) / newCart.length)
@@ -3487,7 +3505,7 @@ export default function Tree({
                                     ) : (
                                         <div className="bg-indigo-50/70 border border-indigo-100 p-5 rounded-[1.25rem] space-y-4">
                                             <div className="flex justify-between items-center"><h3 className="font-[800] text-indigo-800 text-[13px]">⚙️ إعدادات التوليد</h3><button onClick={() => setShowAiSettings(false)} className="text-slate-400 text-[11px] font-bold hover:text-rose-500 transition-colors">✕ إلغاء</button></div>
-                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الساعات المستهدفة:</label><div className="flex bg-white rounded-xl p-1 border border-indigo-100/60 shadow-sm">{[12, 15, 18].map(h => (<button key={h} onClick={() => setTargetHours(h)} className={`flex-1 py-2 text-[12px] font-[800] rounded-lg transition-all ${targetHours === h ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>{h} ساعة</button>))}</div></div>
+                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الساعات المستهدفة:</label><div className="flex bg-white rounded-xl p-1 border border-indigo-100/60 shadow-sm">{(isSummerTerm ? [6, 9] : [12, 15, 18]).map(h => (<button key={h} onClick={() => setTargetHours(h)} className={`flex-1 py-2 text-[12px] font-[800] rounded-lg transition-all ${targetHours === h ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>{h} ساعة</button>))}</div></div>
                                             <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">نمط الصعوبة:</label><div className="space-y-2">{[{ id: 'heavy', icon: '🏋️', label: 'مكثف (صعوبة فعلية أعلى)' }, { id: 'balanced', icon: '⚖️', label: 'متوازن (صعوبة وسط)' }, { id: 'light', icon: '🏖️', label: 'خفيف (صعوبة أقل)' }].map(p => (<button key={p.id} onClick={() => setSchedulePace(p.id)} className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center gap-2.5 shadow-sm ${schedulePace === p.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'}`}><span>{p.icon}</span><span className="text-[12px] font-bold">{p.label}</span></button>))}</div></div>
                                             <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الأولوية:</label><div className="grid grid-cols-3 gap-2">{[{ id: 'major', label: 'مواد تخصص' }, { id: 'graduation', label: 'تسريع تخرج' }, { id: 'gpa', label: 'حماية المعدل' }].map(f => (<button key={f.id} onClick={() => setSmartFocus(f.id)} className={`py-2 text-[11px] font-[800] rounded-lg border transition-all ${smartFocus === f.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}>{f.label}</button>))}</div></div>
                                             <label className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5 cursor-pointer"><div><p className="text-[11px] font-[800] text-slate-700">توازن الحمل</p><p className="text-[10px] font-bold text-slate-400">تقليل المواد عالية الرسوب والصعوبة</p></div><button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-12 h-7 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}><span className={`block w-5 h-5 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-5'}`} /></button></label>
