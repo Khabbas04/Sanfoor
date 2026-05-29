@@ -164,6 +164,41 @@ class AiAdvisorController extends Controller
         ]);
 
         $apiKeys = $this->getGeminiApiKeys();
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses);
+        $cachedAiResponse = Cache::get($responseCacheKey);
+        if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
+            $replyText = (string) $cachedAiResponse['reply'];
+            $followUpSuggestions = $cachedAiResponse['follow_up_suggestions'] ?? [];
+            $interactiveWidget = $cachedAiResponse['interactive_widget'] ?? null;
+            $suggestedDetails = $cachedAiResponse['suggested_courses'] ?? [];
+            $removeDetails = $cachedAiResponse['courses_to_remove'] ?? [];
+
+            $chat->messages()->create([
+                'role' => 'ai',
+                'content' => json_encode($cachedAiResponse, JSON_UNESCAPED_UNICODE),
+            ]);
+
+            $newRemaining = null;
+            if ($dailyLimit !== null) {
+                $newRemaining = max(0, $dailyLimit - $usage);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'reply' => $replyText,
+                'suggested_courses' => $suggestedDetails,
+                'courses_to_remove' => $removeDetails,
+                'follow_up_suggestions' => $followUpSuggestions,
+                'interactive_widget' => $interactiveWidget,
+                'chat_id' => $chatId,
+                'chat_title' => $isNewChat ? $chat->title : null,
+                'daily_messages_remaining' => $newRemaining,
+                'has_daily_limit' => $dailyLimit !== null,
+                'is_fallback' => false,
+                'is_cached' => true,
+                'fallback_reason' => null,
+            ]);
+        }
         $useFallback = empty($apiKeys);
 
         try {
@@ -223,7 +258,7 @@ class AiAdvisorController extends Controller
                 $newRemaining = max(0, $dailyLimit - ($usage + 1));
             }
 
-            return response()->json([
+            $responsePayload = [
                 'status' => 'success',
                 'reply' => $replyText,
                 'suggested_courses' => $suggestedDetails,
@@ -235,8 +270,21 @@ class AiAdvisorController extends Controller
                 'daily_messages_remaining' => $newRemaining,
                 'has_daily_limit' => $dailyLimit !== null,
                 'is_fallback' => $useFallback,
+                'is_cached' => false,
                 'fallback_reason' => $useFallback ? 'local_fallback' : null,
-            ]);
+            ];
+
+            if (!$useFallback) {
+                Cache::put($responseCacheKey, [
+                    'reply' => $replyText,
+                    'suggested_courses' => $suggestedDetails,
+                    'courses_to_remove' => $removeDetails,
+                    'follow_up_suggestions' => $followUpSuggestions,
+                    'interactive_widget' => $interactiveWidget,
+                ], now()->addHours(2));
+            }
+
+            return response()->json($responsePayload);
         } catch (\Throwable $e) {
             Log::error('Gemini AI Error: ' . $e->getMessage(), [
                 'exception' => get_class($e),
@@ -284,6 +332,7 @@ class AiAdvisorController extends Controller
                     'daily_messages_remaining' => $newRemaining,
                     'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
+                    'is_cached' => false,
                     'fallback_reason' => 'gemini_unavailable',
                 ]);
             } catch (\Throwable $fallbackEx) {
@@ -304,6 +353,7 @@ class AiAdvisorController extends Controller
                     'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
                     'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
+                    'is_cached' => false,
                     'fallback_reason' => 'local_fallback_error',
                 ]);
             }
@@ -1237,6 +1287,24 @@ class AiAdvisorController extends Controller
         return mb_strtolower(trim($text), 'UTF-8');
     }
 
+    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses): string
+    {
+        $payload = [
+            'message' => $this->normalizeArabic(mb_strtolower(trim($message))),
+            'period' => $academicData['current_period_label'] ?? null,
+            'term' => $academicData['current_period_term'] ?? null,
+            'effective_limit' => $academicData['effective_registration_limit'] ?? null,
+            'academic_limit' => $academicData['academic_limit'] ?? null,
+            'term_limit' => $academicData['current_term_limit'] ?? null,
+            'passed' => array_values($academicData['passed_course_ids'] ?? []),
+            'cart' => array_values($cartData['ids'] ?? []),
+            'cart_hours' => (int) ($cartData['hours'] ?? 0),
+            'available' => array_keys($availableCourses['map'] ?? []),
+        ];
+
+        return 'ai_response_' . $userId . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
     private function generateSmartTitle(string $userMessage, string $aiReply, string $apiKey): string
     {
         try {
@@ -1266,165 +1334,50 @@ class AiAdvisorController extends Controller
     private function getLocalFallbackResponse(string $message, $user, array $academicData, array $cartData, array $availableCourses): array
     {
         $normalized = $this->normalizeArabic($message);
-        $reply = '';
-        $suggestedIds = [];
-        $followUps = [];
-        $widget = null;
+        $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي');
+        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? self::MAX_HOURS_NORMAL);
+        $cartHours = (int) ($cartData['hours'] ?? 0);
+        $remainingHours = max(0, $effectiveLimit - $cartHours);
+        $isSummer = !empty($academicData['current_period_is_summer']);
 
         $availableDetails = array_values($availableCourses['details'] ?? []);
-        $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي');
-        $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
-        $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
-        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
-        $isSummer = !empty($academicData['current_period_is_summer']);
-        $cartHours = (int) ($cartData['hours'] ?? 0);
-        $passedHours = (int) ($academicData['total_passed_hours'] ?? 0);
-        $studentYear = max(1, min(5, (int) ceil(max($passedHours, 1) / 33)));
-        $studentYearLabels = [1 => 'أولى', 2 => 'ثانية', 3 => 'ثالثة', 4 => 'رابعة', 5 => 'خامسة'];
-        $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
-        $remainingHours = max(0, $effectiveLimit - $cartHours);
+        usort($availableDetails, fn(array $a, array $b) => ((int) ($a['credit_hours'] ?? 0)) <=> ((int) ($b['credit_hours'] ?? 0)));
 
-        usort($availableDetails, function (array $a, array $b) use ($studentYear) {
-            $scoreA = ($a['in_cart'] ? 1000 : 0)
-                - ((int) ($a['unlocks'] ?? 0) * 6)
-                + ((int) ($a['difficulty_level'] ?? 3) * 3)
-                + (abs(((int) ($a['course_year'] ?? $studentYear)) - $studentYear) * 2)
-                + max(0, 5 - (int) ($a['credit_hours'] ?? 0));
+        $suggestedIds = [];
+        $followUps = ['كم ساعة مسموح لي؟', 'ما المواد المناسبة لي؟'];
 
-            $scoreB = ($b['in_cart'] ? 1000 : 0)
-                - ((int) ($b['unlocks'] ?? 0) * 6)
-                + ((int) ($b['difficulty_level'] ?? 3) * 3)
-                + (abs(((int) ($b['course_year'] ?? $studentYear)) - $studentYear) * 2)
-                + max(0, 5 - (int) ($b['credit_hours'] ?? 0));
-
-            return $scoreA <=> $scoreB;
-        });
-
-        $pickTopCourses = function (array $candidates, int $maxItems, int $hourBudget = null): array {
-            $selected = [];
-            $usedHours = 0;
-
-            foreach ($candidates as $course) {
-                if (!empty($course['in_cart'])) {
-                    continue;
-                }
-
-                $courseHours = (int) ($course['credit_hours'] ?? 0);
-                if ($hourBudget !== null && ($usedHours + $courseHours) > $hourBudget) {
-                    continue;
-                }
-
-                $selected[] = $course;
-                $usedHours += $courseHours;
-
-                if (count($selected) >= $maxItems) {
-                    break;
-                }
-            }
-
-            return $selected;
-        };
-
-        $bestCourses = $pickTopCourses($availableDetails, 4, $remainingHours > 0 ? $remainingHours : null);
-        $easyCourses = array_values(array_filter($availableDetails, fn ($course) => (int) ($course['difficulty_level'] ?? 3) <= 2 && empty($course['in_cart'])));
-        $strategicCourses = array_values(array_filter($availableDetails, fn ($course) => (int) ($course['unlocks'] ?? 0) >= 2 && empty($course['in_cart'])));
-
-        $intro = "أنت الآن في **{$currentPeriodLabel}**. الحد الفعلي للتسجيل: **{$effectiveLimit} ساعة**";
+        $reply = "أنت الآن في **{$currentPeriodLabel}**. الحد الفعلي للتسجيل: **{$effectiveLimit} ساعة**";
         if ($isSummer) {
-            $intro .= "، وهذا فصل صيفي لذا القاعدة الأساسية هي **9 ساعات**.";
+            $reply .= "، وفي الفصل الصيفي الحد الأساسي هو **9 ساعات**.";
         }
-        $intro .= "\nساعاتك المسجلة حالياً: **{$cartHours}** | المتبقي ضمن الحد: **{$remainingHours}** | سنة الطالب التقديرية: **{$studentYearLabel}**.";
+        $reply .= "\nساعاتك الحالية: **{$cartHours}** | المتبقي: **{$remainingHours}**.";
 
         if (preg_match('/(ساع|ساعات|تسجيل|الجدول|فصل|الصيف|summer|limit|كم مسموح)/u', $normalized)) {
-            $reply = $intro . "\n\nالنتيجة: إذا كان هدفك الحفاظ على التوازن، لا تتجاوز الحد الفعلي أعلاه. أفضل المواد الحالية لك حسب الخطة هي:";
-            foreach ($bestCourses as $course) {
-                $suggestedIds[] = (int) $course['id'];
-                $reply .= "\n- **{$course['name']}** ({$course['credit_hours']} ساعات) — " . ($course['unlocks'] > 0 ? "تفتح {$course['unlocks']} مواد" : 'مناسبة للتسجيل المباشر') . ".";
-            }
-            $followUps = ['اقترح جدول متوازن', 'كم ساعة بقيت لي هذا الفصل؟', 'ما المواد الاستراتيجية في خطتي؟'];
+            $reply .= "\n\nأفضل اختيار الآن هو الالتزام بالحد أعلاه وعدم تجاوزه.";
         } elseif (preg_match('/(معدل|gpa|انذار|إنذار|رفع|تراكمي|probation)/u', $normalized)) {
-            $reply = $intro . "\n\nلرفع المعدل، اختر مواد أخف عبئاً مع ساعات مناسبة، وابتعد عن حشو الجدول. هذه أفضل المواد الخفيفة المتاحة لك:";
-            $easyTop = $pickTopCourses($easyCourses ?: $availableDetails, 3, $remainingHours > 0 ? $remainingHours : null);
-            foreach ($easyTop as $course) {
-                $suggestedIds[] = (int) $course['id'];
-                $reply .= "\n- **{$course['name']}** ({$course['credit_hours']} ساعات) — صعوبة منخفضة.";
-            }
+            $reply .= "\n\nلرفع المعدل، اختر مواد أخف عبئاً ومناسبة للحد الحالي.";
             $followUps = ['ما تأثير هذه المواد على معدلي؟', 'كيف أخفف عبء الجدول؟'];
         } elseif (preg_match('/(تخرج|خطة|مسار|فتح|متطلبات|استراتي|graduat|plan)/u', $normalized)) {
-            $reply = $intro . "\n\nللتخرج أسرع، ركّز على المواد التي تفتح مواد أخرى. هذه أبرز الخيارات الاستراتيجية الآن:";
-            $strategicTop = $pickTopCourses($strategicCourses ?: $availableDetails, 3, $remainingHours > 0 ? $remainingHours : null);
-            foreach ($strategicTop as $course) {
-                $suggestedIds[] = (int) $course['id'];
-                $reply .= "\n- **{$course['name']}** — تفتح {$course['unlocks']} مواد، وملائمة لمسار الخطة.";
-            }
+            $reply .= "\n\nركّز على المواد التي تفتح مواد أخرى أو تكمل متطلبات الخطة.";
             $followUps = ['ما أفضل ترتيب للفصل القادم؟', 'أي المواد تعطل التخرج لو تأخرت؟'];
-        } elseif (preg_match('/(مبنى|كلية|قاعة|وين|اين|مكان|فاروق|دوازي|campus)/u', $normalized)) {
-            $reply = "دليل مباني جامعة الزرقاء السريع 🏛️:\n" .
-                "- **مبنى الفاروق (أ.ب)**: يضم كليات الشريعة، الآداب، تكنولوجيا المعلومات، والعلوم التربوية.\n" .
-                "- **مبنى (ت)**: يضم كلية العلوم الطبية المساندة والكلية التقنية.\n" .
-                "- **مبنى الدوازي (د.هـ)**: يضم التمريض، الصيدلة، والعلوم.\n" .
-                "- **مبنى (ل)**: يضم الهندسة التكنولوجية، الفنون والتصميم.\n" .
-                "- **مبنى الشهيد معاذ الكساسبة (ق)**: يضم كلية الاقتصاد والعلوم الإدارية والدراسات العليا.\n\n" .
-                "💡 **ملاحظة ترميز القاعات**: الرقم الأول يعبر عن الطابق (مثال: قاعة 102 في الطابق الأول، وقاعة 205 في الطابق الثاني).";
-            $followUps = ['أين تقع المكتبة العامة؟', 'كيف أصل إلى القبول والتسجيل؟'];
         } else {
-            $reply = $intro . "\n\nأهم ترشيحاتي الآن بناءً على الخطة والمواد المتاحة:";
-            foreach ($bestCourses as $course) {
-                $suggestedIds[] = (int) $course['id'];
-                $reply .= "\n- **{$course['name']}** ({$course['credit_hours']} ساعات) — " . ((int) ($course['unlocks'] ?? 0) > 0 ? "مادة استراتيجية" : 'خيار مناسب لمسارك');
-            }
-            $followUps = ['اقترح علي جدول متوازن', 'ما المواد المفتوحة الآن لي؟'];
+            $reply .= "\n\nأقدر ألخص لك الخطة أو أرشح مواد مناسبة إذا سألتني بصيغة أقصر.";
         }
 
-        $suggestedIds = array_values(array_unique(array_filter($suggestedIds)));
-
-        $suggestedDetails = [];
-        if (!empty($suggestedIds)) {
-            $suggestedDetails = Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray();
+        foreach (array_slice($availableDetails, 0, 3) as $course) {
+            $suggestedIds[] = (int) $course['id'];
         }
 
-        if (!empty($suggestedDetails)) {
-            $widgetCourses = [];
-            foreach ($suggestedDetails as $sc) {
-                if (!in_array($sc['id'], $cartData['ids'])) {
-                    $widgetCourses[] = [
-                        'id' => $sc['id'],
-                        'name' => $sc['name'],
-                        'code' => $sc['code'],
-                        'credit_hours' => $sc['credit_hours'],
-                        'action' => 'add',
-                    ];
-                }
-            }
-            if (!empty($widgetCourses)) {
-                $widget = [
-                    'type' => 'cart_review',
-                    'title' => 'اقتراحات ذكية للجدول التجريبي',
-                    'courses' => array_map(fn($c) => [
-                        'id' => $c['id'],
-                        'name' => $c['name'],
-                        'code' => $c['code'],
-                        'credit_hours' => $c['credit_hours'],
-                        'difficulty' => 2,
-                        'verdict' => 'add',
-                        'reason' => 'مادة مناسبة للحد الحالي والخطة الأكاديمية'
-                    ], $widgetCourses),
-                    'summary' => [
-                        'total_hours' => $cartHours + collect($widgetCourses)->sum('credit_hours'),
-                        'max_hours' => $effectiveLimit,
-                        'overall_difficulty' => 'متوازن',
-                        'recommendation' => 'مزيج جيد بين السهولة والجدوى الأكاديمية'
-                    ]
-                ];
-            }
-        }
+        $suggestedDetails = !empty($suggestedIds)
+            ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+            : [];
 
         return [
             'reply' => $reply,
             'suggested_courses' => $suggestedDetails,
             'courses_to_remove' => [],
             'follow_up_suggestions' => $followUps,
-            'interactive_widget' => $widget,
+            'interactive_widget' => null,
         ];
     }
 
