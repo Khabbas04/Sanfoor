@@ -57,6 +57,7 @@ const translations = {
         manageAdmins: 'إدارة الأدمنز',
         manageStudents: 'إدارة الطلاب',
         reports: 'بلاغات الطلاب',
+        aiChats: 'محادثات AI',
         structure: 'الكليات والتخصصات',
         courses: 'الشجرة والمواد',
         logs: 'سجل العمليات',
@@ -139,6 +140,7 @@ const translations = {
         manageAdmins: 'Manage Admins',
         manageStudents: 'Manage Students',
         reports: 'Student Reports',
+        aiChats: 'AI Chats',
         structure: 'Colleges & Majors',
         courses: 'Tree & Courses',
         logs: 'Activity Log',
@@ -290,6 +292,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         const actions = [
             { title: t.manageStudents, href: route('admin.students.index'), icon: '👨‍🎓' },
             { title: t.reports, href: route('admin.issues.index'), icon: '🛠️' },
+            { title: t.aiChats, href: route('admin.ai_chats'), icon: '💬' },
             { title: t.structure, href: route('admin.structure'), icon: '🏛️' },
             { title: t.courses, href: route('admin.courses'), icon: '🌳' },
             { title: t.logs, href: route('admin.logs'), icon: '📜' },

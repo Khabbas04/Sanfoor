@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicPeriod;
+use App\Models\Chat;
 use App\Models\Course;
+use App\Models\Message;
 use App\Models\Major;
 use App\Models\College;
 use App\Models\User;
@@ -21,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
@@ -241,6 +244,116 @@ class AdminController extends Controller
     }
 
     /**
+     * عرض محادثات AI الخاصة بالطلاب داخل الأدمن.
+     */
+    public function aiChats(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && $user->isAdminOrOwner(), 403);
+
+        $search = trim((string) $request->input('q', ''));
+        $selectedChatId = $request->integer('chat_id');
+
+        $chatsQuery = Chat::query()
+            ->with('user:id,name,email')
+            ->withCount('messages')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id');
+
+        if ($search !== '') {
+            $chatsQuery->where(function ($query) use ($search) {
+                $query->where('title', 'like', '%' . $search . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%');
+                    });
+
+                if (ctype_digit($search)) {
+                    $query->orWhere('id', (int) $search);
+                }
+            });
+        }
+
+        $chats = $chatsQuery
+            ->take(60)
+            ->get()
+            ->map(function (Chat $chat) {
+                $lastMessage = $chat->messages()->orderByDesc('created_at')->first();
+
+                return [
+                    'id' => $chat->id,
+                    'title' => $chat->title,
+                    'user' => [
+                        'id' => $chat->user?->id,
+                        'name' => $chat->user?->name ?? 'غير معروف',
+                        'email' => $chat->user?->email,
+                    ],
+                    'messages_count' => (int) $chat->messages_count,
+                    'last_message_excerpt' => $lastMessage ? $this->chatMessageExcerpt($lastMessage) : 'لا توجد رسائل بعد',
+                    'last_message_at' => optional($lastMessage?->created_at)->toISOString(),
+                    'updated_at' => optional($chat->updated_at)->toISOString(),
+                    'created_at' => optional($chat->created_at)->toISOString(),
+                ];
+            })
+            ->values();
+
+        $selectedChat = null;
+        if ($selectedChatId) {
+            $selectedChat = Chat::with('user:id,name,email')->find($selectedChatId);
+        }
+
+        if (!$selectedChat && $chats->isNotEmpty()) {
+            $selectedChat = Chat::with('user:id,name,email')->find($chats->first()['id']);
+        }
+
+        $selectedMessages = collect();
+        if ($selectedChat) {
+            $selectedMessages = $selectedChat->messages()
+                ->orderBy('created_at')
+                ->get()
+                ->map(function (Message $message) {
+                    return [
+                        'id' => $message->id,
+                        'role' => $message->role,
+                        'content' => $this->chatMessageContent($message),
+                        'raw_content' => (string) $message->content,
+                        'created_at' => optional($message->created_at)->toISOString(),
+                        'created_human' => optional($message->created_at)?->diffForHumans(),
+                    ];
+                });
+        }
+
+        $summary = [
+            'total_chats' => Chat::count(),
+            'total_messages' => Message::count(),
+            'today_chats' => Chat::whereDate('created_at', today())->count(),
+            'today_messages' => Message::whereDate('created_at', today())->count(),
+        ];
+
+        return Inertia::render('Admin/AiChats/Index', [
+            'summary' => $summary,
+            'chats' => $chats,
+            'selectedChat' => $selectedChat ? [
+                'id' => $selectedChat->id,
+                'title' => $selectedChat->title,
+                'user' => [
+                    'id' => $selectedChat->user?->id,
+                    'name' => $selectedChat->user?->name ?? 'غير معروف',
+                    'email' => $selectedChat->user?->email,
+                ],
+                'created_at' => optional($selectedChat->created_at)->toISOString(),
+                'updated_at' => optional($selectedChat->updated_at)->toISOString(),
+                'messages_count' => $selectedChat->messages()->count(),
+            ] : null,
+            'messages' => $selectedMessages,
+            'filters' => [
+                'q' => $search,
+                'chat_id' => $selectedChat?->id,
+            ],
+        ]);
+    }
+
+    /**
      * Update the globally visible academic period.
      */
     public function updateAcademicPeriod(Request $request)
@@ -390,6 +503,31 @@ class AdminController extends Controller
             'activated_at' => optional($maintenance->activated_at)->toISOString(),
             'ended_at' => optional($maintenance->ended_at)->toISOString(),
         ];
+    }
+
+    private function chatMessageContent(Message $message): string
+    {
+        $content = (string) $message->content;
+
+        if (strtolower((string) $message->role) !== 'ai') {
+            return $content;
+        }
+
+        $decoded = json_decode($content, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
+            return (string) $decoded['reply'];
+        }
+
+        return $content;
+    }
+
+    private function chatMessageExcerpt(Message $message, int $limit = 120): string
+    {
+        return Str::of($this->chatMessageContent($message))
+            ->replaceMatches('/\s+/u', ' ')
+            ->trim()
+            ->limit($limit)
+            ->toString();
     }
 
     /**

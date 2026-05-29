@@ -305,6 +305,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::post('/notes', [AdminController::class, 'storeAdminNote'])->name('notes.store');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+        Route::get('/ai-chats', [AdminController::class, 'aiChats'])->name('ai_chats');
         Route::put('/settings/academic-period', [AdminController::class, 'updateAcademicPeriod'])->name('settings.academic_period');
         Route::put('/settings/maintenance', [AdminController::class, 'updateMaintenanceMode'])->name('settings.maintenance');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');

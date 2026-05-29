@@ -23,6 +23,7 @@ export default function AdminLayout({ children }) {
             dashboard: 'الإحصائيات العامة',
             issues: 'بلاغات الطلاب',
             contactMessages: 'طلبات التواصل',
+            aiChats: 'محادثات AI',
             demand: 'تحليل طلب المواد',
             courses: 'الشجرة والمواد',
             chapters: 'إدارة الشابترز',
@@ -51,6 +52,7 @@ export default function AdminLayout({ children }) {
                 'admin.students.index': 'إدارة الطلاب',
                 'admin.issues.index': 'بلاغات الطلاب',
                 'admin.contact_messages.index': 'طلبات التواصل',
+                'admin.ai_chats': 'محادثات AI',
                 'admin.reports.demand': 'تحليل طلب المواد',
                 'admin.admins.index': 'إدارة الأدمنز',
                 'admin.colleges.index': 'بطاقات الكليات',
@@ -66,6 +68,7 @@ export default function AdminLayout({ children }) {
             dashboard: 'General Stats',
             issues: 'Student Reports',
             contactMessages: 'Contact Requests',
+            aiChats: 'AI Chats',
             demand: 'Course Demand',
             courses: 'Tree & Courses',
             chapters: 'Manage Chapters',
@@ -94,6 +97,7 @@ export default function AdminLayout({ children }) {
                 'admin.students.index': 'Manage Students',
                 'admin.issues.index': 'Student Reports',
                 'admin.contact_messages.index': 'Contact Requests',
+                'admin.ai_chats': 'AI Chats',
                 'admin.reports.demand': 'Course Demand Analysis',
                 'admin.admins.index': 'Manage Admins',
                 'admin.colleges.index': 'College Cards',
@@ -130,6 +134,7 @@ export default function AdminLayout({ children }) {
                 'admin.students.index': '/admin/students',
                 'admin.logs': '/admin/logs',
                 'admin.settings': '/admin/settings',
+                'admin.ai_chats': '/admin/ai-chats',
             };
             return map[name] || '#';
         }
@@ -177,6 +182,7 @@ export default function AdminLayout({ children }) {
                 { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },
                 { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*', badge: openIssuesCount },
                 { icon: '📩', name: t.contactMessages, route: 'admin.contact_messages.index', pattern: 'admin.contact_messages.*' },
+                { icon: '💬', name: t.aiChats, route: 'admin.ai_chats', pattern: 'admin.ai_chats' },
                 ...(isOwner ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }] : []),
             ],
         },

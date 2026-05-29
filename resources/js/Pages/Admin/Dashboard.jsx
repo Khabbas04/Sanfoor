@@ -21,6 +21,7 @@ const translations = {
         quickActions: 'إجراءات سريعة وبوابات التحكم', studentReports: 'بلاغات الطلاب',
         addCollege: 'إضافة كلية جديدة', updatePlan: 'تحديث خطة تخصص', activityLog: 'سجل حركات الإدارة',
         aiStatus: 'ذكاء اصطناعي نشط', configAlgo: 'تهيئة الخوارزميات',
+        aiChats: 'محادثات AI',
         latestReports: 'آخر البلاغات', viewAll: 'عرض الكل', unknown: 'غير معروف',
         noNewReports: 'لا توجد بلاغات جديدة.', adminLog: 'سجل حركات الإدارة',
         lastMoves: (n) => `آخر ${n} حركة`, noLogEntries: 'لا توجد حركات مسجلة حالياً.',
@@ -59,6 +60,7 @@ const translations = {
         quickActions: 'Quick Controls & Gateways', studentReports: 'Student Reports',
         addCollege: 'Add New College', updatePlan: 'Update Major Plan', activityLog: 'Activity Log',
         aiStatus: 'AI Active', configAlgo: 'Configure Algorithms',
+        aiChats: 'AI Chats',
         latestReports: 'Latest Reports', viewAll: 'View All', unknown: 'Unknown',
         noNewReports: 'No new reports.', adminLog: 'Admin Activity Log',
         lastMoves: (n) => `Last ${n} entries`, noLogEntries: 'No activity recorded yet.',
@@ -292,6 +294,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                 <QuickLink title={lang === 'ar' ? 'إدارة الشباتر' : 'Manage Chapters'} icon="📖" href={route('admin.chapters.index')} isDark={isDark} />
                                 <QuickLink title={lang === 'ar' ? 'إدارة الأسئلة' : 'Manage Questions'} icon="❓" href={route('admin.questions.index')} isDark={isDark} />
                                 <QuickLink title={lang === 'ar' ? 'إدارة مواد الشجرة' : 'Manage Tree Courses'} icon="📚" href={route('admin.courses')} isDark={isDark} />
+                                <QuickLink title={t.aiChats} icon="💬" href={route('admin.ai_chats')} isDark={isDark} />
                                 <QuickLink title={t.openSettings} icon="⚙️" href={route('admin.settings')} isDark={isDark} />
                             </div>
                         </div>
