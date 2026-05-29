@@ -45,10 +45,6 @@ class CartController extends Controller
         $maxTrialHours = $isSummer ? 9 : 18;
 
         $accHours = 0;
-        // accumulate existing cart hours for user to allow replacing behavior
-        $existingCartHours = (int) $user->cartCourses()->sum('credit_hours');
-        $accHours = $existingCartHours;
-
         foreach ($requestedIds as $courseId) {
             $course = $courses->get($courseId);
             if (!$course) {
