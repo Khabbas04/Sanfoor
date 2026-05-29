@@ -2416,7 +2416,7 @@ export default function Tree({
                     confidence,
                     dataConfidence,
                     reasons: [
-                        isOnline ? '💻 متطلب جامعة (أونلاين)' : `📊 صعوبة ${Math.round(difficulty)}%`,
+                        isOnline ? '💻 متطلب جامعة (أونلاين)' : `📊 صعوبة ${course.difficulty_level}/5`,
                         `🔑 يفتح ${unlock} مواد`,
                         `📅 سنة ${course.recommended_year}`,
                     ],
@@ -2453,7 +2453,7 @@ export default function Tree({
                 ? Object.values(selectedMeta).reduce((sum, item) => sum + Number(item.confidence || 0), 0) / Object.values(selectedMeta).length
                 : 0;
 
-            Swal.fire({ icon: 'success', title: 'تم التخطيط!', text: `تم اقتراح جدول بقيمة ${currentHours} ساعة وبمتوسط صعوبة ${avgDifficulty.toFixed(1)}% وثقة ${avgConfidence.toFixed(1)}%.`, ...swalTheme });
+            Swal.fire({ icon: 'success', title: 'تم التخطيط!', text: `تم اقتراح جدول بقيمة ${currentHours} ساعة وثقة ${avgConfidence.toFixed(1)}%.`, ...swalTheme });
         } else {
             Swal.fire({ icon: 'info', title: 'لا يوجد مواد', text: 'لا يوجد مواد متاحة حالياً. تأكد من إنجاز متطالباتك.', ...swalTheme });
         }
@@ -2592,7 +2592,7 @@ export default function Tree({
         if (schedulePace === 'heavy' && avgDifficulty < 50) return { msg: '💡 النمط مكثف لكن الصعوبة الفعلية منخفضة حالياً.', cls: 'bg-sky-50 text-sky-700 border-sky-200' };
         if (heavyCount >= 4) return { msg: '⚖️ العبء مرتفع جداً بناءً على صعوبة المواد الفعلية.', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
         if (totalCartCredits < lowHours) return { msg: '🐌 عبء منخفض. توقع تأخر بالتخرج.', cls: 'bg-slate-50 text-slate-600 border-slate-200' };
-        return { msg: `✨ جدول متوازن ومثالي بمتوسط صعوبة ${avgDifficulty.toFixed(1)}%.`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+        return { msg: '✨ جدول متوازن ومثالي.', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     }, [cartIds, coursesWithDifficulty, totalCartCredits, schedulePace, isSummerTerm]);
 
     
