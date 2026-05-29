@@ -312,10 +312,13 @@ class AdminController extends Controller
                 ->orderBy('created_at')
                 ->get()
                 ->map(function (Message $message) {
+                    $displayContent = $this->chatMessageContent($message);
+
                     return [
                         'id' => $message->id,
                         'role' => $message->role,
-                        'content' => $this->chatMessageContent($message),
+                        'content' => $displayContent,
+                        'display_content' => $displayContent,
                         'raw_content' => (string) $message->content,
                         'created_at' => optional($message->created_at)->toISOString(),
                         'created_human' => optional($message->created_at)?->diffForHumans(),
@@ -507,18 +510,38 @@ class AdminController extends Controller
 
     private function chatMessageContent(Message $message): string
     {
-        $content = (string) $message->content;
+        $content = trim((string) $message->content);
+
+        if ($content === '') {
+            return '';
+        }
+
+        $decoded = json_decode($content, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            foreach (['reply', 'content', 'message', 'text', 'answer'] as $key) {
+                if (isset($decoded[$key])) {
+                    $value = trim((string) $decoded[$key]);
+                    if ($value !== '') {
+                        return $value;
+                    }
+                }
+            }
+
+            $flattened = trim(collect($decoded)->flatten()->implode(' '));
+            if ($flattened !== '') {
+                return $flattened;
+            }
+        }
 
         if (strtolower((string) $message->role) !== 'ai') {
             return $content;
         }
 
-        $decoded = json_decode($content, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
-            return (string) $decoded['reply'];
+        if ($content !== '') {
+            return $content;
         }
 
-        return $content;
+        return '';
     }
 
     private function chatMessageExcerpt(Message $message, int $limit = 120): string

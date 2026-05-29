@@ -79,6 +79,16 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
         });
     };
 
+    const renderMessageText = (message) => {
+        const primary = String(message.display_content || message.content || '').trim();
+        if (primary) return primary;
+
+        const raw = String(message.raw_content || '').trim();
+        if (raw) return raw;
+
+        return lang === 'ar' ? 'لا يوجد نص قابل للعرض في هذه الرسالة.' : 'No renderable text was found in this message.';
+    };
+
     return (
         <AdminLayout user={auth?.user || {}}>
             <Head title={`${t.title} | سنفور`} />
@@ -110,7 +120,7 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
 
                 <div className="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-6 min-h-[70vh]">
                     <section className={`${card} border rounded-3xl overflow-hidden flex flex-col`}>
-                        <div className="px-5 py-4 border-b border-slate-200/50 flex items-center justify-between">
+                        <div className="px-5 py-4 border-b border-slate-200/50 flex items-center justify-between bg-gradient-to-b from-transparent to-slate-50/40 dark:to-slate-900/20">
                             <h2 className={`font-black ${heading}`}>{t.chats}</h2>
                             <span className={`text-[11px] font-black ${subtext}`}>{filteredChats.length}</span>
                         </div>
@@ -148,16 +158,22 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
                     <section className={`${card} border rounded-3xl overflow-hidden flex flex-col min-h-[70vh]`}>
                         {selectedChat ? (
                             <>
-                                <div className="px-5 py-4 border-b border-slate-200/50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <h2 className={`font-black ${heading}`}>{selectedChat.title || `#${selectedChat.id}`}</h2>
-                                        <p className={`text-[11px] font-bold ${subtext} mt-1`}>
-                                            {t.by}: {selectedChat.user?.name || t.student}{selectedChat.user?.email ? ` • ${selectedChat.user.email}` : ''}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 text-[10px] font-black">
-                                        <span className="rounded-full px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">{t.chatId}: {selectedChat.id}</span>
-                                        <span className="rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">{t.messages}: {selectedChat.messages_count}</span>
+                                <div className="px-5 py-4 border-b border-slate-200/50 bg-gradient-to-r from-indigo-50/60 via-white to-transparent dark:from-indigo-900/20 dark:via-slate-900/40">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]"></span>
+                                                <p className={`text-[11px] font-black ${subtext}`}>{t.openConversation}</p>
+                                            </div>
+                                            <h2 className={`font-black text-xl ${heading} truncate`}>{selectedChat.title || `#${selectedChat.id}`}</h2>
+                                            <p className={`text-[11px] font-bold ${subtext} mt-1 truncate`}>
+                                                {t.by}: {selectedChat.user?.name || t.student}{selectedChat.user?.email ? ` • ${selectedChat.user.email}` : ''}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 text-[10px] font-black">
+                                            <span className="rounded-full px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">{t.chatId}: {selectedChat.id}</span>
+                                            <span className="rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">{t.messages}: {selectedChat.messages_count}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -169,15 +185,31 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
                                 <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#fafbfc] dark:bg-slate-950/40">
                                     {messages.length > 0 ? messages.map((message) => {
                                         const isAi = String(message.role).toLowerCase() === 'ai';
+                                        const text = renderMessageText(message);
+                                        const hasStructuredPayload = String(message.raw_content || '').trim().startsWith('{') && String(message.raw_content || '') !== text;
                                         return (
-                                            <div key={message.id} className={`flex ${isAi ? 'justify-start' : 'justify-end'}`}>
-                                                <div className={`max-w-[90%] sm:max-w-[82%] rounded-2xl px-4 py-3 border ${isAi ? 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700' : 'bg-indigo-600 text-white border-indigo-500'}`}>
+                                            <div key={message.id} className={`flex items-end gap-3 ${isAi ? 'justify-start' : 'justify-end'}`}>
+                                                {isAi && <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-indigo-500/20 shrink-0">AI</div>}
+                                                <div className={`max-w-[92%] sm:max-w-[78%] rounded-3xl px-4 py-3.5 border shadow-sm ${isAi ? 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700' : 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white border-indigo-500'}`}>
                                                     <div className="flex items-center justify-between gap-3 mb-2 text-[10px] font-black opacity-80">
                                                         <span>{isAi ? t.aiAssistant : t.student}</span>
                                                         <span>{message.created_human || '--'}</span>
                                                     </div>
-                                                    <p className="whitespace-pre-wrap text-sm font-bold leading-7">{message.content}</p>
+                                                    <p className={`whitespace-pre-wrap break-words text-sm leading-7 font-bold ${isAi ? (isDark ? 'text-slate-100' : 'text-slate-800') : 'text-white'}`}>
+                                                        {text}
+                                                    </p>
+                                                    {hasStructuredPayload && (
+                                                        <details className="mt-3 rounded-2xl border border-dashed border-slate-300/70 dark:border-slate-600/70 px-3 py-2 text-[11px]">
+                                                            <summary className={`cursor-pointer font-black ${isAi ? (isDark ? 'text-slate-400' : 'text-slate-500') : 'text-white/80'}`}>
+                                                                {lang === 'ar' ? 'عرض النص الخام' : 'Show raw payload'}
+                                                            </summary>
+                                                            <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] font-mono opacity-80 overflow-x-auto">
+                                                                {String(message.raw_content || '')}
+                                                            </pre>
+                                                        </details>
+                                                    )}
                                                 </div>
+                                                {!isAi && <div className="w-9 h-9 rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-200 shrink-0">👤</div>}
                                             </div>
                                         );
                                     }) : (
