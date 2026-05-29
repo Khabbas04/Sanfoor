@@ -864,6 +864,10 @@ class AiAdvisorController extends Controller
                         $stopped = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
                         if (!$stopped || $pass >= 2) {
                             $this->workingApiKey = $apiKey;
+                            // Track successful usage per key
+                            $cacheKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
+                            Cache::increment($cacheKey);
+                            Cache::put($cacheKey, (int) Cache::get($cacheKey, 0), now()->endOfDay());
                             return $fullText;
                         }
 
@@ -873,6 +877,10 @@ class AiAdvisorController extends Controller
 
                     if ($fullText !== '') {
                         $this->workingApiKey = $apiKey;
+                        // Track successful usage per key
+                        $cacheKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
+                        Cache::increment($cacheKey);
+                        Cache::put($cacheKey, (int) Cache::get($cacheKey, 0), now()->endOfDay());
                         return $fullText;
                     }
                 } catch (\Throwable $e) {
@@ -1295,5 +1303,130 @@ class AiAdvisorController extends Controller
             'follow_up_suggestions' => $followUps,
             'interactive_widget' => $widget,
         ];
+    }
+
+    /**
+     * Admin endpoint: returns health status and usage stats for all configured Gemini API keys.
+     */
+    public function getApiKeyStatus()
+    {
+        $user = Auth::user();
+        if (!$user || !method_exists($user, 'isAdminOrOwner') || !$user->isAdminOrOwner()) {
+            abort(403);
+        }
+
+        $apiKeys = $this->getGeminiApiKeys();
+        $results = [];
+        $today = date('Y-m-d');
+
+        foreach ($apiKeys as $index => $key) {
+            $maskedKey = substr($key, 0, 10) . '...' . substr($key, -4);
+            $cacheKey = 'gemini_key_usage_' . md5($key) . '_' . $today;
+            $todayUsage = (int) Cache::get($cacheKey, 0);
+
+            // Collect usage for last 7 days
+            $weeklyUsage = 0;
+            for ($d = 0; $d < 7; $d++) {
+                $dateKey = 'gemini_key_usage_' . md5($key) . '_' . date('Y-m-d', strtotime("-{$d} days"));
+                $weeklyUsage += (int) Cache::get($dateKey, 0);
+            }
+
+            // Test the key with a minimal request
+            $status = 'unknown';
+            $statusMessage = '';
+            $healthCacheKey = 'gemini_key_health_' . md5($key);
+            $cachedHealth = Cache::get($healthCacheKey);
+
+            if ($cachedHealth && isset($cachedHealth['checked_at'])) {
+                $checkedAt = strtotime($cachedHealth['checked_at']);
+                // Use cached result if checked within the last 5 minutes
+                if (time() - $checkedAt < 300) {
+                    $status = $cachedHealth['status'];
+                    $statusMessage = $cachedHealth['message'];
+                } else {
+                    $cachedHealth = null;
+                }
+            }
+
+            if (!$cachedHealth) {
+                try {
+                    $response = Http::withoutVerifying()
+                        ->connectTimeout(5)
+                        ->timeout(8)
+                        ->withHeaders(['Content-Type' => 'application/json'])
+                        ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$key}", [
+                            'contents' => [
+                                ['role' => 'user', 'parts' => [['text' => 'Say OK']]]
+                            ],
+                            'generationConfig' => [
+                                'maxOutputTokens' => 5,
+                                'temperature' => 0,
+                            ],
+                        ]);
+
+                    if ($response->successful()) {
+                        $status = 'active';
+                        $statusMessage = 'يعمل بشكل طبيعي';
+                    } elseif ($response->status() === 429) {
+                        $status = 'exhausted';
+                        $statusMessage = 'تم استنفاد الحصة اليومية (429)';
+                    } elseif (in_array($response->status(), [401, 403])) {
+                        $status = 'invalid';
+                        $statusMessage = 'المفتاح غير صالح أو محظور (' . $response->status() . ')';
+                    } else {
+                        $status = 'error';
+                        $statusMessage = 'خطأ HTTP: ' . $response->status();
+                    }
+                } catch (\Throwable $e) {
+                    $status = 'error';
+                    $statusMessage = 'فشل الاتصال: ' . class_basename($e);
+                }
+
+                Cache::put($healthCacheKey, [
+                    'status' => $status,
+                    'message' => $statusMessage,
+                    'checked_at' => now()->toDateTimeString(),
+                ], now()->addMinutes(5));
+            }
+
+            $results[] = [
+                'index' => $index + 1,
+                'masked_key' => $maskedKey,
+                'status' => $status,
+                'status_message' => $statusMessage,
+                'today_usage' => $todayUsage,
+                'weekly_usage' => $weeklyUsage,
+                'estimated_daily_limit' => 1500,
+                'estimated_remaining' => max(0, 1500 - $todayUsage),
+            ];
+        }
+
+        // Calculate global stats
+        $totalTodayUsage = collect($results)->sum('today_usage');
+        $totalWeeklyUsage = collect($results)->sum('weekly_usage');
+        $activeKeys = collect($results)->where('status', 'active')->count();
+        $exhaustedKeys = collect($results)->where('status', 'exhausted')->count();
+        $invalidKeys = collect($results)->whereIn('status', ['invalid', 'error'])->count();
+
+        // Total AI chats and messages today
+        $totalChats = DB::table('chats')->count();
+        $todayMessages = DB::table('messages')
+            ->where('role', 'assistant')
+            ->whereDate('created_at', $today)
+            ->count();
+
+        return response()->json([
+            'keys' => $results,
+            'summary' => [
+                'total_keys' => count($results),
+                'active_keys' => $activeKeys,
+                'exhausted_keys' => $exhaustedKeys,
+                'invalid_keys' => $invalidKeys,
+                'today_total_usage' => $totalTodayUsage,
+                'weekly_total_usage' => $totalWeeklyUsage,
+                'total_chats' => $totalChats,
+                'today_ai_messages' => $todayMessages,
+            ],
+        ]);
     }
 }

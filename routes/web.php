@@ -309,6 +309,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/maintenance', [AdminController::class, 'updateMaintenanceMode'])->name('settings.maintenance');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
+        Route::get('/api/ai-key-status', [AiAdvisorController::class, 'getApiKeyStatus'])->name('api.ai_key_status');
 
             // 🔥 Live online users polling and session management
             Route::get('/api/online-users', [AdminController::class, 'getOnlineUsers'])->name('api.online_users');

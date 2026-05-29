@@ -63,6 +63,32 @@ const translations = {
         demand: 'تحليل الطلب',
         viewPage: 'فتح الصفحة',
         createAdminAccount: 'إنشاء حساب إدارة جديد (سري)',
+        tabAiKeys: 'مفاتيح AI',
+        aiKeysTitle: 'حالة مفاتيح Gemini API',
+        aiKeysDesc: 'فحص مباشر لحالة كل مفتاح API ومقدار الاستهلاك اليومي والأسبوعي.',
+        keyNumber: 'مفتاح',
+        keyStatus: 'الحالة',
+        todayUsage: 'استخدام اليوم',
+        weeklyUsage: 'أسبوعي',
+        estimatedRemaining: 'المتبقي تقريباً',
+        refreshKeys: 'فحص المفاتيح',
+        refreshingKeys: 'جاري الفحص...',
+        statusActive: 'يعمل',
+        statusExhausted: 'منتهي',
+        statusInvalid: 'غير صالح',
+        statusError: 'خطأ',
+        statusUnknown: 'غير معروف',
+        summaryTitle: 'ملخص عام',
+        totalKeys: 'إجمالي المفاتيح',
+        activeKeys: 'مفاتيح نشطة',
+        exhaustedKeys: 'منتهية',
+        todayRequests: 'طلبات اليوم',
+        weeklyRequests: 'طلبات الأسبوع',
+        totalChats: 'إجمالي المحادثات',
+        todayAiMessages: 'ردود AI اليوم',
+        noKeysConfigured: 'لم يتم تكوين أي مفاتيح API.',
+        estimatedLimit: 'الحد اليومي التقريبي',
+        request: 'طلب',
     },
     en: {
         title: 'Admin Settings',
@@ -119,6 +145,32 @@ const translations = {
         demand: 'Demand Analysis',
         viewPage: 'Open Page',
         createAdminAccount: 'Create New Admin (Secret)',
+        tabAiKeys: 'AI Keys',
+        aiKeysTitle: 'Gemini API Key Status',
+        aiKeysDesc: 'Live health check for each API key with daily and weekly usage stats.',
+        keyNumber: 'Key',
+        keyStatus: 'Status',
+        todayUsage: 'Today',
+        weeklyUsage: 'Weekly',
+        estimatedRemaining: 'Est. Remaining',
+        refreshKeys: 'Check Keys',
+        refreshingKeys: 'Checking...',
+        statusActive: 'Active',
+        statusExhausted: 'Exhausted',
+        statusInvalid: 'Invalid',
+        statusError: 'Error',
+        statusUnknown: 'Unknown',
+        summaryTitle: 'Overall Summary',
+        totalKeys: 'Total Keys',
+        activeKeys: 'Active Keys',
+        exhaustedKeys: 'Exhausted',
+        todayRequests: 'Today Requests',
+        weeklyRequests: 'Weekly Requests',
+        totalChats: 'Total Chats',
+        todayAiMessages: 'AI Replies Today',
+        noKeysConfigured: 'No API keys configured.',
+        estimatedLimit: 'Est. Daily Limit',
+        request: 'requests',
     },
 };
 
@@ -163,6 +215,32 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         message: siteMaintenance?.message || 'نعمل الآن على تحسين الخدمة وإصلاح بعض الأمور. ستعود المنصة قريبًا.',
         expected_minutes: siteMaintenance?.expected_minutes ? String(siteMaintenance.expected_minutes) : '',
     });
+
+    // AI Key status state
+    const [aiKeyData, setAiKeyData] = useState(null);
+    const [aiKeyLoading, setAiKeyLoading] = useState(false);
+    const [aiKeyError, setAiKeyError] = useState(null);
+
+    const fetchAiKeyStatus = async () => {
+        setAiKeyLoading(true);
+        setAiKeyError(null);
+        try {
+            const res = await fetch(route('admin.api.ai_key_status'));
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setAiKeyData(data);
+        } catch (err) {
+            setAiKeyError(err.message);
+        } finally {
+            setAiKeyLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'aikeys' && !aiKeyData && !aiKeyLoading) {
+            fetchAiKeyStatus();
+        }
+    }, [activeTab]);
 
     useEffect(() => {
         setAcademicForm({
@@ -298,6 +376,12 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                 className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'admin' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-100/60'}`}
                             >
                                 {t.tabAdmin}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('aikeys')}
+                                className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${activeTab === 'aikeys' ? 'bg-indigo-600 text-white' : 'text-indigo-600 hover:bg-indigo-100/60'}`}
+                            >
+                                🔑 {t.tabAiKeys}
                             </button>
                         </div>
                     </div>
@@ -562,6 +646,66 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                         </div>
                     </section>
                 )}
+
+                {activeTab === 'aikeys' && (
+                    <section className="space-y-6">
+                        {/* Header + Refresh */}
+                        <div className={`${card} border rounded-3xl p-6`}>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div>
+                                    <h2 className={`text-xl font-black ${heading}`}>🔑 {t.aiKeysTitle}</h2>
+                                    <p className={`mt-1 text-sm font-bold ${subtext}`}>{t.aiKeysDesc}</p>
+                                </div>
+                                <button
+                                    onClick={fetchAiKeyStatus}
+                                    disabled={aiKeyLoading}
+                                    className="shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-black px-4 py-2.5 transition-colors"
+                                >
+                                    {aiKeyLoading ? t.refreshingKeys : t.refreshKeys}
+                                </button>
+                            </div>
+
+                            {aiKeyError && (
+                                <div className={`mt-4 rounded-xl px-4 py-3 text-sm font-black ${isDark ? 'bg-rose-900/30 text-rose-300 border border-rose-800/60' : 'bg-rose-100 text-rose-700 border border-rose-200'}`}>
+                                    {aiKeyError}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Summary Stats */}
+                        {aiKeyData?.summary && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                                <Stat title={t.totalKeys} value={aiKeyData.summary.total_keys} icon="🔑" isDark={isDark} />
+                                <Stat title={t.activeKeys} value={aiKeyData.summary.active_keys} icon="✅" isDark={isDark} />
+                                <Stat title={t.exhaustedKeys} value={aiKeyData.summary.exhausted_keys} icon="⛔" isDark={isDark} />
+                                <Stat title={t.todayRequests} value={aiKeyData.summary.today_total_usage} icon="📊" isDark={isDark} />
+                                <Stat title={t.weeklyRequests} value={aiKeyData.summary.weekly_total_usage} icon="📈" isDark={isDark} />
+                                <Stat title={t.totalChats} value={aiKeyData.summary.total_chats} icon="💬" isDark={isDark} />
+                                <Stat title={t.todayAiMessages} value={aiKeyData.summary.today_ai_messages} icon="🤖" isDark={isDark} />
+                            </div>
+                        )}
+
+                        {/* Key Cards */}
+                        {aiKeyData?.keys?.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {aiKeyData.keys.map((k) => (
+                                    <ApiKeyCard key={k.index} data={k} t={t} isDark={isDark} card={card} cardSoft={cardSoft} heading={heading} subtext={subtext} />
+                                ))}
+                            </div>
+                        ) : aiKeyData && !aiKeyLoading ? (
+                            <div className={`${card} border rounded-3xl p-12 text-center`}>
+                                <p className={`text-sm font-black ${subtext}`}>{t.noKeysConfigured}</p>
+                            </div>
+                        ) : aiKeyLoading ? (
+                            <div className={`${card} border rounded-3xl p-12 text-center`}>
+                                <div className="inline-flex items-center gap-3">
+                                    <span className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></span>
+                                    <span className={`text-sm font-black ${subtext}`}>{t.refreshingKeys}</span>
+                                </div>
+                            </div>
+                        ) : null}
+                    </section>
+                )}
             </div>
         </AdminLayout>
     );
@@ -575,6 +719,107 @@ function Stat({ title, value, icon, isDark }) {
                 <span>{icon}</span>
             </div>
             <p className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+        </div>
+    );
+}
+
+function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
+    const statusColors = {
+        active: {
+            bg: isDark ? 'bg-emerald-900/40 border-emerald-700/60' : 'bg-emerald-50 border-emerald-200',
+            text: isDark ? 'text-emerald-300' : 'text-emerald-700',
+            dot: 'bg-emerald-500',
+            glow: 'shadow-[0_0_12px_rgba(16,185,129,0.4)]',
+            label: t.statusActive,
+        },
+        exhausted: {
+            bg: isDark ? 'bg-amber-900/40 border-amber-700/60' : 'bg-amber-50 border-amber-200',
+            text: isDark ? 'text-amber-300' : 'text-amber-700',
+            dot: 'bg-amber-500',
+            glow: 'shadow-[0_0_12px_rgba(245,158,11,0.4)]',
+            label: t.statusExhausted,
+        },
+        invalid: {
+            bg: isDark ? 'bg-rose-900/40 border-rose-700/60' : 'bg-rose-50 border-rose-200',
+            text: isDark ? 'text-rose-300' : 'text-rose-700',
+            dot: 'bg-rose-500',
+            glow: '',
+            label: t.statusInvalid,
+        },
+        error: {
+            bg: isDark ? 'bg-rose-900/40 border-rose-700/60' : 'bg-rose-50 border-rose-200',
+            text: isDark ? 'text-rose-300' : 'text-rose-700',
+            dot: 'bg-rose-500',
+            glow: '',
+            label: t.statusError,
+        },
+        unknown: {
+            bg: isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-slate-100 border-slate-200',
+            text: isDark ? 'text-slate-400' : 'text-slate-500',
+            dot: 'bg-slate-400',
+            glow: '',
+            label: t.statusUnknown,
+        },
+    };
+
+    const sc = statusColors[data.status] || statusColors.unknown;
+    const usagePercent = Math.min(100, Math.round((data.today_usage / Math.max(data.estimated_daily_limit, 1)) * 100));
+    const barColor = usagePercent > 80 ? 'from-rose-500 to-pink-500' : usagePercent > 50 ? 'from-amber-500 to-orange-500' : 'from-emerald-500 to-teal-500';
+
+    return (
+        <div className={`${card} border rounded-2xl p-5 transition-all hover:-translate-y-0.5`}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        {t.keyNumber} #{data.index}
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border ${sc.bg} ${sc.text}`}>
+                        <span className={`w-2 h-2 rounded-full ${sc.dot} ${sc.glow}`}></span>
+                        {sc.label}
+                    </span>
+                </div>
+            </div>
+
+            {/* Masked Key */}
+            <div className={`rounded-xl px-3 py-2 text-[11px] font-mono font-bold mb-4 ${isDark ? 'bg-slate-900/60 text-slate-400 border border-slate-700' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>
+                {data.masked_key}
+            </div>
+
+            {/* Status Message */}
+            <p className={`text-[11px] font-bold mb-4 ${sc.text}`}>
+                {data.status_message}
+            </p>
+
+            {/* Usage Progress Bar */}
+            <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                    <span className={`text-[10px] font-black ${subtext}`}>{t.todayUsage}</span>
+                    <span className={`text-[10px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                        {data.today_usage} / {data.estimated_daily_limit}
+                    </span>
+                </div>
+                <div className={`w-full h-2.5 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                    <div
+                        className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-700`}
+                        style={{ width: `${usagePercent}%` }}
+                    ></div>
+                </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+                <div className={`${cardSoft} border rounded-xl p-3`}>
+                    <span className={`block text-[9px] font-black uppercase tracking-wider ${subtext}`}>{t.estimatedRemaining}</span>
+                    <span className={`block mt-1 text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{data.estimated_remaining}</span>
+                    <span className={`block text-[9px] font-bold ${subtext}`}>{t.request}</span>
+                </div>
+                <div className={`${cardSoft} border rounded-xl p-3`}>
+                    <span className={`block text-[9px] font-black uppercase tracking-wider ${subtext}`}>{t.weeklyUsage}</span>
+                    <span className={`block mt-1 text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{data.weekly_usage}</span>
+                    <span className={`block text-[9px] font-bold ${subtext}`}>{t.request}</span>
+                </div>
+            </div>
         </div>
     );
 }
