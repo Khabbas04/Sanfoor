@@ -3082,45 +3082,6 @@ export default function Tree({
                     })()}
 
                     {getStatus(selectedCourse) === 'available' && (
-                        <div className="bg-emerald-500/10 border border-emerald-400/20 p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5">
-                            <span className="text-[12px] font-[800] text-emerald-300 flex items-center gap-2">📅 تحديد الإنجاز حسب السنة والفصل:</span>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">السنة الدراسية</label>
-                                    <select
-                                        value={targetYear}
-                                        onChange={(e) => handleTargetYearChange(e.target.value)}
-                                        className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                    >
-                                        {yearOptions.map(year => (
-                                            <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-bold text-emerald-100/80 mb-1 block">الفصل</label>
-                                    <select
-                                        value={targetTerm}
-                                        onChange={(e) => handleTargetTermChange(e.target.value)}
-                                        className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                    >
-                                        {termOptions.map(term => (
-                                            <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={applySuggestedStudySlot}
-                                className="w-full text-[11px] font-black text-emerald-900 bg-emerald-100/80 hover:bg-emerald-100 border border-emerald-200 rounded-lg py-1.5 transition-colors"
-                            >
-                                ✨ اختيار تلقائي: سنة {suggestedStudySlot.year} - {termOptions.find(t => t.value === suggestedStudySlot.term)?.label || 'الفصل الأول'}
-                            </button>
-                            <p className="text-[10px] font-bold text-emerald-100/70">سيتم الحفظ كسنة {targetYear} - {termOptions.find(t => t.value === targetTerm)?.label || 'الفصل الأول'}.</p>
-                        </div>
-                    )}
-                    {getStatus(selectedCourse) === 'available' && (
                         <>
                             <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
                             <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
@@ -3332,7 +3293,7 @@ export default function Tree({
                                     </span>
                                 )}
                                 {calculatedGpa.hasRecords && (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
+                                    <span className="md:hidden inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
                                         🎓 المعدل {calculatedGpa.percentage}%
                                     </span>
                                 )}
@@ -4028,9 +3989,9 @@ export default function Tree({
 
                             </div>
 
-                            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3 mt-4">
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5 space-y-3.5 mt-4">
                                 <h4 className="text-[12px] font-[900] text-white/60 flex items-center gap-2">📊 الخلاصة</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                <div className="space-y-3.5 font-t">
                                     {(() => {
                                         const firstDifficulty = Number(compareFirstCourse.difficulty_level || 3);
                                         const secondDifficulty = Number(compareCourse.difficulty_level || 3);
@@ -4052,17 +4013,17 @@ export default function Tree({
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                                     <div className="rounded-xl bg-rose-500/8 border border-rose-400/15 p-3.5">
                                                         <p className="text-[9px] font-[900] text-rose-300/70 mb-1">🔥 الأثقل</p>
-                                                        <p className="text-[13px] font-[900] text-white truncate">{harderCourse.name}</p>
+                                                        <p className="text-[12px] sm:text-[13px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{harderCourse.name}</p>
                                                         <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {difficultyGap} {difficultyGap === 1 ? 'نقطة' : 'نقاط'}</p>
                                                     </div>
                                                     <div className="rounded-xl bg-violet-500/8 border border-violet-400/15 p-3.5">
                                                         <p className="text-[9px] font-[900] text-violet-300/70 mb-1">🔗 الأكثر تأثيراً</p>
-                                                        <p className="text-[13px] font-[900] text-white truncate">{moreImpactCourse.name}</p>
+                                                        <p className="text-[12px] sm:text-[13px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{moreImpactCourse.name}</p>
                                                         <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {impactGap} {impactGap === 1 ? 'مادة' : 'مواد'}</p>
                                                     </div>
                                                     <div className="rounded-xl bg-indigo-500/8 border border-indigo-400/15 p-3.5">
                                                         <p className="text-[9px] font-[900] text-indigo-300/70 mb-1">⭐ الأعلى أولوية</p>
-                                                        <p className="text-[13px] font-[900] text-white truncate">{higherPriorityCourse.name}</p>
+                                                        <p className="text-[12px] sm:text-[13px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{higherPriorityCourse.name}</p>
                                                         <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {priorityGap}%</p>
                                                     </div>
                                                 </div>
