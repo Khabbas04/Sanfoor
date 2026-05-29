@@ -1940,6 +1940,26 @@ export default function Tree({
         let submitGrade = null;
 
         if (!passedIds.includes(courseId)) {
+            const targetCourse = courses.find(c => c.id === courseId);
+            if (targetCourse && targetCourse.type === 'elective') {
+                const passedElectives = courses.filter(c => passedIds.includes(c.id) && c.type === 'elective');
+                const passedElectiveHours = passedElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
+                
+                const cartElectives = courses.filter(c => cartIds.includes(c.id) && c.id !== courseId && c.type === 'elective');
+                const cartElectiveHours = cartElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
+                
+                if (passedElectiveHours + cartElectiveHours + targetCourse.credit_hours > ELECTIVE_MAX_HOURS) {
+                    const overflow = passedElectiveHours + cartElectiveHours + targetCourse.credit_hours - ELECTIVE_MAX_HOURS;
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'حد الاختياري 9 ساعات',
+                        html: `مجموع الساعات الاختيارية <b>${passedElectiveHours + cartElectiveHours}س</b> (المجتازة: ${passedElectiveHours}س، التجريبي: ${cartElectiveHours}س).<br/>إنجاز <b>${targetCourse.name}</b> (${targetCourse.credit_hours}س) سيتجاوز الحد الأقصى بـ <b>${overflow}س</b>.<br/><br/>يرجى إزالة مادة اختيارية أولاً.`,
+                        ...swalTheme
+                    });
+                    return;
+                }
+            }
+
             const { value: formValues } = await Swal.fire({
                 title: 'تفاصيل إنجاز المادة',
                 html: `
@@ -2133,8 +2153,12 @@ export default function Tree({
 
         const electiveCart = courses.filter(c => cartIds.includes(c.id) && c.type === 'elective');
         const electiveCartHours = electiveCart.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
-        if (course.type === 'elective' && electiveCartHours + course.credit_hours > ELECTIVE_MAX_HOURS) {
-            const overflow = electiveCartHours + course.credit_hours - ELECTIVE_MAX_HOURS;
+        const passedElectives = courses.filter(c => passedIds.includes(c.id) && c.type === 'elective');
+        const passedElectiveHours = passedElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
+        const totalElectiveHours = passedElectiveHours + electiveCartHours;
+
+        if (course.type === 'elective' && totalElectiveHours + course.credit_hours > ELECTIVE_MAX_HOURS) {
+            const overflow = totalElectiveHours + course.credit_hours - ELECTIVE_MAX_HOURS;
             const suggestedDrop = electiveCart
                 .slice()
                 .sort((a, b) => {
@@ -2150,12 +2174,12 @@ export default function Tree({
                 : '';
             const suggestionHtml = suggestedDrop
                 ? `نقترح إزالة <b>${suggestedDrop.name}</b> (${suggestedDrop.credit_hours}س) لتفريغ مساحة.`
-                : 'أزل مادة اختيارية أولاً لتوفير مساحة.';
+                : 'لقد أنهيت الحد الأقصى للمواد الاختيارية (9 ساعات) من المواد المجتازة.';
 
             Swal.fire({
                 icon: 'warning',
                 title: 'حد الاختياري 9 ساعات',
-                html: `الساعات الاختيارية الحالية <b>${electiveCartHours}س</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours}س) ستتجاوز الحد بـ <b>${overflow}س</b>.<br/><br/>${currentListHtml ? `<div style="text-align:right;font-size:12px;">${currentListHtml}</div><br/>` : ''}${suggestionHtml}`,
+                html: `الساعات الاختيارية الإجمالية <b>${totalElectiveHours}س</b> (المجتازة: ${passedElectiveHours}س، التجريبي: ${electiveCartHours}س).<br/>إضافة <b>${course.name}</b> (${course.credit_hours}س) ستتجاوز الحد بـ <b>${overflow}س</b>.<br/><br/>${currentListHtml ? `<div style="text-align:right;font-size:12px;">${currentListHtml}</div><br/>` : ''}${suggestionHtml}`,
                 ...swalTheme
             });
             return;
@@ -2292,7 +2316,9 @@ export default function Tree({
         let currentHours = 0;
         let heavyCount = 0;
         let onlineCount = 0;
-        let electiveHours = 0;
+        const passedElectives = courses.filter(c => passedIds.includes(c.id) && c.type === 'elective');
+        const passedElectiveHours = passedElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
+        let electiveHours = passedElectiveHours;
         const targetOnline = schedulePace === 'light' ? 2 : (schedulePace === 'balanced' ? 1 : 0);
         const selectedMeta = {};
 

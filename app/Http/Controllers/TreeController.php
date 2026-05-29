@@ -332,6 +332,30 @@ class TreeController extends Controller
             $studiedYear = max(1, min(6, (int) $studiedYear));
             $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
 
+            // التحقق من حد المواد الاختيارية (9 ساعات كحد أقصى)
+            if ($course->type === 'elective') {
+                $passedElectiveHours = (int) DB::table('course_user')
+                    ->join('courses', 'courses.id', '=', 'course_user.course_id')
+                    ->where('course_user.user_id', $userId)
+                    ->where('courses.type', 'elective')
+                    ->where('courses.id', '!=', $courseId)
+                    ->sum('courses.credit_hours');
+
+                $cartElectiveHours = (int) DB::table('user_carts')
+                    ->join('courses', 'courses.id', '=', 'user_carts.course_id')
+                    ->where('user_carts.user_id', $userId)
+                    ->where('courses.type', 'elective')
+                    ->where('courses.id', '!=', $courseId)
+                    ->sum('courses.credit_hours');
+
+                if ($passedElectiveHours + $cartElectiveHours + $course->credit_hours > 9) {
+                    return response()->json([
+                        'status' => 'error',
+                        'msg' => 'عذراً، لا يمكن تجاوز الحد الأقصى للمواد الاختيارية وهو 9 ساعات.',
+                    ], 422);
+                }
+            }
+
             $grade = $request->input('grade');
             $cleanGrade = ($grade === '' || is_null($grade)) ? null : (float) $grade;
 
@@ -448,6 +472,7 @@ class TreeController extends Controller
                     'courses.study_plan_version',
                     'courses.credit_hours',
                     'courses.minimum_passed_hours',
+                    'courses.type',
                 ])
                 ->where('id', $courseId)
                 ->where(function ($query) use ($user) {
@@ -481,6 +506,24 @@ class TreeController extends Controller
             $currentAcademic = \App\Models\AcademicPeriod::current();
             $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
             $maxTrialHours = $isSummer ? 9 : 18;
+
+            // التحقق من حد المواد الاختيارية (9 ساعات كحد أقصى)
+            if ($course->type === 'elective') {
+                $passedElectives = (int) $user->passedCourses()
+                    ->where('courses.type', 'elective')
+                    ->sum('courses.credit_hours');
+
+                $cartElectives = (int) $user->cartCourses()
+                    ->where('courses.type', 'elective')
+                    ->sum('courses.credit_hours');
+
+                if ($passedElectives + $cartElectives + $course->credit_hours > 9) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'عذراً، لا يمكن تجاوز الحد الأقصى للمواد الاختيارية وهو 9 ساعات.',
+                    ], 422);
+                }
+            }
 
             $currentCartHours = (int) $user->cartCourses()->sum('credit_hours');
             $courseHours = (int) ($course->credit_hours ?? 0);
