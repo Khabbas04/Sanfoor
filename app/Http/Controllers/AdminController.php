@@ -214,7 +214,8 @@ class AdminController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role,
-                    'last_activity_ago' => \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans(),
+                    'last_activity' => $user->last_seen_at ? strtotime($user->last_seen_at) : null,
+                    'last_activity_ago' => $user->last_seen_at ? \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans() : null,
                 ];
             });
 

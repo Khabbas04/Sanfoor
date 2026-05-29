@@ -464,7 +464,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                             <div className="mt-3 pt-3 border-t border-slate-200/30 space-y-2">
                                                 <div className="flex items-center justify-between">
                                                     <span className={`text-[10px] font-black ${subtext}`}>{t.lastActivity}</span>
-                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
+                                                    <LiveTimeAgo timestamp={user.last_activity} isDark={isDark} lang={lang} />
                                                 </div>
                                             </div>
                                         </div>
@@ -706,6 +706,34 @@ function Stat({ title, value, icon, isDark }) {
             <p className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
         </div>
     );
+}
+
+function LiveTimeAgo({ timestamp, isDark, lang = 'ar' }) {
+    const [secondsAgo, setSecondsAgo] = useState(0);
+
+    useEffect(() => {
+        if (!timestamp) return;
+        const update = () => {
+            const now = Math.floor(Date.now() / 1000);
+            setSecondsAgo(Math.max(0, now - timestamp));
+        };
+        update();
+        const interval = setInterval(update, 1000);
+        return () => clearInterval(interval);
+    }, [timestamp]);
+
+    if (!timestamp) return <span>-</span>;
+
+    const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
+    const textStyle = secondsAgo < 60 ? (isDark ? 'text-emerald-400' : 'text-emerald-600') : subtext;
+    
+    const timeText = lang === 'ar' ? `قبل ${secondsAgo} ثانية` : `${secondsAgo}s ago`;
+    if (secondsAgo >= 60) {
+        const mins = Math.floor(secondsAgo / 60);
+        return <span className={`text-[10px] font-bold ${textStyle}`}>{lang === 'ar' ? `قبل ${mins} دقيقة` : `${mins}m ago`}</span>;
+    }
+
+    return <span className={`text-[10px] font-bold ${textStyle}`}>{timeText}</span>;
 }
 
 function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
