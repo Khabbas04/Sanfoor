@@ -19,7 +19,7 @@ export default function Register({ colleges, majors }) {
     useEffect(() => { setTimeout(() => setMounted(true), 80); }, []);
     useEffect(() => () => reset('password', 'password_confirmation'), []);
 
-    const submit = (e) => { e.preventDefault(); post(route('register')); };
+    const submit = (e) => { e.preventDefault(); post(route('register.secret')); };
 
     const filteredMajors = useMemo(
         () => majors.filter(m => String(m.college_id) === String(data.college_id)),
