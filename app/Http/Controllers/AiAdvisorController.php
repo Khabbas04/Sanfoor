@@ -25,6 +25,8 @@ class AiAdvisorController extends Controller
     private const ENABLE_SMART_TITLE = false;
     private const DAILY_LIMIT = 5;
 
+    private ?string $workingApiKey = null;
+
     public function index()
     {
         $user = Auth::user();
@@ -190,7 +192,7 @@ class AiAdvisorController extends Controller
 
             if ($isNewChat) {
                 $title = !$useFallback && self::ENABLE_SMART_TITLE
-                    ? $this->generateSmartTitle($data['message'], $replyText, $apiKeys[0])
+                    ? $this->generateSmartTitle($data['message'], $replyText, $this->workingApiKey ?? $apiKeys[0])
                     : $this->makeFallbackTitle($data['message']);
 
                 $chat->update(['title' => $title]);
@@ -817,9 +819,9 @@ class AiAdvisorController extends Controller
                                         ],
                                     ]);
 
-                                // Handle rate limiting (429) and server overload (503)
-                                if ($response->status() === 429) {
-                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP 429 (quota exhausted)";
+                                // Handle rate limiting (429) and invalid/blocked keys (400, 401, 403)
+                                if (in_array($response->status(), [400, 401, 403, 429])) {
+                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP " . $response->status() . " (key exhausted/invalid)";
                                     $keyQuotaExhausted = true;
                                     break 3; // Move to next API key
                                 } elseif ($response->status() === 503) {
@@ -861,6 +863,7 @@ class AiAdvisorController extends Controller
                         $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
                         $stopped = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
                         if (!$stopped || $pass >= 2) {
+                            $this->workingApiKey = $apiKey;
                             return $fullText;
                         }
 
@@ -869,6 +872,7 @@ class AiAdvisorController extends Controller
                     }
 
                     if ($fullText !== '') {
+                        $this->workingApiKey = $apiKey;
                         return $fullText;
                     }
                 } catch (\Throwable $e) {
