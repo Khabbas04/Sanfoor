@@ -23,7 +23,8 @@ class College extends Model
                     return;
                 }
                 if ($user->major_id) {
-                    $builder->where('id', $user->major->college_id);
+                    $collegeId = \App\Models\Major::withoutGlobalScopes()->where('id', $user->major_id)->value('college_id');
+                    $builder->where('id', $collegeId);
                     return;
                 }
             }

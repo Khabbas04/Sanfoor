@@ -7,7 +7,15 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
+// We need to fully bootstrap the kernel so services like 'hash' are available
+$kernel->bootstrap();
+
 echo "Creating unverified student...\n";
+
+// Ensure a major exists
+$college = \App\Models\College::firstOrCreate(['id' => 1], ['name' => 'Test College']);
+$major = \App\Models\Major::withoutGlobalScopes()->firstOrCreate(['id' => 1], ['college_id' => $college->id, 'name' => 'Test Major', 'code' => 'TM']);
+
 $user = new User();
 $user->name = 'Test Student';
 $user->email = 'test_student_' . time() . '@test.com';
@@ -18,7 +26,7 @@ $user->study_plan_version = 12;
 $user->save();
 
 try {
-    $request = Request::create('/dashboard', 'GET');
+    $request = Request::create('/tree', 'GET');
     
     // We need to set session for auth to work properly in full stack
     $session = $app['session']->driver();
