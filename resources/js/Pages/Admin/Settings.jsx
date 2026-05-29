@@ -463,30 +463,8 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                             <p className={`text-[11px] font-bold ${subtext} truncate`}>{user.email}</p>
                                             <div className="mt-3 pt-3 border-t border-slate-200/30 space-y-2">
                                                 <div className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-black ${subtext}`}>{t.roleLabel}</span>
-                                                    <span className={`text-[10px] font-black px-2 py-1 rounded-full border ${roleBadge(user.role, isDark)}`}>
-                                                        {roleLabel(user.role, t)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
                                                     <span className={`text-[10px] font-black ${subtext}`}>{t.lastActivity}</span>
                                                     <span className={`text-[10px] font-bold ${subtext}`}>{user.last_activity_ago}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-black ${subtext}`}>القسم</span>
-                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.major?.name || '—'}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-black ${subtext}`}>مواد بالكارت</span>
-                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.cart_count ?? 0} ({user.cart_hours ?? 0} س)</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-black ${subtext}`}>الساعات المكتملة</span>
-                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.passed_hours ?? 0} س</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className={`text-[10px] font-black ${subtext}`}>خطة معتمدة</span>
-                                                    <span className={`text-[10px] font-bold ${subtext}`}>{user.has_approved_plan ? 'نعم' : 'لا'}</span>
                                                 </div>
                                             </div>
                                         </div>
