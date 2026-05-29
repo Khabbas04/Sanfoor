@@ -648,4 +648,40 @@ class TreeController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * إعادة تعيين الخطة بالكامل (مسح كافة المواد المنجزة والمواد في التسجيل التجريبي)
+     */
+    public function resetPlan(Request $request)
+    {
+        try {
+            $userId = Auth::id();
+
+            // مسح المواد المنجزة
+            DB::table('course_user')->where('user_id', $userId)->delete();
+
+            // مسح التسجيل التجريبي
+            DB::table('user_carts')->where('user_id', $userId)->delete();
+
+            // مسح خطة التخرج المعتمدة إن وجدت
+            DB::table('graduation_plans')->where('user_id', $userId)->delete();
+
+            self::flushCourseTreeCache();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'تم إعادة تعيين خطتك بالكامل بنجاح.'
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Tree resetPlan failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'تعذر إعادة تعيين الخطة الآن. حاول مرة أخرى.',
+            ], 500);
+        }
+    }
 }

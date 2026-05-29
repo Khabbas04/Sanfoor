@@ -1892,6 +1892,57 @@ export default function Tree({
     };
 
     // 🆕 FIX: منع إلغاء مادة إذا مواد بعدها منجزة
+    const handleResetPlan = () => {
+        Swal.fire({
+            title: 'إعادة تعيين الخطة بالكامل؟',
+            html: 'هل أنت متأكد؟ سيتم <b>حذف جميع المواد المنجزة والمحاولات والعلامات</b> بالإضافة إلى المواد في التسجيل التجريبي والبدء من الصفر.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، أعد تعيين الكل ⚠️',
+            cancelButtonText: 'تراجع',
+            confirmButtonColor: '#dc2626',
+            ...swalTheme
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    Swal.fire({
+                        title: 'جاري إعادة التعيين...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        },
+                        ...swalTheme
+                    });
+
+                    const response = await axios.post(route('tree.reset'));
+
+                    if (response.data.status === 'success') {
+                        setPassedIds([]);
+                        setCartIds([]);
+                        setLocalPassedCourses([]);
+                        setSmartMetaByCourseId({});
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم إعادة التعيين!',
+                            text: response.data.message || 'تم تفريغ خطتك بنجاح للبدء من الصفر.',
+                            ...swalTheme
+                        }).then(() => {
+                            router.reload({ preserveScroll: true });
+                        });
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ!',
+                        text: error.response?.data?.message || 'تعذر إعادة التعيين حالياً.',
+                        ...swalTheme
+                    });
+                }
+            }
+        });
+    };
+
     const togglePassed = async (courseId) => {
         if (passedIds.includes(courseId)) {
             // نبحث عن مواد منجزة تعتمد على هالمادة كمتطلب سابق
@@ -3441,10 +3492,13 @@ export default function Tree({
                         </div>
                     </div>
 
-                    {/* Legend Button */}
-                    <div className="shrink-0 relative w-full md:w-auto md:mr-3" dir="rtl">
+                    {/* Legend Button & Reset Button */}
+                    <div className="shrink-0 flex gap-2 w-full md:w-auto md:mr-3" dir="rtl">
                         <button onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
                             🌳 دليل الشجرة
+                        </button>
+                        <button onClick={handleResetPlan} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/70`}>
+                            🔄 إعادة تعيين الخطة
                         </button>
                     </div>
                 </div>
@@ -3592,7 +3646,7 @@ export default function Tree({
                                                 <div key={c.id} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center group hover:border-indigo-200 transition-colors">
                                                     <div className="min-w-0 flex-1 ml-3">
                                                         <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
-                                                        <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code} • سنة {c.recommended_year} • صعوبة {Math.round(c.difficulty_score)}%</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code}</p>
                                                         
                                                     </div>
                                                     <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
