@@ -23,7 +23,8 @@ class Major extends Model
                     return;
                 }
                 if ($user->major_id) {
-                    $builder->where('college_id', $user->major->college_id);
+                    $collegeId = static::withoutGlobalScopes()->where('id', $user->major_id)->value('college_id');
+                    $builder->where('college_id', $collegeId);
                     return;
                 }
             }
