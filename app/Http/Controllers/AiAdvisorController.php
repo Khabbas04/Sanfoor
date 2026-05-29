@@ -56,10 +56,11 @@ class AiAdvisorController extends Controller
             ->get();
 
         $apiKeys = $this->getGeminiApiKeys();
-        
+        $dailyLimit = $this->getDailyMessageLimitForUser($user);
+
         $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
         $usage = (int) Cache::get($usageKey, 0);
-        $remaining = max(0, self::DAILY_LIMIT - $usage);
+        $remaining = $dailyLimit === null ? null : max(0, $dailyLimit - $usage);
 
         return Inertia::render('Ai/Advisor', [
             'studentStats' => [
@@ -78,6 +79,7 @@ class AiAdvisorController extends Controller
             'chats' => $chats,
             'initialCartIds' => $user->cartCourses->pluck('id')->toArray(),
             'dailyMessagesRemaining' => $remaining,
+            'hasDailyLimit' => $dailyLimit !== null,
             'isAiActive' => !empty($apiKeys),
         ]);
     }
@@ -107,14 +109,16 @@ class AiAdvisorController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
 
-        // Check student's daily message limits (max 5 per day)
+        // Check daily message limits only for non-admin users.
         $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
         $usage = (int) Cache::get($usageKey, 0);
-        if ($usage >= self::DAILY_LIMIT) {
+        $dailyLimit = $this->getDailyMessageLimitForUser($user);
+        if ($dailyLimit !== null && $usage >= $dailyLimit) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'لقد استهلكت جميع محاولاتك الـ 5 المتاحة اليوم للمستشار الأكاديمي. حاول غداً ⏳',
-                'daily_messages_remaining' => 0
+                'message' => 'لقد استهلكت جميع محاولاتك اليومية المتاحة للمستشار الأكاديمي. حاول غداً ⏳',
+                'daily_messages_remaining' => 0,
+                'has_daily_limit' => true,
             ], 429);
         }
 
@@ -132,7 +136,8 @@ class AiAdvisorController extends Controller
                 'follow_up_suggestions' => [],
                 'interactive_widget' => null,
                 'chat_id' => $data['chat_id'] ?? null,
-                'daily_messages_remaining' => max(0, self::DAILY_LIMIT - $usage)
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
+                'has_daily_limit' => $dailyLimit !== null,
             ]);
         }
 
@@ -211,9 +216,12 @@ class AiAdvisorController extends Controller
                 $chat->update(['title' => $title]);
             }
 
-            // Increment daily message usage on success
-            Cache::put($usageKey, $usage + 1, now()->endOfDay());
-            $newRemaining = max(0, self::DAILY_LIMIT - ($usage + 1));
+            // Increment daily message usage only for users with a daily cap.
+            $newRemaining = null;
+            if ($dailyLimit !== null) {
+                Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                $newRemaining = max(0, $dailyLimit - ($usage + 1));
+            }
 
             return response()->json([
                 'status' => 'success',
@@ -225,6 +233,7 @@ class AiAdvisorController extends Controller
                 'chat_id' => $chatId,
                 'chat_title' => $isNewChat ? $chat->title : null,
                 'daily_messages_remaining' => $newRemaining,
+                'has_daily_limit' => $dailyLimit !== null,
                 'is_fallback' => $useFallback,
             ]);
         } catch (\Throwable $e) {
@@ -254,9 +263,12 @@ class AiAdvisorController extends Controller
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
 
-                // Increment daily message usage on fallback success
-                Cache::put($usageKey, $usage + 1, now()->endOfDay());
-                $newRemaining = max(0, self::DAILY_LIMIT - ($usage + 1));
+                // Increment daily message usage only for users with a daily cap.
+                $newRemaining = null;
+                if ($dailyLimit !== null) {
+                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                    $newRemaining = max(0, $dailyLimit - ($usage + 1));
+                }
 
                 return response()->json([
                     'status' => 'success',
@@ -268,6 +280,7 @@ class AiAdvisorController extends Controller
                     'chat_id' => $chatId,
                     'chat_title' => $isNewChat ? $chat->title : null,
                     'daily_messages_remaining' => $newRemaining,
+                    'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
                 ]);
             } catch (\Throwable $fallbackEx) {
@@ -279,7 +292,8 @@ class AiAdvisorController extends Controller
                     'follow_up_suggestions' => [],
                     'interactive_widget' => null,
                     'chat_id' => $chatId,
-                    'daily_messages_remaining' => max(0, self::DAILY_LIMIT - $usage),
+                    'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
+                    'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
                 ]);
             }
@@ -456,6 +470,15 @@ class AiAdvisorController extends Controller
     {
         Cache::forget("student_academic_data_{$userId}");
         Cache::forget("student_cart_data_{$userId}");
+    }
+
+    private function getDailyMessageLimitForUser($user): ?int
+    {
+        if ($user && method_exists($user, 'isAdminOrOwner') && $user->isAdminOrOwner()) {
+            return null;
+        }
+
+        return self::DAILY_LIMIT;
     }
 
     private function getRegistrationLimits(?AcademicPeriod $currentPeriod, bool $isProbation): array
@@ -1239,38 +1262,93 @@ class AiAdvisorController extends Controller
         $widget = null;
 
         $availableDetails = array_values($availableCourses['details'] ?? []);
-        usort($availableDetails, fn($a, $b) => ($b['unlocks'] <=> $a['unlocks']));
+        $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي');
+        $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
+        $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
+        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
+        $isSummer = !empty($academicData['current_period_is_summer']);
+        $cartHours = (int) ($cartData['hours'] ?? 0);
+        $passedHours = (int) ($academicData['total_passed_hours'] ?? 0);
+        $studentYear = max(1, min(5, (int) ceil(max($passedHours, 1) / 33)));
+        $studentYearLabels = [1 => 'أولى', 2 => 'ثانية', 3 => 'ثالثة', 4 => 'رابعة', 5 => 'خامسة'];
+        $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
+        $remainingHours = max(0, $effectiveLimit - $cartHours);
 
-        if (preg_match('/(معدل|gpa|انذار|إنذار|رفع|تراكمي)/u', $normalized)) {
-            $reply = "أهلاً بك **{$user->name}**. لرفع معدلك التراكمي المتبقي لك، أنصحك بالتركيز على المواد ذات الطبيعة السهلة أو المعتدلة أولاً لتخفيف العبء الأكاديمي، وتجنب تسجيل ساعات مفرطة في فصل واحد. \n\nإليك بعض المواد المتاحة لك حالياً والتي يُنصح بها لرفع المعدل:";
-            
-            $easyCourses = array_filter($availableDetails, fn($c) => $c['difficulty_level'] <= 2);
-            $easyCourses = array_slice($easyCourses, 0, 3);
-            if (empty($easyCourses)) {
-                $easyCourses = array_slice($availableDetails, 0, 2);
-            }
+        usort($availableDetails, function (array $a, array $b) use ($studentYear) {
+            $scoreA = ($a['in_cart'] ? 1000 : 0)
+                - ((int) ($a['unlocks'] ?? 0) * 6)
+                + ((int) ($a['difficulty_level'] ?? 3) * 3)
+                + (abs(((int) ($a['course_year'] ?? $studentYear)) - $studentYear) * 2)
+                + max(0, 5 - (int) ($a['credit_hours'] ?? 0));
 
-            foreach ($easyCourses as $c) {
-                $id = array_search($c['name'], $availableCourses['map']);
-                if ($id) {
-                    $suggestedIds[] = $id;
-                    $reply .= "\n- **{$c['name']}** ({$c['credit_hours']} ساعات) - تصنيف الصعوبة خفيف.";
+            $scoreB = ($b['in_cart'] ? 1000 : 0)
+                - ((int) ($b['unlocks'] ?? 0) * 6)
+                + ((int) ($b['difficulty_level'] ?? 3) * 3)
+                + (abs(((int) ($b['course_year'] ?? $studentYear)) - $studentYear) * 2)
+                + max(0, 5 - (int) ($b['credit_hours'] ?? 0));
+
+            return $scoreA <=> $scoreB;
+        });
+
+        $pickTopCourses = function (array $candidates, int $maxItems, int $hourBudget = null): array {
+            $selected = [];
+            $usedHours = 0;
+
+            foreach ($candidates as $course) {
+                if (!empty($course['in_cart'])) {
+                    continue;
+                }
+
+                $courseHours = (int) ($course['credit_hours'] ?? 0);
+                if ($hourBudget !== null && ($usedHours + $courseHours) > $hourBudget) {
+                    continue;
+                }
+
+                $selected[] = $course;
+                $usedHours += $courseHours;
+
+                if (count($selected) >= $maxItems) {
+                    break;
                 }
             }
-            $followUps = ['كيف أحسب معدلي المتوقع؟', 'ما هي شروط رفع الإنذار الأكاديمي؟'];
-        } elseif (preg_match('/(تخرج|خطة|مسار|فتح|متطلبات|استراتيج|سنه)/u', $normalized)) {
-            $reply = "أهلاً بك **{$user->name}**. لتسريع تخرجك وفتح المزيد من المواد في الفصول القادمة، يجب عليك إعطاء الأولوية **للمواد الاستراتيجية** (المواد التي تفتح مواد أخرى كمتطلب سابق).\n\nإليك أهم المواد الاستراتيجية المتاحة لك حالياً لتسجيلها:";
-            
-            $strategicCourses = array_slice($availableDetails, 0, 3);
-            foreach ($strategicCourses as $c) {
-                $id = array_search($c['name'], $availableCourses['map']);
-                if ($id) {
-                    $suggestedIds[] = $id;
-                    $reply .= "\n- **{$c['name']}** (تفتح عدد {$c['unlocks']} مواد لاحقة!).";
-                }
+
+            return $selected;
+        };
+
+        $bestCourses = $pickTopCourses($availableDetails, 4, $remainingHours > 0 ? $remainingHours : null);
+        $easyCourses = array_values(array_filter($availableDetails, fn ($course) => (int) ($course['difficulty_level'] ?? 3) <= 2 && empty($course['in_cart'])));
+        $strategicCourses = array_values(array_filter($availableDetails, fn ($course) => (int) ($course['unlocks'] ?? 0) >= 2 && empty($course['in_cart'])));
+
+        $intro = "أنت الآن في **{$currentPeriodLabel}**. الحد الفعلي للتسجيل: **{$effectiveLimit} ساعة**";
+        if ($isSummer) {
+            $intro .= "، وهذا فصل صيفي لذا القاعدة الأساسية هي **9 ساعات**.";
+        }
+        $intro .= "\nساعاتك المسجلة حالياً: **{$cartHours}** | المتبقي ضمن الحد: **{$remainingHours}** | سنة الطالب التقديرية: **{$studentYearLabel}**.";
+
+        if (preg_match('/(ساع|ساعات|تسجيل|الجدول|فصل|الصيف|summer|limit|كم مسموح)/u', $normalized)) {
+            $reply = $intro . "\n\nالنتيجة: إذا كان هدفك الحفاظ على التوازن، لا تتجاوز الحد الفعلي أعلاه. أفضل المواد الحالية لك حسب الخطة هي:";
+            foreach ($bestCourses as $course) {
+                $suggestedIds[] = (int) $course['id'];
+                $reply .= "\n- **{$course['name']}** ({$course['credit_hours']} ساعات) — " . ($course['unlocks'] > 0 ? "تفتح {$course['unlocks']} مواد" : 'مناسبة للتسجيل المباشر') . ".";
             }
-            $followUps = ['هل يوجد مواد حرة بالخطة؟', 'ما هي المواد التي تفتح أكبر عدد من التخصص؟'];
-        } elseif (preg_match('/(مبنى|كلية|قاعة|وين|اين|مكان|فاروق|دوازي)/u', $normalized)) {
+            $followUps = ['اقترح جدول متوازن', 'كم ساعة بقيت لي هذا الفصل؟', 'ما المواد الاستراتيجية في خطتي؟'];
+        } elseif (preg_match('/(معدل|gpa|انذار|إنذار|رفع|تراكمي|probation)/u', $normalized)) {
+            $reply = $intro . "\n\nلرفع المعدل، اختر مواد أخف عبئاً مع ساعات مناسبة، وابتعد عن حشو الجدول. هذه أفضل المواد الخفيفة المتاحة لك:";
+            $easyTop = $pickTopCourses($easyCourses ?: $availableDetails, 3, $remainingHours > 0 ? $remainingHours : null);
+            foreach ($easyTop as $course) {
+                $suggestedIds[] = (int) $course['id'];
+                $reply .= "\n- **{$course['name']}** ({$course['credit_hours']} ساعات) — صعوبة منخفضة.";
+            }
+            $followUps = ['ما تأثير هذه المواد على معدلي؟', 'كيف أخفف عبء الجدول؟'];
+        } elseif (preg_match('/(تخرج|خطة|مسار|فتح|متطلبات|استراتي|graduat|plan)/u', $normalized)) {
+            $reply = $intro . "\n\nللتخرج أسرع، ركّز على المواد التي تفتح مواد أخرى. هذه أبرز الخيارات الاستراتيجية الآن:";
+            $strategicTop = $pickTopCourses($strategicCourses ?: $availableDetails, 3, $remainingHours > 0 ? $remainingHours : null);
+            foreach ($strategicTop as $course) {
+                $suggestedIds[] = (int) $course['id'];
+                $reply .= "\n- **{$course['name']}** — تفتح {$course['unlocks']} مواد، وملائمة لمسار الخطة.";
+            }
+            $followUps = ['ما أفضل ترتيب للفصل القادم؟', 'أي المواد تعطل التخرج لو تأخرت؟'];
+        } elseif (preg_match('/(مبنى|كلية|قاعة|وين|اين|مكان|فاروق|دوازي|campus)/u', $normalized)) {
             $reply = "دليل مباني جامعة الزرقاء السريع 🏛️:\n" .
                 "- **مبنى الفاروق (أ.ب)**: يضم كليات الشريعة، الآداب، تكنولوجيا المعلومات، والعلوم التربوية.\n" .
                 "- **مبنى (ت)**: يضم كلية العلوم الطبية المساندة والكلية التقنية.\n" .
@@ -1280,18 +1358,15 @@ class AiAdvisorController extends Controller
                 "💡 **ملاحظة ترميز القاعات**: الرقم الأول يعبر عن الطابق (مثال: قاعة 102 في الطابق الأول، وقاعة 205 في الطابق الثاني).";
             $followUps = ['أين تقع المكتبة العامة؟', 'كيف أصل إلى القبول والتسجيل؟'];
         } else {
-            $reply = "أهلاً بك يا **{$user->name}** في تطبيق سنفور 🤖. أنا مستشارك الأكاديمي الذكي المساعد لك.\n\nيمكنك سؤالي عن خطتك الدراسية، أو كيفية ترتيب جدولك الدراسي، أو أماكن الكليات ومباني الجامعة. \n\nلقد قمت بتحليل خطتك الأكاديمية، وإليك أهم المادتين المقترحتين لك لتسجيلهما في جدولك التجريبي الحالي:";
-            
-            $defaultSuggestions = array_slice($availableDetails, 0, 2);
-            foreach ($defaultSuggestions as $c) {
-                $id = array_search($c['name'], $availableCourses['map']);
-                if ($id) {
-                    $suggestedIds[] = $id;
-                    $reply .= "\n- **{$c['name']}** ({$c['credit_hours']} ساعات) - مادة مهمة لمسارك الأكاديمي.";
-                }
+            $reply = $intro . "\n\nأهم ترشيحاتي الآن بناءً على الخطة والمواد المتاحة:";
+            foreach ($bestCourses as $course) {
+                $suggestedIds[] = (int) $course['id'];
+                $reply .= "\n- **{$course['name']}** ({$course['credit_hours']} ساعات) — " . ((int) ($course['unlocks'] ?? 0) > 0 ? "مادة استراتيجية" : 'خيار مناسب لمسارك');
             }
-            $followUps = ['اقترح علي جدول متوازن', 'أين تقع كلية الآي تي؟'];
+            $followUps = ['اقترح علي جدول متوازن', 'ما المواد المفتوحة الآن لي؟'];
         }
+
+        $suggestedIds = array_values(array_unique(array_filter($suggestedIds)));
 
         $suggestedDetails = [];
         if (!empty($suggestedIds)) {
@@ -1314,7 +1389,7 @@ class AiAdvisorController extends Controller
             if (!empty($widgetCourses)) {
                 $widget = [
                     'type' => 'cart_review',
-                    'title' => 'أضف المقترحات للجدول التجريبي',
+                    'title' => 'اقتراحات ذكية للجدول التجريبي',
                     'courses' => array_map(fn($c) => [
                         'id' => $c['id'],
                         'name' => $c['name'],
@@ -1322,13 +1397,13 @@ class AiAdvisorController extends Controller
                         'credit_hours' => $c['credit_hours'],
                         'difficulty' => 2,
                         'verdict' => 'add',
-                        'reason' => 'مادة مقترحة ومتاحة للتسجيل مباشرة'
+                        'reason' => 'مادة مناسبة للحد الحالي والخطة الأكاديمية'
                     ], $widgetCourses),
                     'summary' => [
-                        'total_hours' => $cartData['hours'] + collect($widgetCourses)->sum('credit_hours'),
-                        'max_hours' => $academicData['max_allowed_hours'],
+                        'total_hours' => $cartHours + collect($widgetCourses)->sum('credit_hours'),
+                        'max_hours' => $effectiveLimit,
                         'overall_difficulty' => 'متوازن',
-                        'recommendation' => 'ننصح بإضافة المواد لبناء جدول دراسي متكامل'
+                        'recommendation' => 'مزيج جيد بين السهولة والجدوى الأكاديمية'
                     ]
                 ];
             }

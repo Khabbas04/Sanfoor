@@ -339,11 +339,14 @@ const Ring = ({pct, size=40, s=3.5}) => {
 // 🧠 MAIN
 // ======================================================================
 export default function Advisor() {
-    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, isAiActive: initialIsAiActive } = usePage().props;
+    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive } = usePage().props;
 
-    const [remaining, setRemaining] = useState(initialRemaining ?? 5);
+    const [remaining, setRemaining] = useState(initialHasDailyLimit ? (initialRemaining ?? 5) : null);
+    const [hasDailyLimit, setHasDailyLimit] = useState(initialHasDailyLimit ?? true);
     const [isAiActive, setIsAiActive] = useState(initialIsAiActive ?? false);
     const [isFallback, setIsFallback] = useState(false);
+
+    const limitReached = hasDailyLimit && remaining !== null && remaining <= 0;
 
     const welcome = useMemo(() => {
         const name = st?.name || 'بطل';
@@ -507,6 +510,9 @@ export default function Advisor() {
             const pl = { message:t }; if (activeId) pl.chat_id = activeId;
             const r = await axios.post(route('ai.advisor.chat'), pl, { signal: abortRef.current.signal });
             if (r.data.status === 'success') {
+                if (r.data.has_daily_limit !== undefined) {
+                    setHasDailyLimit(!!r.data.has_daily_limit);
+                }
                 if (r.data.daily_messages_remaining !== undefined) {
                     setRemaining(r.data.daily_messages_remaining);
                 }
@@ -528,6 +534,9 @@ export default function Advisor() {
         } catch(e) { 
             if (axios.isCancel?.(e)) return; 
             setGenerating(false); 
+            if (e?.response?.data?.has_daily_limit !== undefined) {
+                setHasDailyLimit(!!e.response.data.has_daily_limit);
+            }
             if (e?.response?.data?.daily_messages_remaining !== undefined) {
                 setRemaining(e.response.data.daily_messages_remaining);
             }
@@ -836,19 +845,19 @@ export default function Advisor() {
                                     setCommandFilter('');
                                 }
                             }} 
-                            placeholder={remaining <= 0 ? "⚠️ لقد استهلكت محاولاتك الـ 5 المتاحة لليوم. عد غداً ⏳" : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
-                            className={`w-full ${remaining <= 0 ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
-                            disabled={typing||loadingChat||generating||remaining <= 0}
+                            placeholder={limitReached ? "⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳" : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
+                            className={`w-full ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
+                            disabled={typing||loadingChat||generating||limitReached}
                         />
-                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||remaining <= 0} className="absolute left-2 w-9 h-9 bg-gradient-to-tr from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
+                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||limitReached} className="absolute left-2 w-9 h-9 bg-gradient-to-tr from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
                         </button>
                     </form>
                     <p className="text-[7.5px] font-bold text-center mt-1.5 flex items-center justify-center gap-1.5">
                         <span className="text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300"/>
-                        <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${remaining > 0 ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-red-600 animate-pulse'}`}>
-                            {remaining > 0 ? `الرسائل المتبقية لليوم: ${remaining}/5` : '⚠️ انتهت رسائلك المتاحة اليوم'}
+                        <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${limitReached ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-700'}`}>
+                            {hasDailyLimit ? (limitReached ? '⚠️ انتهت رسائلك المتاحة اليوم' : `الرسائل المتبقية لليوم: ${remaining}/${5}`) : '♾️ رسائل غير محدودة'}
                         </span>
                     </p>
                 </div>
