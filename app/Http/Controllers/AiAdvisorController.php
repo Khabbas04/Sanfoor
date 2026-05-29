@@ -235,9 +235,11 @@ class AiAdvisorController extends Controller
                 'daily_messages_remaining' => $newRemaining,
                 'has_daily_limit' => $dailyLimit !== null,
                 'is_fallback' => $useFallback,
+                'fallback_reason' => $useFallback ? 'local_fallback' : null,
             ]);
         } catch (\Throwable $e) {
             Log::error('Gemini AI Error: ' . $e->getMessage(), [
+                'exception' => get_class($e),
                 'line' => $e->getLine(),
                 'file' => $e->getFile(),
             ]);
@@ -282,11 +284,18 @@ class AiAdvisorController extends Controller
                     'daily_messages_remaining' => $newRemaining,
                     'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
+                    'fallback_reason' => 'gemini_unavailable',
                 ]);
             } catch (\Throwable $fallbackEx) {
+                Log::error('Local fallback failed: ' . $fallbackEx->getMessage(), [
+                    'exception' => get_class($fallbackEx),
+                    'line' => $fallbackEx->getLine(),
+                    'file' => $fallbackEx->getFile(),
+                ]);
+
                 return response()->json([
                     'status' => 'success',
-                    'reply' => '⚠️ واجهت مشكلة فنية مؤقتة بالوصول لمساعد سنفور الأكاديمي. يرجى المحاولة مرة أخرى لاحقاً.',
+                    'reply' => "⚠️ تعذر الوصول للمساعد الذكي الآن.\n\nلكن أقدر أساعدك محلياً: اكتب سؤالك عن الساعات، الفصل الحالي، أو المواد المتاحة، وسأعطيك أقصر جواب دقيق فوراً.",
                     'suggested_courses' => [],
                     'courses_to_remove' => [],
                     'follow_up_suggestions' => [],
@@ -295,6 +304,7 @@ class AiAdvisorController extends Controller
                     'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
                     'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
+                    'fallback_reason' => 'local_fallback_error',
                 ]);
             }
         }
@@ -719,6 +729,11 @@ class AiAdvisorController extends Controller
 
         $gpa = $academicData['gpa_data']['percentage'] ?? 0;
         $gpa4 = $academicData['gpa_data']['gpa4'] ?? 0;
+        $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي غير محدد');
+        $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
+        $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
+        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
+        $isSummer = !empty($academicData['current_period_is_summer']);
         $probationStatus = $academicData['is_probation']
             ? "🚨 نعم — إنذار أكاديمي! (الحد الأقصى {$academicData['max_allowed_hours']} ساعة فقط)"
             : "لا (الحد الأقصى {$academicData['max_allowed_hours']} ساعة)";
@@ -736,11 +751,6 @@ class AiAdvisorController extends Controller
         }
 
         $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
-        $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي غير محدد');
-        $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
-        $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
-        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
-        $isSummer = !empty($academicData['current_period_is_summer']);
 
         return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وتخطيط الجداول باحتراف وذكاء.\nالقواعد:\n" .
             "- كن مختصراً جداً ومباشراً، وردك يجب أن يكون 2-4 أسطر فقط ما لم يطلب المستخدم تفصيلاً.\n" .

@@ -345,6 +345,7 @@ export default function Advisor() {
     const [hasDailyLimit, setHasDailyLimit] = useState(initialHasDailyLimit ?? true);
     const [isAiActive, setIsAiActive] = useState(initialIsAiActive ?? false);
     const [isFallback, setIsFallback] = useState(false);
+    const [fallbackReason, setFallbackReason] = useState(null);
 
     const limitReached = hasDailyLimit && remaining !== null && remaining <= 0;
 
@@ -517,6 +518,7 @@ export default function Advisor() {
                     setRemaining(r.data.daily_messages_remaining);
                 }
                 setIsFallback(!!r.data.is_fallback);
+                setFallbackReason(r.data.fallback_reason || null);
 
                 const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
                     ? r.data.reply
@@ -540,6 +542,7 @@ export default function Advisor() {
             if (e?.response?.data?.daily_messages_remaining !== undefined) {
                 setRemaining(e.response.data.daily_messages_remaining);
             }
+            setFallbackReason(e?.response?.data?.fallback_reason || 'connection_error');
             setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:e?.response?.data?.message || 'انقطع الاتصال. 📡', isAnimating:false }]); 
         }
         finally { setTyping(false); }
@@ -741,6 +744,7 @@ export default function Advisor() {
                     </div>
                     <div>
                         <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
+                        {(isFallback || fallbackReason) && <p className="text-[8px] font-bold text-rose-500 mt-0.5">{fallbackReason === 'gemini_unavailable' ? 'المساعد السحابي غير متاح حالياً، لذلك نستخدم الوضع المحلي.' : fallbackReason === 'local_fallback_error' ? 'الفالباك المحلي احتاج معالجة إضافية.' : 'الوضع المحلي مفعل حالياً.'}</p>}
                         <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`}/>
                             {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? 'مستشار سنفور (الوضع المحلي) 🔴' : 'مستشار سنفور (الوضع الذكي) 🟢')}
