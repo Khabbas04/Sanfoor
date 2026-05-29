@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicPeriod;
 use App\Models\Chat;
 use App\Models\Course;
 use App\Models\Message;
@@ -120,6 +121,8 @@ class AiAdvisorController extends Controller
         // Clear academic data cache to ensure fresh analysis
         $this->clearStudentCache($user->id);
 
+        $currentPeriod = AcademicPeriod::current();
+
         if (!$this->checkRateLimit($user->id)) {
             return response()->json([
                 'status' => 'success',
@@ -145,6 +148,15 @@ class AiAdvisorController extends Controller
         $academicData = $this->getStudentAcademicData($user);
         $cartData = $this->getCartData($user);
         $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartData['ids'], $user);
+        $registrationLimits = $this->getRegistrationLimits($currentPeriod, (bool) ($academicData['is_probation'] ?? false));
+        $academicData = array_merge($academicData, [
+            'current_period_label' => $currentPeriod?->displayLabel() ?? 'الفصل الحالي غير محدد',
+            'current_period_term' => $currentPeriod?->academic_term,
+            'current_period_is_summer' => $registrationLimits['is_summer'],
+            'current_term_limit' => $registrationLimits['term_limit'],
+            'academic_limit' => $registrationLimits['academic_limit'],
+            'effective_registration_limit' => $registrationLimits['effective_limit'],
+        ]);
 
         $apiKeys = $this->getGeminiApiKeys();
         $useFallback = empty($apiKeys);
@@ -159,7 +171,8 @@ class AiAdvisorController extends Controller
                 $suggestedDetails = $parsed['suggested_courses'];
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
-                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $data['message']);
+                $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
+                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext);
                 $contents = $this->buildConversationContext($chat, $systemPrompt);
 
                 $rawText = $this->callGeminiAPI($contents, $apiKeys);
@@ -445,6 +458,20 @@ class AiAdvisorController extends Controller
         Cache::forget("student_cart_data_{$userId}");
     }
 
+    private function getRegistrationLimits(?AcademicPeriod $currentPeriod, bool $isProbation): array
+    {
+        $isSummer = $currentPeriod ? (int) $currentPeriod->academic_term === 3 : false;
+        $termLimit = $isSummer ? 9 : 18;
+        $academicLimit = $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL;
+
+        return [
+            'is_summer' => $isSummer,
+            'term_limit' => $termLimit,
+            'academic_limit' => $academicLimit,
+            'effective_limit' => min($termLimit, $academicLimit),
+        ];
+    }
+
     private function getStudentAcademicData($user): array
     {
         $cacheKey = "student_academic_data_{$user->id}";
@@ -655,7 +682,8 @@ class AiAdvisorController extends Controller
             }
         }
 
-        $hoursState = ($cartData['hours'] ?? 0) > ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL) ? 'متجاوز_الحد' : 'ضمن_الحد';
+        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? $academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL);
+        $hoursState = ($cartData['hours'] ?? 0) > $effectiveLimit ? 'متجاوز_الحد' : 'ضمن_الحد';
 
         return "\n🎯 [RAG الإرشاد الطلابي]:\n- نية_السؤال: {$intent}\n- ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "\n- ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "\n- حالة_الساعات: {$hoursState}\n- عدد_مواد_التسجيل_التجريبي: " . count($cartData['ids'] ?? []) . "\n- مواد_استراتيجية_مرشحة:\n" . ($strategic ? implode("\n", $strategic) : '- لا توجد مواد مرشحة حالياً') . "\n- عينات_حسب_تصنيف_الصعوبة_الاداري:\n  - خفيف: " . ($easy ? implode(' | ', array_slice($easy, 0, 4)) : 'لا يوجد') . "\n  - متوازن: " . ($balanced ? implode(' | ', array_slice($balanced, 0, 4)) : 'لا يوجد') . "\n  - مكثف: " . ($heavy ? implode(' | ', array_slice($heavy, 0, 4)) : 'لا يوجد');
     }
@@ -679,17 +707,27 @@ class AiAdvisorController extends Controller
         }
 
         $cartWarning = '';
-        if (($cartData['hours'] ?? 0) > ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL)) {
-            $excess = $cartData['hours'] - $academicData['max_allowed_hours'];
-            $cartWarning = "\n⚠️ تنبيه: التسجيل التجريبي يحتوي {$cartData['hours']} ساعة ويتجاوز الحد المسموح بـ {$excess} ساعة!";
+        if (($cartData['hours'] ?? 0) > $effectiveLimit) {
+            $excess = $cartData['hours'] - $effectiveLimit;
+            $cartWarning = "\n⚠️ تنبيه: التسجيل التجريبي يحتوي {$cartData['hours']} ساعة ويتجاوز الحد الفعلي المسموح بـ {$excess} ساعة!";
         }
 
         $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
+        $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي غير محدد');
+        $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
+        $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
+        $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
+        $isSummer = !empty($academicData['current_period_is_summer']);
 
         return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وتخطيط الجداول باحتراف وذكاء.\nالقواعد:\n" .
-            "- كن مختصراً ومباشراً (Direct)، ولا تكرر سؤال الطالب.\n" .
+            "- كن مختصراً جداً ومباشراً، وردك يجب أن يكون 2-4 أسطر فقط ما لم يطلب المستخدم تفصيلاً.\n" .
+            "- إذا كان السؤال عن التسجيل أو الجدول، اذكر أولاً الفصل الحالي والحد الفعلي المسموح ثم الحكم على حالة الطالب.\n" .
+            "- اعتمد دائمًا على الفصل الحالي من السياق: {$currentPeriodLabel}.\n" .
+            "- حد التسجيل لهذا الفصل: {$currentTermLimit} ساعة. الحد الأكاديمي الشخصي: {$academicLimit} ساعة. الحد الفعلي المطبق: {$effectiveLimit} ساعة.\n" .
+            ($isSummer ? "- هذا فصل صيفي، لذلك لا تتجاوز 9 ساعات إلا إذا كان هناك استثناء إداري صريح.\n" : "- هذا ليس فصلًا صيفيًا.\n") .
+            "- لا تخمّن الساعات، ولا تجب من الذاكرة العامة إذا كان السياق يحتوي قيمة أحدث.\n" .
             "- ركز على توزيع الحمل الدراسي والتأكد من توافق الجدول مع التقسيمة الصحيحة لساعات الخطة.\n" .
-            "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**).\n\n" .
+            "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**) فقط إذا لم يطُل الرد.\n\n" .
             "هيكلة متطلبات الخطة الدراسية للتخرج (132 ساعة كحد أدنى):\n" .
             "- متطلبات الجامعة الإجبارية (متوفرة أونلاين): 30 ساعة.\n" .
             "- متطلبات التخصص الإجبارية: 87 ساعة.\n" .
@@ -712,7 +750,7 @@ class AiAdvisorController extends Controller
             "- تخصص إجباري: أنجز {$academicData['passed_compulsory']} / 87 ساعة\n" .
             "- تخصص اختياري: أنجز {$academicData['passed_elective']} / 9 ساعات\n" .
             "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
-            "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد المسموح {$academicData['max_allowed_hours']}س" : '') . "\n\n" .
+                "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
             "المواد المتاحة للتسجيل للطالب:\n{$availableCourses['text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_courses\":[],\"courses_to_remove\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}";
