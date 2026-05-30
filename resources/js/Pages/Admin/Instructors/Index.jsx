@@ -213,7 +213,7 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                         <tr key={instructor.id} className={`transition-colors group ${isDark ? 'hover:bg-slate-700/30' : 'hover:bg-slate-50/50'}`}>
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-sm shadow-sm uppercase">
+                                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-sm shadow-sm uppercase overflow-hidden shrink-0">
                                                     {instructor.avatar ? (
                                                         <img src={instructor.avatar} alt={instructor.name} className="w-full h-full object-cover" />
                                                     ) : (
@@ -283,7 +283,7 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                 </div>
 
                                 <div className="flex items-center gap-4 relative z-10 mt-4">
-                                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-black text-2xl shadow-inner backdrop-blur-md uppercase">
+                                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-black text-2xl shadow-inner backdrop-blur-md uppercase overflow-hidden shrink-0">
                                         {selectedInstructor?.avatar ? (
                                             <img src={selectedInstructor.avatar} alt={selectedInstructor.name} className="w-full h-full object-cover" />
                                         ) : (
