@@ -47,13 +47,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 ])->toResponse($request)->setStatusCode($response->getStatusCode());
             }
 
-            if ($response->getStatusCode() === 419) {
-                return back()->with([
-                    'message' => 'انتهت صلاحية الصفحة بسبب عدم النشاط. يرجى المحاولة مرة أخرى.',
-                    'type' => 'error',
-                ]);
-            }
-
             return $response;
         });
     })->create();
