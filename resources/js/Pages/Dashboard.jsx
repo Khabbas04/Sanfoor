@@ -794,7 +794,10 @@ export default function Dashboard({
                             <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
                                 <div className="bg-indigo-50/30 border-b border-indigo-100/40 p-4 flex items-center justify-between">
                                     <h4 className="text-sm font-[900] text-indigo-900 flex items-center gap-2">📌 الشباتر المفضلة</h4>
-                                    <p className="text-xs text-slate-500 font-bold">الوصول السريع</p>
+                                    <div className="flex items-center gap-3">
+                                        <Link href={route('public.announcements')} className="text-lg hover:scale-110 transition-transform cursor-pointer" title="الإعلانات">📢</Link>
+                                        <p className="text-xs text-slate-500 font-bold hidden sm:block">الوصول السريع</p>
+                                    </div>
                                 </div>
                                 <div className="p-4 space-y-2">
                                     {Array.isArray(pinned_chapters) && pinned_chapters.length > 0 ? pinned_chapters.map((ch) => (
