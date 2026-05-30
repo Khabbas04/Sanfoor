@@ -273,7 +273,11 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
                                                         {/* Left Side: User & Action */}
                                                         <div className="flex items-start gap-4">
                                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 ${isDark ? 'bg-indigo-500/30 border-indigo-500/50 text-indigo-300' : 'bg-indigo-100 border-indigo-300 text-indigo-700'}`}>
-                                                                {log.user?.name?.charAt(0) || '?'}
+                                                                {log.user?.avatar ? (
+                                                                    <img src={log.user.avatar} alt={log.user.name} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    log.user?.name?.charAt(0) || '?'
+                                                                )}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className={`font-[900] text-sm truncate ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>

@@ -281,7 +281,11 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center font-black text-sm shadow-sm uppercase">
-                                                        {student.name.charAt(0)}
+                                                        {student.avatar ? (
+                                                            <img src={student.avatar} alt={student.name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            student.name.charAt(0)
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className={`font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-sm`}>{student.name}</p>
@@ -361,7 +365,11 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
 
                                 <div className="flex items-center gap-4 relative z-10 mt-4">
                                     <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center font-black text-2xl shadow-inner backdrop-blur-md uppercase">
-                                        {selectedStudent?.name.charAt(0)}
+                                        {selectedStudent?.avatar ? (
+                                            <img src={selectedStudent.avatar} alt={selectedStudent.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            selectedStudent?.name.charAt(0)
+                                        )}
                                     </div>
                                     <div className="text-white flex-1">
                                         {isEditing ? (

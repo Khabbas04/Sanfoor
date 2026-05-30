@@ -1330,7 +1330,13 @@ const filteredImportMajors = safeMajors.filter(m => m.college_id == fileData.col
                                         <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="p-5 text-slate-400 font-mono text-[11px] font-bold" dir="ltr">{new Date(log.created_at).toLocaleString('en-GB')}</td>
                                             <td className="p-5 font-[900] text-slate-700 flex items-center gap-2">
-                                                <div className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px]">{log.user?.name?.charAt(0) || '?'}</div>
+                                                <div className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] overflow-hidden">
+                                                    {log.user?.avatar ? (
+                                                        <img src={log.user.avatar} alt={log.user.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        log.user?.name?.charAt(0) || '?'
+                                                    )}
+                                                </div>
                                                 {log.user?.name || 'مستخدم غير معروف'}
                                             </td>
                                             <td className="p-5 text-slate-500 font-bold whitespace-normal">

@@ -145,6 +145,25 @@ class MicrosoftAuthController extends Controller
 
             $user->save();
 
+            // Attempt to get the avatar if the user doesn't have one
+            if (empty($user->avatar) && $microsoftUser->token && isset($columns['avatar'])) {
+                try {
+                    $response = \Illuminate\Support\Facades\Http::withToken($microsoftUser->token)
+                        ->timeout(3)
+                        ->get('https://graph.microsoft.com/v1.0/me/photo/$value');
+
+                    if ($response->successful()) {
+                        $filename = 'avatars/' . $user->id . '_' . time() . '.jpg';
+                        \Illuminate\Support\Facades\Storage::disk('public')->put($filename, $response->body());
+                        $user->avatar = '/storage/' . $filename;
+                        $user->save();
+                    }
+                } catch (\Throwable $e) {
+                    // Ignore photo fetch errors to not block login
+                    Log::warning('Failed to fetch Microsoft avatar', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                }
+            }
+
             Auth::guard('web')->login($user, true);
             $request->session()->regenerate();
 

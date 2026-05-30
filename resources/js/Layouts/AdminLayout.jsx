@@ -260,7 +260,13 @@ export default function AdminLayout({ children }) {
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-2xl font-black shadow-xl border border-white/20 relative group overflow-hidden">
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-                            <span className="relative z-10">{auth?.user?.name?.charAt(0) ?? '?'}</span>
+                            <span className="relative z-10 overflow-hidden rounded-xl w-full h-full flex items-center justify-center">
+                                {auth?.user?.avatar ? (
+                                    <img src={auth.user.avatar} alt={auth.user.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    auth?.user?.name?.charAt(0) ?? '?'
+                                )}
+                            </span>
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.15em] mb-1">

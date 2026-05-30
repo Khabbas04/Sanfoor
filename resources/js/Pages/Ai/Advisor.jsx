@@ -304,8 +304,11 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
-                {u ? <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white">{name?.charAt(0)||'أ'}</div>
-                    : <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
+                {u ? (
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white overflow-hidden">
+                        {u.avatar ? <img src={u.avatar} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0)||'أ'}
+                    </div>
+                ) : <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" onError={e=>{e.target.outerHTML='<span class="text-xs">🤖</span>';}}/></div>}
                 <div className={`group/m ${u ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-2xl rounded-se-sm shadow-lg shadow-blue-500/10 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
@@ -702,7 +705,9 @@ export default function Advisor() {
             {st && (
                 <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3.5">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center text-lg font-black text-blue-700 shrink-0">{st.name?.charAt(0)||'أ'}</div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center text-lg font-black text-blue-700 shrink-0 overflow-hidden">
+                            {st.avatar ? <img src={st.avatar} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0)||'أ'}
+                        </div>
                         <div className="min-w-0"><p className="font-black text-[13px] text-slate-800 truncate">{st.name}</p><p className="text-[9px] text-slate-400 font-bold">{st.major||'—'}</p></div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">

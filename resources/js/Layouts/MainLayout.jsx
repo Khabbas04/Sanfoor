@@ -330,8 +330,12 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                                 </div>
                                                 {safeUser.major && <span className="text-[10px] font-bold text-slate-400 mt-1 max-w-[100px] truncate">{safeUser.major.name}</span>}
                                             </div>
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-500 text-white flex items-center justify-center font-black text-sm shadow-inner relative overflow-hidden">
-                                                {safeUser.name?.charAt(0) ?? '?'}
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 to-blue-500 text-white flex items-center justify-center font-black text-sm shadow-inner relative overflow-hidden shrink-0">
+                                                {safeUser.avatar ? (
+                                                    <img src={safeUser.avatar} alt={safeUser.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    safeUser.name?.charAt(0) ?? '?'
+                                                )}
                                             </div>
                                         </button>
 
