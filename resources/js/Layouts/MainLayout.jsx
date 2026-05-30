@@ -220,7 +220,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
             {/* Shared floating navbar used across the public-facing experience. */}
             {!shouldHideNav && (
-                <div className={`${absoluteNavbar ? 'absolute' : 'relative md:fixed'} top-0 w-full z-[100] flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none`}>
+                <div className={`${absoluteNavbar ? 'absolute' : 'relative md:fixed'} top-0 w-full z-50 flex justify-center px-2 sm:px-4 transition-all duration-500 pointer-events-none`}>
                     <nav className={`nav-capsule pointer-events-auto w-full max-w-[1400px] top-0 h-[72px] sm:h-[96px] bg-transparent border-b border-transparent ${scrolled ? 'nav-scrolled' : ''}`}>
                         <div className="h-full px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
@@ -416,7 +416,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             )}
 
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
-            <main className={`flex-1 flex flex-col w-full relative z-10 ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}>
+            <main className={`flex-1 flex flex-col w-full relative ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}>
                 {children}
             </main>
 
