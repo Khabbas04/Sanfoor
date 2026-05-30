@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
@@ -7,45 +7,37 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 const translations = {
     ar: {
         title: 'محادثات AI',
-        subtitle: 'عرض مباشر لمحادثات الطالب مع المساعد الأكاديمي، مع فلترة سريعة وقراءة الرسائل الكاملة.',
-        searchPlaceholder: 'ابحث باسم الطالب أو عنوان المحادثة...',
+        subtitle: 'مراقبة مباشرة لمحادثات الطلاب مع المرشد الأكاديمي الذكي.',
+        searchPlaceholder: 'ابحث عن طالب أو محادثة...',
         chats: 'المحادثات',
         messages: 'الرسائل',
-        noChats: 'لا توجد محادثات مطابقة.',
-        noSelectedChat: 'اختر محادثة لعرض التفاصيل.',
-        totalChats: 'إجمالي المحادثات',
-        totalMessages: 'إجمالي الرسائل',
+        noChats: 'لا توجد محادثات.',
+        noSelectedChat: 'اختر محادثة من القائمة لعرض الرسائل.',
+        totalChats: 'المحادثات',
+        totalMessages: 'الرسائل',
         todayChats: 'محادثات اليوم',
         todayMessages: 'رسائل اليوم',
-        by: 'الطالب',
-        aiAssistant: 'AI',
-        student: 'طالب',
-        openConversation: 'فتح المحادثة',
-        lastMessage: 'آخر رسالة',
+        aiAssistant: 'المرشد الذكي',
+        student: 'الطالب',
         chatId: 'رقم المحادثة',
-        createdAt: 'تاريخ الإنشاء',
-        updatedAt: 'آخر تحديث',
+        rawContent: 'البيانات الخام',
     },
     en: {
         title: 'AI Chats',
-        subtitle: 'Live student conversations with the academic assistant, with quick filtering and full message viewing.',
-        searchPlaceholder: 'Search by student name or chat title...',
+        subtitle: 'Live monitoring of student conversations with the AI Academic Advisor.',
+        searchPlaceholder: 'Search for a student or chat...',
         chats: 'Chats',
         messages: 'Messages',
-        noChats: 'No matching chats found.',
-        noSelectedChat: 'Select a conversation to view details.',
+        noChats: 'No chats found.',
+        noSelectedChat: 'Select a chat from the list to view messages.',
         totalChats: 'Total Chats',
-        totalMessages: 'Total Messages',
+        totalMessages: 'Messages',
         todayChats: 'Today Chats',
-        todayMessages: 'Today Messages',
-        by: 'Student',
-        aiAssistant: 'AI',
+        todayMessages: 'Today Msgs',
+        aiAssistant: 'AI Advisor',
         student: 'Student',
-        openConversation: 'Open Conversation',
-        lastMessage: 'Last Message',
         chatId: 'Chat ID',
-        createdAt: 'Created At',
-        updatedAt: 'Updated At',
+        rawContent: 'Raw Payload',
     },
 };
 
@@ -54,11 +46,14 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
     const [search, setSearch] = useState(filters.q || '');
+    const messagesEndRef = useRef(null);
 
-    const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
-    const cardSoft = isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-[#f8fafc] border-slate-200';
-    const heading = isDark ? 'text-slate-100' : 'text-slate-800';
-    const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
+    // Auto-scroll to bottom of messages
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, selectedChat]);
 
     const filteredChats = useMemo(() => {
         const term = search.trim().toLowerCase();
@@ -75,176 +70,264 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
 
     const openChat = (chatId) => {
         router.get(route('admin.ai_chats'), { chat_id: chatId, q: search || undefined }, {
+            preserveState: true,
             preserveScroll: true,
+            only: ['selectedChat', 'messages'],
         });
     };
 
     const renderMessageText = (message) => {
         const primary = String(message.display_content || message.content || '').trim();
         if (primary) return primary;
-
         const raw = String(message.raw_content || '').trim();
         if (raw) return raw;
-
-        return lang === 'ar' ? 'لا يوجد نص قابل للعرض في هذه الرسالة.' : 'No renderable text was found in this message.';
+        return lang === 'ar' ? 'لا يوجد نص لعرضه.' : 'No text to display.';
     };
 
     return (
         <AdminLayout user={auth?.user || {}}>
             <Head title={`${t.title} | سنفور`} />
 
-            <div className="space-y-6 pb-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-                <div className={`${card} border rounded-3xl p-6`}>
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <div>
-                            <h1 className={`text-2xl font-black ${heading}`}>💬 {t.title}</h1>
-                            <p className={`mt-1 text-sm font-bold ${subtext}`}>{t.subtitle}</p>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-                            <MiniStat label={t.totalChats} value={summary.total_chats || 0} isDark={isDark} />
-                            <MiniStat label={t.totalMessages} value={summary.total_messages || 0} isDark={isDark} />
-                            <MiniStat label={t.todayChats} value={summary.today_chats || 0} isDark={isDark} />
-                            <MiniStat label={t.todayMessages} value={summary.today_messages || 0} isDark={isDark} />
-                        </div>
+            <div className="h-[calc(100vh-100px)] flex flex-col pb-6 overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+                {/* Header Stats Area */}
+                <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+                    <div>
+                        <h1 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'} flex items-center gap-2`}>
+                            <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm shadow-md">🤖</span>
+                            {t.title}
+                        </h1>
+                        <p className={`mt-1 text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.subtitle}</p>
                     </div>
 
-                    <div className="mt-5">
-                        <input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder={t.searchPlaceholder}
-                            className={`w-full rounded-2xl border px-4 py-3 text-sm font-bold outline-none ${isDark ? 'bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
-                        />
+                    <div className="flex items-center gap-3">
+                        <StatBadge label={t.totalChats} value={summary.total_chats || 0} isDark={isDark} color="indigo" />
+                        <StatBadge label={t.totalMessages} value={summary.total_messages || 0} isDark={isDark} color="emerald" />
+                        <StatBadge label={t.todayChats} value={summary.today_chats || 0} isDark={isDark} color="amber" />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-6 min-h-[70vh]">
-                    <section className={`${card} border rounded-3xl overflow-hidden flex flex-col`}>
-                        <div className="px-5 py-4 border-b border-slate-200/50 flex items-center justify-between bg-gradient-to-b from-transparent to-slate-50/40 dark:to-slate-900/20">
-                            <h2 className={`font-black ${heading}`}>{t.chats}</h2>
-                            <span className={`text-[11px] font-black ${subtext}`}>{filteredChats.length}</span>
+                {/* Main Chat Interface */}
+                <div className={`flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden min-h-0`}>
+                    
+                    {/* Sidebar: Chat List */}
+                    <div className={`w-full lg:w-[380px] shrink-0 flex flex-col rounded-[2rem] border overflow-hidden shadow-sm ${isDark ? 'bg-slate-900/50 border-slate-700/50' : 'bg-white border-slate-200/60'}`}>
+                        {/* Search & Header */}
+                        <div className={`p-5 pb-4 border-b ${isDark ? 'border-slate-800 bg-slate-900/80' : 'border-slate-100 bg-white/80'} backdrop-blur-md z-10`}>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 right-4 flex items-center text-slate-400 pointer-events-none text-lg">🔍</span>
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder={t.searchPlaceholder}
+                                    className={`w-full rounded-2xl border-none ring-1 ring-inset pl-4 ${lang === 'ar' ? 'pr-12' : 'pl-12 pr-4'} py-3.5 text-sm font-bold outline-none transition-all ${
+                                        isDark 
+                                            ? 'bg-slate-800 ring-slate-700 text-white placeholder:text-slate-500 focus:ring-indigo-500' 
+                                            : 'bg-slate-50 ring-slate-200 text-slate-900 placeholder:text-slate-400 focus:ring-indigo-500 focus:bg-white shadow-inner'
+                                    }`}
+                                />
+                            </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+
+                        {/* List */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-1 custom-scrollbar">
                             {filteredChats.length > 0 ? filteredChats.map((chat) => {
                                 const active = Number(selectedChat?.id) === Number(chat.id);
+                                const userAvatar = chat.user?.avatar;
+                                const userName = chat.user?.name || t.student;
+
                                 return (
                                     <button
                                         key={chat.id}
                                         onClick={() => openChat(chat.id)}
-                                        className={`w-full text-right rounded-2xl border p-4 transition-all ${active ? 'border-indigo-500 bg-indigo-50/60 dark:bg-indigo-900/20' : cardSoft} hover:border-indigo-300 hover:-translate-y-0.5`}
+                                        className={`w-full flex items-center gap-4 text-start p-3.5 rounded-2xl transition-all duration-200 ${
+                                            active 
+                                                ? (isDark ? 'bg-indigo-600/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-100 shadow-sm')
+                                                : (isDark ? 'hover:bg-slate-800/60 border border-transparent' : 'hover:bg-slate-50 border border-transparent')
+                                        }`}
                                     >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <p className={`font-black ${heading} truncate`}>{chat.title || `#${chat.id}`}</p>
-                                                <p className={`text-[11px] font-bold ${subtext} mt-1 truncate`}>{chat.user?.name || t.student}{chat.user?.email ? ` • ${chat.user.email}` : ''}</p>
+                                        <div className="relative shrink-0">
+                                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-blue-50 text-indigo-600 flex items-center justify-center text-sm font-black shadow-sm">
+                                                {userAvatar ? (
+                                                    <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    userName.charAt(0).toUpperCase()
+                                                )}
                                             </div>
-                                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full">#{chat.id}</span>
+                                            <span className={`absolute -bottom-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full border-2 text-[8px] font-black ${isDark ? 'border-slate-900 bg-slate-800 text-slate-300' : 'border-white bg-slate-100 text-slate-600'}`}>
+                                                #{chat.id}
+                                            </span>
                                         </div>
-                                        <p className={`mt-3 text-[11px] font-bold ${subtext}`}>{chat.last_message_excerpt}</p>
-                                        <div className={`mt-3 flex items-center justify-between text-[10px] font-bold ${subtext}`}>
-                                            <span>{chat.messages_count} {t.messages}</span>
-                                            <span>{chat.last_message_at ? new Date(chat.last_message_at).toLocaleString() : '--'}</span>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <h3 className={`font-black text-sm truncate pr-2 ${isDark ? (active ? 'text-indigo-300' : 'text-slate-200') : (active ? 'text-indigo-900' : 'text-slate-800')}`}>
+                                                    {userName}
+                                                </h3>
+                                                <span className={`text-[10px] font-bold shrink-0 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    {chat.last_message_at ? new Date(chat.last_message_at).toLocaleDateString() : ''}
+                                                </span>
+                                            </div>
+                                            <p className={`text-[11px] font-bold truncate ${isDark ? (active ? 'text-indigo-200/70' : 'text-slate-400') : (active ? 'text-indigo-700/70' : 'text-slate-500')}`}>
+                                                {chat.last_message_excerpt || '...'}
+                                            </p>
                                         </div>
                                     </button>
                                 );
                             }) : (
-                                <div className="p-8 text-center">
-                                    <p className={`text-sm font-black ${subtext}`}>{t.noChats}</p>
+                                <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-50">
+                                    <span className="text-4xl mb-3">📭</span>
+                                    <p className={`text-sm font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.noChats}</p>
                                 </div>
                             )}
                         </div>
-                    </section>
+                    </div>
 
-                    <section className={`${card} border rounded-3xl overflow-hidden flex flex-col min-h-[70vh]`}>
+                    {/* Active Chat Area */}
+                    <div className={`flex-1 flex flex-col rounded-[2rem] border overflow-hidden shadow-sm relative ${isDark ? 'bg-[#0f172a] border-slate-700/50' : 'bg-[#f4f6f8] border-slate-200/60'}`}>
+                        
+                        {/* Background Pattern overlay (optional subtle dots) */}
+                        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
+
                         {selectedChat ? (
                             <>
-                                <div className="px-5 py-4 border-b border-slate-200/50 bg-gradient-to-r from-indigo-50/60 via-white to-transparent dark:from-indigo-900/20 dark:via-slate-900/40">
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]"></span>
-                                                <p className={`text-[11px] font-black ${subtext}`}>{t.openConversation}</p>
-                                            </div>
-                                            <h2 className={`font-black text-xl ${heading} truncate`}>{selectedChat.title || `#${selectedChat.id}`}</h2>
-                                            <p className={`text-[11px] font-bold ${subtext} mt-1 truncate`}>
-                                                {t.by}: {selectedChat.user?.name || t.student}{selectedChat.user?.email ? ` • ${selectedChat.user.email}` : ''}
+                                {/* Chat Header */}
+                                <div className={`relative px-6 py-4 border-b flex items-center justify-between z-10 backdrop-blur-xl ${isDark ? 'border-slate-800 bg-slate-900/70' : 'border-slate-200/60 bg-white/70'}`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-tr from-indigo-100 to-blue-50 text-indigo-600 flex items-center justify-center text-sm font-black shadow-sm shrink-0">
+                                            {selectedChat.user?.avatar ? (
+                                                <img src={selectedChat.user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                                            ) : (
+                                                (selectedChat.user?.name?.charAt(0) || '?').toUpperCase()
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h2 className={`font-black text-base ${isDark ? 'text-white' : 'text-slate-900'} flex items-center gap-2`}>
+                                                {selectedChat.user?.name || t.student}
+                                                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                                            </h2>
+                                            <p className={`text-[11px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                {selectedChat.user?.email || 'بدون بريد'} • {t.chatId}: {selectedChat.id}
                                             </p>
                                         </div>
-                                        <div className="flex flex-wrap gap-2 text-[10px] font-black">
-                                            <span className="rounded-full px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300">{t.chatId}: {selectedChat.id}</span>
-                                            <span className="rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">{t.messages}: {selectedChat.messages_count}</span>
-                                        </div>
+                                    </div>
+                                    <div className={`hidden sm:flex px-3 py-1.5 rounded-xl text-[10px] font-black ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                        {selectedChat.messages_count} {t.messages}
                                     </div>
                                 </div>
 
-                                <div className="p-4 border-b border-slate-200/50 grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] font-bold">
-                                    <InfoTile label={t.createdAt} value={selectedChat.created_at ? new Date(selectedChat.created_at).toLocaleString() : '--'} isDark={isDark} />
-                                    <InfoTile label={t.updatedAt} value={selectedChat.updated_at ? new Date(selectedChat.updated_at).toLocaleString() : '--'} isDark={isDark} />
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#fafbfc] dark:bg-slate-950/40">
+                                {/* Messages Scroll Area */}
+                                <div className="flex-1 overflow-y-auto p-6 space-y-6 relative z-10 custom-scrollbar">
                                     {messages.length > 0 ? messages.map((message) => {
-                                        const isAi = String(message.role).toLowerCase() === 'ai';
+                                        const isAi = ['ai', 'assistant'].includes(String(message.role).toLowerCase());
                                         const text = renderMessageText(message);
-                                        const hasStructuredPayload = String(message.raw_content || '').trim().startsWith('{') && String(message.raw_content || '') !== text;
+                                        const hasRaw = String(message.raw_content || '').trim().startsWith('{') && String(message.raw_content || '') !== text;
+                                        
                                         return (
-                                            <div key={message.id} className={`flex items-end gap-3 ${isAi ? 'justify-start' : 'justify-end'}`}>
-                                                {isAi && <div className="w-9 h-9 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shadow-lg shadow-indigo-500/20 shrink-0">AI</div>}
-                                                <div className={`max-w-[92%] sm:max-w-[78%] rounded-3xl px-4 py-3.5 border shadow-sm ${isAi ? 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700' : 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white border-indigo-500'}`}>
-                                                    <div className="flex items-center justify-between gap-3 mb-2 text-[10px] font-black opacity-80">
-                                                        <span>{isAi ? t.aiAssistant : t.student}</span>
-                                                        <span>{message.created_human || '--'}</span>
-                                                    </div>
-                                                    <p className={`whitespace-pre-wrap break-words text-sm leading-7 font-bold ${isAi ? (isDark ? 'text-slate-100' : 'text-slate-800') : 'text-white'}`}>
-                                                        {text}
-                                                    </p>
-                                                    {hasStructuredPayload && (
-                                                        <details className="mt-3 rounded-2xl border border-dashed border-slate-300/70 dark:border-slate-600/70 px-3 py-2 text-[11px]">
-                                                            <summary className={`cursor-pointer font-black ${isAi ? (isDark ? 'text-slate-400' : 'text-slate-500') : 'text-white/80'}`}>
-                                                                {lang === 'ar' ? 'عرض النص الخام' : 'Show raw payload'}
-                                                            </summary>
-                                                            <pre className="mt-2 whitespace-pre-wrap break-words text-[10px] font-mono opacity-80 overflow-x-auto">
-                                                                {String(message.raw_content || '')}
-                                                            </pre>
-                                                        </details>
+                                            <div key={message.id} className={`flex items-end gap-3 ${isAi ? 'flex-row' : 'flex-row-reverse'}`}>
+                                                
+                                                {/* Avatar Indicator */}
+                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs shadow-sm shrink-0 overflow-hidden ${
+                                                    isAi 
+                                                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white' 
+                                                        : (isDark ? 'bg-slate-800 text-slate-300' : 'bg-white text-slate-600 border border-slate-200')
+                                                }`}>
+                                                    {isAi ? '🤖' : (
+                                                        selectedChat.user?.avatar ? (
+                                                            <img src={selectedChat.user.avatar} className="w-full h-full object-cover" alt="Student" />
+                                                        ) : '👤'
                                                     )}
                                                 </div>
-                                                {!isAi && <div className="w-9 h-9 rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-black text-slate-600 dark:text-slate-200 shrink-0">👤</div>}
+
+                                                {/* Message Bubble */}
+                                                <div className={`max-w-[85%] sm:max-w-[75%] flex flex-col ${isAi ? 'items-start' : 'items-end'}`}>
+                                                    <div className="flex items-center gap-2 mb-1.5 px-1">
+                                                        <span className={`text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                            {isAi ? t.aiAssistant : (selectedChat.user?.name || t.student)}
+                                                        </span>
+                                                        <span className={`text-[9px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                            {message.created_human || new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className={`relative px-5 py-3.5 rounded-[1.5rem] text-sm leading-loose font-bold shadow-sm break-words whitespace-pre-wrap ${
+                                                        isAi 
+                                                            ? (isDark ? 'bg-slate-800 text-slate-100 rounded-bl-sm border border-slate-700/50' : 'bg-white text-slate-800 rounded-bl-sm border border-slate-200/50')
+                                                            : 'bg-indigo-600 text-white rounded-br-sm shadow-indigo-500/20'
+                                                    }`}>
+                                                        {text}
+
+                                                        {hasRaw && (
+                                                            <details className={`mt-4 pt-3 border-t text-[11px] ${isAi ? (isDark ? 'border-slate-700/50' : 'border-slate-100') : 'border-indigo-500/50'}`}>
+                                                                <summary className="cursor-pointer font-black opacity-70 hover:opacity-100 transition-opacity">
+                                                                    {t.rawContent}
+                                                                </summary>
+                                                                <pre className="mt-3 p-3 rounded-xl bg-black/20 font-mono text-[10px] overflow-x-auto opacity-80" dir="ltr">
+                                                                    {String(message.raw_content)}
+                                                                </pre>
+                                                            </details>
+                                                        )}
+                                                    </div>
+                                                </div>
+
                                             </div>
                                         );
                                     }) : (
-                                        <div className="h-full flex items-center justify-center py-24">
-                                            <p className={`text-sm font-black ${subtext}`}>{t.noSelectedChat}</p>
+                                        <div className="h-full flex items-center justify-center">
+                                            <p className={`text-sm font-black ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                لا توجد رسائل في هذه المحادثة حتى الآن.
+                                            </p>
                                         </div>
                                     )}
+                                    <div ref={messagesEndRef} />
                                 </div>
                             </>
                         ) : (
-                            <div className="flex-1 flex items-center justify-center p-10">
-                                <p className={`text-sm font-black ${subtext}`}>{t.noSelectedChat}</p>
+                            <div className="flex-1 flex flex-col items-center justify-center p-10 relative z-10">
+                                <div className={`w-24 h-24 mb-6 rounded-full flex items-center justify-center text-4xl shadow-inner ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                                    💬
+                                </div>
+                                <h3 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>أهلاً بك في نظام المراقبة</h3>
+                                <p className={`mt-2 text-sm font-bold text-center max-w-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {t.noSelectedChat}
+                                </p>
                             </div>
                         )}
-                    </section>
+                    </div>
                 </div>
             </div>
+
+            <style>{`
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background-color: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'};
+                    border-radius: 20px;
+                }
+                .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+                    background-color: ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'};
+                }
+            `}</style>
         </AdminLayout>
     );
 }
 
-function MiniStat({ label, value, isDark }) {
+function StatBadge({ label, value, isDark, color }) {
+    const colors = {
+        indigo: isDark ? 'bg-indigo-500/10 text-indigo-400 ring-indigo-500/20' : 'bg-indigo-50 text-indigo-700 ring-indigo-500/20',
+        emerald: isDark ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/20' : 'bg-emerald-50 text-emerald-700 ring-emerald-500/20',
+        amber: isDark ? 'bg-amber-500/10 text-amber-400 ring-amber-500/20' : 'bg-amber-50 text-amber-700 ring-amber-500/20',
+    };
+
     return (
-        <div className={`rounded-2xl border px-3 py-2 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-            <p className={`text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-            <p className={`mt-1 text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{value}</p>
+        <div className={`px-4 py-2 rounded-2xl ring-1 ring-inset flex items-center gap-2 ${colors[color]}`}>
+            <span className="text-[10px] font-black uppercase tracking-wider opacity-80">{label}</span>
+            <span className="text-sm font-black">{value}</span>
         </div>
     );
 }
 
-function InfoTile({ label, value, isDark }) {
-    return (
-        <div className={`rounded-2xl border px-4 py-3 ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-            <p className={`text-[10px] font-black ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-            <p className={`mt-1 text-sm font-black ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{value}</p>
-        </div>
-    );
-}
