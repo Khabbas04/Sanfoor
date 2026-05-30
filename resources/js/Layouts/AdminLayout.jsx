@@ -14,6 +14,7 @@ export default function AdminLayout({ children }) {
     const isOwner = Boolean(auth?.user?.is_owner) || role === 'owner';
     const openIssuesCount = Number(adminNotifications?.open_issues_count || 0);
     const unreadMessagesCount = Number(adminNotifications?.unread_messages_count || 0);
+    const activeAiChatsCount = Number(adminNotifications?.active_ai_chats_count || 0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const { isDark, toggleTheme } = useTheme();
@@ -189,7 +190,7 @@ export default function AdminLayout({ children }) {
                 { icon: '👨‍🏫', name: t.instructors, route: 'admin.instructors.index', pattern: 'admin.instructors.*' },
                 { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*', badge: openIssuesCount },
                 { icon: '📩', name: t.contactMessages, route: 'admin.contact_messages.index', pattern: 'admin.contact_messages.*', badge: unreadMessagesCount },
-                { icon: '💬', name: t.aiChats, route: 'admin.ai_chats', pattern: 'admin.ai_chats' },
+                { icon: '💬', name: t.aiChats, route: 'admin.ai_chats', pattern: 'admin.ai_chats', badge: activeAiChatsCount },
                 ...(isOwner ? [{ icon: '👑', name: t.admins, route: 'admin.admins.index', pattern: 'admin.admins.*' }] : []),
             ],
         },

@@ -74,6 +74,11 @@ class HandleInertiaRequests extends Middleware
                         now()->addSeconds(60),
                         fn () => \App\Models\ContactMessage::where('status', 'new')->count()
                     ),
+                    'active_ai_chats_count' => Cache::remember(
+                        'admin:active_ai_chats_count',
+                        now()->addSeconds(60),
+                        fn () => \App\Models\Chat::whereDate('updated_at', today())->count()
+                    ),
                 ];
             }
         }
