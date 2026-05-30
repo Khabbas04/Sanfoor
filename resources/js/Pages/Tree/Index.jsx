@@ -653,20 +653,12 @@ export default function Tree({
     }, [localPassedCourses, selectedCourse, legacyPlanSemesterToYearTerm]);
 
     const nodeDimensions = useMemo(() => (
-        isMobile
-            ? (isLandscapeMobile
-                ? { width: 170, height: 78, ranksep: 58, nodesep: 18 }
-                : { width: MOBILE_NODE_WIDTH, height: MOBILE_NODE_HEIGHT, ranksep: 70, nodesep: 20 })
-            : { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
-    ), [isMobile, isLandscapeMobile]);
+        { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
+    ), []);
 
     const flowView = useMemo(() => (
-        isMobile
-            ? (isLandscapeMobile
-                ? { fitPadding: 0.12, minZoom: 0.55, maxZoom: 2.2 }
-                : { fitPadding: 0.28, minZoom: 0.35, maxZoom: 2 })
-            : { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
-    ), [isMobile, isLandscapeMobile]);
+        { fitPadding: 0.2, minZoom: 0.1, maxZoom: 1.5 }
+    ), []);
 
     const flowCourses = useMemo(
         () => (Array.isArray(courses) ? courses.filter((course) => course.type !== 'university_req') : []),
@@ -873,8 +865,8 @@ export default function Tree({
     }, [flowInstance, flowView.maxZoom, flowView.minZoom]);
 
     const nodeSnapGrid = useMemo(() => (
-        isMobile ? [16, 16] : [20, 20]
-    ), [isMobile]);
+        [20, 20]
+    ), []);
 
     const snapPositionToGrid = useCallback((position) => {
         const [gridX, gridY] = nodeSnapGrid;
@@ -1628,14 +1620,14 @@ export default function Tree({
     const buildGraph = useCallback(() => {
         const nodeWidth = nodeDimensions.width;
         const nodeHeight = nodeDimensions.height;
-        const titleFontSize = isMobile ? (isLandscapeMobile ? '11.5px' : '11px') : '12px';
-        const titleLineHeight = isMobile ? '1.35' : '1.45';
-        const badgeFontSize = isMobile ? (isLandscapeMobile ? '9px' : '8.5px') : '9.5px';
-        const metaFontSize = isMobile ? '8.5px' : '9px';
-        const chipPadding = isMobile ? '2px 6px' : '2px 7px';
-        const metaPadding = isMobile ? '1px 6px' : '1px 7px';
-        const typeLabelFontSize = isMobile ? '8px' : '8.5px';
-        const typeLabelPadding = isMobile ? '2px 6px' : '2px 7px';
+        const titleFontSize = '12px';
+        const titleLineHeight = '1.45';
+        const badgeFontSize = '9.5px';
+        const metaFontSize = '9px';
+        const chipPadding = '2px 7px';
+        const metaPadding = '1px 7px';
+        const typeLabelFontSize = '8.5px';
+        const typeLabelPadding = '2px 7px';
         const initialNodes = [];
         const initialEdges = [];
 
