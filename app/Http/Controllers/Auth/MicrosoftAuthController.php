@@ -28,6 +28,10 @@ class MicrosoftAuthController extends Controller
     {
         try {
             $microsoftUser = Socialite::driver('azure')->stateless()->user();
+            
+            // [DEBUG] طباعة البيانات الخام لاكتشاف الحقول الإضافية
+            dd('Raw Microsoft Data:', $microsoftUser->user);
+
             $microsoftId = filled($microsoftUser->getId()) ? (string) $microsoftUser->getId() : null;
 
             $email = strtolower(trim((string) (
