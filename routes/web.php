@@ -383,6 +383,11 @@ Route::middleware('auth')->group(function () {
             Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])->name('api.heartbeat');
             Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])->name('api.browser_close');
 
+        // Instructor management endpoints.
+        Route::get('/instructors', [App\Http\Controllers\Admin\AdminInstructorController::class, 'index'])->name('instructors.index');
+        Route::put('/instructors/{instructor}', [App\Http\Controllers\Admin\AdminInstructorController::class, 'update'])->name('instructors.update');
+        Route::delete('/instructors/{instructor}', [App\Http\Controllers\Admin\AdminInstructorController::class, 'destroy'])->name('instructors.destroy');
+
         // Student management endpoints.
         Route::get('/students', [AdminStudentController::class, 'index'])->name('students.index');
         Route::put('/students/{student}', [AdminStudentController::class, 'update'])->name('students.update');
