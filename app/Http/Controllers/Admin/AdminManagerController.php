@@ -29,16 +29,16 @@ class AdminManagerController extends Controller
             ->whereRaw('LOWER(role) IN (?, ?)', ['owner', 'admin'])
             ->orderByRaw("CASE WHEN LOWER(role) = 'owner' THEN 0 ELSE 1 END")
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'role', 'created_at']);
+            ->get(['id', 'name', 'avatar', 'email', 'role', 'created_at']);
 
         $students = User::query()
             ->whereIn('role', ['student', 'instructor'])
             ->orderBy('name')
             ->limit(300)
-            ->get(['id', 'name', 'email', 'role']);
+            ->get(['id', 'name', 'avatar', 'email', 'role']);
 
         $loginLogs = AdminLog::query()
-            ->with('user:id,name,email,role')
+            ->with('user:id,name,avatar,email,role')
             ->where('action', 'USER_LOGIN')
             ->latest()
             ->take(80)

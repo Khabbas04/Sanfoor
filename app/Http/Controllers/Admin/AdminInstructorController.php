@@ -51,6 +51,7 @@ class AdminInstructorController extends Controller
                 return [
                     'id' => $instructor->id,
                     'name' => $instructor->name,
+                    'avatar' => $instructor->avatar,
                     'email' => $instructor->email,
                     'major_id' => $instructor->major_id,
                     'ip_address' => $instructor->ip_address ?? 'غير مسجل',

@@ -70,6 +70,7 @@ class AdminStudentController extends Controller
                 return [
                     'id' => $student->id,
                     'name' => $student->name,
+                    'avatar' => $student->avatar,
                     'email' => $student->email,
                     'major_id' => $student->major_id,
                     'study_plan_version' => (int) ($student->study_plan_version ?? 12),

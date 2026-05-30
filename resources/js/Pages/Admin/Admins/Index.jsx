@@ -298,7 +298,18 @@ const translations = {
 
                                         return (
                                             <tr key={admin.id} className={`border-b ${isDark ? 'border-slate-700 hover:bg-slate-700/30' : 'border-slate-100 hover:bg-slate-50/50'} last:border-b-0`}>
-                                                <td className={`px-4 py-3 font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-sm`}>{admin.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xs shadow-sm uppercase overflow-hidden shrink-0">
+                                                            {admin.avatar ? (
+                                                                <img src={admin.avatar} alt={admin.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                admin.name?.charAt(0) || '?'
+                                                            )}
+                                                        </div>
+                                                        <p className={`font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-sm`}>{admin.name}</p>
+                                                    </div>
+                                                </td>
                                                 <td className={`px-4 py-3 font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} text-xs`}>{admin.email}</td>
                                                 <td className="px-4 py-3">
                                                     <span
@@ -382,8 +393,19 @@ const translations = {
                                         return (
                                             <tr key={log.id} className={`border-b ${isDark ? 'border-slate-700 hover:bg-slate-700/30' : 'border-slate-100 hover:bg-slate-50/50'} last:border-b-0`}>
                                                 <td className="px-4 py-3">
-                                                    <p className={`text-sm font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{userName}</p>
-                                                    <p className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 overflow-hidden ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+                                                            {log?.user?.avatar ? (
+                                                                <img src={log.user.avatar} alt={userName} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                userName.charAt(0) || '?'
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className={`text-sm font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{userName}</p>
+                                                            <p className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className={`px-2 py-1 rounded-md text-[11px] font-black ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
