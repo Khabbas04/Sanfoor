@@ -128,7 +128,15 @@ class MicrosoftAuthController extends Controller
             }
 
             if (!$user->exists && isset($columns['role']) && blank($user->role)) {
-                $user->role = 'student';
+                $jobTitle = strtolower(trim((string) data_get($microsoftUser->user, 'jobTitle')));
+                $usernamePart = strtolower(Str::before($email, '@'));
+                
+                // If jobTitle explicitly says student, OR the email prefix is strictly numbers (Student ID)
+                if ($jobTitle === 'student' || preg_match('/^\d+$/', $usernamePart)) {
+                    $user->role = 'student';
+                } else {
+                    $user->role = 'instructor';
+                }
             }
 
             if (!$user->exists && isset($columns['study_plan_version']) && blank($user->study_plan_version)) {
@@ -161,7 +169,7 @@ class MicrosoftAuthController extends Controller
                 ]);
             }
 
-            if (blank($user->major_id)) {
+            if ($user->role === 'student' && blank($user->major_id)) {
                 return redirect()->route('profile.edit')->with([
                     'status' => 'تم تسجيل الدخول بنجاح. يرجى إكمال الكلية والتخصص والخطة الدراسية من صفحة الملف الشخصي.',
                 ]);

@@ -231,6 +231,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Convenience helper for instructor authorization checks.
+     */
+    public function isInstructor(): bool
+    {
+        return strtolower((string) $this->role) === 'instructor';
+    }
+
+    /**
      * Convenience helper for admin and owner authorization checks.
      */
     public function isAdminOrOwner(): bool
