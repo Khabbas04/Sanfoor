@@ -20,6 +20,7 @@ class MicrosoftAuthController extends Controller
     {
         return Socialite::driver('azure')
             ->scopes(['openid', 'profile', 'email', 'User.Read'])
+            ->with(['prompt' => 'select_account'])
             ->redirect();
     }
 
