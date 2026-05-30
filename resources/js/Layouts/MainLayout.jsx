@@ -292,7 +292,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             {/* Theme toggle, language switcher, and account actions. */}
                             <div className="flex items-center gap-2 sm:gap-3">
                                 <div className="relative group pointer-events-auto">
-                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 mr-1 ${isDark ? 'bg-slate-800 border border-white/10 text-blue-400 hover:bg-slate-700 hover:border-blue-500' : 'bg-white border border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-blue-300'}`}>
+                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border border-white/10 text-blue-400 hover:bg-slate-700 hover:border-blue-500' : 'bg-white border border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-blue-300'}`}>
                                         📚
                                     </button>
                                     <div className={`absolute ${lang === 'ar' ? 'right-0' : 'left-0'} top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${academicOpen ? 'opacity-100 visible' : ''}`}>
@@ -302,12 +302,21 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-blue-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
-                                    {lang === 'ar' ? 'EN' : 'AR'}
-                                </button>
-                                <button onClick={toggleTheme} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 text-yellow-400 border border-white/10 hover:bg-slate-700' : 'bg-white text-slate-400 border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
-                                    {isDark ? '☀️' : '🌙'}
-                                </button>
+                                
+                                <Link href={route('public.announcements')} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 pointer-events-auto ${isDark ? 'bg-slate-800 border border-white/10 hover:bg-slate-700 hover:border-emerald-500' : 'bg-white border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow hover:border-emerald-300'}`} title={t.announcements}>
+                                    📢
+                                </Link>
+
+                                {!safeUser.id && (
+                                    <>
+                                        <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-blue-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                            {lang === 'ar' ? 'EN' : 'AR'}
+                                        </button>
+                                        <button onClick={toggleTheme} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 text-yellow-400 border border-white/10 hover:bg-slate-700' : 'bg-white text-slate-400 border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                            {isDark ? '☀️' : '🌙'}
+                                        </button>
+                                    </>
+                                )}
 
                                 {safeUser.id ? (
                                     <div className="relative group hidden lg:block pointer-events-auto">
@@ -348,6 +357,16 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                                     <Link href={safeRoute('profile.edit')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                                                         <span>⚙️</span> {t.profile}
                                                     </Link>
+                                                </div>
+
+                                                <div className={`border-t my-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}></div>
+                                                <div className="flex items-center gap-2 px-1">
+                                                    <button onClick={toggleLang} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-colors ${isDark ? 'text-blue-400 hover:bg-white/5' : 'text-blue-600 hover:bg-slate-50'}`}>
+                                                        🌍 {lang === 'ar' ? 'English' : 'العربية'}
+                                                    </button>
+                                                    <button onClick={toggleTheme} className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-colors ${isDark ? 'text-yellow-400 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50'}`}>
+                                                        {isDark ? '☀️ Light' : '🌙 Dark'}
+                                                    </button>
                                                 </div>
                                                 <div className={`border-t my-2 pt-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
                                                     <Link href={safeRoute('logout')} method="post" as="button" className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-black text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
