@@ -689,12 +689,8 @@ export default function Advisor() {
         <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
         <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
-        {/* === Mobile === */}
-        <div className="lg:hidden sticky top-2 z-30 flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
-            <button onClick={()=>setSidebar(true)} className="flex items-center gap-1.5 p-2.5 bg-white rounded-xl border border-slate-200/70 shadow-sm active:scale-95 text-[11px] font-black text-slate-600"><svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>المحادثات</button>
-            <button onClick={newChat} className="flex-1 bg-gradient-to-r from-sky-400 to-blue-500 text-white py-2.5 rounded-xl font-black text-[12px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] shadow-blue-500/20">✨ محادثة جديدة</button>
-        </div>
-        {sidebar&&<div className="lg:hidden fixed inset-0 z-50 flex"><div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={()=>setSidebar(false)}/><div className="relative w-[80%] max-w-[280px] bg-white h-full shadow-2xl overflow-y-auto p-4 space-y-3 sfr-scrollbar"><div className="flex items-center justify-between"><h3 className="font-black text-slate-700 text-[13px]">📂 المحادثات</h3><button onClick={()=>setSidebar(false)} className="p-1 hover:bg-slate-100 rounded-lg text-slate-400">✕</button></div>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[11px] py-8">📭 فارغ</p>}</div></div>}
+        {/* === Mobile Sidebar Overlay === */}
+        {sidebar&&<div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={()=>setSidebar(false)}/><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={()=>setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={()=>{setSidebar(false);newChat();}} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}</div></div>}
 
         {/* === Sidebar === */}
         <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
@@ -734,7 +730,7 @@ export default function Advisor() {
         </div>
 
         {/* === Chat === */}
-        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col h-[calc(100dvh-150px)] sm:h-[calc(100dvh-140px)] lg:h-[calc(100vh-64px)] min-h-[420px] overflow-hidden relative">
+        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col h-[calc(100dvh-85px)] sm:h-[calc(100dvh-85px)] lg:h-[calc(100vh-80px)] min-h-[420px] overflow-hidden relative">
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between z-20">
                 <div className="flex items-center gap-3">
@@ -751,9 +747,12 @@ export default function Advisor() {
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                     {isMobileViewport && (
-                        <button onClick={newChat} className="md:hidden bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1.5 rounded-lg text-[10px] font-black active:scale-95 transition-all">✨ جديدة</button>
+                        <button onClick={()=>setSidebar(true)} className="md:hidden bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 w-8 h-8 flex items-center justify-center rounded-lg text-[14px] font-black active:scale-95 transition-all shadow-sm">☰</button>
+                    )}
+                    {isMobileViewport && (
+                        <button onClick={newChat} className="md:hidden bg-gradient-to-tr from-sky-400 to-blue-500 text-white w-8 h-8 flex items-center justify-center rounded-lg text-[14px] font-black active:scale-95 transition-all shadow-sm">✨</button>
                     )}
                     {st&&<div className="hidden md:flex items-center gap-2">
                         {st.gpa&&<div className="bg-slate-50 rounded-lg px-3 py-1.5 text-center border border-slate-100"><p className="text-[7px] font-bold text-slate-400">GPA</p><p className="text-[13px] font-black text-blue-700">{st.gpa}</p></div>}
