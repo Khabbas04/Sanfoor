@@ -365,6 +365,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/announcements', [InstructorController::class, 'storeAnnouncement'])->name('announcements.store');
         Route::delete('/announcements/{announcement}', [InstructorController::class, 'destroyAnnouncement'])->name('announcements.destroy');
         Route::put('/courses', [InstructorController::class, 'updateCourses'])->name('courses.update');
+        Route::get('/reports/demand', [InstructorController::class, 'demandReport'])->name('reports.demand');
     });
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');

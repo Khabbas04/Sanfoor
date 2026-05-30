@@ -123,6 +123,7 @@ class AdminController extends Controller
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
                 'active_admins_now' => $activeAdminIds->count(),
                 'owners_count' => User::whereRaw('LOWER(role) = ?', ['owner'])->count(),
+                'instructors_count' => User::whereRaw('LOWER(role) = ?', ['instructor'])->count(),
                 'courses_count' => Course::where('is_quiz_only', false)->count(),
                 'compulsory_count' => Course::where('is_quiz_only', false)->where('type', 'compulsory')->count(),
                 'elective_count' => Course::where('is_quiz_only', false)->where('type', 'elective')->count(),
@@ -237,6 +238,7 @@ class AdminController extends Controller
             'stats' => [
                 'students_count' => User::where('role', 'student')->count(),
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
+                'instructors_count' => User::whereRaw('LOWER(role) = ?', ['instructor'])->count(),
                 'active_students_now' => $activeStudentsNow,
                 'active_admins_now' => $activeAdminsNow,
             ],
@@ -577,7 +579,7 @@ class AdminController extends Controller
         }
 
         $users = User::whereIn('id', $userIds)
-            ->select('id', 'name', 'email', 'role', 'major_id', 'study_plan_version')
+            ->select('id', 'name', 'email', 'role', 'major_id', 'study_plan_version', 'last_seen_at')
             ->with(['major:id,name,college_id'])
             ->get();
 

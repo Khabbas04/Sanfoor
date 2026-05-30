@@ -23,6 +23,7 @@ const translations = {
         allRoles: 'كل الأدوار',
         roleOwner: 'مالك',
         roleAdmin: 'أدمن',
+        roleInstructor: 'مدرس',
         roleStudent: 'طالب',
         roleLabel: 'الدور',
         lastActivity: 'آخر نشاط',
@@ -108,6 +109,7 @@ const translations = {
         allRoles: 'All Roles',
         roleOwner: 'Owner',
         roleAdmin: 'Admin',
+        roleInstructor: 'Instructor',
         roleStudent: 'Student',
         roleLabel: 'Role',
         lastActivity: 'Last Activity',
@@ -184,6 +186,7 @@ function roleLabel(role, t) {
     const normalized = String(role || '').toLowerCase();
     if (normalized === 'owner') return t.roleOwner;
     if (normalized === 'admin') return t.roleAdmin;
+    if (normalized === 'instructor') return t.roleInstructor;
     return t.roleStudent;
 }
 
@@ -396,11 +399,12 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
 
                 {activeTab === 'online' && (
                     <section className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                             <Stat title={t.onlineNow} value={liveOnlineUsers.length} icon="🟢" isDark={isDark} />
                             <Stat title={t.activeStudents} value={liveStats.active_students_now || 0} icon="👨‍🎓" isDark={isDark} />
                             <Stat title={t.activeAdmins} value={liveStats.active_admins_now || 0} icon="⚙️" isDark={isDark} />
                             <Stat title={t.totalStudents} value={stats?.students_count || 0} icon="📊" isDark={isDark} />
+                            <Stat title={lang === 'ar' ? 'إجمالي الكادر التدريسي' : 'Total Instructors'} value={stats?.instructors_count || 0} icon="👨‍🏫" isDark={isDark} />
                         </div>
 
                         <div className={`${card} border rounded-3xl p-5 sm:p-6`}>
@@ -421,6 +425,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                         <option value="student">{t.roleStudent}</option>
                                         <option value="admin">{t.roleAdmin}</option>
                                         <option value="owner">{t.roleOwner}</option>
+                                        <option value="instructor">{t.roleInstructor}</option>
                                     </select>
                                 </div>
 

@@ -9,6 +9,7 @@ use App\Models\Question;
 use App\Models\User;
 use App\Models\College;
 use App\Models\Major;
+use App\Models\AcademicPeriod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -190,6 +191,60 @@ class InstructorController extends Controller
 
         return Inertia::render('Public/Announcements', [
             'announcements' => $announcements,
+        ]);
+    }
+
+    /**
+     * 🔥 دالة تقرير المواد الأكثر طلباً 🔥 للكادر التدريسي
+     */
+    public function demandReport(Request $request)
+    {
+        $currentPeriod = AcademicPeriod::current();
+        $periodYear = $currentPeriod?->academic_year;
+        $periodTerm = $currentPeriod?->academic_term;
+        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year')
+            && Schema::hasColumn('user_carts', 'academic_term');
+
+        $courseDemand = Course::whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
+            if ($periodYear && $periodTerm && $hasPeriodColumns) {
+                $query->where('user_carts.academic_year', $periodYear)
+                    ->where('user_carts.academic_term', $periodTerm);
+            }
+        })
+            ->when($request->college_id, function ($query, $collegeId) {
+                $query->whereHas('major', function ($q) use ($collegeId) {
+                    $q->where('college_id', $collegeId);
+                });
+            })
+            ->when($request->major_id, function ($query, $majorId) {
+                $query->where('major_id', $majorId);
+            })
+            ->withCount(['cartUsers as cart_users_count' => function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
+                if ($periodYear && $periodTerm && $hasPeriodColumns) {
+                    $query->where('user_carts.academic_year', $periodYear)
+                        ->where('user_carts.academic_term', $periodTerm);
+                }
+            }])
+            ->orderBy('cart_users_count', 'desc')
+            ->take(15) 
+            ->get();
+
+        $colleges = College::select('id', 'name')->get();
+        $majors = Major::select('id', 'name', 'college_id')->get();
+
+        $totalStudents = User::whereHas('cartCourses', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
+            if ($periodYear && $periodTerm && $hasPeriodColumns) {
+                $query->where('user_carts.academic_year', $periodYear)
+                    ->where('user_carts.academic_term', $periodTerm);
+            }
+        })->count();
+
+        return Inertia::render('Instructor/Demand', [
+            'courseDemand' => $courseDemand,
+            'colleges' => $colleges,
+            'majors' => $majors,
+            'filters' => $request->only(['college_id', 'major_id']),
+            'totalStudents' => $totalStudents
         ]);
     }
 }
