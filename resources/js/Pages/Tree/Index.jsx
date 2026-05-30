@@ -196,7 +196,7 @@ export default function Tree({
 
     const calculatedGpa = useMemo(() => {
         const coursesWithGrades = localPassedCourses.filter(c => c.pivot?.grade !== null && c.pivot?.grade !== undefined && String(c.pivot?.grade).trim() !== '');
-        
+
         if (coursesWithGrades.length === 0) {
             return { percentage: 0, hasRecords: false };
         }
@@ -245,7 +245,7 @@ export default function Tree({
     const saveCourseGrade = async (courseId) => {
         const value = gradeInputs[courseId];
         let cleanGrade = value === undefined ? null : String(value).trim();
-        
+
         if (cleanGrade !== null && cleanGrade !== '') {
             const num = parseFloat(cleanGrade);
             if (isNaN(num) || num < 0 || num > 100) {
@@ -504,8 +504,8 @@ export default function Tree({
         // 3. Full Validation
         const validation = validatePlanState(newSemesters);
         if (!validation.valid) {
-             Swal.fire({ icon: 'warning', title: 'ترتيب غير منطقي', html: `لا يمكنك وضع المادة <b>${validation.brokenCourse.name}</b> قبل اجتياز متطلبها <b>${validation.missingPrereq.name}</b> في فصل يسبقها.`, ...swalTheme });
-             return;
+            Swal.fire({ icon: 'warning', title: 'ترتيب غير منطقي', html: `لا يمكنك وضع المادة <b>${validation.brokenCourse.name}</b> قبل اجتياز متطلبها <b>${validation.missingPrereq.name}</b> في فصل يسبقها.`, ...swalTheme });
+            return;
         }
 
         updatePlanDraft((prev) => ({ ...prev, semesters: newSemesters }));
@@ -514,7 +514,7 @@ export default function Tree({
     const removeCourseFromPlan = useCallback((courseId) => {
         updatePlanDraft((prev) => {
             const currentSemesters = prev.semesters || [];
-            
+
             // Simulate removal
             const newSemesters = currentSemesters.map((sem) => ({
                 ...sem,
@@ -552,8 +552,8 @@ export default function Tree({
         // Full Validation
         const validation = validatePlanState(newSemesters);
         if (!validation.valid) {
-             Swal.fire({ icon: 'warning', title: 'ترتيب غير منطقي', html: `هذا النقل يخالف التسلسل المنطقي! المادة <b>${validation.brokenCourse.name}</b> تعتمد على اجتياز <b>${validation.missingPrereq.name}</b> قبلها.`, ...swalTheme });
-             return;
+            Swal.fire({ icon: 'warning', title: 'ترتيب غير منطقي', html: `هذا النقل يخالف التسلسل المنطقي! المادة <b>${validation.brokenCourse.name}</b> تعتمد على اجتياز <b>${validation.missingPrereq.name}</b> قبلها.`, ...swalTheme });
+            return;
         }
 
         updatePlanDraft((prev) => ({ ...prev, semesters: newSemesters }));
@@ -580,19 +580,19 @@ export default function Tree({
     const removeSemesterFromPlan = useCallback((indexToRemove) => {
         updatePlanDraft((prev) => {
             const currentSemesters = prev?.semesters || [];
-            
+
             const semToRemove = currentSemesters[indexToRemove];
             if (semToRemove && semToRemove.courses && semToRemove.courses.length > 0) {
-                 Swal.fire({ icon: 'warning', title: 'الفصل غير فارغ', text: 'يرجى إزالة جميع المواد من الفصل قبل حذفه.', ...swalTheme });
-                 return prev;
+                Swal.fire({ icon: 'warning', title: 'الفصل غير فارغ', text: 'يرجى إزالة جميع المواد من الفصل قبل حذفه.', ...swalTheme });
+                return prev;
             }
 
             const newSemesters = currentSemesters.filter((_, i) => i !== indexToRemove);
-            
+
             if (newSemesters.length === 0) {
                 newSemesters.push({ semester: 1, is_summer: false, courses: [] });
             }
-            
+
             return { ...prev, semesters: newSemesters };
         });
     }, [updatePlanDraft]);
@@ -708,17 +708,17 @@ export default function Tree({
         try {
             setIsPrinting(true);
             const nodesBounds = getRectOfNodes(flowInstance.getNodes());
-            
+
             const padding = 150;
             const headerHeight = 220; // Height of the new header block
             const exportScale = 2; // For professional high-res quality
-            
+
             // Ensure the template width is at least wide enough for a good layout
             const contentWidth = Math.max(nodesBounds.width, 1100);
-            
+
             const width = contentWidth + padding * 2;
             const height = nodesBounds.height + padding * 2 + headerHeight + 50; // 50px gap
-            
+
             const transform = getTransformForBounds(
                 {
                     x: nodesBounds.x - (contentWidth - nodesBounds.width) / 2, // Center the tree if contentWidth > nodesBounds.width
@@ -747,7 +747,7 @@ export default function Tree({
             header.style.transform = 'translate(-50%, 0)';
             header.style.width = `${contentWidth}px`;
             header.style.fontFamily = 'inherit';
-            
+
             // Replicate the exact design from the screenshot
             header.innerHTML = `
                 <div dir="rtl" style="display: flex; justify-content: space-between; align-items: center; border: 2px solid #cbd5e1; border-radius: 20px; padding: 25px 40px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.02); width: 100%; box-sizing: border-box; height: ${headerHeight}px;">
@@ -803,15 +803,15 @@ export default function Tree({
                 header.parentNode.removeChild(header);
             }
             elementsToHide.forEach(el => el.style.display = '');
-            
+
             // Trigger download instead of window.print()
             const link = document.createElement('a');
             link.download = `study_plan_${major_name || 'plan'}.png`;
             link.href = dataUrl;
             link.click();
-            
+
             setIsPrinting(false);
-            
+
             Swal.fire({
                 icon: 'success',
                 title: 'تم التصدير بنجاح!',
@@ -1318,7 +1318,7 @@ export default function Tree({
         };
 
         // حدود الخطة الدراسية الثابتة
-        const caps = { 
+        const caps = {
             elective: 9, // الاختياري 9 ساعات
             supporting: 6 // المساندة 6 ساعات
             // متطلبات الجامعة والإجباري يتم إنزالها بالكامل بدون حد
@@ -1348,7 +1348,7 @@ export default function Tree({
 
             let availableNow = remainingCourses.filter(c => {
                 const type = c.type || 'compulsory';
-                
+
                 // التخطيط الواقعي: تطبيق حد الساعات للمواد بناءً على الحدود الثابتة
                 if (caps[type] !== undefined && categoryPassedHours[type] >= caps[type] && !cartIds.includes(c.id)) return false;
 
@@ -1382,11 +1382,11 @@ export default function Tree({
                     if (aOnline && !bOnline) return -1;
                     if (!aOnline && bOnline) return 1;
                 }
-                
+
                 // 1. User Cart
                 if (cartIds.includes(a.id) && !cartIds.includes(b.id)) return -1;
                 if (!cartIds.includes(a.id) && cartIds.includes(b.id)) return 1;
-                
+
                 // 2. Late requirements (>= 90 hours)
                 const aReq = Number(a.minimum_passed_hours || 0);
                 const bReq = Number(b.minimum_passed_hours || 0);
@@ -1425,7 +1425,7 @@ export default function Tree({
                     remainingCourses = remainingCourses.filter(rc => rc.id !== match.id);
                     const type = match.type || 'compulsory';
                     if (caps[type] !== undefined && categoryPassedHours[type] + Number(match.credit_hours || 0) > caps[type] && !cartIds.includes(match.id)) return false;
-                    
+
                     if (categoryPassedHours[type] !== undefined) {
                         categoryPassedHours[type] += Number(match.credit_hours || 0);
                     }
@@ -1443,7 +1443,7 @@ export default function Tree({
                 if (semHours >= maxSemHours) break;
                 if (semCourses.some(sc => sc.id === c.id)) continue;
                 const isOnline = c.type === 'university_req';
-                
+
                 // الحد الواقعي: مادة أونلاين واحدة كحد أقصى في الفصل، إلا إذا أضافها الطالب بيده للتسجيل التجريبي
                 if (isOnline && semOnlineCount >= 1 && !cartIds.includes(c.id)) continue;
 
@@ -1457,7 +1457,7 @@ export default function Tree({
                     semHours += c.credit_hours;
                     if (isOnline) semOnlineCount++;
                     remainingCourses = remainingCourses.filter(rc => rc.id !== c.id);
-                    
+
                     if (categoryPassedHours[type] !== undefined) {
                         categoryPassedHours[type] += Number(c.credit_hours || 0);
                     }
@@ -1951,7 +1951,7 @@ export default function Tree({
                         setCartIds([]);
                         setLocalPassedCourses([]);
                         setSmartMetaByCourseId({});
-                        
+
                         Swal.fire({
                             icon: 'success',
                             title: 'تم إعادة التعيين!',
@@ -2029,10 +2029,10 @@ export default function Tree({
             if (targetCourse && targetCourse.type === 'elective') {
                 const passedElectives = courses.filter(c => passedIds.includes(c.id) && c.type === 'elective');
                 const passedElectiveHours = passedElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
-                
+
                 const cartElectives = courses.filter(c => cartIds.includes(c.id) && c.id !== courseId && c.type === 'elective');
                 const cartElectiveHours = cartElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
-                
+
                 if (passedElectiveHours + cartElectiveHours + targetCourse.credit_hours > ELECTIVE_MAX_HOURS) {
                     const overflow = passedElectiveHours + cartElectiveHours + targetCourse.credit_hours - ELECTIVE_MAX_HOURS;
                     Swal.fire({
@@ -2411,7 +2411,7 @@ export default function Tree({
         const addCourse = (entry, relaxConstraints = false) => {
             const { course, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence, isOnline } = entry;
             if (currentHours + course.credit_hours <= finalTargetHours && !newCart.includes(course.id)) {
-                
+
                 if (!relaxConstraints) {
                     // Enforce exact online course target to make it highly realistic
                     if (isOnline && onlineCount >= targetOnline) return false;
@@ -2419,7 +2419,7 @@ export default function Tree({
                     // Adjust difficulty thresholds slightly so it doesn't fail to generate a full schedule
                     if (schedulePace === 'light' && difficulty > 65) return false;
                     if (schedulePace === 'balanced' && difficulty > 85) return false;
-                    
+
                     if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
                 } else {
                     // Relaxed constraints phase: ignore online count target and max heavy constraints,
@@ -2625,7 +2625,7 @@ export default function Tree({
         return { msg: '✨ جدول متوازن ومثالي.', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
     }, [cartIds, coursesWithDifficulty, totalCartCredits, schedulePace, isSummerTerm]);
 
-    
+
 
     const render4YearPlan = () => {
         if (!planDraft) return null;
@@ -2690,7 +2690,7 @@ export default function Tree({
 
         return createPortal(
             <div className="fixed inset-0 backdrop-blur-md z-[1050] flex items-center justify-center p-3 sm:p-6 bg-slate-900/70" dir="rtl">
-                
+
                 {/* 🖥️ INTERACTIVE UI */}
                 <div className="bg-white w-full max-w-7xl h-[95vh] sm:h-[90vh] rounded-[2rem] shadow-2xl flex-col overflow-hidden landscape:h-[98vh] flex" style={{ animation: 'sn-scale 0.35s cubic-bezier(0.16,1,0.3,1) both' }}>
                     <div className="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 p-5 sm:p-6 flex flex-wrap gap-3 justify-between items-center shrink-0 relative overflow-hidden">
@@ -2751,7 +2751,7 @@ export default function Tree({
                                             return t === type;
                                         });
                                         if (groupCourses.length === 0) return null;
-                                        
+
                                         const typeLabels = { compulsory: 'إجباري تخصص', university_req: 'متطلبات الجامعة', supporting: 'متطلبات مساندة', elective: 'مواد اختيارية', other: 'أخرى' };
                                         const typeColors = { compulsory: 'bg-indigo-100 text-indigo-800', university_req: 'bg-emerald-100 text-emerald-800', supporting: 'bg-fuchsia-100 text-fuchsia-800', elective: 'bg-amber-100 text-amber-800', other: 'bg-slate-100 text-slate-800' };
 
@@ -2764,7 +2764,7 @@ export default function Tree({
                                                     const alreadyUsed = planCourseIds.has(course.id);
                                                     return (
                                                         <div key={course.id} className={`border rounded-xl p-2.5 text-[11px] font-bold flex items-center justify-between gap-2 ${alreadyUsed ? 'bg-slate-50 text-slate-400 border-slate-200' : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-200'}`}>
-                                                            <div className="min-w-0 flex-1 cursor-grab" draggable={!alreadyUsed} onDragStart={(e) => { if(!alreadyUsed) setDragCourseMeta({ courseId: course.id, isLibrary: true }); }}>
+                                                            <div className="min-w-0 flex-1 cursor-grab" draggable={!alreadyUsed} onDragStart={(e) => { if (!alreadyUsed) setDragCourseMeta({ courseId: course.id, isLibrary: true }); }}>
                                                                 <p className="truncate">{course.name}</p>
                                                                 <p className="text-[9px] text-slate-400 mt-0.5">{course.code} • {course.credit_hours}س</p>
                                                             </div>
@@ -2820,8 +2820,8 @@ export default function Tree({
                                                     <span className="flex items-center gap-1.5">{semLabel}</span>
                                                     <div className="flex items-center gap-2">
                                                         <span className={`bg-white px-2 py-0.5 rounded-md text-[10px] font-[800] border ${sem.is_summer ? 'text-amber-600 border-amber-100' : 'text-indigo-600 border-indigo-100'}`}>{semInfo.semHours} ساعة</span>
-                                                        <button 
-                                                            onClick={() => removeSemesterFromPlan(i)} 
+                                                        <button
+                                                            onClick={() => removeSemesterFromPlan(i)}
                                                             className={`transition-all hover:scale-110 active:scale-95 ${sem.is_summer ? 'text-amber-400 hover:text-rose-600' : 'text-indigo-300 hover:text-rose-600'}`}
                                                             title="حذف الفصل"
                                                         >
@@ -2863,7 +2863,7 @@ export default function Tree({
                                             </div>
                                         );
                                     })}
-                                    
+
                                     <div className="flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed border-slate-300/70 rounded-[1.25rem] bg-slate-50/30 hover:bg-slate-50 hover:border-indigo-300 transition-all h-full min-h-[200px]">
                                         <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
                                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
@@ -3244,14 +3244,14 @@ export default function Tree({
                             ✖ إزالة من التسجيل التجريبي
                         </button>
                     )}
-                    
+
                     {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
                     {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (() => {
                         const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
                         const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
                         const grade = latest?.pivot?.grade;
                         const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
-                        
+
                         return (
                             <>
                                 <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-rose-500/10 border-rose-400/20' : 'bg-emerald-500/10 border-emerald-400/20'} border p-4 rounded-xl backdrop-blur-sm`}>
@@ -3263,13 +3263,13 @@ export default function Tree({
                                             </h4>
                                             <p className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-300/70' : 'text-emerald-300/70'} text-[11px] font-bold mt-0.5 leading-relaxed`}>
                                                 {getStatus(selectedCourse) === 'passed' ? (
-                                                    gradeVal !== null 
+                                                    gradeVal !== null
                                                         ? `العلامة الحالية: ${grade}%. يمكنك إعادة تسجيل المادة مرة أخرى لرفع معدلك التراكمي.`
                                                         : `لقد اجتزت هذه المادة، ولكن يمكنك إعادتها لرفع معدلك التراكمي إذا رغبت.`
                                                 ) : (
-                                                    gradeVal !== null && gradeVal < 35 
+                                                    gradeVal !== null && gradeVal < 35
                                                         ? `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`
-                                                        : gradeVal !== null && gradeVal < 50 
+                                                        : gradeVal !== null && gradeVal < 50
                                                             ? `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`
                                                             : 'يمكنك إعادة هذه المادة.'
                                                 )}
@@ -3277,7 +3277,7 @@ export default function Tree({
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="bg-white/5 border border-white/10 p-4 rounded-xl backdrop-blur-sm space-y-3">
                                     <label className="block text-[11px] font-[800] text-slate-300">تحديث علامة المادة (من 100):</label>
                                     <div className="flex gap-2">
@@ -3483,7 +3483,7 @@ export default function Tree({
             {/* ═══ TREE TOOLBAR (OUTSIDE FLOW) ═══ */}
             {!isFullScreen && (
                 <div className="bg-slate-50/90 backdrop-blur-md border-b border-slate-200/80 p-2 md:px-5 flex flex-col md:flex-row gap-2.5 md:gap-0 justify-between items-center z-20 relative w-full overflow-visible shadow-sm" dir="rtl">
-                    
+
                     {/* Filters (Scrollable on small screens) */}
                     <div className="w-full md:flex-1 overflow-x-auto hide-scrollbar flex md:justify-center">
                         <div className="flex gap-1.5 flex-nowrap min-w-max items-center py-1 px-1">
@@ -3555,7 +3555,7 @@ export default function Tree({
                             🌳 دليل الشجرة
                         </button>
                         <button onClick={handleResetPlan} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/70`}>
-                            🔄 إعادة تعيين الخطة
+                            🔄
                         </button>
                     </div>
                 </div>
@@ -3704,7 +3704,7 @@ export default function Tree({
                                                     <div className="min-w-0 flex-1 ml-3">
                                                         <p className="font-[800] text-[13px] text-slate-800 truncate">{c.name}</p>
                                                         <p className="text-[10px] text-slate-400 font-bold mt-0.5 font-i">{c.credit_hours} ساعات • {c.code}</p>
-                                                        
+
                                                     </div>
                                                     <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
                                                 </div>
@@ -3745,24 +3745,24 @@ export default function Tree({
                                                 ? (isUniversityZero ? `${c.pivot.grade}% (صفر جامعي)` : isFailed ? `${c.pivot.grade}% (راسب)` : `${c.pivot.grade}%`)
                                                 : 'ناجح';
                                             return (
-                                            <div key={`${activeSemesterTab}-${c.id}-${c?.pivot?.attempt_number || idx}`} className={`bg-white p-3.5 rounded-xl border shadow-sm flex items-center justify-between transition-colors animate-slideDown ${isFailed ? 'border-rose-200 hover:border-rose-300' : isRetakeRecord ? 'border-amber-200 hover:border-amber-300' : 'border-slate-200/80 hover:border-emerald-200'}`} style={{ animationDelay: `${idx * 40}ms` }}>
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-100 shrink-0">{c.credit_hours}س</div>
-                                                    <div className="min-w-0 truncate pr-2">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4>
-                                                            {isRetakeRecord && <span className="text-[8px] font-[900] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">🔄 إعادة</span>}
+                                                <div key={`${activeSemesterTab}-${c.id}-${c?.pivot?.attempt_number || idx}`} className={`bg-white p-3.5 rounded-xl border shadow-sm flex items-center justify-between transition-colors animate-slideDown ${isFailed ? 'border-rose-200 hover:border-rose-300' : isRetakeRecord ? 'border-amber-200 hover:border-amber-300' : 'border-slate-200/80 hover:border-emerald-200'}`} style={{ animationDelay: `${idx * 40}ms` }}>
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-100 shrink-0">{c.credit_hours}س</div>
+                                                        <div className="min-w-0 truncate pr-2">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <h4 className="text-[12px] font-[800] text-slate-800 truncate">{c.name}</h4>
+                                                                {isRetakeRecord && <span className="text-[8px] font-[900] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">🔄 إعادة</span>}
+                                                            </div>
+                                                            <p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code} {c?.pivot?.attempt_number > 1 ? `• المحاولة ${c.pivot.attempt_number}` : ''}</p>
                                                         </div>
-                                                        <p className="text-[9px] font-bold text-slate-400 font-mono mt-0.5">{c.code} {c?.pivot?.attempt_number > 1 ? `• المحاولة ${c.pivot.attempt_number}` : ''}</p>
+                                                    </div>
+                                                    <div className="shrink-0 flex flex-col items-end gap-1 pl-1">
+                                                        <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{gradeLabel}</span>
+                                                        <span className="px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                            سنة {c.localYear} - {c.localTerm === 1 ? 'الأول' : c.localTerm === 2 ? 'الثاني' : 'الصيفي'}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                                <div className="shrink-0 flex flex-col items-end gap-1 pl-1">
-                                                    <span className={`px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm ${getBadgeColor(c.pivot?.grade)}`}>{gradeLabel}</span>
-                                                    <span className="px-2 py-0.5 rounded-[6px] text-[9px] font-[800] border shadow-sm bg-emerald-50 text-emerald-700 border-emerald-200">
-                                                        سنة {c.localYear} - {c.localTerm === 1 ? 'الأول' : c.localTerm === 2 ? 'الثاني' : 'الصيفي'}
-                                                    </span>
-                                                </div>
-                                            </div>
                                             );
                                         })}
                                         {recordDisplayedCourses.length === 0 && (<div className="text-center py-10 opacity-60"><div className="text-3xl mb-2">📭</div><p className="text-[12px] font-bold text-slate-500">لا يوجد مواد مسجلة.</p></div>)}
@@ -3972,7 +3972,7 @@ export default function Tree({
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" dir="rtl">
                     <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setLegendOpen(false)} />
                     <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl" style={{ animation: 'sn-scale 0.25s cubic-bezier(0.16,1,0.3,1) both' }}>
-                        
+
                         <div className="bg-slate-50 px-5 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
                             <div className="flex items-center gap-2.5">
                                 <span className="text-xl">🌳</span>
