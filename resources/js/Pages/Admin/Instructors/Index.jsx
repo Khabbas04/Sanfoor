@@ -7,46 +7,46 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 
 const translations = {
     ar: {
-        pageTitle: '????? ?????? ???????? - Admin',
-        heading: '????? ?????? ????????',
-        subheading: '????? ?????? ????????? ???????? ??????? ???????? ????????.',
-        searchPlaceholder: '???? ?????? ?? ?????? ??????????...',
-        listedInstructors: '?????? ??????? ??????',
-        taughtCourses: '???? ??????',
+        pageTitle: 'إدارة الكادر التدريسي - Admin',
+        heading: '👨‍🏫 الكادر التدريسي',
+        subheading: 'إدارة حسابات الدكاترة، الكليات، والمواد الدراسية المرتبطة.',
+        searchPlaceholder: 'ابحث بالاسم أو البريد الإلكتروني...',
+        listedInstructors: 'دكاترة معروضون حالياً',
+        taughtCourses: 'مواد مدرسّة',
         avgGpa: '---',
-        colInstructor: '???????',
-        colMajor: '????? / ??????',
-        colTaught: '??????',
-        colAction: '?????',
-        details: '????????',
-        noInstructors: '?? ???? ?????? ??????? ?????.',
-        courses: '????',
-        tabTaught: '?? ?????? ????????',
-        tabInfo: '?? ??????',
-        editTitle: '????? ?????? ??????',
-        emailLabel: '?????? ??????????',
-        majorLabel: '?????',
-        selectMajor: '???? ?????',
-        saveChanges: '??? ?????????',
-        noTaughtCourses: '?? ???? ???? ????? ???? ???????.',
-        infoCardTitle: '?????? ??????? ???????',
-        ipLabel: '??? IP ??????',
-        regDate: '????? ???????',
-        lastSeen: '??? ????',
-        dangerZone: '??????? ????',
-        deleteAccount: '??? ???? ???????',
-        cancelEdit: '????? ???????',
-        editData: '????? ????????',
-        deleteTitle: '?? ??? ??????',
-        deleteText: '???? ??? ???? ??????? ????? ?????? ???????!',
-        deleteConfirm: '???? ???? ??????',
-        cancel: '?????',
-        updateSuccess: '?? ???????!',
-        updateSuccessText: '?? ????? ?????? ??????? ?????.',
+        colInstructor: 'الدكتور',
+        colMajor: 'القسم / الكلية',
+        colTaught: 'المواد',
+        colAction: 'إجراء',
+        details: 'التفاصيل',
+        noInstructors: 'لا يوجد دكاترة مطابقين للبحث.',
+        courses: 'مواد',
+        tabTaught: '📚 المواد المدرسّة',
+        tabInfo: '💻 النظام',
+        editTitle: 'تعديل بيانات الحساب',
+        emailLabel: 'البريد الإلكتروني',
+        majorLabel: 'القسم',
+        selectMajor: 'اختر القسم',
+        saveChanges: 'حفظ التغييرات',
+        noTaughtCourses: 'لا يوجد مواد مسندة لهذا الدكتور.',
+        infoCardTitle: 'تفاصيل الاتصال والأمان',
+        ipLabel: 'رقم IP الأخير',
+        regDate: 'تاريخ التسجيل',
+        lastSeen: 'آخر ظهور',
+        dangerZone: 'إجراءات خطرة',
+        deleteAccount: 'حذف حساب الدكتور',
+        cancelEdit: 'إلغاء التعديل',
+        editData: 'تعديل البيانات',
+        deleteTitle: 'هل أنت متأكد؟',
+        deleteText: 'سيتم حذف حساب الدكتور وكافة سجلاته نهائياً!',
+        deleteConfirm: 'نعم، احذف الحساب',
+        cancel: 'إلغاء',
+        updateSuccess: 'تم التحديث!',
+        updateSuccessText: 'تم تعديل بيانات الدكتور بنجاح.',
     },
     en: {
         pageTitle: 'Manage Instructors - Admin',
-        heading: '????? Teaching Staff',
+        heading: '👨‍🏫 Teaching Staff',
         subheading: 'Manage instructors accounts and their assigned courses.',
         searchPlaceholder: 'Search by name or email...',
         listedInstructors: 'Listed Instructors',
@@ -59,8 +59,8 @@ const translations = {
         details: 'Details',
         noInstructors: 'No instructors match the search.',
         courses: 'courses',
-        tabTaught: '?? Taught Courses',
-        tabInfo: '?? System',
+        tabTaught: '📚 Taught Courses',
+        tabInfo: '💻 System',
         editTitle: 'Edit Account Data',
         emailLabel: 'Email',
         majorLabel: 'Department',
@@ -178,7 +178,7 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                 onChange={handleSearch}
                                 className={`w-full border rounded-xl py-3 ${lang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'} font-bold text-sm shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}
                             />
-                            <span className={`absolute ${lang === 'ar' ? 'right-4' : 'left-4'} top-3.5 opacity-40`}>??</span>
+                            <span className={`absolute ${lang === 'ar' ? 'right-4' : 'left-4'} top-3.5 opacity-40`}>🔍</span>
                         </div>
                     </div>
                 </div>
@@ -273,9 +273,9 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                         className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-all ${isEditing ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-white/10 hover:bg-white/20'}`}
                                         title={isEditing ? t.cancelEdit : t.editData}
                                     >
-                                        {isEditing ? '?' : '??'}
+                                        {isEditing ? '✓' : '✏️'}
                                     </button>
-                                    <button onClick={() => setIsSidebarOpen(false)} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">?</button>
+                                    <button onClick={() => setIsSidebarOpen(false)} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors">✕</button>
                                 </div>
 
                                 <div className="flex items-center gap-4 relative z-10 mt-4">
@@ -302,8 +302,8 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                         <p className="text-lg font-black text-white">{selectedInstructor?.taught_courses_count}</p>
                                     </div>
                                     <div className="bg-white/10 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-md">
-                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">??????</p>
-                                        <p className="text-lg font-black text-emerald-400">???? ??????</p>
+                                        <p className="text-[9px] text-indigo-200 font-black uppercase mb-1">الرتبة</p>
+                                        <p className="text-lg font-black text-emerald-400">كادر تدريسي</p>
                                     </div>
                                 </div>
                             </div>
@@ -328,7 +328,7 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                                     onChange={e => setEditForm({...editForm, email: e.target.value})}
                                                     disabled
                                                 />
-                                                <small className="text-rose-500">?????? ?????????? ???? ?? Microsoft? ??? ???? ??????.</small>
+                                                <small className="text-rose-500">البريد الإلكتروني يأتي من Microsoft، ولا يمكن تغييره.</small>
                                             </div>
 
                                             <div>
@@ -362,7 +362,7 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
                                                         <div key={course.id} className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border p-3 rounded-xl shadow-sm flex justify-between items-center`}>
                                                             <div>
                                                                 <h4 className={`font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} text-xs mb-1`}>{course.name}</h4>
-                                                                <p className="text-[9px] font-bold text-slate-400">{course.code} � {course.credit_hours} ?????</p>
+                                                                <p className="text-[9px] font-bold text-slate-400">{course.code} • {course.credit_hours} ساعات</p>
                                                             </div>
                                                         </div>
                                                     ))
@@ -415,4 +415,3 @@ export default function AdminInstructors({ auth, instructors, filters, majors = 
         </AdminLayout>
     );
 }
-
