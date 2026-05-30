@@ -81,8 +81,8 @@ class ProfileController extends Controller
         $hasEmailVerifiedAt = Schema::hasColumn('users', 'email_verified_at');
 
         $updatePayload = [
-            'name' => trim((string) ($validated['name'] ?? $user->name)),
-            'email' => strtolower(trim((string) ($validated['email'] ?? $user->email))),
+            'name' => $isStudent ? $user->name : trim((string) ($validated['name'] ?? $user->name)),
+            'email' => $isStudent ? $user->email : strtolower(trim((string) ($validated['email'] ?? $user->email))),
         ];
 
         if ($hasMajorColumn && array_key_exists('major_id', $validated)) {

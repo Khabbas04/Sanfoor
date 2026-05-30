@@ -55,17 +55,24 @@ export default function UpdateProfileInformation({
             </header>
 
             <form onSubmit={submit} className="mt-6 space-y-5">
+                {isStudent && (
+                    <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-[12px] font-bold text-sky-800">
+                        لأسباب أمنية، لا يمكنك تغيير اسمك أو بريدك الإلكتروني بنفسك. لتغيير هذه البيانات يرجى التواصل مع فريق الدعم الفني.
+                    </div>
+                )}
+
                 <div>
                     <InputLabel htmlFor="name" value="الاسم الرباعي" />
 
                     <TextInput
                         id="name"
-                        className="mt-1 block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all"
+                        className={`mt-1 block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 shadow-sm transition-all ${isStudent ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
                         value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
+                        onChange={(e) => !isStudent && setData('name', e.target.value)}
                         required
-                        isFocused
+                        isFocused={!isStudent}
                         autoComplete="name"
+                        disabled={isStudent}
                     />
 
                     <InputError className="mt-2" message={errors.name} />
@@ -77,12 +84,13 @@ export default function UpdateProfileInformation({
                     <TextInput
                         id="email"
                         type="email"
-                        className="mt-1 block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 text-left shadow-sm transition-all"
+                        className={`mt-1 block w-full rounded-xl border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-700 text-left shadow-sm transition-all ${isStudent ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : ''}`}
                         dir="ltr"
                         value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
+                        onChange={(e) => !isStudent && setData('email', e.target.value)}
                         required
                         autoComplete="username"
+                        disabled={isStudent}
                     />
 
                     <InputError className="mt-2" message={errors.email} />
