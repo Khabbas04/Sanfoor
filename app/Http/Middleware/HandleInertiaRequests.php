@@ -68,6 +68,11 @@ class HandleInertiaRequests extends Middleware
                         now()->addSeconds(60),
                         fn () => IssueReport::where('status', 'open')->count()
                     ),
+                    'unread_messages_count' => Cache::remember(
+                        'admin:unread_messages_count',
+                        now()->addSeconds(60),
+                        fn () => \App\Models\ContactMessage::where('status', 'new')->count()
+                    ),
                 ];
             }
         }
