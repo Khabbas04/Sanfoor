@@ -13,6 +13,7 @@ use App\Http\Controllers\IssueReportController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\ContactMessageController;
 use App\Http\Controllers\Auth\MicrosoftAuthController;
+use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\Admin\AdminIssueReportController;
 use App\Http\Controllers\Admin\AdminContactMessageController;
 use App\Http\Controllers\Admin\AdminChapterController;
@@ -102,9 +103,17 @@ Route::get('/contact-us', function () {
 
 Route::post('/contact-us', [ContactMessageController::class, 'store'])->name('public.contact.store');
 
+// Public announcements page visible to everyone.
+Route::get('/announcements', [InstructorController::class, 'publicAnnouncements'])->name('public.announcements');
+
 // Authenticated student dashboard.
 Route::get('/dashboard', function () {
     $user = Auth::user();
+
+    // Redirect instructors to their dedicated dashboard.
+    if (strtolower((string) $user->role) === 'instructor') {
+        return redirect()->route('instructor.dashboard');
+    }
 
     $hasCourseUser = Schema::hasTable('course_user');
     $hasUserCarts = Schema::hasTable('user_carts');
@@ -347,6 +356,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Admin-only routes for dashboards, academic data, and staff operations.
+
+    // Instructor routes for teaching staff features.
+    Route::middleware(['instructor'])->prefix('instructor')->name('instructor.')->group(function () {
+        Route::get('/dashboard', [InstructorController::class, 'dashboard'])->name('dashboard');
+        Route::get('/students', [InstructorController::class, 'students'])->name('students');
+        Route::get('/announcements', [InstructorController::class, 'announcements'])->name('announcements');
+        Route::post('/announcements', [InstructorController::class, 'storeAnnouncement'])->name('announcements.store');
+        Route::delete('/announcements/{announcement}', [InstructorController::class, 'destroyAnnouncement'])->name('announcements.destroy');
+        Route::put('/courses', [InstructorController::class, 'updateCourses'])->name('courses.update');
+    });
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::post('/notes', [AdminController::class, 'storeAdminNote'])->name('notes.store');

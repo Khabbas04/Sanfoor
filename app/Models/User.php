@@ -128,6 +128,23 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(IssueReport::class);
     }
 
+    /**
+     * Courses taught by this instructor (pivot table: instructor_courses).
+     */
+    public function taughtCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(Course::class, 'instructor_courses', 'user_id', 'course_id')
+            ->withTimestamps();
+    }
+
+    /**
+     * Announcements created by this instructor.
+     */
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class);
+    }
+
     // ---------------------------------------------------------------------
     // Academic analytics helpers used by dashboards and advisor features.
     // ---------------------------------------------------------------------

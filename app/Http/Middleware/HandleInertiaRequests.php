@@ -55,6 +55,7 @@ class HandleInertiaRequests extends Middleware
                     'college_id' => $major->college_id,
                 ] : null,
                 'study_plan_version' => $user->study_plan_version,
+                'is_instructor' => $normalizedRole === 'instructor',
                 'is_owner' => $normalizedRole === 'owner',
                 'is_admin_or_owner' => in_array($normalizedRole, ['admin', 'owner'], true),
             ];

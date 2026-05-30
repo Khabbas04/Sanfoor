@@ -73,7 +73,9 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
-        $isStudent = strtolower((string) ($user->role ?? '')) === 'student';
+        $role = strtolower((string) ($user->role ?? ''));
+        $isStudent = $role === 'student';
+        $isLockedProfile = in_array($role, ['student', 'instructor'], true);
         $isAcademicLockedForStudent = $isStudent && filled($user->major_id);
 
         $hasMajorColumn = Schema::hasColumn('users', 'major_id');
@@ -81,8 +83,8 @@ class ProfileController extends Controller
         $hasEmailVerifiedAt = Schema::hasColumn('users', 'email_verified_at');
 
         $updatePayload = [
-            'name' => $isStudent ? $user->name : trim((string) ($validated['name'] ?? $user->name)),
-            'email' => $isStudent ? $user->email : strtolower(trim((string) ($validated['email'] ?? $user->email))),
+            'name' => $isLockedProfile ? $user->name : trim((string) ($validated['name'] ?? $user->name)),
+            'email' => $isLockedProfile ? $user->email : strtolower(trim((string) ($validated['email'] ?? $user->email))),
         ];
 
         if ($hasMajorColumn && array_key_exists('major_id', $validated)) {

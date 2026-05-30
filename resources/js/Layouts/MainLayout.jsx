@@ -30,6 +30,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const role = (safeUser.role || '').toLowerCase().trim();
     const isOwner = Boolean(safeUser.is_owner) || role === 'owner';
     const isAdminOrOwner = Boolean(safeUser.is_admin_or_owner) || ['admin', 'owner'].includes(role);
+    const isInstructor = Boolean(safeUser.is_instructor) || role === 'instructor';
 
     // UI state for the floating navbar and mobile drawer menu.
     const [scrolled, setScrolled] = useState(false);
@@ -116,7 +117,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             privacy: 'سياسة الخصوصية',
             systemStatus: 'حالة النظام',
             aiEngine: 'محرك الذكاء الاصطناعي',
-            version: 'إصدار النظام'
+            version: 'إصدار النظام',
+            announcements: 'الإعلانات',
+            students: 'الطلاب',
         },
         en: {
             home: 'Home',
@@ -147,7 +150,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             privacy: 'Privacy Policy',
             systemStatus: 'System Status',
             aiEngine: 'AI Engine',
-            version: 'System Version'
+            version: 'System Version',
+            announcements: 'Announcements',
+            students: 'Students',
         }
     };
 
@@ -252,17 +257,34 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <span className="transition-transform group-hover:scale-110">🏠</span> {t.home}
                                 </Link>
 
-                                <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                    <span className="transition-transform group-hover:scale-110">🌳</span> {t.tree}
-                                </Link>
+                                {!isInstructor ? (
+                                    <>
+                                        <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">🌳</span> {t.tree}
+                                        </Link>
 
-                                <Link href={safeRoute('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('calculator.index', '/calculator') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                    <span className="transition-transform group-hover:scale-110">📈</span> {t.calc}
-                                </Link>
+                                        <Link href={safeRoute('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('calculator.index', '/calculator') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">📈</span> {t.calc}
+                                        </Link>
 
-                                <Link href={safeRoute('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('campus.directory', '/campus-directory') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
-                                    <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
-                                </Link>
+                                        <Link href={safeRoute('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('campus.directory', '/campus-directory') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
+                                        </Link>
+                                        
+                                        <Link href={route('public.announcements')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('public.announcements') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">📢</span> {t.announcements}
+                                        </Link>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Link href={route('instructor.students')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('instructor.students') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">👥</span> {t.students}
+                                        </Link>
+                                        <Link href={route('instructor.announcements')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('instructor.announcements') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">📢</span> {t.announcements}
+                                        </Link>
+                                    </>
+                                )}
 
                                 {/* Academic Content removed from central nav to keep header compact */}
 
@@ -300,8 +322,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                             <div className="flex flex-col items-end leading-none ml-2">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{(safeUser.name ?? '').split(' ')[0] || '?'}</span>
-                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-blue-800'}`}>
-                                                        {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : 'STUDENT'}
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : isInstructor ? 'bg-teal-100 text-teal-800' : 'bg-sky-100 text-blue-800'}`}>
+                                                        {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : isInstructor ? 'INSTRUCTOR' : 'STUDENT'}
                                                     </span>
                                                 </div>
                                                 {safeUser.major && <span className="text-[10px] font-bold text-slate-400 mt-1 max-w-[100px] truncate">{safeUser.major.name}</span>}
@@ -386,11 +408,21 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
                             <Link onClick={() => setMobileOpen(false)} href="/" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏠 {t.home}</Link>
 
-                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {t.tree}</Link>
-                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📈 {t.calc}</Link>
-                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
+                            {!isInstructor ? (
+                                <>
+                                    <Link onClick={() => setMobileOpen(false)} href={safeRoute('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {t.tree}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href={safeRoute('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📈 {t.calc}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href={safeRoute('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
+                                </>
+                            ) : (
+                                <>
+                                    <Link onClick={() => setMobileOpen(false)} href={route('instructor.students')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">👥 {t.students}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href={route('instructor.announcements')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📢 {t.announcements}</Link>
+                                </>
+                            )}
                             <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
                             <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
+                            <Link onClick={() => setMobileOpen(false)} href={route('public.announcements')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📢 {t.announcements}</Link>
                             <Link onClick={() => setMobileOpen(false)} href={safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {t.ai}</Link>
 
                             {safeUser.id && (
