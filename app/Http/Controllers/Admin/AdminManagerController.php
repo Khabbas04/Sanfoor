@@ -32,10 +32,10 @@ class AdminManagerController extends Controller
             ->get(['id', 'name', 'email', 'role', 'created_at']);
 
         $students = User::query()
-            ->where('role', 'student')
+            ->whereIn('role', ['student', 'instructor'])
             ->orderBy('name')
             ->limit(300)
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email', 'role']);
 
         $loginLogs = AdminLog::query()
             ->with('user:id,name,email,role')
@@ -72,7 +72,7 @@ class AdminManagerController extends Controller
     public function updateRole(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'role' => ['required', 'in:admin,student'],
+            'role' => ['required', 'in:admin,student,instructor'],
         ]);
 
         if (strtolower((string) $user->role) === 'owner') {

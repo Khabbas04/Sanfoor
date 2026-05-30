@@ -42,6 +42,14 @@ const translations = {
         yes: 'نعم',
         confirmDelete: 'نعم، احذف',
         cancel: 'إلغاء',
+        changeRoleTitle: 'تغيير الرتبة',
+        changeRoleText: (name) => `اختر الرتبة الجديدة للمستخدم ${name}`,
+        changeRoleSuccess: 'تم التحديث',
+        changeRoleSuccessText: (name) => `تم تغيير رتبة ${name} بنجاح.`,
+        availableUsers: 'مستخدمون متاحون للتعديل',
+        roleSelect: 'اختر الرتبة...',
+        updateRoleBtn: 'تحديث الرتبة',
+        changeRoleBtn: 'تغيير الرتبة',
         loginActivityTitle: 'سجل الدخول (للأونر)',
         loginActivitySubheading: 'آخر من سجل دخول للموقع مع التاريخ والوقت.',
         loginUser: 'المستخدم',
@@ -86,6 +94,14 @@ const translations = {
         yes: 'Yes',
         confirmDelete: 'Yes, Delete',
         cancel: 'Cancel',
+        changeRoleTitle: 'Change Role',
+        changeRoleText: (name) => `Select new role for ${name}`,
+        changeRoleSuccess: 'Updated',
+        changeRoleSuccessText: (name) => `${name}'s role has been updated.`,
+        availableUsers: 'Users available for edit',
+        roleSelect: 'Select role...',
+        updateRoleBtn: 'Update Role',
+        changeRoleBtn: 'Change Role',
         loginActivityTitle: 'Login Activity (Owner)',
         loginActivitySubheading: 'Recent successful logins with date and time.',
         loginUser: 'User',
@@ -120,19 +136,21 @@ const translations = {
         });
     }, [admins, query]);
 
-    const handlePromote = () => {
+    const [selectedRoleToAssign, setSelectedRoleToAssign] = useState('admin');
+
+    const handleUpdateTopRole = () => {
         if (!selectedUserId) {
             Swal.fire({ icon: 'warning', title: t.selectRequired, text: t.selectRequiredText });
             return;
         }
 
-        router.post(
-            route('admin.admins.promote'),
-            { user_id: selectedUserId },
+        router.put(
+            route('admin.admins.update_role', selectedUserId),
+            { role: selectedRoleToAssign },
             {
                 onSuccess: () => {
                     setSelectedUserId('');
-                    Swal.fire({ icon: 'success', title: t.promoteSuccess, text: t.promoteSuccessText });
+                    Swal.fire({ icon: 'success', title: t.changeRoleSuccess, text: t.changeRoleSuccessText(selectedStudent?.name || '') });
                 },
                 onError: (errors) => {
                     Swal.fire({ icon: 'error', title: t.failed, text: Object.values(errors)[0] || (lang === 'ar' ? 'حدث خطأ أثناء الترقية.' : 'An error occurred during promotion.') });
@@ -141,20 +159,27 @@ const translations = {
         );
     };
 
-    const handleDemote = (admin) => {
+    const handleChangeRoleTable = (admin) => {
         Swal.fire({
             icon: 'question',
-            title: t.demoteTitle,
-            text: t.demoteText(admin.name),
+            title: t.changeRoleTitle,
+            text: t.changeRoleText(admin.name),
+            input: 'select',
+            inputOptions: {
+                admin: 'Admin (أدمن)',
+                instructor: 'Instructor (كادر تدريسي)',
+                student: 'Student (طالب)'
+            },
+            inputValue: String(admin.role || '').toLowerCase(),
             showCancelButton: true,
-            confirmButtonText: t.yes,
+            confirmButtonText: t.updateRoleBtn,
             cancelButtonText: t.cancel,
             confirmButtonColor: '#4f46e5',
         }).then((res) => {
-            if (!res.isConfirmed) return;
+            if (!res.isConfirmed || !res.value) return;
 
-            router.put(route('admin.admins.update_role', admin.id), { role: 'student' }, {
-                onSuccess: () => Swal.fire({ icon: 'success', title: t.demoteSuccess, text: t.demoteSuccessText(admin.name) }),
+            router.put(route('admin.admins.update_role', admin.id), { role: res.value }, {
+                onSuccess: () => Swal.fire({ icon: 'success', title: t.changeRoleSuccess, text: t.changeRoleSuccessText(admin.name) }),
                 onError: (errors) => Swal.fire({ icon: 'error', title: t.failed, text: Object.values(errors)[0] || (lang === 'ar' ? 'حدث خطأ أثناء التنزيل.' : 'An error occurred during demotion.') }),
             });
         });
@@ -196,7 +221,7 @@ const translations = {
                             <p className={`text-2xl font-black ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{admins.length}</p>
                         </div>
                         <div className={`${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'} border rounded-2xl p-4 shadow-sm`}>
-                            <p className={`text-[11px] font-black ${isDark ? 'text-slate-400' : 'text-slate-400'} mb-1`}>{t.availableStudents}</p>
+                            <p className={`text-[11px] font-black ${isDark ? 'text-slate-400' : 'text-slate-400'} mb-1`}>{t.availableUsers || t.availableStudents}</p>
                             <p className="text-2xl font-black text-indigo-500">{students.length}</p>
                         </div>
                         <div className={`${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'} border rounded-2xl p-4 shadow-sm`}>
@@ -206,12 +231,12 @@ const translations = {
                     </div>
 
                     <div className={`${isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200'} border rounded-2xl p-5 shadow-sm mb-6`}>
-                        <h2 className={`text-sm font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} mb-4`}>{t.promoteTitle}</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <h2 className={`text-sm font-black ${isDark ? 'text-slate-200' : 'text-slate-800'} mb-4`}>{t.changeRoleTitle || t.promoteTitle}</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                             <select
                                 value={selectedUserId}
                                 onChange={(e) => setSelectedUserId(e.target.value)}
-                                className={`md:col-span-3 border rounded-xl p-3 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-slate-200 text-slate-800'}`}
+                                className={`md:col-span-2 border rounded-xl p-3 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-slate-200 text-slate-800'}`}
                             >
                                 <option value="">{t.selectStudent}</option>
                                 {students.map((student) => (
@@ -221,17 +246,27 @@ const translations = {
                                 ))}
                             </select>
 
+                            <select
+                                value={selectedRoleToAssign}
+                                onChange={(e) => setSelectedRoleToAssign(e.target.value)}
+                                className={`md:col-span-2 border rounded-xl p-3 font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-slate-700 border-slate-600 text-slate-100' : 'border-slate-200 text-slate-800'}`}
+                            >
+                                <option value="admin">Admin (أدمن)</option>
+                                <option value="instructor">Instructor (كادر تدريسي)</option>
+                                <option value="student">Student (طالب)</option>
+                            </select>
+
                             <button
-                                onClick={handlePromote}
+                                onClick={handleUpdateTopRole}
                                 className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-sm px-4 py-3"
                             >
-                                {t.promote}
+                                {t.updateRoleBtn || t.promote}
                             </button>
                         </div>
 
                         {selectedStudent && (
                             <p className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'} mt-3`}>
-                                {t.selected}: {selectedStudent.name} ({selectedStudent.email})
+                                {t.selected}: {selectedStudent.name} ({String(selectedStudent.role).toUpperCase()})
                             </p>
                         )}
                     </div>
@@ -283,14 +318,14 @@ const translations = {
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
                                                             disabled={isOwner}
-                                                            onClick={() => handleDemote(admin)}
+                                                            onClick={() => handleChangeRoleTable(admin)}
                                                             className={`px-3 py-2 rounded-lg text-[11px] font-black ${
                                                                 isOwner
                                                                     ? isDark ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                                                     : isDark ? 'bg-amber-900/30 text-amber-300 hover:bg-amber-900/50' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
                                                             }`}
                                                         >
-                                                            {t.demote}
+                                                            {t.changeRoleBtn}
                                                         </button>
 
                                                         <button
