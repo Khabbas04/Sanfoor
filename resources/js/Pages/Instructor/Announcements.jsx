@@ -5,23 +5,53 @@ import Swal from 'sweetalert2';
 
 export default function InstructorAnnouncements({ auth, announcements = {}, taught_courses = [] }) {
     const [showForm, setShowForm] = useState(false);
-    const { data, setData, post, processing, reset, errors } = useForm({
+    const [editingId, setEditingId] = useState(null);
+    const { data, setData, post, put, processing, reset, errors, clearErrors } = useForm({
         title: '',
         body: '',
         course_id: '',
         expires_at: '',
     });
 
+    const handleEdit = (announcement) => {
+        setEditingId(announcement.id);
+        setData({
+            title: announcement.title,
+            body: announcement.body,
+            course_id: announcement.course_id || '',
+            expires_at: announcement.expires_at ? announcement.expires_at.slice(0, 16) : '',
+        });
+        setShowForm(true);
+        clearErrors();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        reset();
+        setShowForm(false);
+        clearErrors();
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('instructor.announcements.store'), {
-            preserveScroll: true,
-            onSuccess: () => {
-                reset();
-                setShowForm(false);
-                Swal.fire({ icon: 'success', title: 'تم النشر', text: 'تم نشر الإعلان بنجاح.' });
-            },
-        });
+        if (editingId) {
+            put(route('instructor.announcements.update', editingId), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    handleCancelEdit();
+                    Swal.fire({ icon: 'success', title: 'تم التعديل', text: 'تم تعديل الإعلان بنجاح.' });
+                },
+            });
+        } else {
+            post(route('instructor.announcements.store'), {
+                preserveScroll: true,
+                onSuccess: () => {
+                    handleCancelEdit();
+                    Swal.fire({ icon: 'success', title: 'تم النشر', text: 'تم نشر الإعلان بنجاح.' });
+                },
+            });
+        }
     };
 
     const handleDelete = (id) => {
@@ -51,7 +81,7 @@ export default function InstructorAnnouncements({ auth, announcements = {}, taug
                             <h1 className="text-2xl sm:text-3xl font-[900] text-slate-800">📢 إعلاناتي</h1>
                             <p className="text-slate-500 font-bold text-sm mt-1">أنشئ إعلانات تظهر لجميع الطلاب في صفحة الإعلانات</p>
                         </div>
-                        <button onClick={() => setShowForm(!showForm)} className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg shadow-teal-500/30 hover:opacity-90 transition-all active:scale-95 shrink-0">
+                        <button onClick={() => showForm ? handleCancelEdit() : setShowForm(true)} className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg shadow-teal-500/30 hover:opacity-90 transition-all active:scale-95 shrink-0">
                             {showForm ? '✕ إلغاء' : '✨ إعلان جديد'}
                         </button>
                     </div>
@@ -84,7 +114,7 @@ export default function InstructorAnnouncements({ auth, announcements = {}, taug
                                     </div>
                                 </div>
                                 <button type="submit" disabled={processing} className="bg-gradient-to-r from-teal-500 to-emerald-600 text-white px-8 py-3 rounded-xl font-black text-sm shadow-lg shadow-teal-500/30 hover:opacity-90 transition-all disabled:opacity-50">
-                                    {processing ? 'جاري النشر...' : '📢 نشر الإعلان'}
+                                    {processing ? 'جاري الحفظ...' : (editingId ? '💾 حفظ التعديلات' : '📢 نشر الإعلان')}
                                 </button>
                             </form>
                         </div>
@@ -111,9 +141,14 @@ export default function InstructorAnnouncements({ auth, announcements = {}, taug
                                             {ann.expires_at && <span>⏰ ينتهي: {new Date(ann.expires_at).toLocaleDateString('ar-JO')}</span>}
                                         </div>
                                     </div>
-                                    <button onClick={() => handleDelete(ann.id)} className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-2 rounded-xl transition-all shrink-0" title="حذف">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleEdit(ann)} className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-xl transition-all shrink-0" title="تعديل">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                        </button>
+                                        <button onClick={() => handleDelete(ann.id)} className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-2 rounded-xl transition-all shrink-0" title="حذف">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}

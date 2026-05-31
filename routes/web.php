@@ -363,6 +363,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/students', [InstructorController::class, 'students'])->name('students');
         Route::get('/announcements', [InstructorController::class, 'announcements'])->name('announcements');
         Route::post('/announcements', [InstructorController::class, 'storeAnnouncement'])->name('announcements.store');
+        Route::put('/announcements/{announcement}', [InstructorController::class, 'updateAnnouncement'])->name('announcements.update');
         Route::delete('/announcements/{announcement}', [InstructorController::class, 'destroyAnnouncement'])->name('announcements.destroy');
         Route::put('/courses', [InstructorController::class, 'updateCourses'])->name('courses.update');
         Route::get('/reports/demand', [InstructorController::class, 'demandReport'])->name('reports.demand');

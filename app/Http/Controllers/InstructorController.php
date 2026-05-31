@@ -165,6 +165,32 @@ class InstructorController extends Controller
     }
 
     /**
+     * Update an announcement.
+     */
+    public function updateAnnouncement(Request $request, Announcement $announcement): RedirectResponse
+    {
+        if ($announcement->user_id !== $request->user()->id && !$request->user()->isAdminOrOwner()) {
+            return back()->with(['message' => 'لا يمكنك تعديل هذا الإعلان.', 'type' => 'error']);
+        }
+
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string|max:2000',
+            'course_id' => 'nullable|exists:courses,id',
+            'expires_at' => 'nullable|date|after:now',
+        ]);
+
+        $announcement->update([
+            'title' => $data['title'],
+            'body' => $data['body'],
+            'course_id' => $data['course_id'] ?? null,
+            'expires_at' => $data['expires_at'] ?? null,
+        ]);
+
+        return back()->with('message', 'تم تعديل الإعلان بنجاح.');
+    }
+
+    /**
      * Update the courses this instructor teaches.
      */
     public function updateCourses(Request $request): RedirectResponse
