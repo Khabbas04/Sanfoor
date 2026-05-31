@@ -13,31 +13,6 @@ const injectTourStyles = () => {
             0% { opacity: 0; transform: translateY(15px) scale(0.95); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .driver-popover.has-mascot {
-            position: relative;
-            overflow: visible !important;
-        }
-        .driver-popover.has-mascot::before {
-            content: '';
-            position: absolute;
-            top: -45px;
-            right: -30px;
-            width: 85px;
-            height: 85px;
-            background-image: url('/images/sanfoor.png');
-            background-size: cover;
-            background-position: center;
-            border-radius: 50%;
-            border: 4px solid white;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            z-index: 100;
-            animation: mascotFloat 3s ease-in-out infinite alternate;
-            background-color: white;
-        }
-        @keyframes mascotFloat {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-10px); }
-        }
         .driver-popover {
             border-radius: 1.5rem !important;
             padding: 24px !important;
@@ -48,12 +23,6 @@ const injectTourStyles = () => {
             animation: tourBloop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         @media (max-width: 640px) {
-            .driver-popover.has-mascot::before {
-                width: 70px;
-                height: 70px;
-                top: -35px;
-                right: -15px;
-            }
             .driver-popover {
                 max-width: 90vw !important;
                 padding: 18px !important;
@@ -187,9 +156,8 @@ export const startWelcomeTour = () => {
                 {
                     element: '#tour-feature-3',
                     popover: {
-                        popoverClass: 'driver-theme-sanfoor has-mascot',
                         title: '🤖 مرشدك الأكاديمي الذكي',
-                        description: 'لا داعي للحيرة في اختيار موادك! مساعد الذكاء الاصطناعي (AI Sanfoor) يقرأ خطتك ويقترح لك أفضل جدول لرفع معدلك التراكمي في ثوانٍ.',
+                        description: '<div style="display:flex; gap:15px; align-items:center;"><img src="/images/ai_robot.png" style="width:64px; height:64px; border-radius:16px; object-fit:cover; background:white; box-shadow:0 8px 16px rgba(14,165,233,0.15); border:1px solid #e2e8f0; margin-top:5px; flex-shrink:0;"/><div style="line-height: 1.6;">لا داعي للحيرة في اختيار موادك! مساعد الذكاء الاصطناعي (AI Sanfoor) يقرأ خطتك ويقترح لك أفضل جدول لرفع معدلك التراكمي في ثوانٍ.</div></div>',
                         side: 'top',
                         align: 'center'
                     }
@@ -256,56 +224,10 @@ export const startTreeTour = () => {
                     }
                 },
                 {
-                    element: '.react-flow', // Use a generic element to center popover, but highlight the whole canvas initially
-                    popover: {
-                        popoverClass: 'driver-theme-sanfoor has-mascot',
-                        title: '👆 التدريب العملي: اختر مادة',
-                        description: 'هيا نتدرب معاً! <strong style="color:#0ea5e9;">ابحث عن أي مادة لونها أزرق (متاحة) واضغط عليها</strong> لتفتح نافذة التحكم وتفاصيل المادة.<br/><br/><span style="font-size:0.8rem;color:#64748b;">(لن نكمل حتى تضغط على إحدى المواد!)</span>',
-                        side: 'left',
-                        align: 'center',
-                        showButtons: ['close'] // Force user to click a node
-                    },
-                    onHighlightStarted: (el) => {
-                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: false } }));
-                        setTimeout(() => {
-                            const nodes = Array.from(document.querySelectorAll('.react-flow__node')).filter(n => n.innerHTML.includes('متاح') && !n.innerHTML.includes('التسجيل التجريبي') && !n.innerHTML.includes('منجز'));
-                            if (nodes.length > 0) {
-                                const handler = () => {
-                                    setTimeout(() => driverObj.moveNext(), 600); // Wait for sidebar to open
-                                    nodes.forEach(n => n.removeEventListener('click', handler));
-                                };
-                                nodes.forEach(n => n.addEventListener('click', handler));
-                            } else {
-                                setTimeout(() => driverObj.moveNext(), 3000); // Fallback if no available courses
-                            }
-                        }, 500);
-                    }
-                },
-                {
-                    element: '#tour-add-cart-btn',
-                    popover: {
-                        popoverClass: 'driver-theme-sanfoor has-mascot',
-                        title: '🛒 التسجيل التجريبي',
-                        description: 'ممتاز! من هذا الزر المضيء، يمكنك إضافة المادة إلى مسودة التسجيل التجريبي، وهذا سيتيح لك قياس تأثيرها على العبء الدراسي قبل أن تنزلها فعلياً بالجامعة.',
-                        side: 'left',
-                        align: 'start'
-                    }
-                },
-                {
-                    element: '#tour-pass-btn',
-                    popover: {
-                        popoverClass: 'driver-theme-sanfoor has-mascot',
-                        title: '✅ إنجاز المادة وإدخال علامتك',
-                        description: 'وإذا كنت قد أخذت هذه المادة بالفعل، يمكنك تسجيلها كـ "منجزة" هنا وإدخال معدلك. سيحسبها النظام فوراً ويفتح لك المواد التالية التي تعتمد عليها!',
-                        side: 'left',
-                        align: 'start'
-                    }
-                },
-                {
                     element: '#tour-tree-cart', // The cart toggle button or sidebar
                     popover: {
                         title: '🛒 مسودة التسجيل (التجريبي)',
-                        description: '<div style="margin-bottom:8px;">هل سجلت مواداً تجريبياً؟</div><strong style="color:#0ea5e9;">اضغط على هذا الزر المضيء 👆</strong> لفتح السلة وتجربة إدارتها.',
+                        description: '<div style="margin-bottom:8px;">الآن دورك! لن نكمل الجولة حتى تجربها بنفسك 🤩</div><strong style="color:#0ea5e9;">اضغط على الزر المضيء نفسه 👆</strong> لفتح السلة وتجربة النظام عملياً.',
                         side: 'right',
                         align: 'start',
                         showButtons: ['close'] // Hide Next button to force interaction
@@ -327,7 +249,7 @@ export const startTreeTour = () => {
                     element: '#tour-tree-plan', // The study plan toggle button
                     popover: {
                         title: '📅 التخطيط المستقبلي',
-                        description: 'لتخطيط أبعد مدى، استخدم تبويب الفصول لتوزيع موادك على فصول دراسية متعددة حتى التخرج.',
+                        description: 'هل ترغب بالتخطيط لعدة فصول للأمام؟ استخدم تبويب الفصول لتوزيع موادك المتبقية حتى التخرج بكل سهولة.',
                         side: 'right',
                         align: 'start'
                     },
@@ -338,9 +260,8 @@ export const startTreeTour = () => {
                 {
                     element: '#tour-tree-ai', // The AI button
                     popover: {
-                        popoverClass: 'driver-theme-sanfoor has-mascot',
                         title: '🤖 المرشد الذكي',
-                        description: 'في أي وقت تشعر فيه بالحيرة، اضغط هنا! يمكنني بناء جدولك القادم أوتوماتيكياً واختيار المواد الأفضل لرفع معدلك، أو الإجابة عن أي استفسار أكاديمي يخطر ببالك.',
+                        description: '<div style="display:flex; gap:15px; align-items:center;"><img src="/images/ai_robot.png" style="width:64px; height:64px; border-radius:16px; object-fit:cover; background:white; box-shadow:0 8px 16px rgba(14,165,233,0.15); border:1px solid #e2e8f0; margin-top:5px; flex-shrink:0;"/><div style="line-height: 1.6;">عندما تفتح نافذة التخطيط، اضغط هنا لدعوة الذكاء الاصطناعي لبناء جدولك القادم أوتوماتيكياً أو للإجابة عن استفساراتك.</div></div>',
                         side: 'left',
                         align: 'start'
                     },
