@@ -389,6 +389,20 @@ export default function Tree({
         if (typeof window !== 'undefined' && localStorage.getItem('sanfoor_tour') === 'tree_pending') {
             startTreeTour();
         }
+        
+        const handleTourUpdate = (e) => {
+            if (e.detail?.sidebar !== undefined) {
+                // Only open sidebar automatically on mobile/tablet (lg:hidden breakpoint is 1024px)
+                if (window.innerWidth <= 1024) {
+                    setIsSidebarOpen(e.detail.sidebar);
+                }
+            }
+            if (e.detail?.tab !== undefined) {
+                setActiveTab(e.detail.tab);
+            }
+        };
+        window.addEventListener('tour-update', handleTourUpdate);
+        return () => window.removeEventListener('tour-update', handleTourUpdate);
     }, []);
 
     useEffect(() => {

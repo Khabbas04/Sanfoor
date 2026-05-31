@@ -38,12 +38,14 @@ const injectTourStyles = () => {
         .driver-popover-title {
             font-size: 1.25rem !important;
             font-weight: 800 !important;
+            font-family: 'Cairo', sans-serif !important;
             color: #0f172a !important;
             margin-bottom: 8px !important;
         }
         .driver-popover-description {
             font-size: 0.9rem !important;
             font-weight: 600 !important;
+            font-family: 'Cairo', sans-serif !important;
             color: #475569 !important;
             line-height: 1.6 !important;
         }
@@ -204,6 +206,9 @@ export const startTreeTour = () => {
                         description: 'مرحباً بك في شجرتك! يمكنك التحرك بحرية عبر السحب، والتكبير والتصغير. المواد باللون الأخضر هي ما أنجزته، وباللون الأزرق هي ما يمكنك تسجيله الآن.',
                         side: 'left',
                         align: 'center'
+                    },
+                    onHighlightStarted: () => {
+                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: false } }));
                     }
                 },
                 {
@@ -213,6 +218,9 @@ export const startTreeTour = () => {
                         description: 'في حال احتجت لتذكر دلالات الألوان في الشجرة، اضغط هنا لفتح الدليل التفصيلي في أي وقت.',
                         side: 'top',
                         align: 'start'
+                    },
+                    onHighlightStarted: () => {
+                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: false } }));
                     }
                 },
                 {
@@ -222,6 +230,9 @@ export const startTreeTour = () => {
                         description: 'من هذا التبويب، يمكنك فتح سلة التسجيل وتجربة إضافة مواد لمعرفة مجموع الساعات وتأثيرها على عبئك الدراسي.',
                         side: 'right',
                         align: 'start'
+                    },
+                    onHighlightStarted: () => {
+                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: true, tab: 'simulator' } }));
                     }
                 },
                 {
@@ -231,6 +242,9 @@ export const startTreeTour = () => {
                         description: 'هل ترغب بالتخطيط لعدة فصول للأمام؟ استخدم تبويب الفصول لتوزيع موادك المتبقية حتى التخرج بكل سهولة.',
                         side: 'right',
                         align: 'start'
+                    },
+                    onHighlightStarted: () => {
+                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: true, tab: 'semesters' } }));
                     }
                 },
                 {
@@ -240,6 +254,9 @@ export const startTreeTour = () => {
                         description: 'عندما تفتح نافذة التخطيط، اضغط هنا لدعوة الذكاء الاصطناعي لبناء جدولك القادم أوتوماتيكياً أو للإجابة عن استفساراتك.',
                         side: 'left',
                         align: 'start'
+                    },
+                    onHighlightStarted: () => {
+                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: true, tab: 'simulator' } }));
                     }
                 }
             ]
