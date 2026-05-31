@@ -9,17 +9,35 @@ const injectTourStyles = () => {
     const style = document.createElement('style');
     style.id = 'sanfoor-tour-styles';
     style.innerHTML = `
+        @keyframes tourBloop {
+            0% { opacity: 0; transform: translateY(15px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
         .driver-popover {
             border-radius: 1.5rem !important;
-            padding: 20px !important;
-            font-family: 'Geist', 'Tajawal', sans-serif !important;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            padding: 24px !important;
+            font-family: 'Cairo', sans-serif !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(14, 165, 233, 0.15) !important;
             border: 1px solid rgba(226, 232, 240, 1) !important;
             background: linear-gradient(to bottom, #ffffff, #f8fafc) !important;
+            animation: tourBloop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @media (max-width: 640px) {
+            .driver-popover {
+                max-width: 90vw !important;
+                padding: 18px !important;
+                border-radius: 1.25rem !important;
+            }
+            .driver-popover-title {
+                font-size: 1.1rem !important;
+            }
+            .driver-popover-description {
+                font-size: 0.85rem !important;
+            }
         }
         .driver-popover-title {
             font-size: 1.25rem !important;
-            font-weight: 900 !important;
+            font-weight: 800 !important;
             color: #0f172a !important;
             margin-bottom: 8px !important;
         }
@@ -35,7 +53,8 @@ const injectTourStyles = () => {
         .driver-popover-next-btn, .driver-popover-prev-btn {
             border-radius: 0.75rem !important;
             padding: 8px 16px !important;
-            font-weight: 800 !important;
+            font-weight: 700 !important;
+            font-family: 'Cairo', sans-serif !important;
             font-size: 0.85rem !important;
             text-shadow: none !important;
             border: none !important;
@@ -117,8 +136,8 @@ export const startWelcomeTour = () => {
                 {
                     element: '#tour-feature-1',
                     popover: {
-                        title: '🌳 الشجرة التفاعلية',
-                        description: 'خريطة مرئية كاملة لكل مواد تخصصك. المنجز بلون، والمتاح بلون، والمغلق بلون لتفهم خطتك بثانية واحدة!',
+                        title: '🌳 خطتك الدراسية بين يديك',
+                        description: 'تخلص من الجداول الورقية المعقدة! شجرتك التفاعلية توضح لك بنظرة واحدة المواد المنجزة، المتاحة للتسجيل، والمغلقة بألوان مريحة للعين لتفهم خطتك بثانية واحدة.',
                         side: 'top',
                         align: 'center'
                     }
@@ -126,8 +145,8 @@ export const startWelcomeTour = () => {
                 {
                     element: '#tour-feature-2',
                     popover: {
-                        title: '🛒 التسجيل التجريبي',
-                        description: 'ضيف المواد كأنك بتسجل تسجيل حقيقي! النظام رح يحسب العبء وينبهك لو في تعارض مع الخطة.',
+                        title: '🛒 جرب قبل أن تسجل',
+                        description: 'خاصية التسجيل التجريبي تتيح لك اختيار المواد وقياس العبء الدراسي مسبقاً. سنقوم بتنبيهك تلقائياً في حال وجود أي تعارض مع قوانين الخطة.',
                         side: 'top',
                         align: 'center'
                     }
@@ -135,8 +154,8 @@ export const startWelcomeTour = () => {
                 {
                     element: '#tour-feature-3',
                     popover: {
-                        title: '🤖 الذكاء الاصطناعي',
-                        description: 'مستشارك الأكاديمي الشخصي جاهز يقرأ خطتك ويقترحلك أفضل جدول لترفع معدلك!',
+                        title: '🤖 مرشدك الأكاديمي الذكي',
+                        description: 'لا داعي للحيرة في اختيار موادك! مساعد الذكاء الاصطناعي (AI Sanfoor) يقرأ خطتك ويقترح لك أفضل جدول لرفع معدلك التراكمي في ثوانٍ.',
                         side: 'top',
                         align: 'center'
                     }
@@ -144,8 +163,8 @@ export const startWelcomeTour = () => {
                 {
                     element: '#tour-cta-btn',
                     popover: {
-                        title: '🚀 افتح خطتي',
-                        description: 'اضغط هنا أو على إنهاء لتنتقل مباشرة وتجرب الشجرة بنفسك!',
+                        title: '🚀 انطلق الآن',
+                        description: 'الخطوة الأولى تبدأ من هنا! اضغط لفتح خطتك الدراسية واستكشاف هذه الميزات بنفسك فوراً.',
                         side: 'top',
                         align: 'center'
                     }
@@ -181,8 +200,8 @@ export const startTreeTour = () => {
                 {
                     element: '.react-flow', // The main tree canvas
                     popover: {
-                        title: '🌳 شجرتك الأكاديمية',
-                        description: 'هنا تعرض جميع موادك. يمكنك سحب الشاشة للتحرك، والتكبير والتصغير. الأخضر مواد أنهيتها، الأزرق متاح لك الآن!',
+                        title: '🌳 مساحتك الأكاديمية',
+                        description: 'مرحباً بك في شجرتك! يمكنك التحرك بحرية عبر السحب، والتكبير والتصغير. المواد باللون الأخضر هي ما أنجزته، وباللون الأزرق هي ما يمكنك تسجيله الآن.',
                         side: 'left',
                         align: 'center'
                     }
@@ -190,8 +209,8 @@ export const startTreeTour = () => {
                 {
                     element: '#tour-tree-legend', // The legend button
                     popover: {
-                        title: '🎨 دليل الألوان',
-                        description: 'إذا نسيت معنى أي لون في الشجرة، اضغط هنا لترى دليل الألوان التفصيلي.',
+                        title: '🎨 ماذا تعني هذه الألوان؟',
+                        description: 'في حال احتجت لتذكر دلالات الألوان في الشجرة، اضغط هنا لفتح الدليل التفصيلي في أي وقت.',
                         side: 'top',
                         align: 'start'
                     }
@@ -199,8 +218,8 @@ export const startTreeTour = () => {
                 {
                     element: '#tour-tree-cart', // The cart toggle button or sidebar
                     popover: {
-                        title: '🛒 التسجيل التجريبي',
-                        description: 'من هنا يمكنك فتح سلة التسجيل وتجربة إضافة مواد لمعرفة عبئك الدراسي.',
+                        title: '🛒 مسودة التسجيل (التجريبي)',
+                        description: 'من هذا التبويب، يمكنك فتح سلة التسجيل وتجربة إضافة مواد لمعرفة مجموع الساعات وتأثيرها على عبئك الدراسي.',
                         side: 'right',
                         align: 'start'
                     }
@@ -208,8 +227,8 @@ export const startTreeTour = () => {
                 {
                     element: '#tour-tree-plan', // The study plan toggle button
                     popover: {
-                        title: '📅 الخطة الشجرية',
-                        description: 'يمكنك أيضاً بناء خطة تخرج كاملة لعدة فصول من هنا وتوزيع المواد عليها.',
+                        title: '📅 التخطيط المستقبلي',
+                        description: 'هل ترغب بالتخطيط لعدة فصول للأمام؟ استخدم تبويب الفصول لتوزيع موادك المتبقية حتى التخرج بكل سهولة.',
                         side: 'right',
                         align: 'start'
                     }
@@ -218,7 +237,7 @@ export const startTreeTour = () => {
                     element: '#tour-tree-ai', // The AI button
                     popover: {
                         title: '🤖 المرشد الذكي',
-                        description: 'اضغط هنا لفتح إعدادات المرشد الذكي واجعله يبني لك الخطة أو يرد على أي استفسار أكاديمي لديك فوراً!',
+                        description: 'عندما تفتح نافذة التخطيط، اضغط هنا لدعوة الذكاء الاصطناعي لبناء جدولك القادم أوتوماتيكياً أو للإجابة عن استفساراتك.',
                         side: 'left',
                         align: 'start'
                     }
