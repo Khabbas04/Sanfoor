@@ -3255,8 +3255,8 @@ export default function Tree({
 
                     {getStatus(selectedCourse) === 'available' && (
                         <>
-                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                            <button id="tour-add-cart-btn" onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
+                            <button id="tour-pass-btn" onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                         </>
                     )}
                     {getStatus(selectedCourse) === 'cart' && (
