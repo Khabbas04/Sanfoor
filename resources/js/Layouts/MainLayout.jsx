@@ -452,11 +452,19 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             {!safeUser.id && <Link onClick={() => setMobileOpen(false)} href={safeRoute('login')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-center hover:scale-[1.02] transition-transform">{t.login}</Link>}
                         </div>
 
-                        {safeUser.id && (
-                            <div className="p-4 border-t border-slate-100 dark:border-white/5">
-                                <Link href={safeRoute('logout')} method="post" as="button" className="w-full py-3.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-sm transition-colors hover:bg-rose-100 dark:hover:bg-rose-500/20">👋 {t.logout}</Link>
+                        <div className="p-4 border-t border-slate-100 dark:border-white/5 flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => { toggleLang(); }} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-colors ${isDark ? 'bg-white/5 text-blue-400 hover:bg-white/10' : 'bg-slate-50 text-blue-600 hover:bg-slate-100'}`}>
+                                    🌍 {lang === 'ar' ? 'English' : 'العربية'}
+                                </button>
+                                <button onClick={() => { toggleTheme(); }} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-colors ${isDark ? 'bg-white/5 text-yellow-400 hover:bg-white/10' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+                                    {isDark ? '☀️ Light' : '🌙 Dark'}
+                                </button>
                             </div>
-                        )}
+                            {safeUser.id && (
+                                <Link href={safeRoute('logout')} method="post" as="button" className="w-full py-3.5 rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 font-bold text-sm transition-colors hover:bg-rose-100 dark:hover:bg-rose-500/20">👋 {t.logout}</Link>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
