@@ -2,6 +2,7 @@ import { Link, Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/Contexts/LanguageContext';
+import TourManager, { startWelcomeTour } from '@/Components/TourManager';
 
 // Resolve the public site URL for canonical and social metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -65,8 +66,16 @@ export default function Welcome({ auth }) {
     const [howRef, howIn] = useInView();
     const [ctaRef, ctaIn] = useInView();
 
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tour') === 'start') {
+            startWelcomeTour();
+        }
+    }, []);
+
     return (
         <MainLayout>
+            <TourManager />
             <Head>
                 <title>سنفور | Sanfoor - المرشد الأكاديمي لطلاب جامعة الزرقاء</title>
                 <meta name="description" content="منصة سنفور الأولى لطلاب جامعة الزرقاء (ZU). تساعدك على تخطيط المسار الأكاديمي، إدارة الخطة الدراسية، وحساب المعدل بذكاء مدعوم بالذكاء الاصطناعي." />
@@ -345,7 +354,7 @@ export default function Welcome({ auth }) {
                         <div className="h-rise-slow flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-5" style={{ animationDelay: '1.35s' }}>
                             {auth.user ? (
                                 <MagneticButton>
-                                    <Link href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white text-base sm:text-lg font-extrabold rounded-2xl transition-all shadow-xl shadow-blue-500/30 active:scale-[0.96] w-full sm:w-auto">
+                                    <Link id="tour-cta-btn" href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white text-base sm:text-lg font-extrabold rounded-2xl transition-all shadow-xl shadow-blue-500/30 active:scale-[0.96] w-full sm:w-auto">
                                         <span>افتح خطتي الدراسية</span>
                                         <span className="text-xl group-hover:-translate-x-1.5 transition-transform duration-300">←</span>
                                     </Link>
@@ -438,6 +447,7 @@ export default function Welcome({ auth }) {
                             ].map((f, i) => (
                                 <div
                                     key={i}
+                                    id={i === 0 ? 'tour-feature-1' : i === 1 ? 'tour-feature-2' : i === 2 ? 'tour-feature-3' : undefined}
                                     className={`card-lift group p-8 sm:p-10 rounded-[2.5rem] bg-white border border-slate-100 relative overflow-hidden cursor-default transition-all duration-[0.9s] ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-xl ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}
                                     style={{ transitionDelay: `${f.delay + 100}ms` }}
                                 >

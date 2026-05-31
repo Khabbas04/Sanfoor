@@ -11,6 +11,7 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
+import TourManager, { startTreeTour } from '@/Components/TourManager';
 
 // Resolve the deployment URL once for canonical metadata on the tree page.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -384,6 +385,11 @@ export default function Tree({
         return { semesters, notes: payload.notes || '' };
     }, [courseById]);
 
+    useEffect(() => {
+        if (typeof window !== 'undefined' && localStorage.getItem('sanfoor_tour') === 'tree_pending') {
+            startTreeTour();
+        }
+    }, []);
 
     useEffect(() => {
         setApprovedPlan(approved_plan || null);
@@ -3370,6 +3376,7 @@ export default function Tree({
 
     return (
         <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: '100dvh' }}>
+            <TourManager />
             <Head><title>{lang === 'ar' ? 'الخطة الشجرية الذكية | سنفور' : 'Smart Course Tree | Sanfoor'}</title><meta name="description" content={lang === 'ar' ? 'استعرض خطتك الشجرية، تتبع المتطلبات السابقة، وخطط تسجيل المواد بشكل ذكي داخل حسابك.' : 'Visualize your study tree, track prerequisites, and plan your courses smartly inside your account.'} /><meta name="robots" content="noindex,nofollow,noarchive" /><link rel="canonical" href={`${siteUrl}/tree`} /></Head>
 
             <style dangerouslySetInnerHTML={{
@@ -3551,7 +3558,7 @@ export default function Tree({
 
                     {/* Legend Button & Reset Button */}
                     <div className="shrink-0 flex gap-2 w-full md:w-auto md:mr-3" dir="rtl">
-                        <button onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
+                        <button id="tour-tree-legend" onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
                             🌳 دليل الشجرة
                         </button>
                         <button onClick={handleResetPlan} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/70`}>
@@ -3591,11 +3598,11 @@ export default function Tree({
                                 </button>
                             )}
                             <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
-                            <button onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
+                            <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
                                 🪄 التخطيط
                                 {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
                             </button>
-                            <button onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
+                            <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
                             <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
                         </div>
 
@@ -3608,7 +3615,7 @@ export default function Tree({
                             {activeTab === 'simulator' && (
                                 <div className="space-y-5 sn-card-enter">
                                     {!showAiSettings ? (
-                                        <button onClick={() => setShowAiSettings(true)} className="w-full bg-gradient-to-l from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl shadow-indigo-200/30 flex items-center justify-center gap-3 active:scale-[0.97] transition-all relative overflow-hidden group">
+                                        <button id="tour-tree-ai" onClick={() => setShowAiSettings(true)} className="w-full bg-gradient-to-l from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl shadow-indigo-200/30 flex items-center justify-center gap-3 active:scale-[0.97] transition-all relative overflow-hidden group">
                                             <div className="absolute inset-0 bg-gradient-to-l from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                             <span className="text-2xl relative z-10">🪄</span>
                                             <div className="text-right relative z-10"><p className="text-[13px]">توليد جدول ذكي</p><p className="text-[10px] text-indigo-200/60 font-bold">دع الخوارزمية تخطط فصلك القادم</p></div>
