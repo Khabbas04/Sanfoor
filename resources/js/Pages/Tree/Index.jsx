@@ -3260,9 +3260,12 @@ export default function Tree({
                         </>
                     )}
                     {getStatus(selectedCourse) === 'cart' && (
-                        <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                            ✖ إزالة من التسجيل التجريبي
-                        </button>
+                        <>
+                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                                ✖ إزالة من التسجيل التجريبي
+                            </button>
+                        </>
                     )}
 
                     {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
