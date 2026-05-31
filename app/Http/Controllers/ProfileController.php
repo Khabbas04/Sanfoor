@@ -77,6 +77,7 @@ class ProfileController extends Controller
         $isStudent = $role === 'student';
         $isLockedProfile = in_array($role, ['student', 'instructor'], true);
         $isAcademicLockedForStudent = $isStudent && filled($user->major_id);
+        $wasMajorEmpty = empty($user->major_id);
 
         $hasMajorColumn = Schema::hasColumn('users', 'major_id');
         $hasPlanColumn = Schema::hasColumn('users', 'study_plan_version');
@@ -157,6 +158,9 @@ class ProfileController extends Controller
             }
 
             return Redirect::route('profile.edit')->with('status', 'تعذر حفظ التعديلات حالياً. حاول مرة أخرى.');
+        }
+        if ($isStudent && $wasMajorEmpty && filled($updatePayload['major_id'] ?? null)) {
+            return Redirect::route('home', ['tour' => 'start']);
         }
 
         return Redirect::route('profile.edit')->with('status', 'تم حفظ التعديلات بنجاح.');
