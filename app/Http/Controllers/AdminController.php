@@ -63,9 +63,25 @@ class AdminController extends Controller
                           ->where('user_carts.academic_term', $currentPeriod->academic_term);
                 }
             }])
-            ->orderBy('cart_users_count', 'desc')
+            ->get()
+            ->groupBy(function($course) {
+                $name = mb_strtolower(trim($course->name));
+                $name = preg_replace('/\s+/u', '', $name);
+                $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
+                $name = str_replace('ة', 'ه', $name);
+                $name = str_replace('ى', 'ي', $name);
+                return $name;
+            })
+            ->map(function($group) {
+                $first = $group->first();
+                $first->cart_users_count = $group->sum('cart_users_count');
+                $bestNameCourse = $group->sortByDesc(fn($c) => strlen($c->name))->first();
+                $first->name = $bestNameCourse->name;
+                return $first;
+            })
+            ->sortByDesc('cart_users_count')
             ->take(10)
-            ->get();
+            ->values();
 
         $issueSummary = [
             'open' => IssueReport::where('status', 'open')->count(),
@@ -1559,9 +1575,26 @@ class AdminController extends Controller
                         ->where('user_carts.academic_term', $periodTerm);
                 }
             }])
-            ->orderBy('cart_users_count', 'desc')
+            ->get()
+            ->groupBy(function($course) {
+                $name = mb_strtolower(trim($course->name));
+                $name = preg_replace('/\s+/u', '', $name);
+                $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
+                $name = str_replace('ة', 'ه', $name);
+                $name = str_replace('ى', 'ي', $name);
+                return $name;
+            })
+            ->map(function($group) {
+                $first = $group->first();
+                $first->cart_users_count = $group->sum('cart_users_count');
+                // Optional: set a preferred name format (the one with spaces if exists)
+                $bestNameCourse = $group->sortByDesc(fn($c) => strlen($c->name))->first();
+                $first->name = $bestNameCourse->name;
+                return $first;
+            })
+            ->sortByDesc('cart_users_count')
             ->take(15) 
-            ->get();
+            ->values();
 
         $colleges = College::select('id', 'name')->get();
         $majors = Major::select('id', 'name', 'college_id')->get();
