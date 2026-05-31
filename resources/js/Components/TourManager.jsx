@@ -157,7 +157,7 @@ export const startWelcomeTour = () => {
                     element: '#tour-feature-3',
                     popover: {
                         title: '🤖 مرشدك الأكاديمي الذكي',
-                        description: 'لا داعي للحيرة في اختيار موادك! مساعد الذكاء الاصطناعي (AI Sanfoor) يقرأ خطتك ويقترح لك أفضل جدول لرفع معدلك التراكمي في ثوانٍ.',
+                        description: '<div style="display:flex; gap:15px; align-items:center;"><img src="/images/ai_robot.png" style="width:64px; height:64px; border-radius:16px; object-fit:cover; background:white; box-shadow:0 8px 16px rgba(14,165,233,0.15); border:1px solid #e2e8f0; margin-top:5px; flex-shrink:0;"/><div style="line-height: 1.6;">لا داعي للحيرة في اختيار موادك! مساعد الذكاء الاصطناعي (AI Sanfoor) يقرأ خطتك ويقترح لك أفضل جدول لرفع معدلك التراكمي في ثوانٍ.</div></div>',
                         side: 'top',
                         align: 'center'
                     }
@@ -227,12 +227,22 @@ export const startTreeTour = () => {
                     element: '#tour-tree-cart', // The cart toggle button or sidebar
                     popover: {
                         title: '🛒 مسودة التسجيل (التجريبي)',
-                        description: 'من هذا التبويب، يمكنك فتح سلة التسجيل وتجربة إضافة مواد لمعرفة مجموع الساعات وتأثيرها على عبئك الدراسي.',
+                        description: '<div style="margin-bottom:8px;">الآن دورك! لن نكمل الجولة حتى تجربها بنفسك 🤩</div><strong style="color:#0ea5e9;">اضغط على الزر المضيء نفسه 👆</strong> لفتح السلة وتجربة النظام عملياً.',
                         side: 'right',
-                        align: 'start'
+                        align: 'start',
+                        showButtons: ['close'] // Hide Next button to force interaction
                     },
-                    onHighlightStarted: () => {
-                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: true, tab: 'simulator' } }));
+                    onHighlightStarted: (el) => {
+                        window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: true } }));
+                        if (el && !el.dataset.tourListenerAttached) {
+                            el.dataset.tourListenerAttached = 'true';
+                            const handler = () => {
+                                setTimeout(() => driverObj.moveNext(), 300);
+                                el.removeEventListener('click', handler);
+                                delete el.dataset.tourListenerAttached;
+                            };
+                            el.addEventListener('click', handler);
+                        }
                     }
                 },
                 {
@@ -251,7 +261,7 @@ export const startTreeTour = () => {
                     element: '#tour-tree-ai', // The AI button
                     popover: {
                         title: '🤖 المرشد الذكي',
-                        description: 'عندما تفتح نافذة التخطيط، اضغط هنا لدعوة الذكاء الاصطناعي لبناء جدولك القادم أوتوماتيكياً أو للإجابة عن استفساراتك.',
+                        description: '<div style="display:flex; gap:15px; align-items:center;"><img src="/images/ai_robot.png" style="width:64px; height:64px; border-radius:16px; object-fit:cover; background:white; box-shadow:0 8px 16px rgba(14,165,233,0.15); border:1px solid #e2e8f0; margin-top:5px; flex-shrink:0;"/><div style="line-height: 1.6;">عندما تفتح نافذة التخطيط، اضغط هنا لدعوة الذكاء الاصطناعي لبناء جدولك القادم أوتوماتيكياً أو للإجابة عن استفساراتك.</div></div>',
                         side: 'left',
                         align: 'start'
                     },
