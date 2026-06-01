@@ -97,7 +97,24 @@ class CartController extends Controller
             $syncPayload[$courseId] = $payload;
         }
 
-        $user->cartCourses()->sync($syncPayload);
+        $changes = $user->cartCourses()->sync($syncPayload);
+
+        if (class_exists(\App\Models\StudentActivityLog::class)) {
+            foreach ($changes['attached'] as $attachedCourseId) {
+                \App\Models\StudentActivityLog::create([
+                    'user_id' => $user->id,
+                    'course_id' => $attachedCourseId,
+                    'action' => 'course_cart_added',
+                ]);
+            }
+            foreach ($changes['detached'] as $detachedCourseId) {
+                \App\Models\StudentActivityLog::create([
+                    'user_id' => $user->id,
+                    'course_id' => $detachedCourseId,
+                    'action' => 'course_cart_removed',
+                ]);
+            }
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
