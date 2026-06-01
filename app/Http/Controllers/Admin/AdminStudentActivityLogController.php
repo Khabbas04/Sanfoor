@@ -14,13 +14,13 @@ class AdminStudentActivityLogController extends Controller
      */
     public function index(Request $request)
     {
-        $query = StudentActivityLog::with(['user:id,name,university_id,avatar', 'course:id,name,code,credit_hours']);
+        $query = StudentActivityLog::with(['user:id,name,portal_student_id,avatar', 'course:id,name,code,credit_hours']);
 
         if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('university_id', 'like', "%{$search}%");
+                  ->orWhere('portal_student_id', 'like', "%{$search}%");
             });
         }
 

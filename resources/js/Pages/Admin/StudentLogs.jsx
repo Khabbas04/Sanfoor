@@ -139,7 +139,7 @@ export default function StudentLogs({ auth, logs, filters }) {
                                                 )}
                                                 <div>
                                                     <div className="font-semibold text-slate-800 text-sm truncate w-40">{log.user.name}</div>
-                                                    <div className="text-xs text-slate-500">{log.user.university_id || 'بدون رقم'}</div>
+                                                    <div className="text-xs text-slate-500">{log.user.portal_student_id || 'بدون رقم'}</div>
                                                 </div>
                                             </div>
 
