@@ -11,12 +11,26 @@ import {
     AlertTriangle,
     User
 } from 'lucide-react';
-import dayjs from 'dayjs';
-import 'dayjs/locale/ar';
-import relativeTime from 'dayjs/plugin/relativeTime';
 
-dayjs.extend(relativeTime);
-dayjs.locale('ar');
+const getRelativeTime = (dateString) => {
+    const rtf = new Intl.RelativeTimeFormat('ar', { numeric: 'auto' });
+    const date = new Date(dateString);
+    const diffInSeconds = (date.getTime() - Date.now()) / 1000;
+
+    const absDiff = Math.abs(diffInSeconds);
+    if (absDiff < 60) return 'منذ لحظات';
+    if (absDiff < 3600) return rtf.format(Math.round(diffInSeconds / 60), 'minute');
+    if (absDiff < 86400) return rtf.format(Math.round(diffInSeconds / 3600), 'hour');
+    if (absDiff < 2592000) return rtf.format(Math.round(diffInSeconds / 86400), 'day');
+    if (absDiff < 31536000) return rtf.format(Math.round(diffInSeconds / 2592000), 'month');
+    return rtf.format(Math.round(diffInSeconds / 31536000), 'year');
+};
+
+const formatDate = (dateString) => {
+    const d = new Date(dateString);
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 export default function StudentLogs({ auth, logs, filters }) {
     const [search, setSearch] = useState(filters.search || '');
@@ -160,8 +174,8 @@ export default function StudentLogs({ auth, logs, filters }) {
 
                                             {/* Timestamp */}
                                             <div className="text-xs text-slate-400 sm:text-left flex-shrink-0 min-w-[100px]">
-                                                {dayjs(log.created_at).fromNow()}
-                                                <div className="text-[10px] text-slate-300 mt-0.5">{dayjs(log.created_at).format('YYYY-MM-DD HH:mm')}</div>
+                                                {getRelativeTime(log.created_at)}
+                                                <div className="text-[10px] text-slate-300 mt-0.5">{formatDate(log.created_at)}</div>
                                             </div>
                                         </div>
                                     );
