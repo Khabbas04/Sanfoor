@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, router } from '@inertiajs/react';
 import { 
-    CheckCircleIcon, 
-    XCircleIcon, 
-    ShoppingCartIcon, 
-    TrashIcon, 
-    PencilSquareIcon, 
-    ArrowPathIcon,
-    ExclamationTriangleIcon,
-    UserIcon
-} from '@heroicons/react/24/outline';
+    CheckCircle, 
+    XCircle, 
+    ShoppingCart, 
+    Trash, 
+    Pencil, 
+    RefreshCw,
+    AlertTriangle,
+    User
+} from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -36,21 +36,21 @@ export default function StudentLogs({ auth, logs, filters }) {
     const getActionDetails = (action) => {
         switch (action) {
             case 'course_passed':
-                return { label: 'إنجاز مادة', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-200', icon: CheckCircleIcon };
+                return { label: 'إنجاز مادة', color: 'bg-emerald-500/10 text-emerald-600 border-emerald-200', icon: CheckCircle };
             case 'course_unpassed':
-                return { label: 'إلغاء إنجاز', color: 'bg-red-500/10 text-red-600 border-red-200', icon: XCircleIcon };
+                return { label: 'إلغاء إنجاز', color: 'bg-red-500/10 text-red-600 border-red-200', icon: XCircle };
             case 'course_cart_added':
-                return { label: 'إضافة للتجريبي', color: 'bg-blue-500/10 text-blue-600 border-blue-200', icon: ShoppingCartIcon };
+                return { label: 'إضافة للتجريبي', color: 'bg-blue-500/10 text-blue-600 border-blue-200', icon: ShoppingCart };
             case 'course_cart_removed':
-                return { label: 'إزالة من التجريبي', color: 'bg-gray-500/10 text-gray-600 border-gray-200', icon: TrashIcon };
+                return { label: 'إزالة من التجريبي', color: 'bg-gray-500/10 text-gray-600 border-gray-200', icon: Trash };
             case 'grade_updated':
-                return { label: 'تعديل علامة', color: 'bg-amber-500/10 text-amber-600 border-amber-200', icon: PencilSquareIcon };
+                return { label: 'تعديل علامة', color: 'bg-amber-500/10 text-amber-600 border-amber-200', icon: Pencil };
             case 'course_retake_added':
-                return { label: 'إعادة مادة', color: 'bg-purple-500/10 text-purple-600 border-purple-200', icon: ArrowPathIcon };
+                return { label: 'إعادة مادة', color: 'bg-purple-500/10 text-purple-600 border-purple-200', icon: RefreshCw };
             case 'plan_reset':
-                return { label: 'إعادة تعيين الخطة', color: 'bg-slate-800 text-white border-slate-700', icon: ExclamationTriangleIcon };
+                return { label: 'إعادة تعيين الخطة', color: 'bg-slate-800 text-white border-slate-700', icon: AlertTriangle };
             default:
-                return { label: action, color: 'bg-gray-100 text-gray-600 border-gray-200', icon: CheckCircleIcon };
+                return { label: action, color: 'bg-gray-100 text-gray-600 border-gray-200', icon: CheckCircle };
         }
     };
 
@@ -103,7 +103,7 @@ export default function StudentLogs({ auth, logs, filters }) {
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                         {logs.data.length === 0 ? (
                             <div className="p-12 text-center text-slate-500">
-                                <UserIcon className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+                                <User className="w-12 h-12 mx-auto text-slate-300 mb-4" />
                                 لا توجد سجلات مطابقة للبحث.
                             </div>
                         ) : (
