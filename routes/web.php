@@ -398,6 +398,7 @@ Route::middleware('auth')->group(function () {
             ->name('students.cart.remove');
 
         // Course CRUD and import/export workflows.
+        Route::get('/student-logs', [\App\Http\Controllers\Admin\AdminStudentActivityLogController::class, 'index'])->name('student-logs');
         Route::get('/courses', [AdminController::class, 'index'])->name('courses');
         Route::get('/structure', [AdminController::class, 'structure'])->name('structure');
         Route::get('/logs', [AdminController::class, 'logs'])->name('logs');

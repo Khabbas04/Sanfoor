@@ -7,6 +7,7 @@ use App\Http\Resources\PassedCourseResource;
 use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Models\GraduationPlan;
+use App\Models\StudentActivityLog;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -276,6 +277,12 @@ class TreeController extends Controller
                     ->where('course_id', $courseId)
                     ->delete();
 
+                StudentActivityLog::create([
+                    'user_id' => $userId,
+                    'course_id' => $courseId,
+                    'action' => 'course_unpassed',
+                ]);
+
                 self::flushCourseTreeCache();
 
                 return response()->json(['status' => 'removed']);
@@ -374,6 +381,13 @@ class TreeController extends Controller
                 ]
             );
 
+            StudentActivityLog::create([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'action' => 'course_passed',
+                'details' => ['grade' => $cleanGrade],
+            ]);
+
             self::flushCourseTreeCache();
 
             return response()->json(['status' => 'added']);
@@ -428,6 +442,13 @@ class TreeController extends Controller
                     'grade' => $cleanGrade,
                     'updated_at' => now(),
                 ]);
+
+            StudentActivityLog::create([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'action' => 'grade_updated',
+                'details' => ['grade' => $cleanGrade],
+            ]);
 
             self::flushCourseTreeCache();
 
@@ -499,6 +520,12 @@ class TreeController extends Controller
             if ($user->cartCourses()->where('course_id', $courseId)->exists()) {
                 $user->cartCourses()->detach($courseId);
 
+                StudentActivityLog::create([
+                    'user_id' => $user->id,
+                    'course_id' => $courseId,
+                    'action' => 'course_cart_removed',
+                ]);
+
                 return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
             }
 
@@ -549,6 +576,12 @@ class TreeController extends Controller
             }
 
             DB::table('user_carts')->insertOrIgnore([$insert]);
+
+            StudentActivityLog::create([
+                'user_id' => $user->id,
+                'course_id' => $courseId,
+                'action' => 'course_cart_added',
+            ]);
 
             return response()->json(['status' => 'added', 'message' => 'تمت إضافة المادة إلى التسجيل التجريبي بنجاح.']);
         } catch (\Throwable $e) {
@@ -628,6 +661,13 @@ class TreeController extends Controller
                 'updated_at' => now(),
             ]);
 
+            StudentActivityLog::create([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'action' => 'course_retake_added',
+                'details' => ['attempt_number' => $newAttemptNumber],
+            ]);
+
             self::flushCourseTreeCache();
 
             return response()->json([
@@ -665,6 +705,11 @@ class TreeController extends Controller
 
             // مسح خطة التخرج المعتمدة إن وجدت
             DB::table('graduation_plans')->where('user_id', $userId)->delete();
+
+            StudentActivityLog::create([
+                'user_id' => $userId,
+                'action' => 'plan_reset',
+            ]);
 
             self::flushCourseTreeCache();
 
