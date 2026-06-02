@@ -1,14 +1,11 @@
 /**
- * Read the CSRF token from the page meta tag or Laravel's XSRF-TOKEN cookie.
+ * Read the CSRF token from Laravel's XSRF-TOKEN cookie.
+ * This ensures the token is always up-to-date even after Inertia navigations
+ * where the session is regenerated (e.g., login/register).
  */
 export function getCsrfToken() {
     if (typeof document === 'undefined') {
         return null;
-    }
-
-    const meta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (meta) {
-        return meta;
     }
 
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
@@ -19,7 +16,9 @@ export function csrfHeaders(extra = {}) {
     const token = getCsrfToken();
     return {
         'X-Requested-With': 'XMLHttpRequest',
-        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+        // We use X-XSRF-TOKEN because the token from the cookie is encrypted.
+        // Laravel expects the encrypted token in this header.
+        ...(token ? { 'X-XSRF-TOKEN': token } : {}),
         ...extra,
     };
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { csrfHeaders, getCsrfToken } from '@/utils/csrf';
+import { csrfHeaders } from '@/utils/csrf';
 
 /**
  * 🔥 useOnlinePolling Hook
@@ -88,11 +88,14 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
     useEffect(() => {
         const handleBeforeUnload = () => {
             const routePath = route('admin.api.browser_close');
-            const token = getCsrfToken();
-            if (navigator.sendBeacon && token) {
-                const payload = new FormData();
-                payload.append('_token', token);
-                navigator.sendBeacon(routePath, payload);
+            try {
+                fetch(routePath, {
+                    method: 'POST',
+                    headers: csrfHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+                    keepalive: true,
+                });
+            } catch (e) {
+                // ignore
             }
         };
 
