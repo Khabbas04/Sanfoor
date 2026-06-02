@@ -559,7 +559,7 @@ class AiAdvisorController extends Controller
     {
         $cacheKey = "student_academic_data_{$user->id}";
         return Cache::remember($cacheKey, 600, function() use ($user) {
-            $user->loadMissing(['major', 'passedCourses', 'inProgressCourses', 'cartCourses']);
+            $user->loadMissing(['major', 'passedCourses', 'cartCourses']);
             $gpaData = $user->calculateGPA();
             $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
             $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
@@ -572,8 +572,6 @@ class AiAdvisorController extends Controller
                 'passed_course_ids' => $user->passedCourses->pluck('id')->toArray(),
                 'passed_courses_names' => $user->passedCourses->pluck('name')->implode('، '),
                 'total_passed_hours' => $user->passedCourses->sum('credit_hours'),
-                'in_progress_courses_names' => $user->inProgressCourses->pluck('name')->implode('، '),
-                'total_in_progress_hours' => $user->inProgressCourses->sum('credit_hours'),
                 'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : 132,
                 'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
                 'passed_university_req' => $user->passedCourses->where('type', 'university_req')->sum('credit_hours'),
@@ -780,23 +778,15 @@ class AiAdvisorController extends Controller
         $studentYearLabels = [1 => 'أولى', 2 => 'ثانية', 3 => 'ثالثة', 4 => 'رابعة', 5 => 'خامسة'];
 
         $gpa = $academicData['gpa_data']['percentage'] ?? 0;
+        $gpa4 = $academicData['gpa_data']['gpa4'] ?? 0;
         $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي غير محدد');
         $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
         $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
         $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
         $isSummer = !empty($academicData['current_period_is_summer']);
-
-        $base = [
-            "مجموع الساعات المنجزة رسمياً: {$totalPassedHours} ساعة."
-        ];
-
-        if (!empty($academicData['in_progress_courses_names'])) {
-            $base[] = "المواد قيد الدراسة حالياً (الفصل الحالي، {$academicData['total_in_progress_hours']} ساعة): {$academicData['in_progress_courses_names']}.";
-        }
-
-        if (!empty($academicData['passed_courses_names'])) {
-            $base[] = "المواد المنجزة بنجاح: {$academicData['passed_courses_names']}.";
-        }
+        $probationStatus = $academicData['is_probation']
+            ? "🚨 نعم — إنذار أكاديمي! (الحد الأقصى {$academicData['max_allowed_hours']} ساعة فقط)"
+            : "لا (الحد الأقصى {$academicData['max_allowed_hours']} ساعة)";
 
         $progressText = '';
         if (!empty($academicData['total_plan_hours'])) {
@@ -823,8 +813,6 @@ class AiAdvisorController extends Controller
             "- حد التسجيل لهذا الفصل: {$currentTermLimit} ساعة. الحد الأكاديمي الشخصي: {$academicLimit} ساعة. الحد الفعلي المطبق: {$effectiveLimit} ساعة.\n" .
             ($isSummer ? "- هذا فصل صيفي، لذلك لا تتجاوز 9 ساعات إلا إذا كان هناك استثناء إداري صريح.\n" : "- هذا ليس فصلًا صيفيًا.\n") .
             "- لا تخمّن الساعات، ولا تجب من الذاكرة العامة إذا كان السياق يحتوي قيمة أحدث.\n" .
-            "- لا تقترح أي مواد يدرسها الطالب حالياً (قيد الدراسة).\n" .
-            "- لا تقترح أي مواد منجزة سابقاً إلا إذا كان المعدل التراكمي منخفضاً (أقل من 60%) ويجب رفع المعدل بتكرار مواد منجزة بعلامات متدنية.\n" .
             "- ركز على توزيع الحمل الدراسي والتأكد من توافق الجدول مع التقسيمة الصحيحة لساعات الخطة.\n" .
             "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**) فقط إذا لم يطُل الرد.\n\n" .
             "هيكلة متطلبات الخطة الدراسية للتخرج (132 ساعة كحد أدنى):\n" .

@@ -168,7 +168,6 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
 export default function Tree({
     courses = [],
     passed_course_ids = [],
-    in_progress_course_ids = [],
     initial_cart_ids = [],
     student_name = 'طالب',
     major_name = '',
@@ -191,7 +190,6 @@ export default function Tree({
     const authUser = props?.auth?.user;
     const canEditTreePositions = Boolean(authUser?.is_admin_or_owner);
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
-    const [inProgressIds, setInProgressIds] = useState(in_progress_course_ids || []);
     const [cartIds, setCartIds] = useState(initial_cart_ids || []);
     const [localPassedCourses, setLocalPassedCourses] = useState(passed_courses || []);
     const [gradeInputs, setGradeInputs] = useState({});
@@ -1143,26 +1141,20 @@ export default function Tree({
         return calculated > 0 ? calculated : Number(total_passed_hours || 0);
     }, [courses, passedIds, total_passed_hours]);
 
-    const totalInProgressCredits = useMemo(() => {
-        return courses
-            .filter(c => inProgressIds.includes(c.id))
-            .reduce((acc, c) => acc + (c.credit_hours || 0), 0);
-    }, [courses, inProgressIds]);
-
     const isLockedByHours = useCallback((course) => {
         const required = Number(course?.minimum_passed_hours || 0);
-        // Include in-progress credits to allow planning for next semester
-        return required > 0 && (totalPassedCredits + totalInProgressCredits) < required;
-    }, [totalPassedCredits, totalInProgressCredits]);
+
+        return required > 0 && totalPassedCredits < required;
+    }, [totalPassedCredits]);
 
     const getHoursLockMessage = useCallback((course) => {
         const required = Number(course?.minimum_passed_hours || 0);
-        if (required <= 0 || (totalPassedCredits + totalInProgressCredits) >= required) {
+        if (required <= 0 || totalPassedCredits >= required) {
             return null;
         }
 
-        return `هذه المادة تتطلب إنهاء ${required} ساعة معتمدة. الساعات الحالية المنجزة وقيد الدراسة: ${totalPassedCredits + totalInProgressCredits}.`;
-    }, [totalPassedCredits, totalInProgressCredits]);
+        return `هذه المادة تتطلب إنهاء ${required} ساعة معتمدة. الساعات الحالية: ${totalPassedCredits}.`;
+    }, [totalPassedCredits]);
 
     const getStatus = useCallback((course) => {
         if (!course) return 'locked';
@@ -1185,12 +1177,11 @@ export default function Tree({
             }
             return 'passed';
         }
-        if (inProgressIds.includes(course.id)) return 'in_progress';
         if (cartIds.includes(course.id)) return 'cart';
         if (isLockedByHours(course)) return 'locked';
         if (!course.prerequisites || course.prerequisites.length === 0) return 'available';
-        return course.prerequisites.every(p => passedIds.includes(p.id) || inProgressIds.includes(p.id)) ? 'available' : 'locked';
-    }, [passedIds, inProgressIds, cartIds, isLockedByHours, localPassedCourses]);
+        return course.prerequisites.every(p => passedIds.includes(p.id)) ? 'available' : 'locked';
+    }, [passedIds, cartIds, isLockedByHours, localPassedCourses]);
 
     const getUnlocksDetailed = useCallback((courseId) => {
         return courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
@@ -1695,7 +1686,6 @@ export default function Tree({
             const themes = {
                 passed: { bg: 'background:linear-gradient(135deg,#059669,#10b981)', border: 'border:1.5px solid rgba(16,185,129,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'منجز', statusIcon: '✅' },
                 failed: { bg: 'background:linear-gradient(135deg,#dc2626,#ef4444)', border: 'border:1.5px solid rgba(239,68,68,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'راسب', statusIcon: '❌' },
-                in_progress: { bg: 'background:linear-gradient(135deg,#2563eb,#3b82f6)', border: 'border:1.5px solid rgba(59,130,246,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'قيد الدراسة', statusIcon: '🎓' },
                 cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'تجريبي', statusIcon: '🛒' },
                 available: { bg: 'background:linear-gradient(135deg,#4338ca,#6366f1)', border: 'border:1.5px solid rgba(99,102,241,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'متاح', statusIcon: '🔓' },
                 locked: { bg: 'background:#f8fafc', border: 'border:1.5px solid #cbd5e1', badgeBg: 'rgba(148,163,184,0.15)', textColor: '#64748b', statusLabel: 'مغلق', statusIcon: '🔒' },
@@ -2179,43 +2169,6 @@ export default function Tree({
                 icon: 'error',
                 title: 'خطأ!',
                 text: error.response?.data?.msg || error.response?.data?.message || 'حدث خطأ بالاتصال',
-                ...swalTheme
-            });
-        }
-    };
-
-    // 🎓 تحديد كقيد الدراسة
-    const toggleInProgress = async (courseId) => {
-        try {
-            const response = await axios.post(route('tree.toggle_in_progress'), {
-                course_id: courseId,
-            });
-
-            if (response.data.status === 'added') {
-                setInProgressIds(p => [...p, courseId]);
-                // Remove from cart if it was there
-                const updatedCart = cartIds.filter(id => id !== courseId);
-                if (updatedCart.length !== cartIds.length) {
-                    setCartIds(updatedCart);
-                    syncCartWithDB(updatedCart);
-                }
-            } else if (response.data.status === 'removed') {
-                setInProgressIds(p => p.filter(id => id !== courseId));
-            }
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'تم التحديث',
-                text: response.data.message || 'تم تحديث حالة المادة.',
-                timer: 1500,
-                showConfirmButton: false,
-                ...swalTheme
-            });
-        } catch (error) {
-            Swal.fire({
-                icon: 'error',
-                title: 'خطأ!',
-                text: error.response?.data?.message || error.response?.data?.msg || 'حدث خطأ بالاتصال',
                 ...swalTheme
             });
         }
@@ -3303,24 +3256,14 @@ export default function Tree({
                     {getStatus(selectedCourse) === 'available' && (
                         <>
                             <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
-                            <button onClick={() => toggleInProgress(selectedCourse.id)} className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-blue-500/30 active:scale-[0.97]">🎓 تعيين كمادة قيد الدراسة</button>
                             <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                         </>
                     )}
                     {getStatus(selectedCourse) === 'cart' && (
                         <>
-                            <button onClick={() => toggleInProgress(selectedCourse.id)} className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-blue-500/30 active:scale-[0.97]">🎓 تعيين كمادة قيد الدراسة</button>
                             <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                             <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
                                 ✖ إزالة من التسجيل التجريبي
-                            </button>
-                        </>
-                    )}
-                    {getStatus(selectedCourse) === 'in_progress' && (
-                        <>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
-                            <button onClick={() => toggleInProgress(selectedCourse.id)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                ✖ إزالة من قيد الدراسة
                             </button>
                         </>
                     )}
