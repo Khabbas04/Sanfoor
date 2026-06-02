@@ -33,7 +33,10 @@ class TreeController extends Controller
             'major.college:id,name',
             'passedCourses' => function ($query) {
                 $query->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours', 'courses.semester')
-                    ->withPivot('is_retake', 'attempt_number');
+                    ->withPivot('is_retake', 'attempt_number', 'enrollment_status');
+            },
+            'inProgressCourses' => function ($query) {
+                $query->select('courses.id');
             },
             'cartCourses' => function ($query) {
                 $query->select('courses.id');
@@ -54,6 +57,7 @@ class TreeController extends Controller
 
         $passedCourses = PassedCourseResource::collection($user->passedCourses)->resolve();
         $passed_course_ids = $user->passedCourses->pluck('id')->all();
+        $in_progress_course_ids = $user->inProgressCourses->pluck('id')->all();
         $totalPassedHours = (int) $user->passedCourses->sum('credit_hours');
         $cart_course_ids = $user->cartCourses->pluck('id')->all();
         $approvedPlan = GraduationPlan::query()
@@ -63,6 +67,7 @@ class TreeController extends Controller
         return Inertia::render('Tree/Index', [
             'courses' => $courses,
             'passed_course_ids' => $passed_course_ids,
+            'in_progress_course_ids' => $in_progress_course_ids,
             'initial_cart_ids' => $cart_course_ids,
             'passed_courses' => $passedCourses,
             'total_passed_hours' => $totalPassedHours,
@@ -393,6 +398,113 @@ class TreeController extends Controller
             return response()->json(['status' => 'added']);
         } catch (\Throwable $e) {
             Log::error('Tree toggle failed', [
+                'user_id' => Auth::id(),
+                'course_id' => $request->input('course_id'),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'تعذر تحديث حالة المادة الآن. حاول مرة أخرى.',
+            ], 500);
+        }
+    }
+
+    /**
+     * تحديد المادة كقيد الدراسة (في الفصل الحالي).
+     */
+    public function toggleInProgress(Request $request)
+    {
+        try {
+            $request->validate([
+                'course_id' => 'required|exists:courses,id',
+            ]);
+
+            $userId = Auth::id();
+            $courseId = $request->course_id;
+            $user = Auth::user();
+
+            $course = Course::query()
+                ->select(['id', 'credit_hours', 'major_id', 'study_plan_version'])
+                ->where('id', $courseId)
+                ->firstOrFail();
+
+            // هل المادة موجودة في course_user كقيد الدراسة؟
+            $exists = DB::table('course_user')
+                ->where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->where('enrollment_status', 'in_progress')
+                ->exists();
+
+            if ($exists) {
+                DB::table('course_user')
+                    ->where('user_id', $userId)
+                    ->where('course_id', $courseId)
+                    ->where('enrollment_status', 'in_progress')
+                    ->delete();
+
+                StudentActivityLog::create([
+                    'user_id' => $userId,
+                    'course_id' => $courseId,
+                    'action' => 'course_in_progress_removed',
+                ]);
+
+                self::flushCourseTreeCache();
+
+                return response()->json(['status' => 'removed', 'message' => 'تم إلغاء تحديد المادة كقيد الدراسة.']);
+            }
+
+            // إذا كانت موجودة كـ completed، لا يمكن تعيينها in_progress (يجب الإعادة أو شيء آخر)
+            $isCompleted = DB::table('course_user')
+                ->where('user_id', $userId)
+                ->where('course_id', $courseId)
+                ->where('enrollment_status', 'completed')
+                ->exists();
+
+            if ($isCompleted) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'هذه المادة مكتملة بالفعل.',
+                ], 422);
+            }
+
+            // إضافة كقيد الدراسة
+            $currentPeriod = AcademicPeriod::current();
+            $studiedYear = 1;
+            $studiedTerm = 1;
+
+            if ($currentPeriod) {
+                $studiedYear = (int) ceil(($currentPeriod->academic_term_absolute ?? 1) / 3);
+                $studiedTerm = $currentPeriod->academic_term;
+            }
+            $targetSemester = (($studiedYear - 1) * 3) + $studiedTerm;
+
+            DB::table('course_user')->updateOrInsert(
+                [
+                    'user_id' => $userId,
+                    'course_id' => $courseId,
+                ],
+                [
+                    'enrollment_status' => 'in_progress',
+                    'grade' => null,
+                    'studied_semester' => $targetSemester,
+                    'studied_year' => $studiedYear,
+                    'studied_term' => $studiedTerm,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
+            StudentActivityLog::create([
+                'user_id' => $userId,
+                'course_id' => $courseId,
+                'action' => 'course_in_progress_added',
+            ]);
+
+            self::flushCourseTreeCache();
+
+            return response()->json(['status' => 'added', 'message' => 'تم تحديد المادة كقيد الدراسة.']);
+        } catch (\Throwable $e) {
+            Log::error('Tree toggleInProgress failed', [
                 'user_id' => Auth::id(),
                 'course_id' => $request->input('course_id'),
                 'error' => $e->getMessage(),

@@ -100,7 +100,24 @@ class User extends Authenticatable implements MustVerifyEmail
             'course_user',
             'user_id',
             'course_id'
-        )->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term', 'is_retake', 'attempt_number')->withTimestamps();
+        )->wherePivot('enrollment_status', 'completed')
+         ->withPivot('enrollment_status', 'grade', 'studied_semester', 'studied_year', 'studied_term', 'is_retake', 'attempt_number')
+         ->withTimestamps();
+    }
+
+    /**
+     * Courses currently in progress by the student.
+     */
+    public function inProgressCourses(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Course::class,
+            'course_user',
+            'user_id',
+            'course_id'
+        )->wherePivot('enrollment_status', 'in_progress')
+         ->withPivot('enrollment_status', 'grade', 'studied_semester', 'studied_year', 'studied_term', 'is_retake', 'attempt_number')
+         ->withTimestamps();
     }
 
     /**
