@@ -341,7 +341,7 @@ export default function Calculator({ auth, initialCourses }) {
                             <span className="text-[12vw] font-black tracking-tighter whitespace-nowrap">SMART GPA</span>
                         </div>
                         <div className="relative z-10 space-y-3">
-                            <h1 className="text-4xl sm:text-5xl md:text-6xl font-[900] tracking-tight bg-gradient-to-l from-indigo-600 to-cyan-500 bg-clip-text text-transparent inline-block">
+                            <h1 className={`text-4xl sm:text-5xl md:text-6xl font-[900] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 الحاسبة الذكية
                             </h1>
                             <p className={`text-lg font-bold max-w-2xl mx-auto ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
