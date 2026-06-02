@@ -8,21 +8,21 @@ const channels = [
         title: 'البريد الإلكتروني',
         value: 'noreply@sanfoor.me',
         href: 'mailto:noreply@sanfoor.me',
-        note: 'للاستفسارات العامة، الشراكات، والمتابعة.',
+        note: 'لطلبات الانضمام للفريق، الاستفسارات العامة، والشراكات.',
         icon: '✉️',
     },
     {
-        title: 'دعم فني داخل المنصة',
-        value: 'صفحة الإبلاغ عن مشكلة',
+        title: 'فرص الانضمام',
+        value: 'التطوع والتدريب',
         href: null,
-        note: 'إذا كنت مستخدمًا مسجلًا، استخدم نموذج البلاغ لسرعة المعالجة.',
-        icon: '🛠️',
+        note: 'نحن نرحب دائماً بالطلاب الشغوفين للانضمام لفريق التطوير وإدارة المحتوى.',
+        icon: '🚀',
     },
     {
         title: 'ساعات الاستجابة',
         value: 'عادة خلال 24-48 ساعة',
         href: null,
-        note: 'قد تختلف المدة حسب ضغط الطلبات.',
+        note: 'نقوم بمراجعة جميع الطلبات والرسائل بدقة واهتمام.',
         icon: '⏱️',
     },
 ];
@@ -51,13 +51,13 @@ export default function Contact() {
     return (
         <MainLayout>
             <Head>
-                <title>تواصل معنا | سنفور</title>
-                <meta name="description" content="تواصل مع فريق سنفور للاستفسارات العامة، الدعم، أو الشراكات." />
+                <title>انضم إلينا | سنفور</title>
+                <meta name="description" content="تواصل مع فريق سنفور وكن جزءاً من مسيرتنا، سواء للانضمام للفريق، الشراكات، أو الاستفسارات العامة." />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/contact-us`} />
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="تواصل معنا | سنفور" />
-                <meta property="og:description" content="قنوات التواصل الرسمية مع فريق سنفور." />
+                <meta property="og:title" content="انضم إلينا | سنفور" />
+                <meta property="og:description" content="تواصل وانضم لفريق سنفور." />
                 <meta property="og:url" content={`${siteUrl}/contact-us`} />
                 <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>
@@ -70,11 +70,11 @@ export default function Contact() {
 
                         <div className="relative z-10">
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-black">
-                                📬 Contact
+                                🚀 Join Us
                             </span>
-                            <h1 className="mt-4 text-3xl sm:text-5xl font-black">تواصل معنا</h1>
+                            <h1 className="mt-4 text-3xl sm:text-5xl font-black">انضم إلينا وتواصل معنا</h1>
                             <p className="mt-3 text-indigo-100 font-bold text-sm sm:text-base max-w-3xl leading-relaxed">
-                                لأي استفسار عن سنفور أو طلب تعاون أو دعم عام، يمكنك التواصل عبر القنوات التالية.
+                                هل ترغب في الانضمام لفريق سنفور؟ أو لديك فكرة للتعاون والشراكة؟ نحن نبحث دائماً عن العقول المبدعة التي تسعى لتطوير تجربة الطالب الجامعي.
                             </p>
                         </div>
                     </section>
@@ -97,9 +97,9 @@ export default function Contact() {
                     </section>
 
                     <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-                        <h3 className="text-2xl font-black text-slate-900">أرسل رسالة مباشرة للفريق</h3>
+                        <h3 className="text-2xl font-black text-slate-900">نموذج الانضمام والتواصل</h3>
                         <p className="mt-2 text-slate-600 font-bold text-sm sm:text-base">
-                            املأ النموذج التالي وسيتم تسجيل رسالتك في النظام ومتابعتها من فريق سنفور.
+                            املأ النموذج التالي ببياناتك وسنقوم بالتواصل معك في أقرب فرصة.
                         </p>
 
                         {flash?.message && (
@@ -149,13 +149,13 @@ export default function Contact() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-black text-slate-700 mb-2">الموضوع</label>
+                                    <label className="block text-sm font-black text-slate-700 mb-2">موضوع الرسالة</label>
                                     <input
                                         type="text"
                                         value={data.subject}
                                         onChange={(e) => setData('subject', e.target.value)}
                                         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                                        placeholder="عنوان مختصر للطلب"
+                                        placeholder="طلب انضمام لفريق المطورين، اقتراح شراكة، ..."
                                     />
                                     {errors.subject && <p className="mt-1 text-xs font-bold text-rose-600">{errors.subject}</p>}
                                 </div>
@@ -168,7 +168,7 @@ export default function Contact() {
                                     value={data.message}
                                     onChange={(e) => setData('message', e.target.value)}
                                     className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-y"
-                                    placeholder="اكتب تفاصيل طلبك هنا..."
+                                    placeholder="اكتب تفاصيل طلبك أو خبراتك هنا إن كنت ترغب بالانضمام..."
                                 />
                                 {errors.message && <p className="mt-1 text-xs font-bold text-rose-600">{errors.message}</p>}
                             </div>
@@ -181,16 +181,10 @@ export default function Contact() {
                                 >
                                     {processing ? 'جاري الإرسال...' : 'إرسال الرسالة'}
                                 </button>
-
-                                {auth?.user ? (
-                                    <Link href={route('support.issue.create')} className="px-5 py-3 rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50 font-black text-sm hover:bg-indigo-100 transition-colors">
-                                        الإبلاغ عن مشكلة تقنية
-                                    </Link>
-                                ) : (
-                                    <Link href={route('login')} className="px-5 py-3 rounded-xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition-colors">
-                                        تسجيل الدخول
-                                    </Link>
-                                )}
+                                
+                                <p className="text-xs text-slate-500 font-bold self-center mr-4">
+                                    إذا كنت تواجه مشكلة فنية، يرجى استخدام <Link href={route('support.issue.create')} className="text-indigo-600 underline">صفحة البلاغات</Link> بدلاً من هذا النموذج.
+                                </p>
                             </div>
                         </form>
                     </section>
