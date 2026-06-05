@@ -77,7 +77,9 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
             return;
         }
 
-        const normalized = roomInput.replace(/\s+/g, '');
+        // Remove spaces, dashes, and Arabic tatweel (ـ)
+        const normalized = roomInput.replace(/[\s\-\u0640]/g, '');
+        
         // Match Arabic/English letters or dots, followed by exactly 3 or 4 digits
         // For 3 digits: first digit is floor, last 2 are room. e.g. 305 -> 3, 05
         // For 4 digits: first 2 digits are floor, last 2 are room. e.g. 1105 -> 11, 05
@@ -88,18 +90,23 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
             const floorStr = match[2];
             const roomStr = match[3];
 
+            // Normalize input symbol (e.g. removing dots)
+            const cleanSymbol = symbol.replace('.', '');
+
             // Try to find the matching building
-            const building = OFFICIAL_BUILDING_GUIDE.find(b => 
-                b.symbol === symbol || 
-                b.symbol.replace('.', '') === symbol || 
-                symbol.includes(b.symbol)
-            );
+            const building = OFFICIAL_BUILDING_GUIDE.find(b => {
+                const bSymbol = b.symbol.replace('.', '');
+                return bSymbol === cleanSymbol || 
+                       bSymbol.includes(cleanSymbol) || 
+                       cleanSymbol.includes(bSymbol);
+            });
 
             let floorName = '';
             if (floorStr === '1') floorName = 'الطابق الأول';
             else if (floorStr === '2') floorName = 'الطابق الثاني';
             else if (floorStr === '3') floorName = 'الطابق الثالث';
             else if (floorStr === '4') floorName = 'الطابق الرابع';
+            else if (floorStr === '5') floorName = 'الطابق الخامس';
             else if (floorStr === '0') floorName = 'التسوية (الأرضي)';
             else floorName = `الطابق ${floorStr}`;
 
@@ -111,7 +118,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                 room: parseInt(roomStr, 10),
             });
         } else {
-            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: د305 أو أ.ب201' });
+            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: د305 أو ب201' });
         }
     }, [roomInput]);
 
