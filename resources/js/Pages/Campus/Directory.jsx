@@ -80,16 +80,24 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
         // Remove spaces, dashes, and Arabic tatweel (ـ)
         const normalized = roomInput.replace(/[\s\-\u0640]/g, '');
         
-        // Match Arabic/English letters or dots, followed by exactly 3 or 4 digits
-        // For 3 digits: first digit is floor, last 2 are room. e.g. 305 -> 3, 05
-        // For 4 digits: first 2 digits are floor, last 2 are room. e.g. 1105 -> 11, 05
-        const match = normalized.match(/^([أ-يa-zA-Z\.]+)(\d{1,2})(\d{2})$/);
+        // Match Arabic/English letters or dots, followed by exactly 3 or 4 digits, OR vice versa.
+        let match = normalized.match(/^([أ-يa-zA-Z\.]+)(\d{1,2})(\d{2})$/);
+        let symbol, floorStr, roomStr;
 
         if (match) {
-            const symbol = match[1];
-            const floorStr = match[2];
-            const roomStr = match[3];
+            symbol = match[1];
+            floorStr = match[2];
+            roomStr = match[3];
+        } else {
+            match = normalized.match(/^(\d{1,2})(\d{2})([أ-يa-zA-Z\.]+)$/);
+            if (match) {
+                floorStr = match[1];
+                roomStr = match[2];
+                symbol = match[3];
+            }
+        }
 
+        if (symbol && floorStr && roomStr) {
             // Normalize input symbol (e.g. removing dots)
             const cleanSymbol = symbol.replace('.', '');
 
@@ -118,7 +126,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                 room: parseInt(roomStr, 10),
             });
         } else {
-            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: د305 أو ب201' });
+            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: 305د' });
         }
     }, [roomInput]);
 
@@ -220,7 +228,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                     <span className="text-indigo-500">✨</span> المستكشف الذكي للقاعات
                                 </h2>
                                 <p className="text-slate-600 font-medium mb-6">
-                                    هل تبحث عن قاعتك؟ اكتب رمز القاعة الموجود في جدولك الدراسي وسنقوم بتحليله لمعرفة المبنى والطابق فوراً.
+                                    اكتب رمز قاعتك كما هو بالجدول وسنحدد لك المبنى والطابق فوراً.
                                 </p>
                                 
                                 <div className="relative">
@@ -228,7 +236,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                         type="text"
                                         value={roomInput}
                                         onChange={(e) => setRoomInput(e.target.value)}
-                                        placeholder="مثال: د305 ، أ.ب201"
+                                        placeholder="مثال: 305د أو 201أ"
                                         className="w-full text-xl sm:text-2xl font-black rounded-2xl border-2 border-slate-200 bg-slate-50 py-4 pr-4 pl-12 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-slate-300 placeholder:font-medium text-center tracking-widest uppercase"
                                         dir="ltr"
                                     />
