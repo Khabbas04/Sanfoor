@@ -617,11 +617,12 @@ class AiAdvisorController extends Controller
     {
         $passedStr = implode(',', $passedCourseIds);
         $cartStr = implode(',', $cartCourseIds);
-        $cacheKey = "student_available_courses_{$user->id}_{$passedStr}_{$cartStr}";
+        $currentPeriod = \App\Models\AcademicPeriod::current();
+        $periodStr = $currentPeriod ? "{$currentPeriod->academic_year}_{$currentPeriod->academic_term}" : 'none';
+        $cacheKey = "student_available_courses_{$user->id}_{$passedStr}_{$cartStr}_{$periodStr}";
 
-        return Cache::remember($cacheKey, 600, function() use ($passedCourseIds, $cartCourseIds, $user) {
+        return Cache::remember($cacheKey, 600, function() use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
-            $currentPeriod = \App\Models\AcademicPeriod::current();
 
             $courses = Course::with(['prerequisites', 'children'])
                 ->where(function ($query) use ($user, $planVersion) {
@@ -640,27 +641,45 @@ class AiAdvisorController extends Controller
                 ->whereNotIn('id', $passedCourseIds)
                 ->get();
 
-            $scheduleData = [];
-            // Filter for summer 2026 offered courses
-            if ($currentPeriod && strpos((string) $currentPeriod->academic_year, '2026') !== false && (int) $currentPeriod->academic_term === 3) {
-                $schedulePath = storage_path('app/summer_2026_schedule.json');
-                if (file_exists($schedulePath)) {
-                    $scheduleData = json_decode(file_get_contents($schedulePath), true) ?? [];
-                    $offeredCodes = array_keys($scheduleData);
-                    if (!empty($offeredCodes)) {
-                        $courses = $courses->filter(function ($course) use ($offeredCodes) {
-                            return in_array((string) $course->code, $offeredCodes, true) || $course->type === 'university_req';
-                        });
-                    }
-                }
-            }
-
             $map = [];
             $text = [];
             $details = [];
             $allEligible = [];
 
+            $isSummer2026 = $currentPeriod && strpos((string)$currentPeriod->academic_year, '2026') !== false && $currentPeriod->academic_term == 3;
+            $summerScheduleFile = storage_path('app/summer_2026_schedule.json');
+            $summerScheduleData = [];
+            if ($isSummer2026 && file_exists($summerScheduleFile)) {
+                $summerScheduleData = json_decode(file_get_contents($summerScheduleFile), true) ?? [];
+            }
+            $summer2026OfferedKeys = array_keys($summerScheduleData);
+
             foreach ($courses as $course) {
+                $scheduleString = "";
+                if ($isSummer2026) {
+                    $normalizedCourseName = $this->normalizeArabic($course->name);
+                    $isOffered = false;
+                    $matchedKey = null;
+                    foreach ($summer2026OfferedKeys as $offered) {
+                        if ($this->normalizeArabic($offered) === $normalizedCourseName) {
+                            $isOffered = true;
+                            $matchedKey = $offered;
+                            break;
+                        }
+                    }
+                    if (!$isOffered) {
+                        continue;
+                    }
+                    
+                    if ($matchedKey && !empty($summerScheduleData[$matchedKey])) {
+                        $sections = [];
+                        foreach ($summerScheduleData[$matchedKey] as $sec) {
+                            $sections[] = "[مدرس: {$sec['instructor']}, أيام: {$sec['days']}, وقت: {$sec['time']}, قاعة: {$sec['hall']}]";
+                        }
+                        $scheduleString = " | شعب مطروحة: " . implode("، ", $sections);
+                    }
+                }
+
                 $canTake = true;
                 foreach ($course->prerequisites as $prereq) {
                     if (!in_array($prereq->id, $passedCourseIds, true)) {
@@ -698,6 +717,7 @@ class AiAdvisorController extends Controller
                     'unlocks' => $unlocksCount,
                     'in_cart' => $inCart,
                     'difficulty_level' => $manualDifficulty,
+                    'schedule_info' => $scheduleString ?? '',
                 ];
 
                 $details[$course->id] = [
@@ -732,20 +752,12 @@ class AiAdvisorController extends Controller
 
             foreach ($topEligible as $course) {
                 $line = "- {$course['name']} (رمز: {$course['code']}, ساعات: {$course['credit_hours']}, سنة: {$course['course_year']}, نوع: {$course['type']}, تفتح: {$course['unlocks']} مواد, صعوبة: {$course['difficulty_level']})";
+                if (!empty($course['schedule_info'])) {
+                    $line .= $course['schedule_info'];
+                }
                 if ($course['in_cart']) {
                     $line .= ' [🛒 بالجدول التجريبي حالياً]';
                 }
-                
-                if (isset($scheduleData[(string) $course['code']])) {
-                    $sections = [];
-                    foreach ($scheduleData[(string) $course['code']] as $sec) {
-                        $sections[] = "شعبة {$sec['section']} ({$sec['days']} {$sec['time']} في {$sec['hall']} مع {$sec['instructor']})";
-                    }
-                    if (!empty($sections)) {
-                        $line .= " | المطروح: " . implode(' ، ', $sections);
-                    }
-                }
-                
                 $text[] = $line;
             }
 
@@ -859,7 +871,6 @@ class AiAdvisorController extends Controller
             ($isSummer ? "- هذا فصل صيفي، لذلك لا تتجاوز 9 ساعات إلا إذا كان هناك استثناء إداري صريح.\n" : "- هذا ليس فصلًا صيفيًا.\n") .
             "- لا تخمّن الساعات، ولا تجب من الذاكرة العامة إذا كان السياق يحتوي قيمة أحدث.\n" .
             "- تجنب تماماً استخدام مصطلحات مثل 'خريف' أو 'ربيع' للإشارة للفصول الدراسية، واستخدم بدلاً منها 'الفصل الأول' أو 'الفصل الثاني' (مثال: الفصل الأول 2026).\n" .
-            "- يمكنك معرفة الشعب المطروحة ومواعيدها وأسماء المدرسين من قائمة 'المواد المتاحة للتسجيل للطالب' أسفل، إذا سألك الطالب عن الشعب أو الأوقات أو المدرسين فلا تحوله للبوابة بل أعطه المعلومات المتاحة لديك مباشرة.\n" .
             "- ركز على توزيع الحمل الدراسي والتأكد من توافق الجدول مع التقسيمة الصحيحة لساعات الخطة.\n" .
             "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**) فقط إذا لم يطُل الرد.\n\n" .
             "هيكلة متطلبات الخطة الدراسية للتخرج (132 ساعة كحد أدنى):\n" .
