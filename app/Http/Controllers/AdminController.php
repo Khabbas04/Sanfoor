@@ -153,7 +153,7 @@ class AdminController extends Controller
                 'quiz_avg_score' => round(QuizAttempt::avg('score_percentage') ?? 0),
                 'ai_chats_count' => Chat::count(),
                 'contact_messages_count' => ContactMessage::count(),
-                'unread_contact_messages_count' => ContactMessage::where('is_read', false)->count(),
+                'unread_contact_messages_count' => ContactMessage::where('status', 'new')->count(),
                 'landmarks_count' => Landmark::count(),
             ],
             'onlineUsers' => $onlineUsers,
