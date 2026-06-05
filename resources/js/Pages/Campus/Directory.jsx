@@ -77,27 +77,22 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
             return;
         }
 
-        // Remove spaces, dashes, and Arabic tatweel (ـ)
-        const normalized = roomInput.replace(/[\s\-\u0640]/g, '');
-        
-        // Match Arabic/English letters or dots, followed by exactly 3 or 4 digits, OR vice versa.
-        let match = normalized.match(/^([أ-يa-zA-Z\.]+)(\d{1,2})(\d{2})$/);
-        let symbol, floorStr, roomStr;
+        // Match letters then numbers, OR numbers then letters (1 to 4 digits)
+        let match = normalized.match(/^([أ-يa-zA-Z\.]+)(\d{1,4})$/);
+        let symbol, numStr;
 
         if (match) {
             symbol = match[1];
-            floorStr = match[2];
-            roomStr = match[3];
+            numStr = match[2];
         } else {
-            match = normalized.match(/^(\d{1,2})(\d{2})([أ-يa-zA-Z\.]+)$/);
+            match = normalized.match(/^(\d{1,4})([أ-يa-zA-Z\.]+)$/);
             if (match) {
-                floorStr = match[1];
-                roomStr = match[2];
-                symbol = match[3];
+                numStr = match[1];
+                symbol = match[2];
             }
         }
 
-        if (symbol && floorStr && roomStr) {
+        if (symbol && numStr) {
             // Normalize input symbol (e.g. removing dots)
             const cleanSymbol = symbol.replace('.', '');
 
@@ -109,24 +104,33 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                        cleanSymbol.includes(bSymbol);
             });
 
+            const num = parseInt(numStr, 10);
+            let floorNum = 0;
+            let roomNum = num;
+
+            if (num >= 100) {
+                floorNum = Math.floor(num / 100);
+                roomNum = num % 100;
+            }
+
             let floorName = '';
-            if (floorStr === '1') floorName = 'الطابق الأول';
-            else if (floorStr === '2') floorName = 'الطابق الثاني';
-            else if (floorStr === '3') floorName = 'الطابق الثالث';
-            else if (floorStr === '4') floorName = 'الطابق الرابع';
-            else if (floorStr === '5') floorName = 'الطابق الخامس';
-            else if (floorStr === '0') floorName = 'التسوية (الأرضي)';
-            else floorName = `الطابق ${floorStr}`;
+            if (floorNum === 0) floorName = 'الطابق الأرضي (التسوية)';
+            else if (floorNum === 1) floorName = 'الطابق الأول';
+            else if (floorNum === 2) floorName = 'الطابق الثاني';
+            else if (floorNum === 3) floorName = 'الطابق الثالث';
+            else if (floorNum === 4) floorName = 'الطابق الرابع';
+            else if (floorNum === 5) floorName = 'الطابق الخامس';
+            else floorName = `الطابق ${floorNum}`;
 
             setDecodedRoom({
                 valid: true,
                 building: building ? building.building : 'مبنى غير معروف',
                 buildingObj: building,
                 floor: floorName,
-                room: parseInt(roomStr, 10),
+                room: roomNum,
             });
         } else {
-            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: 305د' });
+            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: 305د أو ب12' });
         }
     }, [roomInput]);
 
