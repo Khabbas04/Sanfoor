@@ -37,7 +37,7 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
         return () => { if (raf.current) cancelAnimationFrame(raf.current); };
     }, [safeContent, isAnimating]);
     useEffect(() => { if (!isAnimating && !done.current) { setTxt(safeContent); done.current = true; } }, [isAnimating, safeContent]);
-    return <ReactMarkdown>{txt}</ReactMarkdown>;
+    return <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5"><ReactMarkdown>{txt}</ReactMarkdown></div>;
 };
 
 

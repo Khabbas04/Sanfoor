@@ -62,9 +62,8 @@ export default {
         },
     },
 
-    // إضافة plugin النماذج (forms)
     plugins: [
         forms,
-        // يمكنك إضافة 'tailwind-scrollbar-hide' هنا مستقبلاً إذا احتجته
+        require('@tailwindcss/typography'),
     ],
 };
