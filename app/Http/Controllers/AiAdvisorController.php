@@ -157,6 +157,7 @@ class AiAdvisorController extends Controller
         $academicData = array_merge($academicData, [
             'current_period_label' => $currentPeriod?->displayLabel() ?? 'الفصل الحالي غير محدد',
             'current_period_term' => $currentPeriod?->academic_term,
+            'current_period_year' => $currentPeriod?->academic_year,
             'current_period_is_summer' => $registrationLimits['is_summer'],
             'current_term_limit' => $registrationLimits['term_limit'],
             'academic_limit' => $registrationLimits['academic_limit'],
@@ -620,6 +621,7 @@ class AiAdvisorController extends Controller
 
         return Cache::remember($cacheKey, 600, function() use ($passedCourseIds, $cartCourseIds, $user) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
+            $currentPeriod = \App\Models\AcademicPeriod::current();
 
             $courses = Course::with(['prerequisites', 'children'])
                 ->where(function ($query) use ($user, $planVersion) {
@@ -637,6 +639,21 @@ class AiAdvisorController extends Controller
                 })
                 ->whereNotIn('id', $passedCourseIds)
                 ->get();
+
+            $scheduleData = [];
+            // Filter for summer 2026 offered courses
+            if ($currentPeriod && strpos((string) $currentPeriod->academic_year, '2026') !== false && (int) $currentPeriod->academic_term === 3) {
+                $schedulePath = storage_path('app/summer_2026_schedule.json');
+                if (file_exists($schedulePath)) {
+                    $scheduleData = json_decode(file_get_contents($schedulePath), true) ?? [];
+                    $offeredCodes = array_keys($scheduleData);
+                    if (!empty($offeredCodes)) {
+                        $courses = $courses->filter(function ($course) use ($offeredCodes) {
+                            return in_array((string) $course->code, $offeredCodes, true) || $course->type === 'university_req';
+                        });
+                    }
+                }
+            }
 
             $map = [];
             $text = [];
@@ -718,6 +735,17 @@ class AiAdvisorController extends Controller
                 if ($course['in_cart']) {
                     $line .= ' [🛒 بالجدول التجريبي حالياً]';
                 }
+                
+                if (isset($scheduleData[(string) $course['code']])) {
+                    $sections = [];
+                    foreach ($scheduleData[(string) $course['code']] as $sec) {
+                        $sections[] = "شعبة {$sec['section']} ({$sec['days']} {$sec['time']} في {$sec['hall']} مع {$sec['instructor']})";
+                    }
+                    if (!empty($sections)) {
+                        $line .= " | المطروح: " . implode(' ، ', $sections);
+                    }
+                }
+                
                 $text[] = $line;
             }
 
@@ -802,6 +830,23 @@ class AiAdvisorController extends Controller
 
         $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
 
+        $calendarText = '';
+        if (strpos((string) ($academicData['current_period_year'] ?? ''), '2026') !== false && ($academicData['current_period_term'] ?? 0) == 3) {
+            $calendarText = "التقويم الأكاديمي للجامعة للفصل الحالي:\n" .
+                "- اخر فترة لتسجيل الطلبة المتاخرين: من 28/6/2026 إلى 2/7/2026\n" .
+                "- فترة السحب والاضافة: من 5/7/2026 إلى 8/7/2026\n" .
+                "- بدء التدريس: 12/7/2026\n" .
+                "- فترة إجراء الامتحان الأول: من 26/7/2026 إلى 29/7/2026\n" .
+                "- موعد تسليم المواد المطروحة للفصل الأول: 26/7/2026\n" .
+                "- أخر موعد لإجراء امتحانات غير مكتمل: 29/7/2026\n" .
+                "- فترة إجراء الامتحان النصفي: من 2/8/2026 إلى 5/8/2026\n" .
+                "- آخر موعد لمناقشة الرسائل الجامعية: 6/8/2026\n" .
+                "- التسجيل لمواد الفصل الأول: من 9/8/2026 إلى 12/8/2026\n" .
+                "- فترة إجراء الامتحان الثاني: من 16/8/2026 إلى 19/8/2026\n" .
+                "- آخر موعد للانسحاب من دراسة مادة أو أكثر: 16/8/2026\n" .
+                "- الامتحانات النهائية: من 30/8/2026 إلى 3/9/2026\n\n";
+        }
+
         return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وكل ما يحتاجه الطالب في مسيرته الدراسية باحتراف وذكاء.\nالقواعد:\n" .
             "- هويتك: أنت صُنعت وبُرمجت بواسطة 'فريق سنفور' (Sanfoor Team). إياك أن تذكر جوجل (Google) أو أي شركة أخرى. إذا سألك الطالب من صنعك أو من أنت، أجب باختصار: 'أنا مرشدك الأكاديمي الذكي من فريق سنفور'.\n" .
             "- نطاق الإجابة: التزم بسياق الإرشاد الأكاديمي والحياة الجامعية بشكل واسع ومفيد.\n" .
@@ -813,6 +858,7 @@ class AiAdvisorController extends Controller
             "- حد التسجيل لهذا الفصل: {$currentTermLimit} ساعة. الحد الأكاديمي الشخصي: {$academicLimit} ساعة. الحد الفعلي المطبق: {$effectiveLimit} ساعة.\n" .
             ($isSummer ? "- هذا فصل صيفي، لذلك لا تتجاوز 9 ساعات إلا إذا كان هناك استثناء إداري صريح.\n" : "- هذا ليس فصلًا صيفيًا.\n") .
             "- لا تخمّن الساعات، ولا تجب من الذاكرة العامة إذا كان السياق يحتوي قيمة أحدث.\n" .
+            "- تجنب تماماً استخدام مصطلحات مثل 'خريف' أو 'ربيع' للإشارة للفصول الدراسية، واستخدم بدلاً منها 'الفصل الأول' أو 'الفصل الثاني' (مثال: الفصل الأول 2026).\n" .
             "- ركز على توزيع الحمل الدراسي والتأكد من توافق الجدول مع التقسيمة الصحيحة لساعات الخطة.\n" .
             "- استخدم ايموجيات خفيفة وميّز الكلمات المهمة بالخط العريض (**bold**) فقط إذا لم يطُل الرد.\n\n" .
             "هيكلة متطلبات الخطة الدراسية للتخرج (132 ساعة كحد أدنى):\n" .
@@ -831,6 +877,7 @@ class AiAdvisorController extends Controller
             "- ط: طب الأسنان.\n" .
             "- الطوابق: 100=الأول، 200=الثاني، 300=الثالث.\n\n" .
             "سياق RAG:\n" . ($ragContext ?: 'لا يوجد سياق إضافي حالياً.') . "\n\n" .
+            $calendarText .
             "بيانات الطالب المختصرة: {$user->name} | {$academicData['major_name']} | سنة {$studentYearLabel} | معدل {$gpa}%\n" .
             "التقدم حسب أقسام الخطة:\n" .
             "- متطلبات الجامعة: أنجز {$academicData['passed_university_req']} / 30 ساعة\n" .
@@ -1297,6 +1344,7 @@ class AiAdvisorController extends Controller
             'message' => $this->normalizeArabic(mb_strtolower(trim($message))),
             'period' => $academicData['current_period_label'] ?? null,
             'term' => $academicData['current_period_term'] ?? null,
+            'year' => $academicData['current_period_year'] ?? null,
             'effective_limit' => $academicData['effective_registration_limit'] ?? null,
             'academic_limit' => $academicData['academic_limit'] ?? null,
             'term_limit' => $academicData['current_term_limit'] ?? null,
