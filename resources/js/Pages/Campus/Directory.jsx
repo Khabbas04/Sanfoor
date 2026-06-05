@@ -23,36 +23,43 @@ const OFFICIAL_BUILDING_GUIDE = [
         symbol: 'أ.ب',
         building: 'مبنى الفاروق',
         colleges: ['كلية الشريعة', 'كلية الآداب', 'كلية تكنولوجيا المعلومات', 'كلية العلوم التربوية'],
+        facilities: ['مختبرات الحاسوب (IT)', 'مدرج الفاروق', 'مصلى', 'مكتبة فرعية', 'كافتيريا قريبة'],
     },
     {
         symbol: 'ت',
         building: 'كلية العلوم الطبية المساندة / الكلية الزرقاء التقنية',
         colleges: ['كلية العلوم الطبية المساندة', 'الكلية الزرقاء التقنية'],
+        facilities: ['مختبرات طبية متخصصة', 'كافتيريا الكلية', 'ساحات خارجية'],
     },
     {
         symbol: 'د.ه',
         building: 'الخوارزمي',
         colleges: ['كلية التمريض', 'كلية الصيدلة', 'كلية العلوم'],
+        facilities: ['مختبرات الكيمياء والفيزياء', 'مختبرات التمريض والصيدلة', 'مدرج الخوارزمي', 'كافتيريا الخوارزمي'],
     },
     {
         symbol: 'ل',
-        building: 'مبنى الكليات التالية',
+        building: 'مبنى الهندسة والفنون',
         colleges: ['كلية الهندسة التكنولوجية', 'كلية الفنون والتصميم'],
+        facilities: ['مشاغل ومختبرات هندسية', 'مراسم الفنون والتصميم', 'معرض فنون', 'كافتيريا'],
     },
     {
         symbol: 'ص',
-        building: 'مبنى الكليات التالية',
+        building: 'مبنى الإعلام والحقوق',
         colleges: ['كلية الصحافة والإعلام', 'كلية الحقوق'],
+        facilities: ['استوديوهات الإذاعة والتلفزيون', 'المحكمة الصورية التدريبية', 'مختبرات الملتيميديا'],
     },
     {
         symbol: 'ق',
         building: 'مبنى الشهيد معاذ الكساسبة',
         colleges: ['كلية الاقتصاد والعلوم الإدارية', 'كلية الدراسات العليا'],
+        facilities: ['مختبرات البورصة والمحاكاة', 'قاعات الدراسات العليا', 'كافتيريا الاقتصاد'],
     },
     {
         symbol: 'ط',
         building: 'كلية طب الأسنان',
         colleges: [],
+        facilities: ['عيادات طب الأسنان التدريبية', 'مختبرات طبية متقدمة'],
     },
 ];
 
@@ -66,6 +73,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
     const [collegeSearch, setCollegeSearch] = useState('');
     const [landmarkSearch, setLandmarkSearch] = useState('');
     const [landmarkType, setLandmarkType] = useState('all');
+    const [selectedCollegeInfo, setSelectedCollegeInfo] = useState(null); // For the smart modal
 
     // Smart Room Decoder State
     const [roomInput, setRoomInput] = useState('');
@@ -325,17 +333,21 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                                 <div className="flex flex-wrap gap-2">
                                                     {entry.colleges.length > 0 ? (
                                                         entry.colleges.map((college) => (
-                                                            <span
+                                                            <button
                                                                 key={college}
-                                                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-700"
+                                                                onClick={() => setSelectedCollegeInfo({ college, building: entry })}
+                                                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition-all hover:scale-105 hover:shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
                                                             >
                                                                 {college}
-                                                            </span>
+                                                            </button>
                                                         ))
                                                     ) : (
-                                                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600">
+                                                        <button 
+                                                            onClick={() => setSelectedCollegeInfo({ college: 'كلية طب الأسنان', building: entry })}
+                                                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition-all hover:scale-105 hover:shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
+                                                        >
                                                             مبنى متخصص (طب الأسنان)
-                                                        </span>
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -544,6 +556,64 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                     )}
                 </div>
             </div>
+
+            {/* Smart College Info Modal */}
+            {selectedCollegeInfo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" dir="rtl">
+                    <div 
+                        className="absolute inset-0" 
+                        onClick={() => setSelectedCollegeInfo(null)}
+                    ></div>
+                    <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden directory-card-reveal">
+                        <div className="bg-gradient-to-l from-indigo-600 to-indigo-500 p-6 sm:p-8 text-white relative">
+                            <button 
+                                onClick={() => setSelectedCollegeInfo(null)}
+                                className="absolute top-4 left-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition"
+                            >
+                                ✕
+                            </button>
+                            <h3 className="text-2xl font-black mb-1">{selectedCollegeInfo.college}</h3>
+                            <p className="text-indigo-100 font-medium">معلومات المبنى والمرافق</p>
+                        </div>
+                        
+                        <div className="p-6 sm:p-8 space-y-6">
+                            <div className="flex items-start gap-4">
+                                <div className="w-14 h-14 shrink-0 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center text-2xl font-black border border-slate-200">
+                                    {selectedCollegeInfo.building.symbol}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-400 mb-1">المبنى الرئيسي</p>
+                                    <h4 className="text-xl font-black text-slate-900">{selectedCollegeInfo.building.building}</h4>
+                                </div>
+                            </div>
+
+                            <div className="h-px w-full bg-slate-100"></div>
+
+                            <div>
+                                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                    <span className="text-indigo-500">✨</span> أهم المرافق في المبنى:
+                                </h4>
+                                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {selectedCollegeInfo.building.facilities.map((facility, index) => (
+                                        <li key={index} className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                            <span className="text-emerald-500 text-lg">✓</span> {facility}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50 p-4 sm:p-6 border-t border-slate-100 flex justify-end">
+                            <button 
+                                onClick={() => setSelectedCollegeInfo(null)}
+                                className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition"
+                            >
+                                حسناً، فهمت
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     );
 }
