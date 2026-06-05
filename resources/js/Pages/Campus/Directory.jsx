@@ -77,6 +77,9 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
             return;
         }
 
+        // Remove spaces, dashes, and Arabic tatweel (ـ)
+        const normalized = roomInput.replace(/[\s\-\u0640]/g, '');
+
         // Match letters then numbers, OR numbers then letters (1 to 4 digits)
         let match = normalized.match(/^([أ-يa-zA-Z\.]+)(\d{1,4})$/);
         let symbol, numStr;
