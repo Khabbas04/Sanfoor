@@ -13,6 +13,8 @@ use App\Models\AdminLog;
 use App\Models\AdminNote;
 use App\Models\IssueReport;
 use App\Models\Chapter;
+use App\Models\ContactMessage;
+use App\Models\Landmark;
 use App\Models\Question;
 use App\Models\QuizAttempt;
 use App\Models\SiteMaintenance;
@@ -149,6 +151,10 @@ class AdminController extends Controller
                 'questions_count' => Question::count(),
                 'quiz_attempts_count' => QuizAttempt::count(),
                 'quiz_avg_score' => round(QuizAttempt::avg('score_percentage') ?? 0),
+                'ai_chats_count' => Chat::count(),
+                'contact_messages_count' => ContactMessage::count(),
+                'unread_contact_messages_count' => ContactMessage::where('is_read', false)->count(),
+                'landmarks_count' => Landmark::count(),
             ],
             'onlineUsers' => $onlineUsers,
             'platform' => [

@@ -129,6 +129,15 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
         };
     }, []);
 
+    const [currentTime, setCurrentTime] = useState(new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const timeString = currentTime.toLocaleTimeString(lang === 'ar' ? 'ar-JO' : 'en-US', { timeZone: 'Asia/Amman', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const dateString = currentTime.toLocaleDateString(lang === 'ar' ? 'ar-JO' : 'en-US', { timeZone: 'Asia/Amman', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
     const safeStudentsCount = Number(safeStats.students_count || 0);
     const demandBase = safeStudentsCount > 0 ? safeStudentsCount : 1;
 
@@ -196,9 +205,18 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
             <div className="space-y-8 pb-10" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 {/* Top bar */}
-                <div className={`flex items-center justify-between ${card} rounded-2xl px-5 py-3`}>
+                <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 ${card} rounded-2xl px-5 py-3`}>
                     <p className={`text-xs font-black ${subtext}`}>{t.subtitle}</p>
-                    <span className={`text-[10px] font-black rounded-lg px-2 py-1 ${isDark ? 'text-indigo-400 bg-indigo-500/20 border border-indigo-500/30' : 'text-indigo-600 bg-indigo-50 border border-indigo-100'}`}>{t.liveOps}</span>
+                    <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                            <span className="text-lg">🇯🇴</span>
+                            <div className="flex flex-col">
+                                <span className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`} dir="ltr">{dateString}</span>
+                                <span className={`text-xs font-black tracking-widest ${isDark ? 'text-slate-100' : 'text-slate-800'}`} dir="ltr">{timeString}</span>
+                            </div>
+                        </div>
+                        <span className={`text-[10px] font-black rounded-lg px-2 py-1 ${isDark ? 'text-indigo-400 bg-indigo-500/20 border border-indigo-500/30' : 'text-indigo-600 bg-indigo-50 border border-indigo-100'}`}>{t.liveOps}</span>
+                    </div>
                 </div>
 
                 {/* Hero Banner */}
@@ -262,6 +280,23 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                         <StatCard title={t.avgQuizScore} value={`${safeStats.quiz_avg_score || 0}%`} icon="📈" color="amber" trend={lang === 'ar' ? 'مستوى أداء الطلاب العام' : 'Overall student success rate'} isDark={isDark} tLabel={t.statsTracker} />
                     </div>
                 </div>
+
+                {/* 💬 3. Content & Communication Section */}
+                <div className="space-y-4 animate-slide-in delay-200">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl">💬</span>
+                        <h2 className={`text-lg font-black tracking-tight ${heading}`}>{lang === 'ar' ? 'إدارة المحتوى والتواصل' : 'Content & Communication'}</h2>
+                        <div className={`h-px flex-1 ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <StatCard title={lang === 'ar' ? 'رسائل التواصل' : 'Contact Messages'} value={safeStats.contact_messages_count || 0} icon="📩" color="indigo" trend={`${safeStats.unread_contact_messages_count || 0} غير مقروء`} link={route('admin.contact_messages.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={t.aiChats} value={safeStats.ai_chats_count || 0} icon="🤖" color="emerald" trend={lang === 'ar' ? 'محادثات المرشد الذكي' : 'AI Advisor Chats'} link={route('admin.ai_chats')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={lang === 'ar' ? 'المعالم الجامعية' : 'Landmarks'} value={safeStats.landmarks_count || 0} icon="📍" color="amber" trend={lang === 'ar' ? 'أماكن وخدمات الجامعة' : 'University Services'} link={route('admin.landmarks.index')} isDark={isDark} tLabel={t.statsTracker} />
+                        <StatCard title={lang === 'ar' ? 'بلاغات المشاكل' : 'Issue Reports'} value={safeIssueSummary.total || 0} icon="🛠️" color="rose" trend={`${safeIssueSummary.open || 0} ${t.statusOpen}`} link={route('admin.issues.index')} isDark={isDark} tLabel={t.statsTracker} />
+                    </div>
+                </div>
+
                 {/* Reports + Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className={`lg:col-span-2 ${card} rounded-[2.5rem] p-8 shadow-sm`}>
@@ -293,10 +328,12 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                 <span>⚡</span> {t.quickActions}
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                <QuickLink title={lang === 'ar' ? 'إدارة المعالم' : 'Manage Landmarks'} icon="📍" href={route('admin.landmarks.index')} isDark={isDark} />
+                                <QuickLink title={lang === 'ar' ? 'صندوق الرسائل' : 'Contact Inbox'} icon="📩" href={route('admin.contact_messages.index')} isDark={isDark} />
                                 <QuickLink title={lang === 'ar' ? 'إدارة الشباتر' : 'Manage Chapters'} icon="📖" href={route('admin.chapters.index')} isDark={isDark} />
                                 <QuickLink title={lang === 'ar' ? 'إدارة الأسئلة' : 'Manage Questions'} icon="❓" href={route('admin.questions.index')} isDark={isDark} />
                                 <QuickLink title={lang === 'ar' ? 'إدارة مواد الشجرة' : 'Manage Tree Courses'} icon="📚" href={route('admin.courses')} isDark={isDark} />
-                                <QuickLink title={t.aiChats} icon="💬" href={route('admin.ai_chats')} isDark={isDark} />
+                                <QuickLink title={t.aiChats} icon="🤖" href={route('admin.ai_chats')} isDark={isDark} />
                                 <QuickLink title={t.openSettings} icon="⚙️" href={route('admin.settings')} isDark={isDark} />
                             </div>
                         </div>
