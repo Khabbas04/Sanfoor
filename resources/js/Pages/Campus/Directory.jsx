@@ -67,6 +67,54 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
     const [landmarkSearch, setLandmarkSearch] = useState('');
     const [landmarkType, setLandmarkType] = useState('all');
 
+    // Smart Room Decoder State
+    const [roomInput, setRoomInput] = useState('');
+    const [decodedRoom, setDecodedRoom] = useState(null);
+
+    React.useEffect(() => {
+        if (!roomInput.trim()) {
+            setDecodedRoom(null);
+            return;
+        }
+
+        const normalized = roomInput.replace(/\s+/g, '');
+        // Match Arabic/English letters or dots, followed by exactly 3 or 4 digits
+        // For 3 digits: first digit is floor, last 2 are room. e.g. 305 -> 3, 05
+        // For 4 digits: first 2 digits are floor, last 2 are room. e.g. 1105 -> 11, 05
+        const match = normalized.match(/^([أ-يa-zA-Z\.]+)(\d{1,2})(\d{2})$/);
+
+        if (match) {
+            const symbol = match[1];
+            const floorStr = match[2];
+            const roomStr = match[3];
+
+            // Try to find the matching building
+            const building = OFFICIAL_BUILDING_GUIDE.find(b => 
+                b.symbol === symbol || 
+                b.symbol.replace('.', '') === symbol || 
+                symbol.includes(b.symbol)
+            );
+
+            let floorName = '';
+            if (floorStr === '1') floorName = 'الطابق الأول';
+            else if (floorStr === '2') floorName = 'الطابق الثاني';
+            else if (floorStr === '3') floorName = 'الطابق الثالث';
+            else if (floorStr === '4') floorName = 'الطابق الرابع';
+            else if (floorStr === '0') floorName = 'التسوية (الأرضي)';
+            else floorName = `الطابق ${floorStr}`;
+
+            setDecodedRoom({
+                valid: true,
+                building: building ? building.building : 'مبنى غير معروف',
+                buildingObj: building,
+                floor: floorName,
+                room: parseInt(roomStr, 10),
+            });
+        } else {
+            setDecodedRoom({ valid: false, message: 'الصيغة غير صحيحة. جرب مثلاً: د305 أو أ.ب201' });
+        }
+    }, [roomInput]);
+
     const filteredColleges = useMemo(() => {
         const search = collegeSearch.toLowerCase().trim();
 
@@ -156,38 +204,115 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         </div>
                     </section>
 
+                    {/* Smart Room Decoder Section */}
+                    <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-8 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl relative overflow-hidden">
+                        <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none"></div>
+                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 mb-3 flex items-center gap-3">
+                                    <span className="text-indigo-500">✨</span> المستكشف الذكي للقاعات
+                                </h2>
+                                <p className="text-slate-600 font-medium mb-6">
+                                    هل تبحث عن قاعتك؟ اكتب رمز القاعة الموجود في جدولك الدراسي وسنقوم بتحليله لمعرفة المبنى والطابق فوراً.
+                                </p>
+                                
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={roomInput}
+                                        onChange={(e) => setRoomInput(e.target.value)}
+                                        placeholder="مثال: د305 ، أ.ب201"
+                                        className="w-full text-xl sm:text-2xl font-black rounded-2xl border-2 border-slate-200 bg-slate-50 py-4 pr-4 pl-12 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-slate-300 placeholder:font-medium text-center tracking-widest uppercase"
+                                        dir="ltr"
+                                    />
+                                    <span className="absolute inset-y-0 left-4 flex items-center text-2xl opacity-40">🔍</span>
+                                </div>
+                            </div>
+                            
+                            <div className="h-full">
+                                {!decodedRoom ? (
+                                    <div className="h-full min-h-[140px] rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 flex flex-col items-center justify-center text-center p-6 text-slate-400 font-medium">
+                                        <span className="text-4xl mb-2 opacity-50">🧭</span>
+                                        <p>اكتب رمز القاعة لفك التشفير...</p>
+                                    </div>
+                                ) : decodedRoom.valid ? (
+                                    <div className="directory-card-reveal h-full rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-2 h-full bg-indigo-500"></div>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-indigo-500 text-white flex items-center justify-center text-2xl font-black shadow-md shrink-0">
+                                                    {decodedRoom.buildingObj ? decodedRoom.buildingObj.symbol : '?'}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-black text-indigo-500 mb-1">المبنى الكود</p>
+                                                    <h3 className="text-lg font-black text-slate-900">{decodedRoom.building}</h3>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-sm text-center">
+                                                    <p className="text-xs font-bold text-slate-400 mb-1">الطابق</p>
+                                                    <p className="text-base font-black text-slate-800">{decodedRoom.floor}</p>
+                                                </div>
+                                                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-sm text-center">
+                                                    <p className="text-xs font-bold text-slate-400 mb-1">القاعة</p>
+                                                    <p className="text-base font-black text-slate-800">{decodedRoom.room}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="directory-card-reveal h-full min-h-[140px] rounded-2xl border border-rose-100 bg-rose-50/50 flex items-center justify-center text-center p-6 text-rose-500 font-bold">
+                                        <div className="space-y-2">
+                                            <span className="text-3xl block">⚠️</span>
+                                            <p>{decodedRoom.message}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </section>
+
                     {OFFICIAL_BUILDING_GUIDE.length > 0 && (
-                        <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-7 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl space-y-5">
-                            <div className="flex items-center justify-between gap-3 flex-wrap">
-                                <h2 className="text-xl sm:text-2xl font-black text-slate-950">المرجع الرسمي لرموز المباني</h2>
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-2xl sm:text-3xl font-black text-slate-950">المرجع الرسمي للمباني والكليات</h2>
+                                <div className="h-px flex-1 bg-slate-200"></div>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                                 {OFFICIAL_BUILDING_GUIDE.map((entry, idx) => (
                                     <article
                                         key={entry.symbol}
-                                        className="directory-card-reveal rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                                        className="directory-card-reveal group relative overflow-hidden rounded-[2rem] bg-white border border-slate-200 p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)]"
                                         style={{ animationDelay: `${idx * 70}ms` }}
                                     >
-                                        <div className="flex items-start gap-3">
-                                            <div className="min-w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-slate-950 to-slate-700 text-white flex items-center justify-center text-xl font-black shadow-sm">
-                                                {entry.symbol}
+                                        <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-50/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"></div>
+                                        
+                                        <div className="relative z-10 flex flex-col h-full">
+                                            <div className="flex items-center gap-4 mb-5">
+                                                <div className="w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-slate-900/20 group-hover:scale-110 transition-transform duration-300">
+                                                    {entry.symbol}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-black text-slate-900 leading-tight">{entry.building}</h3>
+                                                </div>
                                             </div>
-                                            <div className="min-w-0 flex-1 space-y-2">
-                                                <p className="text-sm font-black text-slate-900">{entry.building}</p>
+                                            
+                                            <div className="mt-auto">
                                                 <div className="flex flex-wrap gap-2">
                                                     {entry.colleges.length > 0 ? (
                                                         entry.colleges.map((college) => (
                                                             <span
                                                                 key={college}
-                                                                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                                                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition-colors group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-700"
                                                             >
                                                                 {college}
                                                             </span>
                                                         ))
                                                     ) : (
-                                                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
-                                                            كلية طب الأسنان
+                                                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600">
+                                                            مبنى متخصص (طب الأسنان)
                                                         </span>
                                                     )}
                                                 </div>
@@ -197,16 +322,24 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                 ))}
                             </div>
 
-                            <div className="directory-card-reveal rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/70 p-4 sm:p-5" style={{ animationDelay: `${OFFICIAL_BUILDING_GUIDE.length * 70}ms` }}>
-                                <div className="flex items-center justify-between gap-3 flex-wrap">
-                                    <p className="text-sm font-black text-slate-900">ترميز الطوابق</p>
+                            <div className="directory-card-reveal rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between" style={{ animationDelay: `${OFFICIAL_BUILDING_GUIDE.length * 70}ms` }}>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl bg-indigo-100 text-indigo-600 p-2 rounded-xl">🔢</span>
+                                    <div>
+                                        <p className="text-base font-black text-slate-900">دليل ترميز الطوابق</p>
+                                        <p className="text-xs font-medium text-slate-500">الرقم الأول من القاعة يمثل الطابق</p>
+                                    </div>
                                 </div>
-                                <div className="mt-4 flex flex-wrap gap-2.5">
-                                    {OFFICIAL_FLOOR_LEGEND.map((floor) => (
-                                        <span key={floor} className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                                            {floor}
-                                        </span>
-                                    ))}
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    {OFFICIAL_FLOOR_LEGEND.map((floor) => {
+                                        const [code, name] = floor.split(' = ');
+                                        return (
+                                            <div key={floor} className="flex items-center rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+                                                <span className="bg-slate-800 text-white font-black text-xs px-3 py-2">{code}</span>
+                                                <span className="text-xs font-bold text-slate-700 px-3 py-2">{name}</span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </section>
