@@ -110,6 +110,10 @@ class AdminStudentController extends Controller
      */
     public function update(Request $request, User $student)
     {
+        if (strtolower((string) $student->role) !== 'student') {
+            abort(403, 'غير مصرح بتعديل بيانات هذا الحساب.');
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $student->id,
@@ -128,6 +132,10 @@ class AdminStudentController extends Controller
      */
     public function destroy(User $student)
     {
+        if (strtolower((string) $student->role) !== 'student') {
+            abort(403, 'غير مصرح بحذف هذا الحساب.');
+        }
+
         $email = $student->email;
         $student->delete();
         $this->logAction('DELETE_STUDENT', "تم حذف حساب الطالب {$email}");
@@ -139,6 +147,10 @@ class AdminStudentController extends Controller
      */
     public function removeCartCourse(Request $request, User $student, $courseId)
     {
+        if (strtolower((string) $student->role) !== 'student') {
+            abort(403, 'غير مصرح بالتعديل على مسودة هذا الحساب.');
+        }
+
         $this->logAction('REMOVE_CART_COURSE', "حذف مادة {$courseId} من تسجيل الطالب {$student->email}");
 
         $exists = $student->cartCourses()->where('course_id', (int) $courseId)->exists();

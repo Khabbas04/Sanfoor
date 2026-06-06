@@ -31,7 +31,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'portal_gpa',
         'portal_passed_hours',
         'portal_synced_at',
-        'role',
         'major_id',
         'study_plan_version',
         'ip_address',

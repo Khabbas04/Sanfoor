@@ -83,6 +83,10 @@ class AdminInstructorController extends Controller
      */
     public function update(Request $request, User $instructor)
     {
+        if (strtolower((string) $instructor->role) !== 'instructor') {
+            abort(403, 'غير مصرح بتعديل بيانات هذا الحساب.');
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $instructor->id,
@@ -100,6 +104,10 @@ class AdminInstructorController extends Controller
      */
     public function destroy(User $instructor)
     {
+        if (strtolower((string) $instructor->role) !== 'instructor') {
+            abort(403, 'غير مصرح بحذف هذا الحساب.');
+        }
+
         $email = $instructor->email;
         $instructor->delete();
         $this->logAction('DELETE_INSTRUCTOR', "تم حذف حساب الدكتور {$email}");

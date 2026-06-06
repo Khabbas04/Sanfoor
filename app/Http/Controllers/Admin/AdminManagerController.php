@@ -63,7 +63,7 @@ class AdminManagerController extends Controller
             return back()->with('message', 'لا يمكن تعديل رتبة Owner.')->with('type', 'error');
         }
 
-        $user->update(['role' => 'admin']);
+        $user->forceFill(['role' => 'admin'])->save();
         $this->logAction('PROMOTE_USER_TO_ADMIN', "تمت ترقية المستخدم {$user->email} إلى admin");
 
         return back()->with('message', 'تمت ترقية المستخدم إلى Admin بنجاح.')->with('type', 'success');
@@ -79,7 +79,7 @@ class AdminManagerController extends Controller
             return back()->with('message', 'لا يمكن تعديل رتبة Owner.')->with('type', 'error');
         }
 
-        $user->update(['role' => $data['role']]);
+        $user->forceFill(['role' => $data['role']])->save();
         $this->logAction('UPDATE_USER_ROLE', "تم تعديل رتبة المستخدم {$user->email} إلى {$data['role']}");
 
         return back()->with('message', 'تم تحديث رتبة المستخدم بنجاح.')->with('type', 'success');
