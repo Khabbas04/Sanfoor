@@ -104,8 +104,6 @@
 </script>
 
 <link rel="icon" href="/images/sanfoor.png">
-<link rel="preload" href="/images/background.png" as="image" fetchpriority="high">
-<link rel="preload" href="/images/sanfoor.png" as="image" fetchpriority="high">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

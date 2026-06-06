@@ -295,7 +295,7 @@ export default function Welcome({ auth }) {
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
                         {/* Premium AI Badge */}
-                        <div className="hero-animate mb-10 flex justify-center" style={{ animationDelay: '0s' }}>
+                        <div className="hero-animate mb-10 flex justify-center" style={{ animationDelay: '0.1s' }}>
                             <div className="relative inline-flex p-[1px] rounded-full overflow-hidden shadow-[0_0_35px_rgba(56,189,248,0.25)] group cursor-default select-none">
                                 <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#bae6fd_0%,#3b82f6_50%,#bae6fd_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="inline-flex items-center gap-2.5 h-full w-full px-6 py-2 bg-[#020617]/90 rounded-full backdrop-blur-xl relative z-10">
@@ -312,7 +312,7 @@ export default function Welcome({ auth }) {
                         </div>
 
                         {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
-                        <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.1s' }}>
+                        <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
                             <div className="absolute inset-0 bg-sky-400/12 rounded-full blur-2xl"></div>
                             <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
                                 <img src="/images/sanfoor.png" alt="Sanfoor Logo" fetchpriority="high" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
@@ -320,19 +320,19 @@ export default function Welcome({ auth }) {
                         </div>
 
                         {/* Heading */}
-                        <h1 className="hero-animate mb-4" style={{ animationDelay: '0.2s' }}>
+                        <h1 className="hero-animate mb-4" style={{ animationDelay: '0.65s' }}>
                             <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]">
                                 دليلك الذكي نحو
                             </span>
                         </h1>
-                        <h1 className="hero-animate mb-8" style={{ animationDelay: '0.3s' }}>
+                        <h1 className="hero-animate mb-8" style={{ animationDelay: '0.85s' }}>
                             <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-cyan-200 drop-shadow-[0_10px_25px_rgba(0,0,0,0.95)]">
                                 التفوق الأكاديمي.
                             </span>
                         </h1>
 
                         {/* Sub */}
-                        <div className="h-rise-slow" style={{ animationDelay: '0.4s' }}>
+                        <div className="h-rise-slow" style={{ animationDelay: '1.1s' }}>
                             <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-white mb-7 font-semibold leading-relaxed px-4 drop-shadow-[0_4px_14px_rgba(0,0,0,0.75)]">
                                 <strong className="text-white">سنفور</strong> ليس مجرد موقع، إنه مستشارك الشخصي. يرسم لك خريطة تخصصك، يفتح لك المواد المتاحة، ويخطط فصلك القادم بدقة مع <span className="text-cyan-200">AI Sanfoor</span>.
                             </p>
@@ -350,7 +350,7 @@ export default function Welcome({ auth }) {
                         </div>
 
                         {/* CTA Buttons */}
-                        <div className="h-rise-slow flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-5" style={{ animationDelay: '0.5s' }}>
+                        <div className="h-rise-slow flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-5" style={{ animationDelay: '1.35s' }}>
                             {auth.user ? (
                                 <MagneticButton>
                                     <Link id="tour-cta-btn" href={route('tree.index')} className="btn-shimmer flex items-center justify-center gap-3 px-10 py-[1.15rem] sm:py-5 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white text-base sm:text-lg font-extrabold rounded-2xl transition-all shadow-xl shadow-blue-500/30 active:scale-[0.96] w-full sm:w-auto">
