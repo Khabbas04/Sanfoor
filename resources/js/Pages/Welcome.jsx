@@ -274,7 +274,8 @@ export default function Welcome({ auth }) {
                                 src="/images/background.png"
                                 alt=""
                                 className="h-full w-full object-cover"
-                                fetchpriority="high"
+                                loading="lazy"
+                                decoding="async"
                             />
                             <div className="absolute inset-0 bg-black/40" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0f172a]" />
@@ -315,7 +316,7 @@ export default function Welcome({ auth }) {
                         <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
                             <div className="absolute inset-0 bg-sky-400/12 rounded-full blur-2xl"></div>
                             <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
-                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" fetchpriority="high" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
+                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
                         </div>
 
