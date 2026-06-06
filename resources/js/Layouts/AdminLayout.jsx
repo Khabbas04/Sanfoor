@@ -239,13 +239,13 @@ export default function AdminLayout({ children }) {
             )}
 
             {/* Primary admin navigation sidebar. */}
-            <aside className={`fixed top-0 right-0 h-full w-72 bg-[#0b0f19] text-slate-300 shadow-[25px_0_50px_rgba(0,0,0,0.2)] z-50 flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-slate-800 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed top-0 right-0 h-full w-64 bg-[#0b0f19] text-slate-300 shadow-[25px_0_50px_rgba(0,0,0,0.2)] z-50 flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] border-l border-slate-800 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Logo Section */}
-                <div className="h-24 flex items-center justify-between px-6 border-b border-white/5 bg-white/[0.01] shrink-0 relative overflow-hidden">
+                <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 bg-white/[0.01] shrink-0 relative overflow-hidden">
                     <div className="absolute -right-10 -top-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
                     <Link href="/" className="flex items-center gap-3 group relative z-10">
-                        <div className="relative w-12 h-12 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+                        <div className="relative w-10 h-10 flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
                             <div className="absolute inset-0 bg-indigo-500 blur-lg opacity-20 group-hover:opacity-40 transition-opacity"></div>
                             <img 
                                 src="/images/sanfoor.png" 
@@ -254,18 +254,18 @@ export default function AdminLayout({ children }) {
                             />
                         </div>
                         <div className="flex flex-col pt-1">
-                            <h1 className="text-2xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors leading-none">سنفور</h1>
-                            <span className="text-[10px] font-black text-indigo-400 tracking-[0.2em] uppercase mt-1.5 bg-indigo-500/10 px-2 py-0.5 rounded-full inline-block w-max border border-indigo-500/20">Admin Core</span>
+                            <h1 className="text-xl font-black tracking-tight text-white group-hover:text-indigo-400 transition-colors leading-none">سنفور</h1>
+                            <span className="text-[9px] font-black text-indigo-400 tracking-[0.2em] uppercase mt-1 bg-indigo-500/10 px-2 py-0.5 rounded-full inline-block w-max border border-indigo-500/20">Admin Core</span>
                         </div>
                     </Link>
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden w-9 h-9 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800/80 hover:bg-indigo-600 rounded-xl transition-all">✕</button>
                 </div>
 
                 {/* User Info Section */}
-                <div className="p-6 relative">
+                <div className="p-4 relative">
                     <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent opacity-50"></div>
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-2xl font-black shadow-xl border border-white/20 relative group overflow-hidden">
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-xl font-black shadow-xl border border-white/20 relative group overflow-hidden">
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
                             <span className="relative z-10 overflow-hidden rounded-xl w-full h-full flex items-center justify-center">
                                 {auth?.user?.avatar ? (
@@ -279,7 +279,7 @@ export default function AdminLayout({ children }) {
                             <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.15em] mb-1">
                                 {isOwner ? 'OWNER' : 'ADMIN'}
                             </p>
-                            <p className="font-black text-[15px] text-white truncate drop-shadow-sm">{auth?.user?.name ?? ''}</p>
+                            <p className="font-black text-[13px] text-white truncate drop-shadow-sm">{auth?.user?.name ?? ''}</p>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="flex h-2 w-2 relative">
                                     <span className="animate-ping absolute h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -292,10 +292,10 @@ export default function AdminLayout({ children }) {
                 </div>
 
                 {/* Render sidebar links organized by section */}
-                <nav className="flex-1 overflow-y-auto py-2 px-4 space-y-1 scrollbar-hide">
+                <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 scrollbar-hide">
                     {menuSections.map((section, sIdx) => (
-                        <div key={sIdx} className={sIdx > 0 ? 'mt-4' : ''}>
-                            <p className="px-4 text-[9px] font-black text-slate-600 uppercase tracking-[0.25em] mb-2 mt-2 flex items-center gap-2">
+                        <div key={sIdx} className={sIdx > 0 ? 'mt-2' : ''}>
+                            <p className="px-3 text-[9px] font-black text-slate-600 uppercase tracking-[0.25em] mb-1.5 mt-1.5 flex items-center gap-2">
                                 <span className="flex-1 h-px bg-slate-800"></span>
                                 <span className="shrink-0">{section.label}</span>
                                 <span className="flex-1 h-px bg-slate-800"></span>
@@ -308,7 +308,7 @@ export default function AdminLayout({ children }) {
                                     <Link
                                         key={index}
                                         href={href}
-                                        className={`relative flex items-center gap-3.5 px-4 py-3 rounded-xl transition-all duration-300 group overflow-hidden border mb-0.5
+                                        className={`relative flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 group overflow-hidden border mb-0.5
                                             ${active 
                                                 ? 'text-white border-white/10 shadow-[0_8px_24px_-8px_rgba(79,70,229,0.5)]' 
                                                 : 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent'
@@ -336,12 +336,12 @@ export default function AdminLayout({ children }) {
                 </nav>
 
                 {/* Footer Section */}
-                <div className="p-5 border-t border-white/5 bg-slate-950/60 backdrop-blur-md">
+                <div className="p-4 border-t border-white/5 bg-slate-950/60 backdrop-blur-md">
                     <Link
                         href={route('logout')}
                         method="post"
                         as="button"
-                        className="w-full flex items-center justify-center gap-3 bg-rose-500/10 text-rose-500 border border-rose-500/20 py-4 rounded-2xl hover:bg-rose-600 hover:text-white transition-all font-black text-[11px] group shadow-lg"
+                        className="w-full flex items-center justify-center gap-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 py-2.5 rounded-xl hover:bg-rose-600 hover:text-white transition-all font-black text-[11px] group shadow-lg"
                     >
                         <span className="text-lg group-hover:-translate-x-1 group-hover:rotate-12 transition-transform">👋</span>
                         {t.safeLogout}
@@ -350,12 +350,12 @@ export default function AdminLayout({ children }) {
             </aside>
 
             {/* Main admin content panel. */}
-            <main className="lg:mr-72 flex-1 flex flex-col min-h-screen transition-all duration-500 relative z-10">
+            <main className="lg:mr-64 flex-1 flex flex-col min-h-screen transition-all duration-500 relative z-10">
 
                 {/* Header Navbar */}
-                <header className={`backdrop-blur-3xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border-b h-20 flex items-center px-6 md:px-10 justify-between sticky top-0 z-30 transition-colors duration-300 ${isDark ? 'bg-[#0b0f19]/90 border-slate-800' : 'bg-white/80 border-slate-200/80'}`}>
-                    <div className="flex items-center gap-5">
-                        <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-3 rounded-2xl border text-slate-600 hover:text-indigo-600 transition-all shadow-sm active:scale-90 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-indigo-50'}`}>
+                <header className={`backdrop-blur-3xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] border-b h-14 flex items-center px-4 md:px-6 justify-between sticky top-0 z-30 transition-colors duration-300 ${isDark ? 'bg-[#0b0f19]/90 border-slate-800' : 'bg-white/80 border-slate-200/80'}`}>
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className={`lg:hidden p-2 rounded-xl border text-slate-600 hover:text-indigo-600 transition-all shadow-sm active:scale-90 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-indigo-50'}`}>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>
                         </button>
                         <div className="flex flex-col">
@@ -367,30 +367,30 @@ export default function AdminLayout({ children }) {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 md:gap-4">
+                    <div className="flex items-center gap-2 md:gap-3">
                         {/* Language Toggle */}
                         <button
                             onClick={toggleLang}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-slate-700 text-indigo-400 hover:bg-slate-700' : 'bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200'}`}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-slate-700 text-indigo-400 hover:bg-slate-700' : 'bg-slate-100 border-slate-200 text-indigo-600 hover:bg-slate-200'}`}
                         >
                             {lang === 'ar' ? 'EN' : 'AR'}
                         </button>
                         {/* Theme Toggle */}
                         <button
                             onClick={toggleTheme}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-slate-700 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'}`}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center text-base border transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-slate-700 text-yellow-400 hover:bg-slate-700' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'}`}
                         >
                             {isDark ? '☀️' : '🌙'}
                         </button>
                         <Link
                             href={route('dashboard')}
-                            className={`hidden sm:flex items-center gap-2.5 px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all shadow-inner active:scale-95 ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white'}`}
+                            className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black transition-all shadow-inner active:scale-95 ${isDark ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700' : 'bg-slate-100 text-slate-700 hover:bg-slate-900 hover:text-white'}`}
                         >
                             <span>👤</span> {t.studentProfile}
                         </Link>
                         <Link
                             href="/"
-                            className="flex items-center gap-2.5 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl hover:shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 text-[11px] font-black transition-all group"
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl hover:shadow-[0_10px_20px_-5px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 text-[11px] font-black transition-all group"
                         >
                             <span className="text-base group-hover:scale-125 transition-transform duration-500">🌐</span> 
                             <span className="hidden md:inline">{t.frontEnd}</span>
@@ -400,7 +400,7 @@ export default function AdminLayout({ children }) {
                 </header>
 
                 {/* Children Content */}
-                <div className="p-5 md:p-10 flex-1">
+                <div className="p-4 md:p-6 flex-1">
                     <div className="max-w-[1600px] mx-auto">
                         {message && (
                             <div className={`mb-6 px-4 py-3 rounded-2xl border text-sm font-black ${flashClass}`}>
@@ -411,7 +411,7 @@ export default function AdminLayout({ children }) {
                     </div>
                 </div>
 
-                <footer className={`px-5 md:px-10 pb-6 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                <footer className={`px-4 md:px-6 pb-4 text-center ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                     <p className="text-[11px] font-black uppercase tracking-[0.12em]">By Asem Alkhabbas</p>
                 </footer>
                 
