@@ -251,6 +251,15 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         }
     }, [activeTab]);
 
+    // Auto-refresh AI key status every 30 seconds when tab is active
+    useEffect(() => {
+        if (activeTab !== 'aikeys') return;
+        const interval = setInterval(() => {
+            fetchAiKeyStatus();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [activeTab]);
+
     useEffect(() => {
         setAcademicForm({
             academic_year: currentAcademicPeriod?.academic_year || new Date().getFullYear().toString(),
@@ -646,13 +655,16 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                     <h2 className={`text-xl font-black ${heading}`}>🔑 {t.aiKeysTitle}</h2>
                                     <p className={`mt-1 text-sm font-bold ${subtext}`}>{t.aiKeysDesc}</p>
                                 </div>
-                                <button
-                                    onClick={fetchAiKeyStatus}
-                                    disabled={aiKeyLoading}
-                                    className="shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-black px-4 py-2.5 transition-colors"
-                                >
-                                    {aiKeyLoading ? t.refreshingKeys : t.refreshKeys}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold ${subtext}`}>تحديث تلقائي كل 30 ثانية</span>
+                                    <button
+                                        onClick={fetchAiKeyStatus}
+                                        disabled={aiKeyLoading}
+                                        className="shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-black px-4 py-2.5 transition-colors"
+                                    >
+                                        {aiKeyLoading ? t.refreshingKeys : t.refreshKeys}
+                                    </button>
+                                </div>
                             </div>
 
                             {aiKeyError && (
@@ -662,12 +674,36 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                             )}
                         </div>
 
+                        {/* System Health Banner */}
+                        {aiKeyData?.summary && (() => {
+                            const hl = aiKeyData.summary.health_level || 'excellent';
+                            const healthConfig = {
+                                excellent: { icon: '🟢', label: 'ممتاز — كل المفاتيح تعمل', bg: isDark ? 'bg-emerald-900/30 border-emerald-700/50' : 'bg-emerald-50 border-emerald-200', text: isDark ? 'text-emerald-300' : 'text-emerald-700' },
+                                degraded: { icon: '🟡', label: 'متوسط — بعض المفاتيح في استراحة', bg: isDark ? 'bg-amber-900/30 border-amber-700/50' : 'bg-amber-50 border-amber-200', text: isDark ? 'text-amber-300' : 'text-amber-700' },
+                                critical: { icon: '🔴', label: 'حرج — لا يوجد مفاتيح متاحة الآن', bg: isDark ? 'bg-rose-900/30 border-rose-700/50' : 'bg-rose-50 border-rose-200', text: isDark ? 'text-rose-300' : 'text-rose-700' },
+                                offline: { icon: '⚫', label: 'لا يوجد مفاتيح مُعَدّة', bg: isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-100 border-slate-200', text: isDark ? 'text-slate-400' : 'text-slate-600' },
+                            };
+                            const hc = healthConfig[hl] || healthConfig.excellent;
+                            return (
+                                <div className={`${hc.bg} border rounded-2xl p-4 flex items-center gap-4 transition-all`}>
+                                    <span className="text-3xl">{hc.icon}</span>
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-black ${hc.text}`}>صحة النظام: {hc.label}</p>
+                                        <p className={`text-[10px] font-bold mt-0.5 ${subtext}`}>
+                                            {aiKeyData.summary.active_keys} نشط · {aiKeyData.summary.cooldown_keys || 0} في استراحة · {aiKeyData.summary.invalid_keys} معطل
+                                            {aiKeyData.summary.rpm_limit && ` · حد RPM: ${aiKeyData.summary.rpm_limit}/دقيقة`}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         {/* Summary Stats */}
                         {aiKeyData?.summary && (
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
                                 <Stat title={t.totalKeys} value={aiKeyData.summary.total_keys} icon="🔑" isDark={isDark} />
                                 <Stat title={t.activeKeys} value={aiKeyData.summary.active_keys} icon="✅" isDark={isDark} />
-                                <Stat title={t.rateLimitedKeys} value={aiKeyData.summary.rate_limited_keys ?? aiKeyData.summary.exhausted_keys} icon="⛔" isDark={isDark} />
+                                <Stat title="في استراحة" value={aiKeyData.summary.cooldown_keys || 0} icon="⏳" isDark={isDark} />
                                 <Stat title={t.todayRequests} value={aiKeyData.summary.today_total_usage} icon="📊" isDark={isDark} />
                                 <Stat title={t.weeklyRequests} value={aiKeyData.summary.weekly_total_usage} icon="📈" isDark={isDark} />
                                 <Stat title={t.totalChats} value={aiKeyData.summary.total_chats} icon="💬" isDark={isDark} />
@@ -675,12 +711,17 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                             </div>
                         )}
 
-                        {/* Key Cards */}
+                        {/* Key Cards — sorted: active → cooldown → rpm_full → invalid */}
                         {aiKeyData?.keys?.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {aiKeyData.keys.map((k) => (
-                                    <ApiKeyCard key={k.index} data={k} t={t} isDark={isDark} card={card} cardSoft={cardSoft} heading={heading} subtext={subtext} />
-                                ))}
+                                {[...aiKeyData.keys]
+                                    .sort((a, b) => {
+                                        const order = { active: 0, rpm_full: 1, cooldown: 2, invalid: 3, error: 4, unknown: 5 };
+                                        return (order[a.status] ?? 5) - (order[b.status] ?? 5);
+                                    })
+                                    .map((k) => (
+                                        <ApiKeyCard key={k.index} data={k} t={t} isDark={isDark} card={card} cardSoft={cardSoft} heading={heading} subtext={subtext} />
+                                    ))}
                             </div>
                         ) : aiKeyData && !aiKeyLoading ? (
                             <div className={`${card} border rounded-3xl p-12 text-center`}>
@@ -742,6 +783,24 @@ function LiveTimeAgo({ timestamp, isDark, lang = 'ar' }) {
 }
 
 function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
+    const [cooldown, setCooldown] = useState(data.cooldown_remaining || 0);
+
+    // Live countdown timer for cooldown
+    useEffect(() => {
+        setCooldown(data.cooldown_remaining || 0);
+    }, [data.cooldown_remaining]);
+
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const timer = setInterval(() => {
+            setCooldown(prev => {
+                if (prev <= 1) { clearInterval(timer); return 0; }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [cooldown]);
+
     const statusColors = {
         active: {
             bg: isDark ? 'bg-emerald-900/40 border-emerald-700/60' : 'bg-emerald-50 border-emerald-200',
@@ -749,6 +808,20 @@ function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
             dot: 'bg-emerald-500',
             glow: 'shadow-[0_0_12px_rgba(16,185,129,0.4)]',
             label: t.statusActive,
+        },
+        cooldown: {
+            bg: isDark ? 'bg-amber-900/40 border-amber-700/60' : 'bg-amber-50 border-amber-200',
+            text: isDark ? 'text-amber-300' : 'text-amber-700',
+            dot: 'bg-amber-500',
+            glow: 'shadow-[0_0_12px_rgba(245,158,11,0.4)]',
+            label: 'يستريح ⏳',
+        },
+        rpm_full: {
+            bg: isDark ? 'bg-orange-900/40 border-orange-700/60' : 'bg-orange-50 border-orange-200',
+            text: isDark ? 'text-orange-300' : 'text-orange-700',
+            dot: 'bg-orange-500',
+            glow: 'shadow-[0_0_12px_rgba(249,115,22,0.35)]',
+            label: 'حد الدقيقة ⚡',
         },
         exhausted: {
             bg: isDark ? 'bg-amber-900/40 border-amber-700/60' : 'bg-amber-50 border-amber-200',
@@ -791,8 +864,11 @@ function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
     const usagePercent = Math.min(100, Math.round((data.today_usage / Math.max(data.estimated_daily_limit, 1)) * 100));
     const barColor = usagePercent > 80 ? 'from-rose-500 to-pink-500' : usagePercent > 50 ? 'from-amber-500 to-orange-500' : 'from-emerald-500 to-teal-500';
 
+    const rpmPercent = data.rpm_limit ? Math.min(100, Math.round(((data.current_rpm || 0) / data.rpm_limit) * 100)) : 0;
+    const rpmColor = rpmPercent > 80 ? 'from-rose-500 to-pink-500' : rpmPercent > 50 ? 'from-amber-500 to-orange-500' : 'from-sky-500 to-blue-500';
+
     return (
-        <div className={`${card} border rounded-2xl p-5 transition-all hover:-translate-y-0.5`}>
+        <div className={`${card} border rounded-2xl p-5 transition-all hover:-translate-y-0.5 ${data.status === 'invalid' ? 'opacity-60' : ''}`}>
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -816,7 +892,33 @@ function ApiKeyCard({ data, t, isDark, card, cardSoft, heading, subtext }) {
                 {data.status_message}
             </p>
 
-            {/* Usage Progress Bar */}
+            {/* Cooldown Timer */}
+            {cooldown > 0 && (
+                <div className={`rounded-xl px-3 py-2.5 mb-4 flex items-center justify-between ${isDark ? 'bg-amber-900/20 border border-amber-800/40' : 'bg-amber-50 border border-amber-200'}`}>
+                    <span className={`text-[10px] font-black ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>⏱️ يعود خلال:</span>
+                    <span className={`text-lg font-black tabular-nums ${isDark ? 'text-amber-200' : 'text-amber-800'}`}>{cooldown}<span className="text-[9px] mr-0.5">ثانية</span></span>
+                </div>
+            )}
+
+            {/* RPM Progress Bar */}
+            {data.rpm_limit && (
+                <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1.5">
+                        <span className={`text-[10px] font-black ${subtext}`}>⚡ طلبات/دقيقة (RPM)</span>
+                        <span className={`text-[10px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                            {data.current_rpm || 0} / {data.rpm_limit}
+                        </span>
+                    </div>
+                    <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                        <div
+                            className={`h-full rounded-full bg-gradient-to-r ${rpmColor} transition-all duration-700`}
+                            style={{ width: `${rpmPercent}%` }}
+                        ></div>
+                    </div>
+                </div>
+            )}
+
+            {/* Daily Usage Progress Bar */}
             <div className="mb-4">
                 <div className="flex items-center justify-between mb-1.5">
                     <span className={`text-[10px] font-black ${subtext}`}>{t.todayUsage}</span>

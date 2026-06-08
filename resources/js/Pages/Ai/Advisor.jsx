@@ -301,6 +301,7 @@ const Actions = ({ msg, onRegen, onFeedback, isLast }) => {
 // ========== ChatMessage ==========
 const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRegen, onFb, onFollow }) => {
     const u = msg.role === 'user';
+    const isStreaming = msg.isStreaming && !msg.isAnimating;
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
@@ -315,15 +316,22 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                             <div className="sfr-ai-shell">
                                 <div className="sfr-ai-card">
                                     <div className="sfr-md text-[12.5px] font-medium">
-                                        <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/>
+                                        {isStreaming ? (
+                                            <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5">
+                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                <span className="inline-block w-2 h-4 bg-blue-500 rounded-sm animate-pulse ml-0.5 align-middle" />
+                                            </div>
+                                        ) : (
+                                            <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/>
+                                        )}
                                     </div>
                                 </div>
                             </div>
-                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
-                            {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
-                            {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
-                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
-                            {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
+                            {!msg.isAnimating && !isStreaming && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
+                            {!msg.isAnimating && !isStreaming && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
+                            {!msg.isAnimating && !isStreaming && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
+                            {!msg.isAnimating && !isStreaming && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
+                            {!msg.isAnimating && !isStreaming && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
                         </div>
                     )}
                 </div>
@@ -508,48 +516,131 @@ export default function Advisor() {
         setCommandFilter('');
 
         setInput(''); setSidebar(false);
-        setMsgs(p => [...p, { id:`u-${Date.now()}`, role:'user', content:t }]); setTyping(true);
-        try {
-            if (abortRef.current) abortRef.current.abort(); abortRef.current = new AbortController();
-            const pl = { message:t }; if (activeId) pl.chat_id = activeId;
-            const r = await axios.post(route('ai.advisor.chat'), pl, { signal: abortRef.current.signal });
-            if (r.data.status === 'success') {
-                if (r.data.has_daily_limit !== undefined) {
-                    setHasDailyLimit(!!r.data.has_daily_limit);
-                }
-                if (r.data.daily_messages_remaining !== undefined) {
-                    setRemaining(r.data.daily_messages_remaining);
-                }
-                setIsFallback(!!r.data.is_fallback);
-                setFallbackReason(r.data.fallback_reason || null);
+        const userMsgId = `u-${Date.now()}`;
+        setMsgs(p => [...p, { id: userMsgId, role:'user', content:t }]); setTyping(true);
 
-                const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
-                    ? r.data.reply
-                    : 'ما وصلني رد واضح هذه المرة. حاول إعادة الصياغة بسؤال أقصر.';
+        try {
+            if (abortRef.current) abortRef.current.abort();
+            abortRef.current = new AbortController();
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const pl = { message: t };
+            if (activeId) pl.chat_id = activeId;
+
+            const res = await fetch(route('ai.advisor.stream'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(pl),
+                signal: abortRef.current.signal,
+            });
+
+            // Handle non-stream responses (cached, fallback, error)
+            const contentType = res.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const data = await res.json();
+                setTyping(false);
+
+                if (data.status === 'error') {
+                    if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
+                    if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+                    setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: data.message || 'خطأ غير متوقع.', isAnimating:false }]);
+                    return;
+                }
+
+                if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+                if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
+                setIsFallback(!!data.is_fallback);
+
+                const safeReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : 'ما وصلني رد واضح.';
                 setGenerating(true);
                 if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
                 typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
-                setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:r.data.suggested_courses||[], courses_to_remove:r.data.courses_to_remove||[], follow_up_suggestions:r.data.follow_up_suggestions||[], interactive_widget:r.data.interactive_widget||null, isAnimating:true }]);
-                if (!activeId && r.data.chat_id) { setActiveId(r.data.chat_id); setChats(p => [{ id:r.data.chat_id, title:r.data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
-                if (r.data.chat_title && r.data.chat_id) setChats(p => p.map(c => c.id===r.data.chat_id ? {...c, title:r.data.chat_title} : c));
-            } else { 
-                setGenerating(false); 
-                setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:r.data.message || 'الخادم مشغول، حاول ثانية. 🔄', isAnimating:false }]); 
+                setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:data.suggested_courses||[], courses_to_remove:data.courses_to_remove||[], follow_up_suggestions:data.follow_up_suggestions||[], interactive_widget:data.interactive_widget||null, isAnimating:true }]);
+                if (!activeId && data.chat_id) { setActiveId(data.chat_id); setChats(p => [{ id:data.chat_id, title:data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
+                return;
             }
-        } catch(e) { 
-            if (axios.isCancel?.(e)) return; 
-            setGenerating(false); 
-            if (e?.response?.data?.has_daily_limit !== undefined) {
-                setHasDailyLimit(!!e.response.data.has_daily_limit);
+
+            // SSE Streaming mode 🚀
+            setTyping(false);
+            setGenerating(true);
+            const streamMsgId = `stream-${Date.now()}`;
+            setMsgs(p => [...p, { id: streamMsgId, role:'ai', content:'', suggested_courses:[], courses_to_remove:[], follow_up_suggestions:[], interactive_widget:null, isAnimating:false, isStreaming:true }]);
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let streamedText = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const jsonStr = line.slice(6).trim();
+                    if (!jsonStr) continue;
+
+                    try {
+                        const evt = JSON.parse(jsonStr);
+
+                        if (evt.type === 'chunk') {
+                            streamedText += evt.content;
+                            setMsgs(p => p.map(m => m.id === streamMsgId ? { ...m, content: streamedText } : m));
+                            scroll();
+                        } else if (evt.type === 'fallback') {
+                            streamedText = evt.content || '';
+                            setIsFallback(true);
+                            setFallbackReason(evt.fallback_reason || 'gemini_unavailable');
+                            setMsgs(p => p.map(m => m.id === streamMsgId ? { ...m, content: streamedText, isStreaming: false } : m));
+                        } else if (evt.type === 'done') {
+                            const finalReply = evt.reply || streamedText;
+                            setMsgs(p => p.map(m => m.id === streamMsgId ? {
+                                ...m,
+                                content: finalReply,
+                                suggested_courses: evt.suggested_courses || [],
+                                courses_to_remove: evt.courses_to_remove || [],
+                                follow_up_suggestions: evt.follow_up_suggestions || [],
+                                interactive_widget: evt.interactive_widget || null,
+                                isStreaming: false,
+                                isAnimating: false,
+                            } : m));
+
+                            if (evt.has_daily_limit !== undefined) setHasDailyLimit(!!evt.has_daily_limit);
+                            if (evt.daily_messages_remaining !== undefined) setRemaining(evt.daily_messages_remaining);
+                            setIsFallback(!!evt.is_fallback);
+
+                            if (!activeId && evt.chat_id) {
+                                setActiveId(evt.chat_id);
+                                setChats(p => [{ id: evt.chat_id, title: evt.chat_title || t.substring(0,40)+'...', created_at: new Date().toISOString() }, ...p]);
+                            }
+                            if (evt.chat_title && evt.chat_id) {
+                                setChats(p => p.map(c => c.id === evt.chat_id ? {...c, title: evt.chat_title} : c));
+                            }
+                        }
+                    } catch {}
+                }
             }
-            if (e?.response?.data?.daily_messages_remaining !== undefined) {
-                setRemaining(e.response.data.daily_messages_remaining);
-            }
-            setFallbackReason(e?.response?.data?.fallback_reason || 'connection_error');
-            setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content:e?.response?.data?.message || 'انقطع الاتصال. 📡', isAnimating:false }]); 
+
+            setGenerating(false);
+            setTimeout(scroll, 100);
+
+        } catch(e) {
+            if (e?.name === 'AbortError') return;
+            setGenerating(false);
+            setTyping(false);
+            setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: 'انقطع الاتصال. 📡', isAnimating:false }]);
         }
-        finally { setTyping(false); }
-    }, [activeId, generating, typing, magicCommands]);
+    }, [activeId, generating, typing, magicCommands, scroll]);
+
 
     const handleSend = e => { e.preventDefault(); send(input); };
     const stop = useCallback(() => finish(), [finish]);

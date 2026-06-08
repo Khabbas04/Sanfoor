@@ -941,121 +941,216 @@ class AiAdvisorController extends Controller
         return array_values(array_unique($keys));
     }
 
+    /**
+     * Get RPM (requests per minute) usage for a given API key.
+     */
+    private function getKeyRpm(string $apiKey): int
+    {
+        $minute = date('Y-m-d_H-i');
+        return (int) Cache::get('gemini_rpm_' . md5($apiKey) . '_' . $minute, 0);
+    }
+
+    /**
+     * Increment RPM counter for a given API key.
+     */
+    private function incrementKeyRpm(string $apiKey): void
+    {
+        $minute = date('Y-m-d_H-i');
+        $cacheKey = 'gemini_rpm_' . md5($apiKey) . '_' . $minute;
+        $current = (int) Cache::get($cacheKey, 0);
+        Cache::put($cacheKey, $current + 1, now()->addSeconds(90));
+    }
+
+    /**
+     * Check if a key is in cooldown. Returns remaining seconds or 0.
+     */
+    private function getKeyCooldownRemaining(string $apiKey): int
+    {
+        $until = Cache::get('gemini_cooldown_' . md5($apiKey));
+        if (!$until) return 0;
+        $remaining = $until - time();
+        return max(0, $remaining);
+    }
+
+    /**
+     * Put a key into cooldown for N seconds.
+     */
+    private function setCooldown(string $apiKey, int $seconds, string $reason = ''): void
+    {
+        $until = time() + $seconds;
+        Cache::put('gemini_cooldown_' . md5($apiKey), $until, now()->addSeconds($seconds + 5));
+        Cache::put('gemini_cooldown_reason_' . md5($apiKey), $reason, now()->addSeconds($seconds + 5));
+        Log::debug("Gemini key cooldown set: " . substr($apiKey, 0, 8) . "... for {$seconds}s reason: {$reason}");
+    }
+
+    private const RPM_LIMIT = 14; // Safe limit (actual is 15, keep 1 buffer)
+
+    /**
+     * Select the best available API key: not in cooldown, lowest RPM usage.
+     * Returns sorted array of keys (best first).
+     */
+    private function sortKeysByAvailability(array $apiKeys): array
+    {
+        $scored = [];
+        foreach ($apiKeys as $key) {
+            $cooldown = $this->getKeyCooldownRemaining($key);
+            $rpm = $this->getKeyRpm($key);
+            $scored[] = [
+                'key' => $key,
+                'cooldown' => $cooldown,
+                'rpm' => $rpm,
+                'available' => $cooldown === 0 && $rpm < self::RPM_LIMIT,
+            ];
+        }
+
+        // Sort: available first, then by lowest RPM
+        usort($scored, function ($a, $b) {
+            if ($a['available'] !== $b['available']) {
+                return $b['available'] <=> $a['available'];
+            }
+            if ($a['cooldown'] !== $b['cooldown']) {
+                return $a['cooldown'] <=> $b['cooldown'];
+            }
+            return $a['rpm'] <=> $b['rpm'];
+        });
+
+        return array_column($scored, 'key');
+    }
+
     private function callGeminiAPI(array $contents, array $apiKeys): string
     {
         if (empty($apiKeys)) {
             throw new \Exception('No Gemini API keys configured');
         }
 
-        // Prioritize working models: gemini-2.5-flash first (known to work), fallback to others
-        $models = array_values(array_filter([
-            'gemini-2.5-flash',
-            'gemini-2.0-flash-lite',
-            config('services.gemini.model'),
-        ]));
-
+        $model = 'gemini-2.5-flash';
+        $sortedKeys = $this->sortKeysByAvailability($apiKeys);
         $lastError = 'Unknown Gemini error';
 
-        foreach ($apiKeys as $keyIndex => $apiKey) {
-            $keyQuotaExhausted = false;
-            foreach ($models as $modelIndex => $model) {
-                if ($keyQuotaExhausted) {
-                    break;
-                }
+        foreach ($sortedKeys as $apiKey) {
+            $keyIndex = array_search($apiKey, $apiKeys, true);
 
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+            // Skip keys in cooldown
+            $cooldown = $this->getKeyCooldownRemaining($apiKey);
+            if ($cooldown > 0) {
+                $lastError = "key#" . ($keyIndex + 1) . ": in cooldown ({$cooldown}s remaining)";
+                continue;
+            }
 
-                try {
-                    $requestContents = $contents;
-                    $fullText = '';
-                    $backoffMs = 100;
+            // Skip keys at RPM limit
+            $rpm = $this->getKeyRpm($apiKey);
+            if ($rpm >= self::RPM_LIMIT) {
+                $lastError = "key#" . ($keyIndex + 1) . ": RPM limit reached ({$rpm}/" . self::RPM_LIMIT . ")";
+                continue;
+            }
 
-                    for ($pass = 0; $pass <= 2; $pass++) {
-                        for ($retryCount = 0; $retryCount < 3; $retryCount++) {
-                            try {
-                                $response = Http::withoutVerifying()
-                                    ->connectTimeout(8)
-                                    ->timeout(45)
-                                    ->withHeaders(['Content-Type' => 'application/json'])
-                                    ->post($url, [
-                                        'contents' => $requestContents,
-                                        'generationConfig' => [
-                                            'responseMimeType' => 'application/json',
-                                            'temperature' => 0.35,
-                                        ],
-                                    ]);
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
 
-                                // Handle rate limiting (429) and invalid/blocked keys (400, 401, 403)
-                                if (in_array($response->status(), [400, 401, 403, 429])) {
-                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP " . $response->status() . " (key exhausted/invalid)";
-                                    $keyQuotaExhausted = true;
-                                    break 3; // Move to next API key
-                                } elseif ($response->status() === 503) {
-                                    if ($retryCount < 2) {
-                                        usleep($backoffMs * 1000);
-                                        $backoffMs *= 2;
-                                        continue; // Retry with backoff
-                                    }
-                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP 503 (high demand)";
-                                    continue 3; // Try next model
-                                }
+            try {
+                $requestContents = $contents;
+                $fullText = '';
+                $backoffMs = 150;
 
-                                if (!$response->successful()) {
-                                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: HTTP {$response->status()}";
-                                    continue 3; // Try next model
-                                }
+                for ($pass = 0; $pass <= 2; $pass++) {
+                    for ($retryCount = 0; $retryCount < 2; $retryCount++) {
+                        try {
+                            $response = Http::withoutVerifying()
+                                ->connectTimeout(8)
+                                ->timeout(50)
+                                ->withHeaders(['Content-Type' => 'application/json'])
+                                ->post($url, [
+                                    'contents' => $requestContents,
+                                    'generationConfig' => [
+                                        'responseMimeType' => 'application/json',
+                                        'temperature' => 0.3,
+                                    ],
+                                ]);
 
-                                break; // Success, exit retry loop
-                            } catch (\Exception $e) {
-                                if ($retryCount < 2) {
+                            $status = $response->status();
+
+                            if ($status === 429) {
+                                $this->setCooldown($apiKey, 60, 'rate_limited_429');
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 429 (rate limited, cooldown 60s)";
+                                continue 3; // Next key
+                            }
+
+                            if (in_array($status, [401, 403])) {
+                                $this->setCooldown($apiKey, 600, 'invalid_key_' . $status);
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP {$status} (invalid/blocked, cooldown 10min)";
+                                continue 3; // Next key
+                            }
+
+                            if ($status === 400) {
+                                $this->setCooldown($apiKey, 120, 'bad_request_400');
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request, cooldown 2min)";
+                                continue 3; // Next key
+                            }
+
+                            if ($status === 503) {
+                                if ($retryCount < 1) {
                                     usleep($backoffMs * 1000);
                                     $backoffMs *= 2;
-                                    continue;
+                                    continue; // Retry
                                 }
-                                throw $e;
+                                $this->setCooldown($apiKey, 30, 'server_overloaded_503');
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 503 (overloaded, cooldown 30s)";
+                                continue 3; // Next key
                             }
+
+                            if (!$response->successful()) {
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP {$status}";
+                                continue 3;
+                            }
+
+                            break; // Success
+                        } catch (\Exception $e) {
+                            if ($retryCount < 1) {
+                                usleep($backoffMs * 1000);
+                                $backoffMs *= 2;
+                                continue;
+                            }
+                            throw $e;
                         }
-
-                        $candidate = $response->json('candidates.0');
-                        $chunk = $candidate['content']['parts'][0]['text'] ?? null;
-
-                        if (!is_string($chunk) || trim($chunk) === '') {
-                            $lastError = "key#" . ($keyIndex + 1) . " {$model}: empty candidate text";
-                            continue 3;
-                        }
-
-                        $fullText .= $chunk;
-
-                        $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
-                        $stopped = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
-                        if (!$stopped || $pass >= 2) {
-                            $this->workingApiKey = $apiKey;
-                            // Track successful usage per key
-                            $cacheKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
-                            Cache::increment($cacheKey);
-                            Cache::put($cacheKey, (int) Cache::get($cacheKey, 0), now()->endOfDay());
-                            return $fullText;
-                        }
-
-                        $requestContents[] = ['role' => 'model', 'parts' => [['text' => $chunk]]];
-                        $requestContents[] = ['role' => 'user', 'parts' => [['text' => 'اكمل الرد من آخر نقطة فقط بدون إعادة أي جزء سابق.']]];
                     }
 
-                    if ($fullText !== '') {
+                    // Track RPM + daily usage on success
+                    $this->incrementKeyRpm($apiKey);
+
+                    $candidate = $response->json('candidates.0');
+                    $chunk = $candidate['content']['parts'][0]['text'] ?? null;
+
+                    if (!is_string($chunk) || trim($chunk) === '') {
+                        $lastError = "key#" . ($keyIndex + 1) . ": empty candidate text";
+                        continue 2; // Next key
+                    }
+
+                    $fullText .= $chunk;
+
+                    $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
+                    $stopped = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
+                    if (!$stopped || $pass >= 2) {
                         $this->workingApiKey = $apiKey;
-                        // Track successful usage per key
-                        $cacheKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
-                        Cache::increment($cacheKey);
-                        Cache::put($cacheKey, (int) Cache::get($cacheKey, 0), now()->endOfDay());
+                        $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
+                        Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
                         return $fullText;
                     }
-                } catch (\Throwable $e) {
-                    $lastError = "key#" . ($keyIndex + 1) . " {$model}: {$e->getMessage()}";
+
+                    $requestContents[] = ['role' => 'model', 'parts' => [['text' => $chunk]]];
+                    $requestContents[] = ['role' => 'user', 'parts' => [['text' => 'أكمل من آخر نقطة بدون تكرار.']]];
                 }
+
+                if ($fullText !== '') {
+                    $this->workingApiKey = $apiKey;
+                    $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
+                    Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
+                    return $fullText;
+                }
+            } catch (\Throwable $e) {
+                $lastError = "key#" . ($keyIndex + 1) . ": {$e->getMessage()}";
             }
         }
 
-        throw new \Exception("Gemini API failed across all models and keys. Last error: {$lastError}");
+        throw new \Exception("Gemini API failed across all keys. Last error: {$lastError}");
     }
 
     private function parseAIResponse(string $rawText): array
@@ -1428,7 +1523,366 @@ class AiAdvisorController extends Controller
     }
 
     /**
+     * Streaming SSE endpoint: sends AI response chunks in real-time.
+     */
+    public function streamChat(Request $request)
+    {
+        set_time_limit(0);
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+            'chat_id' => ['nullable', 'integer', 'exists:chats,id'],
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
+        $usage = (int) Cache::get($usageKey, 0);
+        $dailyLimit = $this->getDailyMessageLimitForUser($user);
+        if ($dailyLimit !== null && $usage >= $dailyLimit) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'لقد استهلكت جميع محاولاتك اليومية. حاول غداً ⏳',
+            ], 429);
+        }
+
+        $this->clearStudentCache($user->id);
+        $currentPeriod = AcademicPeriod::current();
+
+        if (!$this->checkRateLimit($user->id)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => '⏳ وصلت للحد الأقصى. حاول لاحقاً.',
+            ], 429);
+        }
+
+        $chat = $this->resolveChat($user, $data['chat_id'] ?? null, $data['message']);
+        $chatId = $chat->id;
+        $isNewChat = $chat->wasRecentlyCreated;
+
+        $chat->messages()->create(['role' => 'user', 'content' => $data['message']]);
+
+        $academicData = $this->getStudentAcademicData($user);
+        $cartData = $this->getCartData($user);
+        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartData['ids'], $user);
+        $registrationLimits = $this->getRegistrationLimits($currentPeriod, (bool) ($academicData['is_probation'] ?? false));
+        $academicData = array_merge($academicData, [
+            'current_period_label' => $currentPeriod?->displayLabel() ?? 'غير محدد',
+            'current_period_term' => $currentPeriod?->academic_term,
+            'current_period_year' => $currentPeriod?->academic_year,
+            'current_period_is_summer' => $registrationLimits['is_summer'],
+            'current_term_limit' => $registrationLimits['term_limit'],
+            'academic_limit' => $registrationLimits['academic_limit'],
+            'effective_registration_limit' => $registrationLimits['effective_limit'],
+        ]);
+
+        $apiKeys = $this->getGeminiApiKeys();
+
+        // Check cache first
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses);
+        $cachedAiResponse = Cache::get($responseCacheKey);
+        if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
+            $chat->messages()->create([
+                'role' => 'ai',
+                'content' => json_encode($cachedAiResponse, JSON_UNESCAPED_UNICODE),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'type' => 'cached',
+                'reply' => (string) $cachedAiResponse['reply'],
+                'suggested_courses' => $cachedAiResponse['suggested_courses'] ?? [],
+                'courses_to_remove' => $cachedAiResponse['courses_to_remove'] ?? [],
+                'follow_up_suggestions' => $cachedAiResponse['follow_up_suggestions'] ?? [],
+                'interactive_widget' => $cachedAiResponse['interactive_widget'] ?? null,
+                'chat_id' => $chatId,
+                'chat_title' => $isNewChat ? $chat->title : null,
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
+                'has_daily_limit' => $dailyLimit !== null,
+            ]);
+        }
+
+        if (empty($apiKeys)) {
+            // Fallback mode
+            $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+            $chat->messages()->create([
+                'role' => 'ai',
+                'content' => json_encode($parsed, JSON_UNESCAPED_UNICODE),
+            ]);
+            if ($dailyLimit !== null) {
+                Cache::put($usageKey, $usage + 1, now()->endOfDay());
+            }
+            return response()->json([
+                'status' => 'success',
+                'type' => 'fallback',
+                'reply' => $parsed['reply'],
+                'suggested_courses' => $parsed['suggested_courses'] ?? [],
+                'courses_to_remove' => $parsed['courses_to_remove'] ?? [],
+                'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [],
+                'interactive_widget' => $parsed['interactive_widget'] ?? null,
+                'chat_id' => $chatId,
+                'chat_title' => $isNewChat ? $chat->title : null,
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)),
+                'has_daily_limit' => $dailyLimit !== null,
+                'is_fallback' => true,
+            ]);
+        }
+
+        // Stream from Gemini
+        $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
+        $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext);
+        $conversationContents = $this->buildConversationContext($chat, $systemPrompt);
+
+        $model = 'gemini-2.5-flash';
+        $sortedKeys = $this->sortKeysByAvailability($apiKeys);
+
+        $selectedKey = null;
+        foreach ($sortedKeys as $candidateKey) {
+            if ($this->getKeyCooldownRemaining($candidateKey) === 0 && $this->getKeyRpm($candidateKey) < self::RPM_LIMIT) {
+                $selectedKey = $candidateKey;
+                break;
+            }
+        }
+
+        if (!$selectedKey) {
+            // All keys exhausted, use fallback
+            $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+            $replyText = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
+            $chat->messages()->create([
+                'role' => 'ai',
+                'content' => json_encode(array_merge($parsed, ['reply' => $replyText]), JSON_UNESCAPED_UNICODE),
+            ]);
+            if ($dailyLimit !== null) {
+                Cache::put($usageKey, $usage + 1, now()->endOfDay());
+            }
+            return response()->json([
+                'status' => 'success',
+                'type' => 'fallback',
+                'reply' => $replyText,
+                'suggested_courses' => $parsed['suggested_courses'] ?? [],
+                'courses_to_remove' => $parsed['courses_to_remove'] ?? [],
+                'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [],
+                'interactive_widget' => $parsed['interactive_widget'] ?? null,
+                'chat_id' => $chatId,
+                'chat_title' => $isNewChat ? $chat->title : null,
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)),
+                'has_daily_limit' => $dailyLimit !== null,
+                'is_fallback' => true,
+                'fallback_reason' => 'all_keys_exhausted',
+            ]);
+        }
+
+        // SSE streaming response
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:streamGenerateContent?alt=sse&key={$selectedKey}";
+
+        return response()->stream(function () use ($url, $conversationContents, $selectedKey, $chat, $chatId, $isNewChat, $user, $academicData, $cartData, $availableCourses, $responseCacheKey, $usageKey, $usage, $dailyLimit, $data) {
+            $fullText = '';
+            $streamFailed = false;
+
+            try {
+                $this->incrementKeyRpm($selectedKey);
+
+                $response = Http::withoutVerifying()
+                    ->connectTimeout(8)
+                    ->timeout(60)
+                    ->withHeaders([
+                        'Content-Type' => 'application/json',
+                        'Accept' => 'text/event-stream',
+                    ])
+                    ->withOptions(['stream' => true])
+                    ->post($url, [
+                        'contents' => $conversationContents,
+                        'generationConfig' => [
+                            'responseMimeType' => 'application/json',
+                            'temperature' => 0.3,
+                        ],
+                    ]);
+
+                $status = $response->status();
+
+                if ($status === 429) {
+                    $this->setCooldown($selectedKey, 60, 'rate_limited_429');
+                    $streamFailed = true;
+                } elseif (in_array($status, [401, 403])) {
+                    $this->setCooldown($selectedKey, 600, 'invalid_key_' . $status);
+                    $streamFailed = true;
+                } elseif ($status === 503) {
+                    $this->setCooldown($selectedKey, 30, 'server_overloaded_503');
+                    $streamFailed = true;
+                } elseif (!$response->successful()) {
+                    $streamFailed = true;
+                }
+
+                if ($streamFailed) {
+                    // Fallback on stream failure
+                    $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+                    $fallbackReply = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
+
+                    echo "data: " . json_encode(['type' => 'fallback', 'content' => $fallbackReply, 'chat_id' => $chatId, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
+                    ob_flush(); flush();
+
+                    echo "data: " . json_encode(['type' => 'done', 'chat_id' => $chatId, 'chat_title' => $isNewChat ? $chat->title : null, 'suggested_courses' => $parsed['suggested_courses'] ?? [], 'courses_to_remove' => $parsed['courses_to_remove'] ?? [], 'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [], 'interactive_widget' => $parsed['interactive_widget'] ?? null, 'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)), 'has_daily_limit' => $dailyLimit !== null, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
+                    ob_flush(); flush();
+
+                    $chat->messages()->create([
+                        'role' => 'ai',
+                        'content' => json_encode(array_merge($parsed, ['reply' => $fallbackReply]), JSON_UNESCAPED_UNICODE),
+                    ]);
+                    if ($dailyLimit !== null) {
+                        Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                    }
+                    return;
+                }
+
+                // Parse SSE stream
+                $body = $response->toPsrResponse()->getBody();
+                $buffer = '';
+
+                while (!$body->eof()) {
+                    $chunk = $body->read(512);
+                    if ($chunk === '' || $chunk === false) break;
+                    $buffer .= $chunk;
+
+                    // Process complete SSE events
+                    while (($pos = strpos($buffer, "\n\n")) !== false) {
+                        $event = substr($buffer, 0, $pos);
+                        $buffer = substr($buffer, $pos + 2);
+
+                        // Extract data from SSE
+                        if (preg_match('/^data:\s*(.+)$/m', $event, $m)) {
+                            $jsonData = json_decode(trim($m[1]), true);
+                            if (json_last_error() === JSON_ERROR_NONE) {
+                                $textPart = $jsonData['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                                if (is_string($textPart) && $textPart !== '') {
+                                    $fullText .= $textPart;
+                                    echo "data: " . json_encode(['type' => 'chunk', 'content' => $textPart], JSON_UNESCAPED_UNICODE) . "\n\n";
+                                    if (ob_get_level()) ob_flush();
+                                    flush();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Process remaining buffer
+                if (trim($buffer) !== '' && preg_match('/^data:\s*(.+)$/m', $buffer, $m)) {
+                    $jsonData = json_decode(trim($m[1]), true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $textPart = $jsonData['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                        if (is_string($textPart) && $textPart !== '') {
+                            $fullText .= $textPart;
+                            echo "data: " . json_encode(['type' => 'chunk', 'content' => $textPart], JSON_UNESCAPED_UNICODE) . "\n\n";
+                            if (ob_get_level()) ob_flush();
+                            flush();
+                        }
+                    }
+                }
+
+            } catch (\Throwable $e) {
+                Log::error('Gemini SSE Error: ' . $e->getMessage());
+                $streamFailed = true;
+            }
+
+            // Process the complete response
+            if ($fullText !== '' && !$streamFailed) {
+                $this->workingApiKey = $selectedKey;
+                $dailyKey = 'gemini_key_usage_' . md5($selectedKey) . '_' . date('Y-m-d');
+                Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
+
+                $parsed = $this->parseAIResponse($fullText);
+                $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
+                $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
+                $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
+                $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableCourses['map'], $cartData['map']);
+
+                $matched = $this->matchCoursesInReply($replyText, $availableCourses['map'], $cartData['map']);
+                $suggestedDetails = !empty($matched['suggested'])
+                    ? Course::whereIn('id', $matched['suggested'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                    : [];
+                $removeDetails = !empty($matched['remove'])
+                    ? Course::whereIn('id', $matched['remove'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                    : [];
+
+                $chat->messages()->create([
+                    'role' => 'ai',
+                    'content' => json_encode([
+                        'reply' => $replyText,
+                        'suggested_courses' => $suggestedDetails,
+                        'courses_to_remove' => $removeDetails,
+                        'follow_up_suggestions' => $followUpSuggestions,
+                        'interactive_widget' => $interactiveWidget,
+                    ], JSON_UNESCAPED_UNICODE),
+                ]);
+
+                if ($isNewChat) {
+                    $title = $this->makeFallbackTitle($data['message']);
+                    $chat->update(['title' => $title]);
+                }
+
+                if ($dailyLimit !== null) {
+                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                }
+
+                Cache::put($responseCacheKey, [
+                    'reply' => $replyText,
+                    'suggested_courses' => $suggestedDetails,
+                    'courses_to_remove' => $removeDetails,
+                    'follow_up_suggestions' => $followUpSuggestions,
+                    'interactive_widget' => $interactiveWidget,
+                ], now()->addHours(2));
+
+                // Send final done event with parsed data
+                echo "data: " . json_encode([
+                    'type' => 'done',
+                    'reply' => $replyText,
+                    'chat_id' => $chatId,
+                    'chat_title' => $isNewChat ? $chat->title : null,
+                    'suggested_courses' => $suggestedDetails,
+                    'courses_to_remove' => $removeDetails,
+                    'follow_up_suggestions' => $followUpSuggestions,
+                    'interactive_widget' => $interactiveWidget,
+                    'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)),
+                    'has_daily_limit' => $dailyLimit !== null,
+                    'is_fallback' => false,
+                ], JSON_UNESCAPED_UNICODE) . "\n\n";
+                if (ob_get_level()) ob_flush();
+                flush();
+            } elseif ($streamFailed && $fullText === '') {
+                // Fallback if stream completely failed
+                $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+                $fallbackReply = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
+
+                $chat->messages()->create([
+                    'role' => 'ai',
+                    'content' => json_encode(array_merge($parsed, ['reply' => $fallbackReply]), JSON_UNESCAPED_UNICODE),
+                ]);
+
+                if ($dailyLimit !== null) {
+                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                }
+
+                echo "data: " . json_encode(['type' => 'fallback', 'content' => $fallbackReply, 'chat_id' => $chatId, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
+                if (ob_get_level()) ob_flush();
+                flush();
+
+                echo "data: " . json_encode(['type' => 'done', 'chat_id' => $chatId, 'chat_title' => $isNewChat ? $chat->title : null, 'suggested_courses' => $parsed['suggested_courses'] ?? [], 'courses_to_remove' => $parsed['courses_to_remove'] ?? [], 'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [], 'interactive_widget' => $parsed['interactive_widget'] ?? null, 'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)), 'has_daily_limit' => $dailyLimit !== null, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
+                if (ob_get_level()) ob_flush();
+                flush();
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
+    /**
      * Admin endpoint: returns health status and usage stats for all configured Gemini API keys.
+     * Now includes RPM data, cooldown status, and doesn't waste API requests on health checks.
      */
     public function getApiKeyStatus()
     {
@@ -1446,71 +1900,39 @@ class AiAdvisorController extends Controller
             $cacheKey = 'gemini_key_usage_' . md5($key) . '_' . $today;
             $todayUsage = (int) Cache::get($cacheKey, 0);
 
-            // Collect usage for last 7 days
+            // RPM data
+            $currentRpm = $this->getKeyRpm($key);
+            $cooldownRemaining = $this->getKeyCooldownRemaining($key);
+            $cooldownReason = (string) Cache::get('gemini_cooldown_reason_' . md5($key), '');
+
+            // Weekly usage
             $weeklyUsage = 0;
             for ($d = 0; $d < 7; $d++) {
                 $dateKey = 'gemini_key_usage_' . md5($key) . '_' . date('Y-m-d', strtotime("-{$d} days"));
                 $weeklyUsage += (int) Cache::get($dateKey, 0);
             }
 
-            // Test the key with a minimal request
-            $status = 'unknown';
-            $statusMessage = '';
-            $healthCacheKey = 'gemini_key_health_' . md5($key);
-            $cachedHealth = Cache::get($healthCacheKey);
-
-            if ($cachedHealth && isset($cachedHealth['checked_at'])) {
-                $checkedAt = strtotime($cachedHealth['checked_at']);
-                // Use cached result if checked within the last 5 minutes
-                if (time() - $checkedAt < 300) {
-                    $status = $cachedHealth['status'];
-                    $statusMessage = $cachedHealth['message'];
+            // Determine status from cooldown & RPM (no API call needed!)
+            if ($cooldownRemaining > 0) {
+                if (str_contains($cooldownReason, 'invalid_key') || str_contains($cooldownReason, '401') || str_contains($cooldownReason, '403')) {
+                    $status = 'invalid';
+                    $statusMessage = '❌ المفتاح غير صالح أو محذوف';
+                } elseif (str_contains($cooldownReason, 'rate_limited') || str_contains($cooldownReason, '429')) {
+                    $status = 'cooldown';
+                    $statusMessage = "⏳ يستريح — ضغط على المفتاح (يعود خلال {$cooldownRemaining} ثانية)";
+                } elseif (str_contains($cooldownReason, '503') || str_contains($cooldownReason, 'overloaded')) {
+                    $status = 'cooldown';
+                    $statusMessage = "🔄 ضغط على سيرفرات جوجل (يعود خلال {$cooldownRemaining} ثانية)";
                 } else {
-                    $cachedHealth = null;
+                    $status = 'cooldown';
+                    $statusMessage = "⏳ في استراحة ({$cooldownRemaining} ثانية متبقية)";
                 }
-            }
-
-            if (!$cachedHealth) {
-                try {
-                    $response = Http::withoutVerifying()
-                        ->connectTimeout(5)
-                        ->timeout(8)
-                        ->withHeaders(['Content-Type' => 'application/json'])
-                        ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$key}", [
-                            'contents' => [
-                                ['role' => 'user', 'parts' => [['text' => 'Say OK']]]
-                            ],
-                            'generationConfig' => [
-                                'maxOutputTokens' => 5,
-                                'temperature' => 0,
-                            ],
-                        ]);
-
-                    if ($response->successful()) {
-                        $status = 'active';
-                        $statusMessage = 'يعمل بشكل طبيعي';
-                    } elseif ($response->status() === 429) {
-                        $status = 'rate_limited';
-                        $statusMessage = '429: تم الوصول لحد الطلبات/الحصة مؤقتاً. قد تكون الحصة مشتركة بين جميع المفاتيح.';
-                    } elseif (in_array($response->status(), [401, 403])) {
-                        $status = 'invalid';
-                        $statusMessage = 'المفتاح غير صالح أو محظور (' . $response->status() . ')';
-                    } else {
-                        $status = 'error';
-                        $statusMessage = 'خطأ HTTP: ' . $response->status();
-                    }
-                } catch (\Throwable $e) {
-                    $status = 'error';
-                    $statusMessage = 'فشل الاتصال: ' . class_basename($e);
-                }
-
-                $ttlMinutes = $status === 'rate_limited' ? 1 : 5;
-
-                Cache::put($healthCacheKey, [
-                    'status' => $status,
-                    'message' => $statusMessage,
-                    'checked_at' => now()->toDateTimeString(),
-                ], now()->addMinutes($ttlMinutes));
+            } elseif ($currentRpm >= self::RPM_LIMIT) {
+                $status = 'rpm_full';
+                $statusMessage = "⚡ وصل حد الدقيقة ({$currentRpm}/" . self::RPM_LIMIT . ") — يتجدد تلقائياً";
+            } else {
+                $status = 'active';
+                $statusMessage = '✅ يعمل بشكل طبيعي';
             }
 
             $results[] = [
@@ -1520,37 +1942,52 @@ class AiAdvisorController extends Controller
                 'status_message' => $statusMessage,
                 'today_usage' => $todayUsage,
                 'weekly_usage' => $weeklyUsage,
+                'current_rpm' => $currentRpm,
+                'rpm_limit' => self::RPM_LIMIT,
+                'cooldown_remaining' => $cooldownRemaining,
+                'cooldown_reason' => $cooldownReason,
                 'estimated_daily_limit' => 1500,
                 'estimated_remaining' => max(0, 1500 - $todayUsage),
             ];
         }
 
-        // Calculate global stats
+        // Summary
         $totalTodayUsage = collect($results)->sum('today_usage');
         $totalWeeklyUsage = collect($results)->sum('weekly_usage');
         $activeKeys = collect($results)->where('status', 'active')->count();
-        $rateLimitedKeys = collect($results)->where('status', 'rate_limited')->count();
-        $invalidKeys = collect($results)->whereIn('status', ['invalid', 'error'])->count();
+        $cooldownKeys = collect($results)->whereIn('status', ['cooldown', 'rpm_full'])->count();
+        $invalidKeys = collect($results)->where('status', 'invalid')->count();
 
-        // Total AI chats and messages today
         $totalChats = DB::table('chats')->count();
         $todayMessages = DB::table('messages')
-            ->where('role', 'assistant')
+            ->whereIn('role', ['ai', 'assistant'])
             ->whereDate('created_at', $today)
             ->count();
+
+        // System health level
+        $totalKeys = count($results);
+        $healthLevel = 'excellent';
+        if ($totalKeys === 0) {
+            $healthLevel = 'offline';
+        } elseif ($activeKeys === 0) {
+            $healthLevel = 'critical';
+        } elseif ($activeKeys < ceil($totalKeys / 2)) {
+            $healthLevel = 'degraded';
+        }
 
         return response()->json([
             'keys' => $results,
             'summary' => [
-                'total_keys' => count($results),
+                'total_keys' => $totalKeys,
                 'active_keys' => $activeKeys,
-                'exhausted_keys' => $rateLimitedKeys,
-                'rate_limited_keys' => $rateLimitedKeys,
+                'cooldown_keys' => $cooldownKeys,
                 'invalid_keys' => $invalidKeys,
                 'today_total_usage' => $totalTodayUsage,
                 'weekly_total_usage' => $totalWeeklyUsage,
                 'total_chats' => $totalChats,
                 'today_ai_messages' => $todayMessages,
+                'health_level' => $healthLevel,
+                'rpm_limit' => self::RPM_LIMIT,
             ],
         ]);
     }
