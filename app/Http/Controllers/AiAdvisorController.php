@@ -881,7 +881,8 @@ class AiAdvisorController extends Controller
             "المواد المتاحة للتسجيل للطالب:\n{$availableCourses['text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_courses\":[],\"courses_to_remove\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
-            "هام جداً: يجب أن يكون نص الـ reply سطراً واحداً برمجياً، استخدم الحرفين \\n للنزول سطر جديد ولا تضغط Enter (Literal newlines) داخل النص لتجنب كسر الـ JSON.";
+            "هام جداً: يجب أن يكون نص الـ reply سطراً واحداً برمجياً، استخدم الحرفين \\n للنزول سطر جديد ولا تضغط Enter (Literal newlines) داخل النص لتجنب كسر الـ JSON.\n" .
+            "🚨 تحذير شديد: إياك أن تقترح أو تدخل أي مادة في الـ JSON (سواء في suggested_courses أو interactive_widget) غير موجودة حرفياً في قائمة (المواد المتاحة للتسجيل للطالب). اختراع أسماء مواد من عندك سيسبب خطأ فادح بالنظام.";
     }
 
     private function buildConversationContext($chat, string $systemPrompt): array
@@ -1359,27 +1360,31 @@ class AiAdvisorController extends Controller
         };
 
         if ($widget['type'] === 'comparison' && isset($widget['items']) && is_array($widget['items'])) {
-            foreach ($widget['items'] as &$item) {
+            $validItems = [];
+            foreach ($widget['items'] as $item) {
                 if (!empty($item['name'])) {
                     $foundId = $findCourseId($item['name']);
                     if ($foundId) {
                         $item['id'] = $foundId;
+                        $validItems[] = $item;
                     }
                 }
             }
-            unset($item);
+            $widget['items'] = $validItems;
         }
 
         if ($widget['type'] === 'cart_review' && isset($widget['courses']) && is_array($widget['courses'])) {
-            foreach ($widget['courses'] as &$course) {
+            $validCourses = [];
+            foreach ($widget['courses'] as $course) {
                 if (!empty($course['name'])) {
                     $foundId = $findCourseId($course['name']);
                     if ($foundId) {
                         $course['id'] = $foundId;
+                        $validCourses[] = $course;
                     }
                 }
             }
-            unset($course);
+            $widget['courses'] = $validCourses;
         }
 
         return $widget;
