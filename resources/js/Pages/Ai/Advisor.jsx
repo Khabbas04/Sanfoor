@@ -503,7 +503,6 @@ export default function Advisor() {
         const t = text?.trim(); 
         if (!t || generating || typing) return;
 
-        // معالجة الأوامر السحرية
         if (t.startsWith('/')) {
             const matchedCmd = magicCommands.find(c => c.cmd === t || t.startsWith(c.cmd));
             if (matchedCmd) {
@@ -524,121 +523,57 @@ export default function Advisor() {
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
 
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             const pl = { message: t };
             if (activeId) pl.chat_id = activeId;
 
-            const res = await fetch(route('ai.advisor.stream'), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'text/event-stream',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(pl),
+            const res = await axios.post(route('ai.advisor.stream'), pl, {
                 signal: abortRef.current.signal,
             });
 
-            // Handle non-stream responses (cached, fallback, error)
-            const contentType = res.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                const data = await res.json();
-                setTyping(false);
+            const data = res.data;
+            setTyping(false);
 
-                if (data.status === 'error') {
-                    if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
-                    if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
-                    setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: data.message || 'خطأ غير متوقع.', isAnimating:false }]);
-                    return;
-                }
-
-                if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+            if (data.status === 'error') {
                 if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
-                setIsFallback(!!data.is_fallback);
-
-                const safeReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : 'ما وصلني رد واضح.';
-                setGenerating(true);
-                if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
-                typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
-                setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:data.suggested_courses||[], courses_to_remove:data.courses_to_remove||[], follow_up_suggestions:data.follow_up_suggestions||[], interactive_widget:data.interactive_widget||null, isAnimating:true }]);
-                if (!activeId && data.chat_id) { setActiveId(data.chat_id); setChats(p => [{ id:data.chat_id, title:data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
+                if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+                setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: data.message || 'خطأ غير متوقع.', isAnimating:false }]);
                 return;
             }
 
-            // SSE Streaming mode 🚀
-            setTyping(false);
+            if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+            if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
+            setIsFallback(!!data.is_fallback);
+
+            const safeReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : 'ما وصلني رد واضح.';
             setGenerating(true);
-            const streamMsgId = `stream-${Date.now()}`;
-            setMsgs(p => [...p, { id: streamMsgId, role:'ai', content:'', suggested_courses:[], courses_to_remove:[], follow_up_suggestions:[], interactive_widget:null, isAnimating:false, isStreaming:true }]);
+            if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
+            typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
+            
+            setMsgs(p => [...p, { 
+                id:`ai-${Date.now()}`, 
+                role:'ai', 
+                content:safeReply, 
+                suggested_courses:data.suggested_courses||[], 
+                courses_to_remove:data.courses_to_remove||[], 
+                follow_up_suggestions:data.follow_up_suggestions||[], 
+                interactive_widget:data.interactive_widget||null, 
+                isAnimating:true 
+            }]);
 
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let streamedText = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-                    const jsonStr = line.slice(6).trim();
-                    if (!jsonStr) continue;
-
-                    try {
-                        const evt = JSON.parse(jsonStr);
-
-                        if (evt.type === 'chunk') {
-                            streamedText += evt.content;
-                            setMsgs(p => p.map(m => m.id === streamMsgId ? { ...m, content: streamedText } : m));
-                            scroll();
-                        } else if (evt.type === 'fallback') {
-                            streamedText = evt.content || '';
-                            setIsFallback(true);
-                            setFallbackReason(evt.fallback_reason || 'gemini_unavailable');
-                            setMsgs(p => p.map(m => m.id === streamMsgId ? { ...m, content: streamedText, isStreaming: false } : m));
-                        } else if (evt.type === 'done') {
-                            const finalReply = evt.reply || streamedText;
-                            setMsgs(p => p.map(m => m.id === streamMsgId ? {
-                                ...m,
-                                content: finalReply,
-                                suggested_courses: evt.suggested_courses || [],
-                                courses_to_remove: evt.courses_to_remove || [],
-                                follow_up_suggestions: evt.follow_up_suggestions || [],
-                                interactive_widget: evt.interactive_widget || null,
-                                isStreaming: false,
-                                isAnimating: false,
-                            } : m));
-
-                            if (evt.has_daily_limit !== undefined) setHasDailyLimit(!!evt.has_daily_limit);
-                            if (evt.daily_messages_remaining !== undefined) setRemaining(evt.daily_messages_remaining);
-                            setIsFallback(!!evt.is_fallback);
-
-                            if (!activeId && evt.chat_id) {
-                                setActiveId(evt.chat_id);
-                                setChats(p => [{ id: evt.chat_id, title: evt.chat_title || t.substring(0,40)+'...', created_at: new Date().toISOString() }, ...p]);
-                            }
-                            if (evt.chat_title && evt.chat_id) {
-                                setChats(p => p.map(c => c.id === evt.chat_id ? {...c, title: evt.chat_title} : c));
-                            }
-                        }
-                    } catch {}
-                }
+            if (!activeId && data.chat_id) { 
+                setActiveId(data.chat_id); 
+                setChats(p => [{ id:data.chat_id, title:data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); 
+            } else if (data.chat_title && data.chat_id) {
+                setChats(p => p.map(c => c.id === data.chat_id ? {...c, title: data.chat_title} : c));
             }
 
+        } catch (err) {
+            setTyping(false);
+            if (axios.isCancel(err) || err?.name === 'AbortError') return;
+            setMsgs(p => [...p, { id:`err-${Date.now()}`, role:'ai', content:'عذراً، حدث خطأ في الاتصال. حاول مرة أخرى.', isAnimating:false }]);
+        } finally {
             setGenerating(false);
             setTimeout(scroll, 100);
-
-        } catch(e) {
-            if (e?.name === 'AbortError') return;
-            setGenerating(false);
-            setTyping(false);
-            setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: 'انقطع الاتصال. 📡', isAnimating:false }]);
         }
     }, [activeId, generating, typing, magicCommands, scroll]);
 
