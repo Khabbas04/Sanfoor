@@ -409,12 +409,12 @@ class TreeController extends Controller
      */
     public function updateGrade(Request $request)
     {
-        try {
-            $request->validate([
-                'course_id' => 'required|exists:courses,id',
-                'grade' => 'nullable|numeric|min:0|max:100',
-            ]);
+        $request->validate([
+            'course_id' => 'required|exists:courses,id',
+            'grade' => 'nullable|numeric|min:0|max:100',
+        ]);
 
+        try {
             $userId = Auth::id();
             $courseId = $request->course_id;
             $grade = $request->input('grade');
@@ -479,11 +479,11 @@ class TreeController extends Controller
      */
     public function toggleSingleCart(Request $request)
     {
-        try {
-            $request->validate([
-                'course_id' => 'required|exists:courses,id',
-            ]);
+        $request->validate([
+            'course_id' => 'required|exists:courses,id',
+        ]);
 
+        try {
             $user = Auth::user();
             $courseId = $request->course_id;
             $course = Course::query()

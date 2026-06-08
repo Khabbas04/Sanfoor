@@ -44,6 +44,7 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
 // Reusable button used to add or remove suggested courses from the simulator cart.
 const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' }) => {
     const rm = variant === 'remove';
+    if (!course || !course.id) return null;
     if (rm && !isAdded) return null;
     return (
         <div className="flex items-center gap-2 sfr-fade-up">
@@ -86,7 +87,7 @@ const ComparisonWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                                 <span className="text-blue-600">🔓 تفتح {item.unlocks || 0} مواد</span>
                                 <span className={`px-1.5 py-0.5 rounded ${item.gpa_impact === 'مرتفع' ? 'bg-emerald-50 text-emerald-700' : item.gpa_impact === 'متوسط' ? 'bg-amber-50 text-amber-700' : 'bg-slate-50 text-slate-500'}`}>المعدل: {item.gpa_impact || '—'}</span>
                             </div>
-                            {active && (
+                            {active && item.id && (
                                 // 🆕 تم تمرير الساعات هنا: item.credit_hours
                                 <button onClick={(e) => { e.stopPropagation(); onToggleCourse(item.id, item.name, item.credit_hours); }} disabled={loadingCourseId === item.id}
                                     className={`w-full py-2 rounded-xl text-[11px] font-black transition-all active:scale-95 ${added ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' : 'bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white shadow-md shadow-blue-500/30'}`}>
@@ -247,14 +248,14 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
                                 <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${state.badge.bg}`}>{state.badge.text}</span>
 
                                 {/* 🛡️ المادة مو بالتسجيل التجريبي → زر إضافة أزرق (بغض النظر عن verdict) */}
-                                {!inCart && (
+                                {!inCart && c.id && (
                                     <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-blue-500/30">
                                         {loadingCourseId === c.id ? '⏳' : '➕ إضافة'}
                                     </button>
                                 )}
 
                                 {/* المادة بالتسجيل التجريبي + الـ AI يطلب حذفها → زر حذف أحمر تحذيري */}
-                                {inCart && c.verdict === 'remove' && (
+                                {inCart && c.verdict === 'remove' && c.id && (
                                     <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all">
                                         {loadingCourseId === c.id ? '⏳' : '🗑️ احذفها'}
                                     </button>

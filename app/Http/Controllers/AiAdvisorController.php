@@ -1360,8 +1360,11 @@ class AiAdvisorController extends Controller
 
         if ($widget['type'] === 'comparison' && isset($widget['items']) && is_array($widget['items'])) {
             foreach ($widget['items'] as &$item) {
-                if (empty($item['id']) && !empty($item['name'])) {
-                    $item['id'] = $findCourseId($item['name']);
+                if (!empty($item['name'])) {
+                    $foundId = $findCourseId($item['name']);
+                    if ($foundId) {
+                        $item['id'] = $foundId;
+                    }
                 }
             }
             unset($item);
@@ -1369,8 +1372,11 @@ class AiAdvisorController extends Controller
 
         if ($widget['type'] === 'cart_review' && isset($widget['courses']) && is_array($widget['courses'])) {
             foreach ($widget['courses'] as &$course) {
-                if (empty($course['id']) && !empty($course['name'])) {
-                    $course['id'] = $findCourseId($course['name']);
+                if (!empty($course['name'])) {
+                    $foundId = $findCourseId($course['name']);
+                    if ($foundId) {
+                        $course['id'] = $foundId;
+                    }
                 }
             }
             unset($course);
