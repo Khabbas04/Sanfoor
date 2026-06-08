@@ -25,6 +25,7 @@ class AiAdvisorController extends Controller
     private const MAX_HOURS_PROBATION = 12;
     private const ENABLE_SMART_TITLE = false;
     private const DAILY_LIMIT = 5;
+    private const RPM_LIMIT = 15;
 
     private ?string $workingApiKey = null;
 
@@ -1722,10 +1723,10 @@ class AiAdvisorController extends Controller
                     $fallbackReply = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
 
                     echo "data: " . json_encode(['type' => 'fallback', 'content' => $fallbackReply, 'chat_id' => $chatId, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
-                    ob_flush(); flush();
+                    if (ob_get_level()) ob_flush(); flush();
 
                     echo "data: " . json_encode(['type' => 'done', 'chat_id' => $chatId, 'chat_title' => $isNewChat ? $chat->title : null, 'suggested_courses' => $parsed['suggested_courses'] ?? [], 'courses_to_remove' => $parsed['courses_to_remove'] ?? [], 'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [], 'interactive_widget' => $parsed['interactive_widget'] ?? null, 'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)), 'has_daily_limit' => $dailyLimit !== null, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
-                    ob_flush(); flush();
+                    if (ob_get_level()) ob_flush(); flush();
 
                     $chat->messages()->create([
                         'role' => 'ai',
