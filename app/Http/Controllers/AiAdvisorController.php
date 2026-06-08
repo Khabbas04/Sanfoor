@@ -25,7 +25,6 @@ class AiAdvisorController extends Controller
     private const MAX_HOURS_PROBATION = 12;
     private const ENABLE_SMART_TITLE = false;
     private const DAILY_LIMIT = 5;
-    private const RPM_LIMIT = 15;
 
     private ?string $workingApiKey = null;
 

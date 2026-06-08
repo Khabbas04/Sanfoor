@@ -593,7 +593,7 @@ class TreeController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'تعذر تحديث التسجيل التجريبي الآن. حاول مرة أخرى.',
+                'message' => $e->getMessage() . ' at line ' . $e->getLine(),
             ], 500);
         }
     }
