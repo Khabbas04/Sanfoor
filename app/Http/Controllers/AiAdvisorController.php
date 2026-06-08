@@ -1534,9 +1534,9 @@ class AiAdvisorController extends Controller
     }
 
     /**
-     * Streaming SSE endpoint: sends AI response chunks in real-time.
+     * Standard JSON endpoint: sends AI response.
      */
-    public function streamChat(Request $request)
+    public function chat(Request $request)
     {
         set_time_limit(0);
 

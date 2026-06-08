@@ -302,7 +302,6 @@ const Actions = ({ msg, onRegen, onFeedback, isLast }) => {
 // ========== ChatMessage ==========
 const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRegen, onFb, onFollow }) => {
     const u = msg.role === 'user';
-    const isStreaming = msg.isStreaming && !msg.isAnimating;
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
@@ -317,22 +316,15 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                             <div className="sfr-ai-shell">
                                 <div className="sfr-ai-card">
                                     <div className="sfr-md text-[12.5px] font-medium">
-                                        {isStreaming ? (
-                                            <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5">
-                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                                <span className="inline-block w-2 h-4 bg-blue-500 rounded-sm animate-pulse ml-0.5 align-middle" />
-                                            </div>
-                                        ) : (
-                                            <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/>
-                                        )}
+                                        <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/>
                                     </div>
                                 </div>
                             </div>
-                            {!msg.isAnimating && !isStreaming && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
-                            {!msg.isAnimating && !isStreaming && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
-                            {!msg.isAnimating && !isStreaming && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
-                            {!msg.isAnimating && !isStreaming && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
-                            {!msg.isAnimating && !isStreaming && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
+                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
+                            {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
+                            {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
+                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
+                            {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
                         </div>
                     )}
                 </div>
@@ -526,7 +518,7 @@ export default function Advisor() {
             const pl = { message: t };
             if (activeId) pl.chat_id = activeId;
 
-            const res = await axios.post(route('ai.advisor.stream'), pl, {
+            const res = await axios.post(route('ai.advisor.chat'), pl, {
                 signal: abortRef.current.signal,
             });
 

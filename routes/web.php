@@ -342,7 +342,7 @@ Route::middleware('auth')->group(function () {
     // AI advisor routes, including chat lifecycle operations.
     Route::get('/ai-advisor', [AiAdvisorController::class, 'index'])->name('ai.advisor');
     Route::post('/ai-advisor/chat', [AiAdvisorController::class, 'chat'])->name('ai.advisor.chat');
-    Route::post('/ai-advisor/stream', [AiAdvisorController::class, 'streamChat'])->name('ai.advisor.stream');
+
     Route::get('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class, 'getMessages'])->name('ai.advisor.messages');
     Route::post('/ai-advisor/regenerate', [AiAdvisorController::class, 'regenerate'])->name('ai.advisor.regenerate');
     Route::post('/ai-advisor/feedback', [AiAdvisorController::class, 'feedback'])->name('ai.advisor.feedback');
