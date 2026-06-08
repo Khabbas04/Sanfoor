@@ -752,32 +752,32 @@ export default function Advisor() {
             <link rel="canonical" href={`${siteUrl}/ai-advisor`} />
         </Head>
         <style dangerouslySetInnerHTML={{ __html: `
-            :root { --sfr-primary: #3b82f6; --sfr-accent: #06b6d4; }
-            .sfr-scrollbar::-webkit-scrollbar { width: 3px; }
-            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(186,230,253,.3); border-radius: 10px; }
-            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(186,230,253,.5); }
+            :root { --sfr-primary: #3b82f6; --sfr-accent: #6366f1; }
+            .sfr-scrollbar::-webkit-scrollbar { width: 4px; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(59,130,246,.2); border-radius: 10px; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,.4); }
             .typing-dot { animation: sfr-bounce 1.4s infinite ease-in-out both; }
             .typing-dot:nth-child(1) { animation-delay: -.32s; }
             .typing-dot:nth-child(2) { animation-delay: -.16s; }
             @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
-            .sfr-md p { margin-bottom: .4rem; line-height: 1.8; }
+            .sfr-md p { margin-bottom: .6rem; line-height: 1.85; color: #334155; }
             .sfr-md p:last-child { margin-bottom: 0; }
-            .sfr-md p:first-child { background: rgba(59,130,246,.10); border-right: 3px solid #3b82f6; padding: .35rem .5rem; border-radius: 10px; }
-            .sfr-md strong { color: #1e1b4b; font-weight: 900; background: rgba(253,224,71,.35); padding: 0 .2rem; border-radius: 6px; }
-            .sfr-md em { color: #0f766e; font-style: normal; font-weight: 800; }
-            .sfr-md ul { list-style: none; padding-right: .15rem; margin-bottom: .4rem; }
-            .sfr-md li { position: relative; padding-right: 1.1rem; margin-bottom: .25rem; line-height: 1.75; }
-            .sfr-md li::before { content: ""; position: absolute; right: .1rem; top: .65em; width: 4px; height: 4px; background: var(--sfr-primary); border-radius: 50%; }
+            .sfr-md p:first-child { background: linear-gradient(to left, rgba(59,130,246,0.06), transparent); border-right: 3px solid var(--sfr-primary); padding: .5rem .7rem; border-radius: 8px; font-weight: 600; color: #1e293b; margin-bottom: .8rem; }
+            .sfr-md strong { color: #1d4ed8; font-weight: 800; background: rgba(59,130,246,0.08); padding: 0.15rem 0.4rem; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(59,130,246,0.15); margin: 0 0.1rem; }
+            .sfr-md em { color: #4338ca; font-style: normal; font-weight: 700; background: rgba(99,102,241,0.08); padding: 0 0.2rem; border-radius: 4px; }
+            .sfr-md ul { list-style: none; padding-right: .2rem; margin-bottom: .8rem; margin-top: .4rem; }
+            .sfr-md li { position: relative; padding-right: 1.2rem; margin-bottom: .4rem; line-height: 1.7; color: #475569; }
+            .sfr-md li::before { content: ""; position: absolute; right: .15rem; top: .6em; width: 6px; height: 6px; background: linear-gradient(135deg, var(--sfr-primary), var(--sfr-accent)); border-radius: 50%; box-shadow: 0 0 4px rgba(59,130,246,0.4); }
             @keyframes sfr-su { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
-            .sfr-slide-up { animation: sfr-su .25s ease-out forwards; }
+            .sfr-slide-up { animation: sfr-su .3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
             @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
-            .sfr-fade-up { animation: sfr-fu .2s ease-out forwards; }
+            .sfr-fade-up { animation: sfr-fu .25s ease-out forwards; }
             @keyframes sfr-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,.2); } 50% { box-shadow: 0 0 0 5px rgba(59,130,246,0); } }
             .sfr-glow { animation: sfr-glow 3s infinite; }
-            .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .15s; cursor: pointer; }
-            .sfr-action-btn:hover { background: #f1f5f9; }
-            .sfr-ai-shell { background: linear-gradient(135deg, rgba(253,230,138,.55), rgba(199,210,254,.45), rgba(167,243,208,.45)); padding: 1px; border-radius: 18px; }
-            .sfr-ai-card { background: rgba(255,255,255,.98); border-radius: 18px; padding: .8rem .9rem; border: 1px solid rgba(59,130,246,.12); box-shadow: 0 18px 40px -28px rgba(15,23,42,.55); }
+            .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .2s; cursor: pointer; color: #64748b; }
+            .sfr-action-btn:hover { background: #f1f5f9; color: #334155; transform: scale(1.05); }
+            .sfr-ai-shell { background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(99,102,241,0.3), rgba(14,165,233,0.4)); padding: 1.5px; border-radius: 20px; box-shadow: 0 4px 20px -10px rgba(59,130,246,0.4); margin-bottom: 0.2rem; }
+            .sfr-ai-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); border-radius: 19px; padding: 1rem 1.1rem; }
         ` }} />
 
         <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
