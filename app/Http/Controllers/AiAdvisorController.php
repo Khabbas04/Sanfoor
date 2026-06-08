@@ -1686,68 +1686,138 @@ class AiAdvisorController extends Controller
             ]);
         }
 
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$selectedKey}";
+
+        $fullText = '';
+        $apiFailed = false;
+
+        try {
+            $this->incrementKeyRpm($selectedKey);
+
+            $response = Http::withoutVerifying()
+                ->connectTimeout(8)
+                ->timeout(60)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($url, [
+                    'contents' => $conversationContents,
+                    'generationConfig' => [
+                        'responseMimeType' => 'application/json',
+                        'temperature' => 0.3,
+                    ],
                 ]);
 
-                if ($isNewChat) {
-                    $title = $this->makeFallbackTitle($data['message']);
-                    $chat->update(['title' => $title]);
-                }
+            $status = $response->status();
 
-                if ($dailyLimit !== null) {
-                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
-                }
-
-                Cache::put($responseCacheKey, [
-                    'reply' => $replyText,
-                    'suggested_courses' => $suggestedDetails,
-                    'courses_to_remove' => $removeDetails,
-                    'follow_up_suggestions' => $followUpSuggestions,
-                    'interactive_widget' => $interactiveWidget,
-                ], now()->addHours(2));
-
-                // Send final done event with parsed data
-                echo "data: " . json_encode([
-                    'type' => 'done',
-                    'reply' => $replyText,
-                    'chat_id' => $chatId,
-                    'chat_title' => $isNewChat ? $chat->title : null,
-                    'suggested_courses' => $suggestedDetails,
-                    'courses_to_remove' => $removeDetails,
-                    'follow_up_suggestions' => $followUpSuggestions,
-                    'interactive_widget' => $interactiveWidget,
-                    'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)),
-                    'has_daily_limit' => $dailyLimit !== null,
-                    'is_fallback' => false,
-                ], JSON_UNESCAPED_UNICODE) . "\n\n";
-                if (ob_get_level()) ob_flush();
-                flush();
-            } elseif ($streamFailed && $fullText === '') {
-                // Fallback if stream completely failed
-                $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
-                $fallbackReply = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
-
-                $chat->messages()->create([
-                    'role' => 'ai',
-                    'content' => json_encode(array_merge($parsed, ['reply' => $fallbackReply]), JSON_UNESCAPED_UNICODE),
-                ]);
-
-                if ($dailyLimit !== null) {
-                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
-                }
-
-                echo "data: " . json_encode(['type' => 'fallback', 'content' => $fallbackReply, 'chat_id' => $chatId, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
-                if (ob_get_level()) ob_flush();
-                flush();
-
-                echo "data: " . json_encode(['type' => 'done', 'chat_id' => $chatId, 'chat_title' => $isNewChat ? $chat->title : null, 'suggested_courses' => $parsed['suggested_courses'] ?? [], 'courses_to_remove' => $parsed['courses_to_remove'] ?? [], 'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [], 'interactive_widget' => $parsed['interactive_widget'] ?? null, 'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)), 'has_daily_limit' => $dailyLimit !== null, 'is_fallback' => true], JSON_UNESCAPED_UNICODE) . "\n\n";
-                if (ob_get_level()) ob_flush();
-                flush();
+            if ($status === 429) {
+                $this->setCooldown($selectedKey, 60, 'rate_limited_429');
+                $apiFailed = true;
+            } elseif (in_array($status, [401, 403])) {
+                $this->setCooldown($selectedKey, 600, 'invalid_key_' . $status);
+                $apiFailed = true;
+            } elseif ($status === 503) {
+                $this->setCooldown($selectedKey, 30, 'server_overloaded_503');
+                $apiFailed = true;
+            } elseif (!$response->successful()) {
+                $apiFailed = true;
             }
-        }, 200, [
-            'Content-Type' => 'text/event-stream',
-            'Cache-Control' => 'no-cache',
-            'Connection' => 'keep-alive',
-            'X-Accel-Buffering' => 'no',
+
+            if (!$apiFailed) {
+                $candidate = $response->json('candidates.0');
+                $fullText = $candidate['content']['parts'][0]['text'] ?? '';
+            }
+        } catch (\Throwable $e) {
+            Log::error('Gemini API Error: ' . $e->getMessage());
+            $apiFailed = true;
+        }
+
+        if ($fullText !== '' && !$apiFailed) {
+            $this->workingApiKey = $selectedKey;
+            $dailyKey = 'gemini_key_usage_' . md5($selectedKey) . '_' . date('Y-m-d');
+            Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
+
+            $parsed = $this->parseAIResponse($fullText);
+            $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
+            $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
+            $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
+            $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableCourses['map'], $cartData['map']);
+
+            $matched = $this->matchCoursesInReply($replyText, $availableCourses['map'], $cartData['map']);
+            $suggestedDetails = !empty($matched['suggested'])
+                ? Course::whereIn('id', $matched['suggested'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                : [];
+            $removeDetails = !empty($matched['remove'])
+                ? Course::whereIn('id', $matched['remove'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                : [];
+
+            $chat->messages()->create([
+                'role' => 'ai',
+                'content' => json_encode([
+                    'reply' => $replyText,
+                    'suggested_courses' => $suggestedDetails,
+                    'courses_to_remove' => $removeDetails,
+                    'follow_up_suggestions' => $followUpSuggestions,
+                    'interactive_widget' => $interactiveWidget,
+                ], JSON_UNESCAPED_UNICODE),
+            ]);
+
+            if ($isNewChat) {
+                $title = $this->makeFallbackTitle($data['message']);
+                $chat->update(['title' => $title]);
+            }
+
+            if ($dailyLimit !== null) {
+                Cache::put($usageKey, $usage + 1, now()->endOfDay());
+            }
+
+            Cache::put($responseCacheKey, [
+                'reply' => $replyText,
+                'suggested_courses' => $suggestedDetails,
+                'courses_to_remove' => $removeDetails,
+                'follow_up_suggestions' => $followUpSuggestions,
+                'interactive_widget' => $interactiveWidget,
+            ], now()->addHours(2));
+
+            return response()->json([
+                'status' => 'success',
+                'reply' => $replyText,
+                'chat_id' => $chatId,
+                'chat_title' => $isNewChat ? $chat->title : null,
+                'suggested_courses' => $suggestedDetails,
+                'courses_to_remove' => $removeDetails,
+                'follow_up_suggestions' => $followUpSuggestions,
+                'interactive_widget' => $interactiveWidget,
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)),
+                'has_daily_limit' => $dailyLimit !== null,
+                'is_fallback' => false,
+            ]);
+        }
+
+        // Final fallback if parsing failed or apiFailed
+        $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+        $fallbackReply = "💡 *(مستشار سنفور البديل)*\n\n" . $parsed['reply'];
+
+        $chat->messages()->create([
+            'role' => 'ai',
+            'content' => json_encode(array_merge($parsed, ['reply' => $fallbackReply]), JSON_UNESCAPED_UNICODE),
+        ]);
+        if ($dailyLimit !== null) {
+            Cache::put($usageKey, $usage + 1, now()->endOfDay());
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'reply' => $fallbackReply,
+            'chat_id' => $chatId,
+            'chat_title' => $isNewChat ? $chat->title : null,
+            'suggested_courses' => $parsed['suggested_courses'] ?? [],
+            'courses_to_remove' => $parsed['courses_to_remove'] ?? [],
+            'follow_up_suggestions' => $parsed['follow_up_suggestions'] ?? [],
+            'interactive_widget' => $parsed['interactive_widget'] ?? null,
+            'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - ($usage + 1)),
+            'has_daily_limit' => $dailyLimit !== null,
+            'is_fallback' => true,
         ]);
     }
 
