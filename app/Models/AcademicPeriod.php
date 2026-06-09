@@ -10,6 +10,12 @@ class AcademicPeriod extends Model
 {
     use HasFactory;
 
+    protected static function booted()
+    {
+        static::saved(fn () => \Illuminate\Support\Facades\Cache::forget('academic_period_current'));
+        static::deleted(fn () => \Illuminate\Support\Facades\Cache::forget('academic_period_current'));
+    }
+
     protected $fillable = [
         'academic_year',
         'academic_term',
@@ -24,15 +30,17 @@ class AcademicPeriod extends Model
 
     public static function current(): ?self
     {
-        if (!Schema::hasTable('academic_periods')) {
-            return null;
-        }
-
-        return static::query()
-            ->where('is_current', true)
-            ->latest('updated_at')
-            ->first()
-            ?? static::query()->latest('updated_at')->first();
+        return \Illuminate\Support\Facades\Cache::remember('academic_period_current', 3600, function () {
+            try {
+                return static::query()
+                    ->where('is_current', true)
+                    ->latest('updated_at')
+                    ->first()
+                    ?? static::query()->latest('updated_at')->first();
+            } catch (\Exception $e) {
+                return null;
+            }
+        });
     }
 
     public static function termLabel(?int $term): string

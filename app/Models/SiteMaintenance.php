@@ -28,12 +28,20 @@ class SiteMaintenance extends Model
         'ended_at' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::saved(fn () => \Illuminate\Support\Facades\Cache::forget('site_maintenance_current'));
+        static::deleted(fn () => \Illuminate\Support\Facades\Cache::forget('site_maintenance_current'));
+    }
+
     public static function current(): ?self
     {
-        if (!Schema::hasTable('site_maintenance')) {
-            return null;
-        }
-
-        return static::query()->latest('updated_at')->first();
+        return \Illuminate\Support\Facades\Cache::remember('site_maintenance_current', 3600, function () {
+            try {
+                return static::query()->latest('updated_at')->first();
+            } catch (\Exception $e) {
+                return null;
+            }
+        });
     }
 }
