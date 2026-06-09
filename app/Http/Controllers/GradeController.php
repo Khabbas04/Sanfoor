@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 class GradeController extends Controller
 {
-    // عرض صفحة الحاسبة
     public function index()
     {
         $user = Auth::user();
@@ -20,8 +19,36 @@ class GradeController extends Controller
             ->withPivot('grade', 'studied_semester', 'studied_year', 'studied_term')
             ->get();
 
+        // جلب المواد من التسجيل التجريبي (سلة المواد)
+        $cartCourses = $user->cartCourses()
+            ->select('courses.id', 'courses.name', 'courses.credit_hours', 'courses.code', 'courses.semester')
+            ->withPivot('academic_year', 'academic_term')
+            ->get();
+
+        // تجهيز المواد التجريبية لتتناسب مع شكل مواد السجل
+        $mappedCartCourses = $cartCourses->map(function ($course) use ($passedCourses) {
+            // تخطي المادة إذا كانت موجودة مسبقاً في السجل
+            if ($passedCourses->contains('id', $course->id)) {
+                return null;
+            }
+            
+            $course->pivot = (object) [
+                'grade' => null, // لم تدرس بعد، نترك العلامة فارغة للسيناريو
+                'studied_year' => $course->pivot->academic_year ?? 1,
+                'studied_term' => $course->pivot->academic_term ?? 1,
+                'studied_semester' => ((($course->pivot->academic_year ?? 1) - 1) * 3) + ($course->pivot->academic_term ?? 1),
+            ];
+            
+            // إضافة خاصية لتمييزها في الواجهة إذا أردنا (اختياري)
+            $course->is_from_cart = true;
+
+            return $course;
+        })->filter();
+
+        $allCourses = $passedCourses->concat($mappedCartCourses)->values();
+
         return Inertia::render('Calculator/Index', [
-            'initialCourses' => $passedCourses
+            'initialCourses' => $allCourses
         ]);
     }
 
@@ -60,13 +87,15 @@ class GradeController extends Controller
                 }
             }
 
-            // تحديث الحقول في جدول course_user (الجدول الوسيط)
-            $user->passedCourses()->updateExistingPivot($courseId, [
-                'grade' => $cleanGrade,
-                'studied_semester' => $semester,
-                'studied_year' => $year,
-                'studied_term' => $term,
-                'updated_at' => now()
+            // إضافة المادة أو تحديثها في جدول course_user (الجدول الوسيط)
+            $user->passedCourses()->syncWithoutDetaching([
+                $courseId => [
+                    'grade' => $cleanGrade,
+                    'studied_semester' => $semester,
+                    'studied_year' => $year,
+                    'studied_term' => $term,
+                    'updated_at' => now()
+                ]
             ]);
         }
 
