@@ -583,6 +583,7 @@ class AdminController extends Controller
      */
     public function getOnlineUsers(Request $request)
     {
+        $request->session()->save(); // Release session lock
         $minutes = max(1, (int) ($request->input('minutes', 30)));
         $threshold = now()->subMinutes($minutes)->timestamp;
 
@@ -675,6 +676,7 @@ class AdminController extends Controller
      */
     public function getNewRegistrations(Request $request)
     {
+        $request->session()->save(); // Release session lock
         $sinceId = (int) $request->query('since_id', 0);
 
         $query = AdminLog::with('user:id,name,email,role')
@@ -759,6 +761,7 @@ class AdminController extends Controller
      */
     public function apiOwnerLogs(Request $request)
     {
+        $request->session()->save(); // Release session lock
         $user = Auth::user();
         abort_unless($user && $user->isOwner(), 403);
 
