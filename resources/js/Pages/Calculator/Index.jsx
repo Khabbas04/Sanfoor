@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar 
 } from 'recharts';
-import { Target, TrendingUp, AlertTriangle, Lightbulb, CheckCircle2, ChevronDown, Save, BarChart3, SlidersHorizontal } from 'lucide-react';
+import { Target, TrendingUp, AlertTriangle, Lightbulb, CheckCircle2, ChevronDown, Save, BarChart3, SlidersHorizontal, RotateCcw } from 'lucide-react';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
@@ -296,6 +296,15 @@ export default function Calculator({ auth, initialCourses }) {
         return 'text-rose-700 border-rose-300 bg-rose-50 focus:border-rose-500 shadow-sm'; 
     };
 
+    const resetCartGrades = () => {
+        setCourses(prev => prev.map(c => {
+            if (c.is_from_cart) {
+                return { ...c, pivot: { ...c.pivot, grade: '' } };
+            }
+            return c;
+        }));
+    };
+
     const saveGrades = async () => {
         setLoading(true);
         const coursesPayload = {};
@@ -422,6 +431,13 @@ export default function Calculator({ auth, initialCourses }) {
                                             className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-4 rounded-2xl font-black text-lg transition-all shadow-lg shadow-indigo-500/25 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                                         >
                                             {loading ? 'جاري الحفظ...' : <><Save size={20} /> حفظ السيناريو نهائياً</>}
+                                        </button>
+                                        <button
+                                            onClick={resetCartGrades}
+                                            disabled={loading || !courses.some(c => c.is_from_cart && c.pivot?.grade)}
+                                            className={`w-full py-3 rounded-2xl font-black text-base transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mt-3 ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                                        >
+                                            <RotateCcw size={18} /> تصفير علامات المحاكاة
                                         </button>
                                     </div>
                                 </div>
