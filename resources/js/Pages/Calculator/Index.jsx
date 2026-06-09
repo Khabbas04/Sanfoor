@@ -301,6 +301,7 @@ export default function Calculator({ auth, initialCourses }) {
         const coursesPayload = {};
         
         courses.forEach(c => {
+            if (c.is_from_cart) return; // لا تقم بحفظ مواد السلة التجريبية
             coursesPayload[c.id] = {
                 grade: c.pivot?.grade !== undefined && c.pivot?.grade !== '' ? parseFloat(c.pivot.grade) : null,
                 year: c.localYear,
@@ -565,9 +566,17 @@ export default function Calculator({ auth, initialCourses }) {
                                         </h3>
                                     </div>
                                     
-                                    <div className={`divide-y ${isDark ? 'divide-slate-800' : 'divide-slate-100'}`}>
-                                        {filteredCourses.map((course) => (
-                                            <div key={course.id} className={`p-5 sm:p-6 flex flex-col xl:flex-row gap-6 transition-colors ${isDark ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50/80'}`}>
+                                    <div className={`divide-y flex flex-col ${isDark ? 'divide-slate-800' : 'divide-slate-100'}`}>
+                                        {[
+                                            { title: '📚 السجل الأكاديمي', list: filteredCourses.filter(c => !c.is_from_cart), color: 'indigo' },
+                                            { title: '🧪 مواد التسجيل التجريبي (للمحاكاة فقط)', list: filteredCourses.filter(c => c.is_from_cart), color: 'amber' }
+                                        ].map((group, gIdx) => group.list.length > 0 && (
+                                            <React.Fragment key={gIdx}>
+                                                <div className={`p-4 px-6 text-[13px] font-black uppercase tracking-wider border-y border-transparent shadow-sm ${group.color === 'indigo' ? 'text-indigo-600 bg-indigo-50/70 ' + (isDark ? 'bg-indigo-900/20 text-indigo-400 border-indigo-900/30' : 'border-indigo-100/50') : 'text-amber-600 bg-amber-50/70 ' + (isDark ? 'bg-amber-900/20 text-amber-400 border-amber-900/30' : 'border-amber-100/50')}`}>
+                                                    {group.title}
+                                                </div>
+                                                {group.list.map((course) => (
+                                                    <div key={course.id} className={`p-5 sm:p-6 flex flex-col xl:flex-row gap-6 transition-colors ${isDark ? 'hover:bg-slate-800/50' : 'hover:bg-slate-50/80'} ${course.is_from_cart ? (isDark ? 'bg-amber-900/5' : 'bg-amber-50/30') : ''}`}>
                                                 <div className="flex items-start gap-4 flex-1">
                                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black shrink-0 shadow-sm border ${course.type === 'compulsory' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                                                         {course.credit_hours}س
@@ -627,6 +636,8 @@ export default function Calculator({ auth, initialCourses }) {
                                                     />
                                                 </div>
                                             </div>
+                                                ))}
+                                            </React.Fragment>
                                         ))}
 
                                         {filteredCourses.length === 0 && (
