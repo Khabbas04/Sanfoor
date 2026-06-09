@@ -25,8 +25,16 @@ class GradeController extends Controller
             ->withPivot('academic_year', 'academic_term')
             ->get();
 
+        // حساب السنة الدراسية الحالية للطالب بناءً على عدد الساعات المنجزة (باعتبار السنة 33 ساعة تقريباً)
+        $passedHours = $passedCourses->sum('credit_hours');
+        $currentStudyYear = max(1, (int) ceil(($passedHours + 1) / 33));
+
+        // جلب الفصل الأكاديمي الحالي من النظام (1 = أول، 2 = ثاني، 3 = صيفي)
+        $currentPeriod = \App\Models\AcademicPeriod::current();
+        $currentSystemTerm = $currentPeriod ? (int) $currentPeriod->academic_term : 1;
+
         // تجهيز المواد التجريبية لتتناسب مع شكل مواد السجل
-        $mappedCartCourses = $cartCourses->map(function ($course) use ($passedCourses) {
+        $mappedCartCourses = $cartCourses->map(function ($course) use ($passedCourses, $currentStudyYear, $currentSystemTerm) {
             // تخطي المادة إذا كانت موجودة مسبقاً في السجل
             if ($passedCourses->contains('id', $course->id)) {
                 return null;
@@ -34,12 +42,12 @@ class GradeController extends Controller
             
             $course->pivot = (object) [
                 'grade' => null, // لم تدرس بعد، نترك العلامة فارغة للسيناريو
-                'studied_year' => $course->pivot->academic_year ?? 1,
-                'studied_term' => $course->pivot->academic_term ?? 1,
-                'studied_semester' => ((($course->pivot->academic_year ?? 1) - 1) * 3) + ($course->pivot->academic_term ?? 1),
+                'studied_year' => $currentStudyYear,
+                'studied_term' => $currentSystemTerm,
+                'studied_semester' => (($currentStudyYear - 1) * 3) + $currentSystemTerm,
             ];
             
-            // إضافة خاصية لتمييزها في الواجهة إذا أردنا (اختياري)
+            // إضافة خاصية لتمييزها في الواجهة
             $course->is_from_cart = true;
 
             return $course;
