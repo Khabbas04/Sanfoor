@@ -589,12 +589,20 @@ export default function Calculator({ auth, initialCourses }) {
                                                                 {course.code}
                                                             </span>
 
-                                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-indigo-900/30 text-indigo-300 border-indigo-800' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
-                                                                سنة {course.localYear}
-                                                            </span>
-                                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-emerald-900/30 text-emerald-300 border-emerald-800' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                                                                {termLabel(course.localTerm)}
-                                                            </span>
+                                                            {course.is_from_cart ? (
+                                                                <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-amber-900/30 text-amber-400 border-amber-800/50' : 'bg-amber-50 text-amber-600 border-amber-200/60'}`}>
+                                                                    الفصل الحالي
+                                                                </span>
+                                                            ) : (
+                                                                <>
+                                                                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-indigo-900/30 text-indigo-300 border-indigo-800' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
+                                                                        سنة {course.localYear}
+                                                                    </span>
+                                                                    <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-emerald-900/30 text-emerald-300 border-emerald-800' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                                                        {termLabel(course.localTerm)}
+                                                                    </span>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
