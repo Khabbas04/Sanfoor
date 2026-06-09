@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Toaster, toast } from 'sonner';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
@@ -105,7 +106,6 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeMyNote = myAdminNote || null;
 
     // ── New User Notification System ──
-    const [newUserAlerts, setNewUserAlerts] = useState([]);
     const lastRegIdRef = useRef(0);
     const audioRef = useRef(null);
 
@@ -120,37 +120,40 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
         } catch (e) { /* ignore audio errors */ }
     }, []);
 
-    const dismissAlert = useCallback((alertId) => {
-        setNewUserAlerts(prev => prev.filter(a => a.id !== alertId));
-    }, []);
-
     const pollNewRegistrations = useCallback(async () => {
         try {
             const url = route('admin.api.new_registrations') + '?since_id=' + lastRegIdRef.current;
             const res = await fetch(url, { credentials: 'same-origin' });
             if (!res.ok) return;
             const data = await res.json();
+            
             if (data.registrations && data.registrations.length > 0) {
-                const newAlerts = data.registrations.map(reg => ({
-                    id: reg.id,
-                    name: reg.user?.name || 'مستخدم جديد',
-                    email: reg.user?.email || '',
-                    role: reg.user?.role || 'student',
-                    details: reg.details || '',
-                    time: reg.created_at,
-                }));
-                setNewUserAlerts(prev => [...newAlerts, ...prev].slice(0, 5));
-                playNotificationSound();
-                // Update the last seen ID
-                const maxId = Math.max(...data.registrations.map(r => r.id));
-                if (maxId > lastRegIdRef.current) lastRegIdRef.current = maxId;
-                // Auto-dismiss after 12 seconds
-                newAlerts.forEach(alert => {
-                    setTimeout(() => dismissAlert(alert.id), 12000);
-                });
+                // To be safe, filter to only the new ones
+                const newAlerts = data.registrations.filter(r => r.id > lastRegIdRef.current);
+                
+                if (newAlerts.length > 0) {
+                    newAlerts.forEach(reg => {
+                        const name = reg.user?.name || 'مستخدم جديد';
+                        const email = reg.user?.email || '';
+                        const role = reg.user?.role || 'student';
+                        const roleBadge = role === 'instructor' ? '👨‍🏫 مدرس' : role === 'admin' ? '⚙️ أدمن' : '👨‍🎓 طالب';
+                        
+                        toast.success(`مستخدم جديد! ${name}`, {
+                            description: `${email} • ${roleBadge}`,
+                            duration: 12000,
+                            icon: '🎉',
+                        });
+                    });
+                    
+                    playNotificationSound();
+                    
+                    // Update the last seen ID
+                    const maxId = Math.max(...data.registrations.map(r => r.id));
+                    if (maxId > lastRegIdRef.current) lastRegIdRef.current = maxId;
+                }
             }
         } catch (e) { /* silently ignore polling errors */ }
-    }, [playNotificationSound, dismissAlert]);
+    }, [playNotificationSound]);
 
     // Initialize lastRegIdRef on first load to avoid showing old registrations
     useEffect(() => {
@@ -179,7 +182,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
             pollNewRegistrations();
         };
 
-        const timer = window.setInterval(refreshDashboard, 15000);
+        const timer = window.setInterval(refreshDashboard, 5000);
 
         const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -262,9 +265,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     return (
         <AdminLayout user={safeUser}>
             <Head title={`${t.title} | سنفور`} />
-
-            {/* ── New User Registration Alerts ── */}
-            <NewUserAlertStack alerts={newUserAlerts} onDismiss={dismissAlert} isDark={isDark} lang={lang} />
+            <Toaster richColors position={lang === 'ar' ? 'top-left' : 'top-right'} expand={true} />
 
             <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
@@ -537,93 +538,6 @@ function StatCard({ title, value, icon, color, link = '#', trend, isDark, tLabel
                 </div>
             </div>
         </Link>
-    );
-}
-
-/* ── New User Alert Notification Stack ── */
-function NewUserAlertStack({ alerts, onDismiss, isDark, lang }) {
-    if (!alerts || alerts.length === 0) return null;
-
-    return (
-        <div className="fixed top-4 left-4 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
-            {alerts.map((alert) => (
-                <div
-                    key={alert.id}
-                    className="pointer-events-auto"
-                    style={{ animation: 'alertSlideIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards' }}
-                >
-                    <div
-                        className={`relative overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
-                            isDark
-                                ? 'bg-slate-900/95 border-emerald-500/30 shadow-emerald-500/10'
-                                : 'bg-white/95 border-emerald-200 shadow-emerald-500/10'
-                        }`}
-                        onClick={() => onDismiss(alert.id)}
-                    >
-                        {/* Top accent bar */}
-                        <div className="h-1 bg-gradient-to-r from-emerald-400 via-sky-400 to-blue-500"></div>
-
-                        <div className="p-4">
-                            <div className="flex items-start gap-3">
-                                {/* Avatar circle */}
-                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-emerald-500/20 shrink-0">
-                                    {(alert.name || '?').charAt(0)}
-                                </div>
-
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-md ${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-700'}`}>
-                                            🎉 {lang === 'ar' ? 'مستخدم جديد!' : 'New User!'}
-                                        </span>
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); onDismiss(alert.id); }}
-                                            className={`mr-auto text-xs opacity-40 hover:opacity-100 transition-opacity ${isDark ? 'text-white' : 'text-slate-600'}`}
-                                        >
-                                            ✕
-                                        </button>
-                                    </div>
-                                    <p className={`text-sm font-black truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                                        {alert.name}
-                                    </p>
-                                    <p className={`text-[11px] font-bold truncate mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} dir="ltr">
-                                        {alert.email}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isDark ? 'bg-sky-500/20 text-sky-400' : 'bg-sky-100 text-sky-700'}`}>
-                                            {alert.role === 'instructor' ? '👨‍🏫 مدرس' : alert.role === 'admin' ? '⚙️ أدمن' : '👨‍🎓 طالب'}
-                                        </span>
-                                        {alert.time && (
-                                            <span className={`text-[9px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                                                {new Date(alert.time).toLocaleTimeString('ar-JO', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Auto-dismiss progress bar */}
-                        <div className="h-0.5 bg-slate-200/30">
-                            <div
-                                className="h-full bg-gradient-to-r from-emerald-400 to-sky-400"
-                                style={{ animation: 'alertProgress 12s linear forwards' }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            ))}
-
-            <style dangerouslySetInnerHTML={{ __html: `
-                @keyframes alertSlideIn {
-                    from { opacity: 0; transform: translateX(-30px) scale(0.95); }
-                    to { opacity: 1; transform: translateX(0) scale(1); }
-                }
-                @keyframes alertProgress {
-                    from { width: 100%; }
-                    to { width: 0%; }
-                }
-            ` }} />
-        </div>
     );
 }
 
