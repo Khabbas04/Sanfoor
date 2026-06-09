@@ -109,6 +109,13 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const lastRegIdRef = useRef(0);
     const audioRef = useRef(null);
 
+    // Request Desktop Notification Permission on mount
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
+
     const playNotificationSound = useCallback(() => {
         try {
             if (!audioRef.current) {
@@ -143,6 +150,15 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                             duration: 12000,
                             icon: '🎉',
                         });
+
+                        // Trigger native OS notification (Windows/Mac) if permitted
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('سنفور - مستخدم جديد!', {
+                                body: `${name} (${roleBadge})\n${email}`,
+                                icon: '/images/sanfoor.png', // Assuming logo is here
+                                dir: 'rtl'
+                            });
+                        }
                     });
                     
                     playNotificationSound();
