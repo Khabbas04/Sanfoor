@@ -616,13 +616,10 @@ class AiAdvisorController extends Controller
 
     private function getAvailableCourses(array $passedCourseIds, array $cartCourseIds, $user): array
     {
-        $passedStr = implode(',', $passedCourseIds);
-        $cartStr = implode(',', $cartCourseIds);
         $currentPeriod = \App\Models\AcademicPeriod::current();
-        $periodStr = $currentPeriod ? "{$currentPeriod->academic_year}_{$currentPeriod->academic_term}" : 'none';
-        $cacheKey = "student_available_courses_{$user->id}_{$passedStr}_{$cartStr}_{$periodStr}";
 
-        return Cache::remember($cacheKey, 600, function() use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod) {
+        // لا نستخدم كاش هنا لضمان بيانات دقيقة ومحدثة دائماً
+        {
             $planVersion = (int) ($user->study_plan_version ?? 12);
 
             $courses = Course::with(['prerequisites', 'children'])
@@ -676,8 +673,6 @@ class AiAdvisorController extends Controller
                             $sections[] = "[مدرس: {$sec['instructor']}, أيام: {$sec['days']}, وقت: {$sec['time']}, قاعة: {$sec['hall']}]";
                         }
                         $scheduleString = " | شعب مطروحة: " . implode("، ", $sections);
-                    } elseif (!$isOfferedInSummer) {
-                        $scheduleString = " | غير مطروحة هذا الصيفي (يمكن تسجيلها لاحقاً)";
                     }
                 }
 
@@ -768,7 +763,7 @@ class AiAdvisorController extends Controller
                 'text' => $text ? implode("\n", $text) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
                 'details' => $details,
             ];
-        });
+        }
     }
 
     private function buildStudentAdvisingRagContext(array $academicData, array $cartData, array $availableCourses, string $userMessage): string
@@ -863,11 +858,12 @@ class AiAdvisorController extends Controller
 
         return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وكل ما يحتاجه الطالب في مسيرته الدراسية باحتراف وذكاء.\nالقواعد:\n" .
             "- هويتك: أنت صُنعت وبُرمجت بواسطة 'فريق سنفور' (Sanfoor Team). إياك أن تذكر جوجل (Google) أو أي شركة أخرى. إذا سألك الطالب من صنعك أو من أنت، أجب باختصار: 'أنا مرشدك الأكاديمي الذكي من فريق سنفور'.\n" .
-            "- الإجابة: سياق الإرشاد الأكاديمي، أجب ببساطة وود، كن مختصراً جداً (2-4 أسطر) إلا إذا طُلب التفصيل.\n" .
+            "- الإجابة: سياق الإرشاد الأكاديمي، أجب ببساطة وود، وكن منظماً ومباشراً. استخدم النقاط لترتيب الأفكار.\n" .
             "- لا تقل 'لا أعرف'، قدم نصيحة عامة أو وجه للقسم المختص بثقة.\n" .
-            "- للتسجيل: اذكر الفصل، الحد الفعلي، ثم قيّم الحالة. الفصل الحالي: {$currentPeriodLabel}. حد الترم: {$currentTermLimit}س. الحد الأكاديمي: {$academicLimit}س. الحد المطبق: {$effectiveLimit}س.\n" .
-            ($isSummer ? "- (صيفي: الحد 9س إلا باستثناء إداري).\n" : "- (ليس صيفياً).\n") .
-            "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني'.\n" .
+            "- للتسجيل واقتراح المواد: **اقرأ خطة الطالب بدقة واستعرض مواده المنجزة والمواد في التسجيل التجريبي**. عند الاقتراح، اختر من قائمة (المواد المتاحة للتسجيل) بشكل منطقي: أعطِ الأولوية لمواد التخصص الإجبارية (compulsory) والمواد التي تفتح مواد أخرى (Unlocks)، مع مراعاة الساعات المسموحة وتوازن الصعوبة.\n" .
+            "- اذكر الفصل، الحد الفعلي، ثم قيّم الحالة. الفصل الحالي: {$currentPeriodLabel}. حد الترم: {$currentTermLimit}س. الحد الأكاديمي: {$academicLimit}س. الحد المطبق: {$effectiveLimit}س.\n" .
+            ($isSummer ? "- (صيفي: الحد 9س إلا باستثناء إداري). ركز على المواد المطروحة في الصيفي إن وجدت.\n" : "- (ليس صيفياً).\n") .
+            "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني/الصيفي'.\n" .
             "- الحساب الدقيق (صارم): لأسئلة حساب المعدل، **اكتب العملية الحسابية الدقيقة** خطوة بخطوة بشكل عمودي (باستخدام الرمز \\n لإنشاء أسطر جديدة داخل الـ JSON)، ولا تدمج الحسابات بفقرة واحدة. ولا تستخدم علامات التنصيص المزدوجة داخل نص الـ reply. القانون: (المعدل الحالي×الساعات المقطوعة + العلامة المتوقعة×الساعات المتوقعة)/إجمالي الساعات.\n" .
             "- كن جدياً وعملياً، استخدم ايموجيات خفيفة وميّز الكلمات بـ **bold**.\n" .
             "- خطة التخرج (132س): متطلبات جامعة 30س، تخصص إجباري 87س، اختياري 9س، مساندة 6س. التزم بهذه الساعات.\n" .
@@ -1439,6 +1435,13 @@ class AiAdvisorController extends Controller
         $text = preg_replace('/[أإآا]/u', 'ا', (string) $text);
         $text = preg_replace('/[ةه]/u', 'ه', $text);
         $text = preg_replace('/ى/u', 'ي', $text);
+        
+        // إزالة التشكيل
+        $text = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $text);
+        
+        // استبدال الأقواس والرموز بمسافة لتسهيل المطابقة (مثل: برمجة الحاسوب 1 مقابل برمجة الحاسوب (1))
+        $text = preg_replace('/[()\[\]{}\-_\/\\\\.,،؛]/u', ' ', $text);
+        
         $text = preg_replace('/\s+/u', ' ', $text);
 
         return mb_strtolower(trim($text), 'UTF-8');
