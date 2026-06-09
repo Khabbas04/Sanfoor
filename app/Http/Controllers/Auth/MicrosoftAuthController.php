@@ -214,7 +214,11 @@ class MicrosoftAuthController extends Controller
             }
 
             if ($user->role === 'student' && blank($user->major_id)) {
-                return redirect()->route('profile.complete');
+                $redirect = redirect()->route('profile.complete');
+                if ($isNewUser) {
+                    $redirect->with('new_user_welcome', true);
+                }
+                return $redirect;
             }
 
             return redirect()->route('dashboard');

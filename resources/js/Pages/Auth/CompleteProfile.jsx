@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
+import Swal from 'sweetalert2';
+import confetti from 'canvas-confetti';
 
-export default function CompleteProfile({ colleges, majors }) {
+export default function CompleteProfile({ colleges, majors, isNewUser }) {
     const { auth } = usePage().props;
     const user = auth?.user || {};
 
@@ -16,7 +18,59 @@ export default function CompleteProfile({ colleges, majors }) {
 
     useEffect(() => {
         setTimeout(() => setMounted(true), 100);
-    }, []);
+
+        if (isNewUser) {
+            // Trigger confetti
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            const frame = () => {
+                confetti({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#3b82f6', '#10b981', '#8b5cf6']
+                });
+                confetti({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#3b82f6', '#10b981', '#8b5cf6']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            };
+            frame();
+
+            // Play sound
+            try {
+                const audio = new Audio('/sounds/notification.wav');
+                audio.volume = 0.5;
+                audio.play().catch(() => {});
+            } catch (e) { }
+
+            // Show SweetAlert
+            Swal.fire({
+                title: 'مرحباً بك في سنفور! 🎉',
+                html: '<b>سعداء بانضمامك لمنصتنا!</b><br/><br/>خطوة واحدة بس بتفصلك عن كل الميزات.. حدد كليتك وتخصصك عشان نخصص تجربتك.',
+                icon: 'success',
+                confirmButtonText: 'يلا نبدأ 🚀',
+                confirmButtonColor: '#3b82f6',
+                background: '#ffffff',
+                backdrop: `rgba(15, 23, 42, 0.7)`,
+                customClass: {
+                    popup: 'rounded-3xl border border-blue-100 shadow-2xl',
+                    title: 'text-2xl font-black text-slate-800',
+                    htmlContainer: 'text-slate-600 font-bold',
+                    confirmButton: 'rounded-xl font-black px-8 py-3 w-full shadow-lg shadow-blue-500/30 transition-all hover:scale-[1.02]',
+                }
+            });
+        }
+    }, [isNewUser]);
 
     const filteredMajors = useMemo(
         () => (majors || []).filter(m => String(m.college_id) === String(data.college_id)),
