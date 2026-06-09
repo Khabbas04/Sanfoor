@@ -487,10 +487,12 @@ class TreeController extends Controller
             $user = Auth::user();
             $courseId = $request->course_id;
             $course = Course::query()
+                ->with('prerequisites')
                 ->select([
                     'courses.id',
                     'courses.major_id',
                     'courses.study_plan_version',
+                    'courses.name',
                     'courses.credit_hours',
                     'courses.minimum_passed_hours',
                     'courses.type',
@@ -511,6 +513,22 @@ class TreeController extends Controller
                 return response()->json([
                     'status' => 'error',
                     'message' => 'هذه المادة ليست ضمن خطتك الحالية.',
+                ], 422);
+            }
+
+            $passedCourseIds = $user->passedCourses()->pluck('courses.id')->toArray();
+            
+            $missingPrereqs = [];
+            foreach ($course->prerequisites as $prereq) {
+                if (!in_array($prereq->id, $passedCourseIds, true)) {
+                    $missingPrereqs[] = $prereq->name;
+                }
+            }
+
+            if (!empty($missingPrereqs)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'يجب عليك اجتياز المتطلبات السابقة أولاً: ' . implode('، ', $missingPrereqs),
                 ], 422);
             }
 

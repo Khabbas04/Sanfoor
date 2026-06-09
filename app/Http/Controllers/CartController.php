@@ -27,6 +27,7 @@ class CartController extends Controller
         $requestedIds = collect($request->course_ids ?? [])->map(fn ($id) => (int) $id)->values();
 
         $courses = Course::query()
+            ->with('prerequisites')
             ->whereIn('id', $requestedIds)
             ->get()
             ->keyBy('id');
@@ -35,6 +36,7 @@ class CartController extends Controller
         $periodYear = $currentPeriod?->academic_year;
         $periodTerm = $currentPeriod?->academic_term;
 
+        $passedCourseIds = $user->passedCourses()->pluck('courses.id')->toArray();
         $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
         $allowedIds = [];
         $blockedCourses = [];
@@ -48,6 +50,22 @@ class CartController extends Controller
         foreach ($requestedIds as $courseId) {
             $course = $courses->get($courseId);
             if (!$course) {
+                continue;
+            }
+
+            $missingPrereqs = [];
+            foreach ($course->prerequisites as $prereq) {
+                if (!in_array($prereq->id, $passedCourseIds, true)) {
+                    $missingPrereqs[] = $prereq->name;
+                }
+            }
+
+            if (!empty($missingPrereqs)) {
+                $blockedCourses[] = [
+                    'name' => $course->name,
+                    'reason' => 'missing_prerequisites',
+                    'missing' => implode('، ', $missingPrereqs),
+                ];
                 continue;
             }
 
