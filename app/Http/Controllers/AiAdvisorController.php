@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use App\Support\CourseEligibility;
 use Inertia\Inertia;
 
 class AiAdvisorController extends Controller
@@ -645,6 +646,7 @@ class AiAdvisorController extends Controller
             $text = [];
             $details = [];
             $allEligible = [];
+            $totalPassedHours = $user->passedCourses->sum('credit_hours');
 
             $isSummer2026 = $currentPeriod && strpos((string)$currentPeriod->academic_year, '2026') !== false && $currentPeriod->academic_term == 3;
             $summerScheduleFile = storage_path('app/summer_2026_schedule.json');
@@ -689,6 +691,11 @@ class AiAdvisorController extends Controller
                 }
 
                 if (!$canTake) {
+                    continue;
+                }
+
+                // فحص الحد الأدنى للساعات المنجزة - ما بنقترح مادة الطالب ما بقدر ينزلها
+                if (CourseEligibility::isLockedByPassedHours($course, $totalPassedHours)) {
                     continue;
                 }
 

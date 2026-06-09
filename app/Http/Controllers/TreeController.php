@@ -505,7 +505,14 @@ class TreeController extends Controller
                             ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
                     });
                 })
-                ->firstOrFail();
+                ->first();
+
+            if (!$course) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'هذه المادة ليست ضمن خطتك الحالية.',
+                ], 422);
+            }
 
             $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
             $minimumPassedHours = CourseEligibility::minimumPassedHoursForCourse($course);
