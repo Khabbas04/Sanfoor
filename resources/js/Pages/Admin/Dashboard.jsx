@@ -109,12 +109,22 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const lastRegIdRef = useRef(0);
     const audioRef = useRef(null);
 
-    // Request Desktop Notification Permission on mount
-    useEffect(() => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
+    const [notificationPermission, setNotificationPermission] = useState(
+        typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'denied'
+    );
+
+    const requestNotificationPermission = () => {
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                setNotificationPermission(permission);
+                if (permission === 'granted') {
+                    toast.success('تم تفعيل إشعارات سطح المكتب بنجاح!');
+                } else {
+                    toast.error('تم رفض صلاحية الإشعارات من المتصفح.');
+                }
+            });
         }
-    }, []);
+    };
 
     const playNotificationSound = useCallback(() => {
         try {
