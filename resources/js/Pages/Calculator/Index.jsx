@@ -204,13 +204,13 @@ export default function Calculator({ auth, initialCourses }) {
         return history;
     }, [courses]);
 
-    // حاسبة الهدف
+    // حاسبة الهدف مخصصة فقط للتسجيل التجريبي
     const targetAnalysis = useMemo(() => {
         const target = parseFloat(targetGpa);
         if (isNaN(target) || target <= 0 || target > 100) return null;
 
-        const currentCourses = filteredCourses;
-        const completedCourses = courses.filter(c => !currentCourses.find(cc => cc.id === c.id));
+        const currentCourses = courses.filter(c => c.is_from_cart);
+        const completedCourses = courses.filter(c => !c.is_from_cart);
 
         let compCredits = 0;
         let compSum = 0;
@@ -225,25 +225,25 @@ export default function Calculator({ auth, initialCourses }) {
         let currentCredits = 0;
         currentCourses.forEach(c => currentCredits += c.credit_hours);
 
-        if (currentCredits === 0) return { status: 'error', message: 'يرجى اختيار فصل يحتوي على مواد، أو إضافة مواد للفصل الحالي لتوزيع الهدف عليها.' };
+        if (currentCredits === 0) return { status: 'error', message: 'يرجى إضافة مواد للتسجيل التجريبي (السلة) لتتمكن من استخدام حاسبة الهدف وتوزيع العلامات.' };
 
         const totalCredits = compCredits + currentCredits;
         const requiredSum = (target * totalCredits) - compSum;
         const requiredAvg = requiredSum / currentCredits;
 
-        if (requiredAvg > 100) return { status: 'impossible', message: `مستحيل أخي! تحتاج لمعدل ${requiredAvg.toFixed(2)}% في المواد الحالية للوصول للهدف.`, requiredAvg: requiredAvg.toFixed(2) };
-        if (requiredAvg <= 50) return { status: 'easy', message: 'سهل جداً! يمكنك الوصول للهدف حتى مع علامات متدنية (أقل من 50).', requiredAvg: requiredAvg.toFixed(2) };
+        if (requiredAvg > 100) return { status: 'impossible', message: `مستحيل أخي! تحتاج لمعدل ${requiredAvg.toFixed(2)}% في مواد التسجيل التجريبي للوصول للهدف.`, requiredAvg: requiredAvg.toFixed(2) };
+        if (requiredAvg <= 50) return { status: 'easy', message: 'سهل جداً! يمكنك الوصول للهدف حتى لو جبت علامات متدنية (أقل من 50) في التسجيل التجريبي.', requiredAvg: requiredAvg.toFixed(2) };
 
-        return { status: 'possible', message: `للوصول لمعدل ${target}%، تحتاج إلى معدل ${requiredAvg.toFixed(2)}% في المواد المحددة حالياً.`, requiredAvg: requiredAvg.toFixed(2), currentCredits };
-    }, [targetGpa, courses, filteredCourses]);
+        return { status: 'possible', message: `للوصول لمعدل ${target}%، تحتاج إلى معدل ${requiredAvg.toFixed(2)}% في مواد التسجيل التجريبي.`, requiredAvg: requiredAvg.toFixed(2), currentCredits };
+    }, [targetGpa, courses]);
 
-    // تطبيق الهدف (What-If) - توزيع ذكي
+    // تطبيق الهدف (What-If) - توزيع ذكي للتسجيل التجريبي
     const applyTargetGrades = () => {
         if (!targetAnalysis || targetAnalysis.status !== 'possible') return;
         
         const avg = parseFloat(targetAnalysis.requiredAvg);
         setCourses(prev => prev.map(c => {
-            if (filteredCourses.find(fc => fc.id === c.id)) {
+            if (c.is_from_cart) {
                 return { ...c, pivot: { ...c.pivot, grade: avg.toFixed(1) } };
             }
             return c;
@@ -252,7 +252,7 @@ export default function Calculator({ auth, initialCourses }) {
         Swal.fire({
             icon: 'success',
             title: 'تم التوزيع!',
-            text: `تم تعبئة المواد الحالية بمعدل ${avg.toFixed(2)}% لتجربة سيناريو الهدف.`,
+            text: `تم تعبئة مواد التسجيل التجريبي بمعدل ${avg.toFixed(2)}% لتجربة سيناريو الهدف.`,
             timer: 2000,
             showConfirmButton: false,
         });
@@ -589,27 +589,12 @@ export default function Calculator({ auth, initialCourses }) {
                                                                 {course.code}
                                                             </span>
 
-                                                            <div className="relative flex items-center">
-                                                                <select
-                                                                    value={course.localYear}
-                                                                    onChange={(e) => handleStudySlotChange(course.id, 'year', e.target.value)}
-                                                                    className="appearance-none bg-indigo-50 border border-indigo-100 text-indigo-700 text-[11px] font-bold rounded-lg px-3 py-1 pr-7 hover:bg-indigo-100 transition-colors cursor-pointer outline-none"
-                                                                >
-                                                                    {yearOptions.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}
-                                                                </select>
-                                                                <ChevronDown size={12} className="absolute left-2 text-indigo-500 pointer-events-none" />
-                                                            </div>
-
-                                                            <div className="relative flex items-center">
-                                                                <select
-                                                                    value={course.localTerm}
-                                                                    onChange={(e) => handleStudySlotChange(course.id, 'term', e.target.value)}
-                                                                    className="appearance-none bg-emerald-50 border border-emerald-100 text-emerald-700 text-[11px] font-bold rounded-lg px-3 py-1 pr-7 hover:bg-emerald-100 transition-colors cursor-pointer outline-none"
-                                                                >
-                                                                    {termOptions.map((term) => <option key={term.value} value={term.value}>{term.label}</option>)}
-                                                                </select>
-                                                                <ChevronDown size={12} className="absolute left-2 text-emerald-500 pointer-events-none" />
-                                                            </div>
+                                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-indigo-900/30 text-indigo-300 border-indigo-800' : 'bg-indigo-50 text-indigo-600 border-indigo-100'}`}>
+                                                                سنة {course.localYear}
+                                                            </span>
+                                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg border shadow-sm ${isDark ? 'bg-emerald-900/30 text-emerald-300 border-emerald-800' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                                                {termLabel(course.localTerm)}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </div>
