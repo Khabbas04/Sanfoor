@@ -676,21 +676,21 @@ class AiAdvisorController extends Controller
                     }
                 }
 
-                $canTake = true;
+                $missingPrereqs = [];
                 foreach ($course->prerequisites as $prereq) {
                     if (!in_array($prereq->id, $passedCourseIds, true)) {
-                        $canTake = false;
-                        break;
+                        $missingPrereqs[] = $prereq->name;
                     }
                 }
 
-                if (!$canTake) {
-                    continue;
-                }
+                $minHrs = \App\Support\CourseEligibility::minimumPassedHoursForCourse($course) ?? 0;
+                $isLockedByHrs = $minHrs > 0 && $totalPassedHours < $minHrs;
 
-                // فحص الحد الأدنى للساعات المنجزة - ما بنقترح مادة الطالب ما بقدر ينزلها
-                if (CourseEligibility::isLockedByPassedHours($course, $totalPassedHours)) {
-                    continue;
+                $status = 'Available';
+                if (!empty($missingPrereqs)) {
+                    $status = 'Locked_Prereqs(' . implode('+', $missingPrereqs) . ')';
+                } elseif ($isLockedByHrs) {
+                    $status = 'Locked_Hrs(' . $minHrs . ')';
                 }
 
                 $map[$course->id] = $course->name;
@@ -706,6 +706,11 @@ class AiAdvisorController extends Controller
                 $inCart = in_array($course->id, $cartCourseIds, true);
                 $manualDifficulty = max(1, min(5, (int) ($course->difficulty_level ?? 3)));
                 $courseType = $course->type ?? 'غير محدد';
+                
+                $desc = '';
+                if (!empty($course->description)) {
+                    $desc = mb_substr(str_replace(["\r", "\n", ","], " ", $course->description), 0, 100);
+                }
 
                 $allEligible[] = [
                     'id' => $course->id,
@@ -719,25 +724,35 @@ class AiAdvisorController extends Controller
                     'in_cart' => $inCart,
                     'difficulty_level' => $manualDifficulty,
                     'schedule_info' => $scheduleString ?? '',
+                    'status' => $status,
+                    'min_hrs' => $minHrs,
+                    'desc' => $desc,
                 ];
 
-                $details[$course->id] = [
-                    'name' => $course->name,
-                    'code' => $course->code,
-                    'credit_hours' => $course->credit_hours,
-                    'course_year' => $courseYear,
-                    'type' => $courseType,
-                    'difficulty_level' => $manualDifficulty,
-                    'prereq_count' => $prereqCount,
-                    'unlocks' => $unlocksCount,
-                    'in_cart' => $inCart,
-                ];
+                if ($status === 'Available' || $inCart) {
+                    $details[$course->id] = [
+                        'name' => $course->name,
+                        'code' => $course->code,
+                        'credit_hours' => $course->credit_hours,
+                        'course_year' => $courseYear,
+                        'type' => $courseType,
+                        'difficulty_level' => $manualDifficulty,
+                        'prereq_count' => $prereqCount,
+                        'unlocks' => $unlocksCount,
+                        'in_cart' => $inCart,
+                    ];
+                }
             }
 
             $totalPassedHours = $user->passedCourses->sum('credit_hours');
             $studentYear = max(1, min(5, (int) ceil($totalPassedHours / 33)));
 
             usort($allEligible, function ($a, $b) use ($studentYear) {
+                $aAvail = $a['status'] === 'Available' ? 1 : 0;
+                $bAvail = $b['status'] === 'Available' ? 1 : 0;
+                if ($aAvail !== $bAvail) {
+                    return $bAvail <=> $aAvail;
+                }
                 if ($a['in_cart'] !== $b['in_cart']) {
                     return $b['in_cart'] <=> $a['in_cart'];
                 }
@@ -749,13 +764,13 @@ class AiAdvisorController extends Controller
                 return $diffA <=> $diffB;
             });
 
-            $topEligible = array_slice($allEligible, 0, 20);
+            $topEligible = array_slice($allEligible, 0, 50);
 
-            $text[] = "Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched";
+            $text[] = "Code,Name,Hrs,Yr,Type,Unlocks,Diff,Status,MinHrs,Cart,Sched,Desc";
             foreach ($topEligible as $course) {
                 $cCart = $course['in_cart'] ? 1 : 0;
                 $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
-                $text[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
+                $text[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$course['status']},{$course['min_hrs']},{$cCart},{$sched},{$course['desc']}";
             }
 
             return [
@@ -861,6 +876,7 @@ class AiAdvisorController extends Controller
             "- الإجابة: سياق الإرشاد الأكاديمي، أجب ببساطة وود، وكن منظماً ومباشراً. استخدم النقاط لترتيب الأفكار.\n" .
             "- لا تقل 'لا أعرف'، قدم نصيحة عامة أو وجه للقسم المختص بثقة.\n" .
             "- للتسجيل واقتراح المواد: **اقرأ خطة الطالب بدقة واستعرض مواده المنجزة والمواد في التسجيل التجريبي**. عند الاقتراح، اختر من قائمة (المواد المتاحة للتسجيل) بشكل منطقي: أعطِ الأولوية لمواد التخصص الإجبارية (compulsory) والمواد التي تفتح مواد أخرى (Unlocks)، مع مراعاة الساعات المسموحة وتوازن الصعوبة.\n" .
+            "- إذا سأل الطالب عن مادة وحالتها (Status) تبدأ بـ Locked، اشرح له السبب بذكاء (إما لنقص الساعات MinHrs أو بسبب متطلب سابق Locked_Prereqs). استفد من وصف المادة (Desc) وصعوبتها (Diff من 1 لـ 5) في إعطاء نصائح حقيقية.\n" .
             "- اذكر الفصل، الحد الفعلي، ثم قيّم الحالة. الفصل الحالي: {$currentPeriodLabel}. حد الترم: {$currentTermLimit}س. الحد الأكاديمي: {$academicLimit}س. الحد المطبق: {$effectiveLimit}س.\n" .
             ($isSummer ? "- (صيفي: الحد 9س إلا باستثناء إداري). ركز على المواد المطروحة في الصيفي إن وجدت.\n" : "- (ليس صيفياً).\n") .
             "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني/الصيفي'.\n" .
