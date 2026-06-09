@@ -48,7 +48,6 @@ class CompleteProfileController extends Controller
         return Inertia::render('Auth/CompleteProfile', [
             'colleges' => $colleges,
             'majors' => $majors,
-            'isNewUser' => session('new_user_welcome', false),
         ]);
     }
 
