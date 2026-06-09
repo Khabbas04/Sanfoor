@@ -658,19 +658,16 @@ class AiAdvisorController extends Controller
 
             foreach ($courses as $course) {
                 $scheduleString = "";
+                $isOfferedInSummer = false;
                 if ($isSummer2026) {
                     $normalizedCourseName = $this->normalizeArabic($course->name);
-                    $isOffered = false;
                     $matchedKey = null;
                     foreach ($summer2026OfferedKeys as $offered) {
                         if ($this->normalizeArabic($offered) === $normalizedCourseName) {
-                            $isOffered = true;
+                            $isOfferedInSummer = true;
                             $matchedKey = $offered;
                             break;
                         }
-                    }
-                    if (!$isOffered) {
-                        continue;
                     }
                     
                     if ($matchedKey && !empty($summerScheduleData[$matchedKey])) {
@@ -679,6 +676,8 @@ class AiAdvisorController extends Controller
                             $sections[] = "[مدرس: {$sec['instructor']}, أيام: {$sec['days']}, وقت: {$sec['time']}, قاعة: {$sec['hall']}]";
                         }
                         $scheduleString = " | شعب مطروحة: " . implode("، ", $sections);
+                    } elseif (!$isOfferedInSummer) {
+                        $scheduleString = " | غير مطروحة هذا الصيفي (يمكن تسجيلها لاحقاً)";
                     }
                 }
 
