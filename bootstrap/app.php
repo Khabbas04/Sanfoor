@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\UpdateLastSeenAt::class,
+            \App\Http\Middleware\EnsureMajorSelected::class,
         ]);
 
         // Register short aliases for role-based access control middleware.

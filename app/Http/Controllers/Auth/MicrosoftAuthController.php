@@ -98,7 +98,9 @@ class MicrosoftAuthController extends Controller
                 }
             }
 
+            $isNewUser = false;
             if (!$user) {
+                $isNewUser = true;
                 $user = new User();
                 $user->email = $email;
             }
@@ -145,6 +147,29 @@ class MicrosoftAuthController extends Controller
 
             $user->save();
 
+            // Log a NEW_USER_REGISTERED event for the admin notification system.
+            if ($isNewUser) {
+                try {
+                    AdminLog::create([
+                        'user_id' => $user->id,
+                        'action' => 'NEW_USER_REGISTERED',
+                        'details' => sprintf(
+                            'مستخدم جديد سجّل عبر Microsoft: %s (%s) | role: %s | ip: %s',
+                            $user->name,
+                            $user->email,
+                            $user->role ?? 'student',
+                            $request->ip()
+                        ),
+                        'ip_address' => $request->ip(),
+                    ]);
+                } catch (Throwable $regLogError) {
+                    Log::warning('Failed to log NEW_USER_REGISTERED', [
+                        'user_id' => $user->id,
+                        'error' => $regLogError->getMessage(),
+                    ]);
+                }
+            }
+
             // Attempt to get the avatar if the user doesn't have one
             if (empty($user->avatar) && $microsoftUser->token && isset($columns['avatar'])) {
                 try {
@@ -189,9 +214,7 @@ class MicrosoftAuthController extends Controller
             }
 
             if ($user->role === 'student' && blank($user->major_id)) {
-                return redirect()->route('profile.edit')->with([
-                    'status' => 'تم تسجيل الدخول بنجاح. يرجى إكمال الكلية والتخصص والخطة الدراسية من صفحة الملف الشخصي.',
-                ]);
+                return redirect()->route('profile.complete');
             }
 
             return redirect()->route('dashboard');

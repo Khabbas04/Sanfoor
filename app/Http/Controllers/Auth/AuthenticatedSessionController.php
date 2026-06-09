@@ -70,6 +70,12 @@ class AuthenticatedSessionController extends Controller
         // 5. توجيه حسب الدور
         // owner يأخذ نفس مسار admin بالكامل
         $role = strtolower((string) $user->role);
+
+        // Students without a major must complete their profile first.
+        if ($role === 'student' && empty($user->major_id)) {
+            return redirect()->route('profile.complete');
+        }
+
         $targetRoute = in_array($role, ['admin', 'owner'], true)
             ? 'admin.dashboard'
             : 'dashboard';

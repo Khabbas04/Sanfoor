@@ -670,6 +670,33 @@ class AdminController extends Controller
     }
 
     /**
+     * API: جلب التسجيلات الجديدة لنظام الإشعارات الذكي في لوحة الأدمن.
+     * يستقبل since_id ويرجع فقط التسجيلات الأحدث.
+     */
+    public function getNewRegistrations(Request $request)
+    {
+        $sinceId = (int) $request->query('since_id', 0);
+
+        $query = AdminLog::with('user:id,name,email,role')
+            ->where('action', 'NEW_USER_REGISTERED')
+            ->latest();
+
+        if ($sinceId > 0) {
+            $query = AdminLog::with('user:id,name,email,role')
+                ->where('action', 'NEW_USER_REGISTERED')
+                ->where('id', '>', $sinceId)
+                ->orderBy('id', 'asc');
+        }
+
+        $registrations = $query->take(10)->get();
+
+        return response()->json([
+            'registrations' => $registrations,
+            'count' => $registrations->count(),
+        ]);
+    }
+
+    /**
      * عرض قائمة المواد - مع إرسال الهيكلة الأكاديمية كاملة للفلترة
      */
     public function index()

@@ -57,6 +57,27 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
+        // Log a NEW_USER_REGISTERED event for the admin notification system.
+        try {
+            \App\Models\AdminLog::create([
+                'user_id' => $user->id,
+                'action' => 'NEW_USER_REGISTERED',
+                'details' => sprintf(
+                    'مستخدم جديد سجّل يدوياً: %s (%s) | role: %s | ip: %s',
+                    $user->name,
+                    $user->email,
+                    $user->role ?? 'student',
+                    $request->ip()
+                ),
+                'ip_address' => $request->ip(),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to log NEW_USER_REGISTERED', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         Auth::login($user);
 
         return redirect()->route('home', ['tour' => 'start']);

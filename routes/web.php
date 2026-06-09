@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\Admin\AdminManagerController;
 use App\Http\Controllers\Admin\AdminStudentController;
 use App\Http\Controllers\TreeController;
@@ -287,6 +288,9 @@ Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose']
 
 // Student-only application features.
 Route::middleware('auth')->group(function () {
+    // Mandatory profile completion for students without a selected major.
+    Route::get('/complete-profile', [CompleteProfileController::class, 'show'])->name('profile.complete');
+    Route::post('/complete-profile', [CompleteProfileController::class, 'update'])->name('profile.complete.update');
     // Portal scraping sync is intentionally disabled for now.
     // Route::post('/portal/sync', [PortalSyncController::class, 'sync'])->name('portal.sync');
 
@@ -382,6 +386,7 @@ Route::middleware('auth')->group(function () {
 
             // 🔥 Live online users polling and session management
             Route::get('/api/online-users', [AdminController::class, 'getOnlineUsers'])->name('api.online_users');
+            Route::get('/api/new-registrations', [AdminController::class, 'getNewRegistrations'])->name('api.new_registrations');
             Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])->name('api.heartbeat');
             Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])->name('api.browser_close');
 
