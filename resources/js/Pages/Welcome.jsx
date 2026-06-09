@@ -447,7 +447,7 @@ export default function Welcome({ auth }) {
                             ].map((f, i) => (
                                 <div
                                     key={i}
-                                    id={i === 0 ? 'tour-feature-1' : i === 1 ? 'tour-feature-2' : i === 2 ? 'tour-feature-3' : undefined}
+                                    id={`tour-feature-${i + 1}`}
                                     className={`card-lift group p-8 sm:p-10 rounded-[2.5rem] bg-white border border-slate-100 relative overflow-hidden cursor-default transition-all duration-[0.9s] ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-xl ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}
                                     style={{ transitionDelay: `${f.delay + 100}ms` }}
                                 >
