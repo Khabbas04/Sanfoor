@@ -60,7 +60,13 @@ class TreeController extends Controller
             }
         }
 
+        $requestedPlanVersion = $request->query('plan_version');
         $selectedPlanVersion = (int) ($user->study_plan_version ?? 12);
+        
+        if ($isInstructor && $requestedPlanVersion) {
+            $selectedPlanVersion = (int) $requestedPlanVersion;
+        }
+
         $layoutMajorId = (int) ($selectedMajorId ?? 0);
 
         $courses = Cache::remember(
@@ -89,7 +95,7 @@ class TreeController extends Controller
             'major_name' => $majorName,
             'current_major_id' => $selectedMajorId,
             'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
-            'study_plan_version' => (int) ($user->study_plan_version ?? 12),
+            'study_plan_version' => $selectedPlanVersion,
             'approved_plan' => $approvedPlan ? [
                 'id' => $approvedPlan->id,
                 'payload' => $approvedPlan->payload,

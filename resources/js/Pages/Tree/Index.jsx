@@ -3257,13 +3257,13 @@ export default function Tree({
                             );
                         })()}
 
-                        {getStatus(selectedCourse) === 'available' && (
+                        {!is_instructor && getStatus(selectedCourse) === 'available' && (
                             <>
                                 <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
                                 <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                             </>
                         )}
-                        {getStatus(selectedCourse) === 'cart' && (
+                        {!is_instructor && getStatus(selectedCourse) === 'cart' && (
                             <>
                                 <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
                                 <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
@@ -3468,7 +3468,7 @@ export default function Tree({
                                     <div className="flex items-center gap-2">
                                         <select
                                             value={current_major_id || ''}
-                                            onChange={(e) => router.get(route('tree.index', { major_id: e.target.value }))}
+                                            onChange={(e) => router.get(route('tree.index', { major_id: e.target.value, plan_version: study_plan_version }))}
                                             className="appearance-none bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-1.5 rounded-lg text-[11px] font-black focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer shadow-sm pr-6 hover:bg-indigo-100 transition-colors"
                                             style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\\\'http://www.w3.org/2000/svg\\\' fill=\\\'none\\\' viewBox=\\\'0 0 24 24\\\' stroke=\\\'%234338ca\\\'%3E%3Cpath stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\' stroke-width=\\\'2\\\' d=\\\'M19 9l-7 7-7-7\\\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'left 6px center', backgroundRepeat: 'no-repeat', backgroundSize: '12px' }}
                                         >
@@ -3476,13 +3476,26 @@ export default function Tree({
                                                 <option key={m.id} value={m.id}>{m.name}</option>
                                             ))}
                                         </select>
+                                        
+                                        <select
+                                            value={study_plan_version || 12}
+                                            onChange={(e) => router.get(route('tree.index', { major_id: current_major_id, plan_version: e.target.value }))}
+                                            className="appearance-none bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-1.5 rounded-lg text-[11px] font-black focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer shadow-sm pr-6 hover:bg-indigo-100 transition-colors"
+                                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\\\'http://www.w3.org/2000/svg\\\' fill=\\\'none\\\' viewBox=\\\'0 0 24 24\\\' stroke=\\\'%234338ca\\\'%3E%3Cpath stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\' stroke-width=\\\'2\\\' d=\\\'M19 9l-7 7-7-7\\\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'left 6px center', backgroundRepeat: 'no-repeat', backgroundSize: '12px' }}
+                                        >
+                                            <option value="11">خطة 11</option>
+                                            <option value="12">خطة 12</option>
+                                            <option value="13">خطة 13</option>
+                                        </select>
                                     </div>
                                 ) : (
                                     <span>{major_name && `${major_name} • `}{student_name}</span>
                                 )}
-                                <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
-                                    خطة {study_plan_version}
-                                </span>
+                                {!is_instructor && (
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
+                                        خطة {study_plan_version}
+                                    </span>
+                                )}
                                 {academicPeriodLabel && (
                                     <span className="hidden sm:inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
                                         {academicPeriodLabel}
