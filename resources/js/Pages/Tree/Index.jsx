@@ -3159,7 +3159,7 @@ export default function Tree({
                                                                         <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالتسجيل التجريبي' : '🔓 متاح'}</span>
                                                                     </div>
                                                                 </div>
-                                                                {step.status === 'available' && (
+                                                                {!is_instructor && step.status === 'available' && (
                                                                     <button
                                                                         onClick={() => {
                                                                             const c = courses.find(c => c.id === step.id);
@@ -3386,7 +3386,9 @@ export default function Tree({
                                 <p className="text-[10px] text-white/40 font-bold mb-3">{getNextBestCourse().credit_hours} ساعات • تفتح {getUnlocksDetailed(getNextBestCourse().id).length} مواد • تأثير على {getTotalImpact(getNextBestCourse().id)} مادة</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => setSelectedCourse(getNextBestCourse())} className="flex-1 bg-indigo-500/80 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-[800] text-[11px] shadow-md active:scale-95 transition-all">📖 التفاصيل</button>
-                                    <button onClick={() => toggleCart(getNextBestCourse())} className="flex-1 bg-white/10 border border-white/15 text-white/70 py-2.5 rounded-xl font-[800] text-[11px] shadow-sm active:scale-95 transition-all hover:bg-white/20">🛒 إضافة</button>
+                                    {!is_instructor && (
+                                        <button onClick={() => toggleCart(getNextBestCourse())} className="flex-1 bg-white/10 border border-white/15 text-white/70 py-2.5 rounded-xl font-[800] text-[11px] shadow-sm active:scale-95 transition-all hover:bg-white/20">🛒 إضافة</button>
+                                    )}
                                 </div>
                             </div>
                         </div>
