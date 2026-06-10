@@ -652,6 +652,28 @@ class AiAdvisorController extends Controller
                 ->whereNotIn('id', $passedCourseIds)
                 ->get();
 
+            // Prioritize major courses > college courses > university courses
+            $collegeId = $user->major ? $user->major->college_id : null;
+            $courses = $courses->sortBy(function ($c) use ($user, $collegeId) {
+                if ($c->major_id === $user->major_id && $user->major_id !== null) return 1;
+                if ($c->college_id === $collegeId && $collegeId !== null) return 2;
+                return 3;
+            })->values();
+
+            // Deduplicate by normalized name to prevent overlap
+            $uniqueCourses = collect();
+            $seenNames = [];
+            foreach ($courses as $c) {
+                $normName = $this->normalizeArabic($c->name);
+                // Also remove 'ال' for stricter deduplication
+                $strictName = str_replace('ال', '', $normName);
+                if (!isset($seenNames[$strictName])) {
+                    $seenNames[$strictName] = true;
+                    $uniqueCourses->push($c);
+                }
+            }
+            $courses = $uniqueCourses;
+
             $map = [];
             $text = [];
             $details = [];
@@ -1432,12 +1454,14 @@ class AiAdvisorController extends Controller
 
         if ($widget['type'] === 'comparison' && isset($widget['items']) && is_array($widget['items'])) {
             $validItems = [];
+            $seenIds = [];
             foreach ($widget['items'] as $item) {
                 if (!empty($item['name'])) {
                     $foundId = $findCourseId($item['name']);
-                    if ($foundId) {
+                    if ($foundId && !isset($seenIds[$foundId])) {
                         $item['id'] = $foundId;
                         $validItems[] = $item;
+                        $seenIds[$foundId] = true;
                     }
                 }
             }
@@ -1446,18 +1470,20 @@ class AiAdvisorController extends Controller
 
         if ($widget['type'] === 'cart_review' && isset($widget['courses']) && is_array($widget['courses'])) {
             $validCourses = [];
+            $seenIds = [];
             foreach ($widget['courses'] as $course) {
                 if (!empty($course['name'])) {
                     $foundId = $findCourseId($course['name']);
-                    if ($foundId) {
+                    if ($foundId && !isset($seenIds[$foundId])) {
                         $course['id'] = $foundId;
                         $validCourses[] = $course;
+                        $seenIds[$foundId] = true;
                     }
                 }
             }
             $widget['courses'] = $validCourses;
         }
-
+        
         return $widget;
     }
 

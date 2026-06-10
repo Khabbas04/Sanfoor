@@ -321,7 +321,10 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                                 </div>
                             </div>
                             {!msg.isAnimating && (() => {
+                                const seenIds = new Set();
                                 const uniqueSuggested = msg.suggested_courses?.filter(c => {
+                                    if (!c.id || seenIds.has(c.id)) return false;
+                                    seenIds.add(c.id);
                                     if (msg.interactive_widget?.type === 'cart_review' && msg.interactive_widget.courses?.some(wc => wc.id === c.id)) return false;
                                     if (msg.interactive_widget?.type === 'comparison' && msg.interactive_widget.items?.some(wc => wc.id === c.id)) return false;
                                     return true;
