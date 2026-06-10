@@ -969,7 +969,8 @@ class AiAdvisorController extends Controller
             "- تخصص إجباري: أنجز {$academicData['passed_compulsory']} / 87 ساعة\n" .
             "- تخصص اختياري: أنجز {$academicData['passed_elective']} / 9 ساعات\n" .
             "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
-                "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
+            "المواد التي أتمها الطالب (ناجح فيها): " . ($academicData['passed_courses_names'] ?: 'لم ينجز أي مواد بعد') . "\n" .
+            "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
             "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد):\n{$availableCourses['available_text']}\n\n" .
             "❌ المواد المغلقة حالياً (لا تقترحها أبداً للتسجيل، فقط اشرح سبب إغلاقها إذا سألك الطالب):\n{$availableCourses['locked_text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
