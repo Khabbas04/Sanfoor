@@ -183,7 +183,7 @@ class InstructorAiAdvisorController extends Controller
 
             Message::create([
                 'chat_id' => $chat->id,
-                'role' => 'assistant',
+                'role' => 'ai',
                 'content' => $aiText,
             ]);
 
@@ -194,6 +194,7 @@ class InstructorAiAdvisorController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            echo "GEMINI EXCEPTION: " . $e->getMessage() . "\n";
             Log::error('Instructor AI Chat Error', ['error' => $e->getMessage()]);
             return response()->json([
                 'status' => 'error',
@@ -209,7 +210,7 @@ class InstructorAiAdvisorController extends Controller
 
         $messages = $chat->messages()->orderBy('created_at')->get()->map(function ($msg) {
             $content = $msg->content;
-            if ($msg->role === 'assistant') {
+            if ($msg->role === 'ai') {
                 $decoded = json_decode($content, true);
                 $content = $decoded ?? ['reply' => $content];
             }
@@ -272,8 +273,8 @@ class InstructorAiAdvisorController extends Controller
                     $query->where('user_carts.academic_year', $periodYear)->where('user_carts.academic_term', $periodTerm);
                 }
             }])
-            ->having('demand', '>', 0)
             ->get()
+            ->filter(fn($c) => $c->demand > 0)
             ->map(fn($c) => "{$c->name} (طلب: {$c->demand} طالب)")
             ->implode(' | ');
 
