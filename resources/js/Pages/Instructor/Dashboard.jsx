@@ -103,7 +103,7 @@ export default function InstructorDashboard({
         { label: 'الشابترز', href: '/chapters', icon: '📖', desc: 'تصفح جميع الملخصات', color: 'from-sky-500 to-cyan-600' },
         { label: 'بنك الأسئلة', href: '/quiz', icon: '❓', desc: 'استعرض أسئلة الكويزات', color: 'from-amber-500 to-orange-600' },
         { label: 'تحليل الطلب', href: route('instructor.reports.demand'), icon: '🔥', desc: 'توقعات وتسجيل المواد', color: 'from-rose-500 to-orange-600' },
-        { label: 'AI Sanfoor', href: route('ai.advisor'), icon: '🤖', desc: 'المرشد الذكي بدون حدود', color: 'from-indigo-500 to-violet-600' },
+        { label: 'المساعد الذكي للجدول', href: route('instructor.ai.scheduler'), icon: '🤖', desc: 'ترتيب جداول وحل تعارضات', color: 'from-indigo-500 to-violet-600' },
     ];
 
     return (

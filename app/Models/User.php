@@ -144,6 +144,21 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Announcement::class);
     }
 
+    public function preferences(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(InstructorPreference::class);
+    }
+
+    public function getMaxCoursesAttribute(): int
+    {
+        return match ($this->academic_rank) {
+            'professor' => 2,
+            'doctor' => 3,
+            'master' => 4,
+            default => 3,
+        };
+    }
+
     // ---------------------------------------------------------------------
     // Academic analytics helpers used by dashboards and advisor features.
     // ---------------------------------------------------------------------

@@ -372,6 +372,14 @@ Route::middleware('auth')->group(function () {
         Route::delete('/announcements/{announcement}', [InstructorController::class, 'destroyAnnouncement'])->name('announcements.destroy');
         Route::put('/courses', [InstructorController::class, 'updateCourses'])->name('courses.update');
         Route::get('/reports/demand', [InstructorController::class, 'demandReport'])->name('reports.demand');
+        
+        // Instructor AI Scheduler
+        Route::get('/ai-scheduler', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'index'])->name('ai.scheduler');
+        Route::post('/ai-scheduler/preferences', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'savePreferences'])->name('ai.scheduler.preferences');
+        Route::post('/ai-scheduler/chat', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'chat'])->name('ai.scheduler.chat');
+        Route::get('/ai-scheduler/chat/{chat_id}', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'getMessages'])->name('ai.scheduler.messages');
+        Route::delete('/ai-scheduler/chat/{chat_id}', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'destroy'])->name('ai.scheduler.destroy');
+        Route::post('/ai-scheduler/commit', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'commitSchedule'])->name('ai.scheduler.commit');
     });
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
