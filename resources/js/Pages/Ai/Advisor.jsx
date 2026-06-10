@@ -320,7 +320,14 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                                     </div>
                                 </div>
                             </div>
-                            {!msg.isAnimating && msg.suggested_courses?.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{msg.suggested_courses.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>}
+                            {!msg.isAnimating && (() => {
+                                const uniqueSuggested = msg.suggested_courses?.filter(c => {
+                                    if (msg.interactive_widget?.type === 'cart_review' && msg.interactive_widget.courses?.some(wc => wc.id === c.id)) return false;
+                                    if (msg.interactive_widget?.type === 'comparison' && msg.interactive_widget.items?.some(wc => wc.id === c.id)) return false;
+                                    return true;
+                                }) || [];
+                                return uniqueSuggested.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{uniqueSuggested.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>;
+                            })()}
                             {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
                             {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
                             {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}

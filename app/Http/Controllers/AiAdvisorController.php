@@ -766,16 +766,25 @@ class AiAdvisorController extends Controller
 
             $topEligible = array_slice($allEligible, 0, 50);
 
-            $text[] = "Code,Name,Hrs,Yr,Type,Unlocks,Diff,Status,MinHrs,Cart,Sched,Desc";
+            $availableText = ["Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched,Desc"];
+            $lockedText = ["Name,Status,Reason"];
+            
             foreach ($topEligible as $course) {
                 $cCart = $course['in_cart'] ? 1 : 0;
                 $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
-                $text[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$course['status']},{$course['min_hrs']},{$cCart},{$sched},{$course['desc']}";
+                
+                if ($course['status'] === 'Available' || $course['in_cart']) {
+                    $availableText[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched},{$course['desc']}";
+                } else {
+                    $lockedText[] = "{$course['name']},{$course['status']},مغلقة بسبب المتطلبات أو الساعات";
+                }
             }
 
             return [
                 'map' => $map,
-                'text' => $text ? implode("\n", $text) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
+                'text' => count($availableText) > 1 ? implode("\n", $availableText) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
+                'available_text' => count($availableText) > 1 ? implode("\n", $availableText) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
+                'locked_text' => count($lockedText) > 1 ? implode("\n", $lockedText) : 'لا يوجد مواد مغلقة حالياً.',
                 'details' => $details,
             ];
         }
@@ -897,11 +906,12 @@ class AiAdvisorController extends Controller
             "- تخصص اختياري: أنجز {$academicData['passed_elective']} / 9 ساعات\n" .
             "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
                 "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
-            "المواد المتاحة للتسجيل للطالب:\n{$availableCourses['text']}\n\n" .
+            "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد):\n{$availableCourses['available_text']}\n\n" .
+            "❌ المواد المغلقة حالياً (لا تقترحها أبداً للتسجيل، فقط اشرح سبب إغلاقها إذا سألك الطالب):\n{$availableCourses['locked_text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_courses\":[],\"courses_to_remove\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
             "هام جداً: يجب أن يكون نص الـ reply سطراً واحداً برمجياً، استخدم الحرفين \\n للنزول سطر جديد ولا تضغط Enter (Literal newlines) داخل النص لتجنب كسر الـ JSON.\n" .
-            "🚨 تحذير شديد: إياك أن تقترح أو تدخل أي مادة في الـ JSON (سواء في suggested_courses أو interactive_widget) غير موجودة حرفياً في قائمة (المواد المتاحة للتسجيل للطالب). اختراع أسماء مواد من عندك سيسبب خطأ فادح بالنظام.";
+            "🚨 تحذير شديد: إياك أن تقترح أو تدخل أي مادة في الـ JSON (سواء في suggested_courses أو interactive_widget) غير موجودة حرفياً في قائمة (المواد المتاحة للتسجيل للطالب). اختراع أسماء مواد، أو تأليف عدد ساعات للمواد من عندك سيسبب خطأ فادح بالنظام.";
     }
 
     private function buildConversationContext($chat, string $systemPrompt): array
