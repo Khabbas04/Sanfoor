@@ -154,9 +154,10 @@ class InstructorAiAdvisorController extends Controller
 
             foreach ($apiKeys as $apiKey) {
                 try {
+                    $modelName = config('services.gemini.model', 'gemini-1.5-flash');
                     $response = Http::withHeaders(['Content-Type' => 'application/json'])
                         ->timeout(60)
-                        ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", $payload);
+                        ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}", $payload);
 
                     if ($response->successful()) {
                         $data = $response->json();
