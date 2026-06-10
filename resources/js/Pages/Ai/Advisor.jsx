@@ -887,8 +887,10 @@ export default function Advisor() {
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
                         </button>
                     </form>
-                    <p className="text-[7.5px] font-bold text-center mt-1.5 flex items-center justify-center gap-1.5">
+                    <p className="text-[7.5px] font-bold text-center mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
                         <span className="text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
+                        <span className="w-1 h-1 rounded-full bg-slate-300"/>
+                        <span className="text-amber-500 font-black px-1.5 py-0.5 bg-amber-50 rounded">⚠️ هذه الميزة تحت التجربة (Beta) وقد تكون بعض الاقتراحات غير دقيقة</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300"/>
                         <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${limitReached ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-700'}`}>
                             {hasDailyLimit ? (limitReached ? '⚠️ انتهت رسائلك المتاحة اليوم' : `الرسائل المتبقية لليوم: ${remaining}/${5}`) : '♾️ رسائل غير محدودة'}

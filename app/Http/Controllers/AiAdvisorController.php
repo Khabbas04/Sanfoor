@@ -625,15 +625,28 @@ class AiAdvisorController extends Controller
             $courses = Course::with(['prerequisites', 'children'])
                 ->where(function ($query) use ($user, $planVersion) {
                     if ($user->major_id) {
+                        $collegeId = $user->major ? $user->major->college_id : null;
+                        
                         $query->where(function ($majorScope) use ($user, $planVersion) {
                             $majorScope->where('major_id', $user->major_id)
                                 ->where('study_plan_version', $planVersion);
+                        })->orWhere(function ($collegeScope) use ($collegeId, $planVersion) {
+                            if ($collegeId) {
+                                $collegeScope->whereNull('major_id')
+                                    ->where('college_id', $collegeId)
+                                    ->where('study_plan_version', $planVersion);
+                            } else {
+                                $collegeScope->whereRaw('1 = 0'); // false condition if no college
+                            }
                         })->orWhere(function ($universityScope) use ($planVersion) {
                             $universityScope->whereNull('major_id')
+                                ->whereNull('college_id')
                                 ->where('study_plan_version', $planVersion);
                         });
                     } else {
-                        $query->whereNull('major_id')->where('study_plan_version', $planVersion);
+                        $query->whereNull('major_id')
+                            ->whereNull('college_id')
+                            ->where('study_plan_version', $planVersion);
                     }
                 })
                 ->whereNotIn('id', $passedCourseIds)
