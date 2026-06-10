@@ -26,7 +26,7 @@ class TreeController extends Controller
     /**
      * عرض صفحة الخطة الشجرية للطالب
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user()->load([
             'major:id,name,college_id',
@@ -40,7 +40,26 @@ class TreeController extends Controller
             },
         ]);
 
+        $isInstructor = $user->role === 'instructor';
+        $collegeId = $user->major ? $user->major->college_id : null;
+        
+        $availableMajors = [];
+        if ($isInstructor && $collegeId) {
+            $availableMajors = \App\Models\Major::where('college_id', $collegeId)->get(['id', 'name']);
+        }
+
+        $requestedMajorId = $request->query('major_id');
         $selectedMajorId = $user->major_id;
+        $majorName = $user->major ? $user->major->name : 'غير محدد';
+
+        if ($isInstructor && $requestedMajorId) {
+            $selectedMajor = clone \App\Models\Major::find($requestedMajorId);
+            if ($selectedMajor && $selectedMajor->college_id === $collegeId) {
+                $selectedMajorId = $requestedMajorId;
+                $majorName = $selectedMajor->name;
+            }
+        }
+
         $selectedPlanVersion = (int) ($user->study_plan_version ?? 12);
         $layoutMajorId = (int) ($selectedMajorId ?? 0);
 
@@ -67,7 +86,8 @@ class TreeController extends Controller
             'passed_courses' => $passedCourses,
             'total_passed_hours' => $totalPassedHours,
             'student_name' => $user->name ?? 'طالب',
-            'major_name' => $user->major ? $user->major->name : 'غير محدد',
+            'major_name' => $majorName,
+            'current_major_id' => $selectedMajorId,
             'college_name' => ($user->major && $user->major->college) ? $user->major->college->name : 'جامعة سنفور',
             'study_plan_version' => (int) ($user->study_plan_version ?? 12),
             'approved_plan' => $approvedPlan ? [
@@ -75,6 +95,8 @@ class TreeController extends Controller
                 'payload' => $approvedPlan->payload,
                 'approved_at' => optional($approvedPlan->approved_at)->toISOString(),
             ] : null,
+            'is_instructor' => $isInstructor,
+            'available_majors' => $availableMajors,
         ]);
     }
 

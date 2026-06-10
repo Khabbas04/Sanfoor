@@ -273,6 +273,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     </>
                                 ) : (
                                     <>
+                                        <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">🌳</span> {lang === 'ar' ? 'خطط الكلية' : 'College Plans'}
+                                        </Link>
+
                                         <Link href={route('instructor.students')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('instructor.students') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">👥</span> {t.students}
                                         </Link>
@@ -281,9 +285,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                                 {/* Academic Content removed from central nav to keep header compact */}
 
-                                <Link href={safeRoute('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${safeRouteCurrent('ai.advisor', '/ai-advisor') ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'text-blue-600 bg-sky-50 hover:bg-sky-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20'}`}>
+                                <Link href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-black transition-all duration-300 rounded-xl relative overflow-hidden group ${(isInstructor ? safeRouteCurrent('instructor.ai.scheduler') : safeRouteCurrent('ai.advisor', '/ai-advisor')) ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]' : 'text-blue-600 bg-sky-50 hover:bg-sky-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20'}`}>
                                     <span className="relative z-10 flex items-center gap-2">
-                                        <span className="group-hover:animate-pulse text-base">🤖</span> {t.ai}
+                                        <span className="group-hover:animate-pulse text-base">🤖</span> {isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}
                                     </span>
                                 </Link>
 
@@ -291,17 +295,19 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                             {/* Theme toggle, language switcher, and account actions. */}
                             <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="relative group pointer-events-auto">
-                                    <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border border-white/10 text-blue-400 hover:bg-slate-700 hover:border-blue-500' : 'bg-white border border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-blue-300'}`}>
-                                        📚
-                                    </button>
-                                    <div className={`absolute ${lang === 'ar' ? 'right-0' : 'left-0'} top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${academicOpen ? 'opacity-100 visible' : ''}`}>
-                                        <div className={`w-48 rounded-2xl shadow-xl border p-2 animate-dropdown ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
-                                            <Link href="/chapters" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-sky-50/50 text-slate-600 hover:text-blue-600 hover:scale-[1.02]'}`}>📖 {t.chapters}</Link>
-                                            <Link href="/quiz" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-sky-50/50 text-slate-600 hover:text-blue-600 hover:scale-[1.02]'}`}>❓ {t.quiz}</Link>
+                                {!isInstructor && (
+                                    <div className="relative group pointer-events-auto">
+                                        <button onClick={() => setAcademicOpen(prev => !prev)} aria-expanded={academicOpen} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border border-white/10 text-blue-400 hover:bg-slate-700 hover:border-blue-500' : 'bg-white border border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow hover:border-blue-300'}`}>
+                                            📚
+                                        </button>
+                                        <div className={`absolute ${lang === 'ar' ? 'right-0' : 'left-0'} top-full pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 ${academicOpen ? 'opacity-100 visible' : ''}`}>
+                                            <div className={`w-48 rounded-2xl shadow-xl border p-2 animate-dropdown ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                                                <Link href="/chapters" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-sky-50/50 text-slate-600 hover:text-blue-600 hover:scale-[1.02]'}`}>📖 {t.chapters}</Link>
+                                                <Link href="/quiz" onClick={() => setAcademicOpen(false)} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-black transition-all ${isDark ? 'hover:bg-white/5 text-slate-300 hover:text-white' : 'hover:bg-sky-50/50 text-slate-600 hover:text-blue-600 hover:scale-[1.02]'}`}>❓ {t.quiz}</Link>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                                 
                                 <Link href={route('public.announcements')} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 hover:-translate-y-0.5 pointer-events-auto ${isDark ? 'bg-slate-800 border border-white/10 hover:bg-slate-700 hover:border-emerald-500' : 'bg-white border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow hover:border-emerald-300'}`} title={t.announcements}>
                                     📢
@@ -432,12 +438,17 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 </>
                             ) : (
                                 <>
+                                    <Link onClick={() => setMobileOpen(false)} href={safeRoute('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {lang === 'ar' ? 'خطط الكلية' : 'College Plans'}</Link>
                                     <Link onClick={() => setMobileOpen(false)} href={route('instructor.students')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">👥 {t.students}</Link>
                                 </>
                             )}
-                            <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
-                            <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
-                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {t.ai}</Link>
+                            {!isInstructor && (
+                                <>
+                                    <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
+                                </>
+                            )}
+                            <Link onClick={() => setMobileOpen(false)} href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}</Link>
 
                             {safeUser.id && (
                                 <>
@@ -510,14 +521,25 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         </div>
 
                         <div className="space-y-4">
-                            <h4 className="text-white font-black text-sm uppercase tracking-widest">{t.studentTools}</h4>
+                            <h4 className="text-white font-black text-sm uppercase tracking-widest">{isInstructor ? (lang === 'ar' ? 'أدوات الكادر التدريسي' : 'Instructor Tools') : t.studentTools}</h4>
                             <ul className="space-y-2.5">
                                 <li><Link href="/" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.home}</Link></li>
-                                <li><Link href={safeRoute('tree.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.tree}</Link></li>
-                                <li><Link href="/chapters" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.chapters}</Link></li>
-                                <li><Link href="/quiz" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.quiz}</Link></li>
-                                <li><Link href={safeRoute('calculator.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
-                                <li><Link href={safeRoute('ai.advisor')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.ai}</Link></li>
+                                <li><Link href={safeRoute('tree.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{isInstructor ? (lang === 'ar' ? 'خطط الكلية' : 'College Plans') : t.tree}</Link></li>
+                                {!isInstructor && (
+                                    <>
+                                        <li><Link href={safeRoute('calculator.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.calc}</Link></li>
+                                    </>
+                                )}
+                                {!isInstructor && (
+                                    <>
+                                        <li><Link href="/chapters" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.chapters}</Link></li>
+                                        <li><Link href="/quiz" className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.quiz}</Link></li>
+                                    </>
+                                )}
+                                <li><Link href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}</Link></li>
+                                {isInstructor && (
+                                    <li><Link href={route('instructor.students')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.students}</Link></li>
+                                )}
                             </ul>
                         </div>
 

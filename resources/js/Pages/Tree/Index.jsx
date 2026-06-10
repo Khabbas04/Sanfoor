@@ -176,6 +176,9 @@ export default function Tree({
     passed_courses = [],
     total_passed_hours = 0,
     approved_plan = null,
+    is_instructor = false,
+    available_majors = [],
+    current_major_id = null,
 }) {
 
     // Page-level state drives filtering, course selection, and AI planning behavior.
@@ -3209,158 +3212,160 @@ export default function Tree({
                 })()}
 
                 {/* Actions */}
-                <div className="space-y-2.5 pt-1">
-                    {/* 🔄 سجل المحاولات (يظهر إذا في أكثر من محاولة) */}
-                    {(() => {
-                        const allAttempts = Array.isArray(localPassedCourses)
-                            ? localPassedCourses
-                                .filter(c => c.id === selectedCourse.id)
-                                .sort((a, b) => (a?.pivot?.attempt_number || 1) - (b?.pivot?.attempt_number || 1))
-                            : [];
-                        if (allAttempts.length <= 1) return null;
-                        return (
-                            <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
-                                <h4 className="text-white/70 font-[800] text-[12px] flex items-center gap-2 mb-2.5">🔄 سجل المحاولات ({allAttempts.length}):</h4>
-                                <div className="space-y-2">
-                                    {allAttempts.map((attempt, i) => {
-                                        const grade = attempt?.pivot?.grade;
-                                        const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
-                                        const isUniversityZero = gradeVal !== null && gradeVal < 35;
-                                        const isFailed = gradeVal !== null && gradeVal < 50;
-                                        const isPassing = gradeVal !== null && gradeVal >= 50;
-                                        const isRetake = attempt?.pivot?.is_retake;
-                                        const year = attempt?.pivot?.studied_year;
-                                        const term = attempt?.pivot?.studied_term;
-                                        const termLabel = term === 1 ? 'الأول' : term === 2 ? 'الثاني' : 'الصيفي';
-                                        return (
-                                            <div key={i} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${isPassing ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : isUniversityZero ? 'bg-red-500/20 border-red-400/30 text-red-300' : isFailed ? 'bg-rose-500/15 border-rose-400/20 text-rose-300' : 'bg-white/5 border-white/10 text-white/60'}`}>
-                                                <span className="flex items-center gap-2">
-                                                    {isPassing ? '✅' : isUniversityZero ? '🟥' : isFailed ? '❌' : '⏳'}
-                                                    <span>المحاولة {attempt?.pivot?.attempt_number || i + 1}</span>
-                                                    {isRetake && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/20">إعادة</span>}
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    {year && term && <span className="text-[9px] text-white/30">سنة {year} - {termLabel}</span>}
-                                                    <span className={`font-[800] text-[10px] px-2 py-0.5 rounded-md ${isPassing ? 'bg-emerald-500/20 text-emerald-300' : isUniversityZero ? 'bg-red-500/25 text-red-200' : isFailed ? 'bg-rose-500/20 text-rose-300' : 'bg-white/10 text-white/40'}`}>
-                                                        {gradeVal !== null ? (isUniversityZero ? `${grade}% (صفر جامعي)` : `${grade}%`) : 'بدون علامة'}
+                {!is_instructor && (
+                    <div className="space-y-2.5 pt-1">
+                        {/* 🔄 سجل المحاولات (يظهر إذا في أكثر من محاولة) */}
+                        {(() => {
+                            const allAttempts = Array.isArray(localPassedCourses)
+                                ? localPassedCourses
+                                    .filter(c => c.id === selectedCourse.id)
+                                    .sort((a, b) => (a?.pivot?.attempt_number || 1) - (b?.pivot?.attempt_number || 1))
+                                : [];
+                            if (allAttempts.length <= 1) return null;
+                            return (
+                                <div className="bg-white/5 border border-white/10 p-4 rounded-[1.25rem] backdrop-blur-sm">
+                                    <h4 className="text-white/70 font-[800] text-[12px] flex items-center gap-2 mb-2.5">🔄 سجل المحاولات ({allAttempts.length}):</h4>
+                                    <div className="space-y-2">
+                                        {allAttempts.map((attempt, i) => {
+                                            const grade = attempt?.pivot?.grade;
+                                            const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
+                                            const isUniversityZero = gradeVal !== null && gradeVal < 35;
+                                            const isFailed = gradeVal !== null && gradeVal < 50;
+                                            const isPassing = gradeVal !== null && gradeVal >= 50;
+                                            const isRetake = attempt?.pivot?.is_retake;
+                                            const year = attempt?.pivot?.studied_year;
+                                            const term = attempt?.pivot?.studied_term;
+                                            const termLabel = term === 1 ? 'الأول' : term === 2 ? 'الثاني' : 'الصيفي';
+                                            return (
+                                                <div key={i} className={`flex justify-between items-center text-[11px] font-bold p-2.5 rounded-xl border transition-all ${isPassing ? 'bg-emerald-500/15 border-emerald-400/20 text-emerald-300' : isUniversityZero ? 'bg-red-500/20 border-red-400/30 text-red-300' : isFailed ? 'bg-rose-500/15 border-rose-400/20 text-rose-300' : 'bg-white/5 border-white/10 text-white/60'}`}>
+                                                    <span className="flex items-center gap-2">
+                                                        {isPassing ? '✅' : isUniversityZero ? '🟥' : isFailed ? '❌' : '⏳'}
+                                                        <span>المحاولة {attempt?.pivot?.attempt_number || i + 1}</span>
+                                                        {isRetake && <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/20">إعادة</span>}
                                                     </span>
+                                                    <div className="flex items-center gap-2">
+                                                        {year && term && <span className="text-[9px] text-white/30">سنة {year} - {termLabel}</span>}
+                                                        <span className={`font-[800] text-[10px] px-2 py-0.5 rounded-md ${isPassing ? 'bg-emerald-500/20 text-emerald-300' : isUniversityZero ? 'bg-red-500/25 text-red-200' : isFailed ? 'bg-rose-500/20 text-rose-300' : 'bg-white/10 text-white/40'}`}>
+                                                            {gradeVal !== null ? (isUniversityZero ? `${grade}% (صفر جامعي)` : `${grade}%`) : 'بدون علامة'}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })()}
+                            );
+                        })()}
 
-                    {getStatus(selectedCourse) === 'available' && (
-                        <>
-                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
-                        </>
-                    )}
-                    {getStatus(selectedCourse) === 'cart' && (
-                        <>
-                            <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
-                            <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                ✖ إزالة من التسجيل التجريبي
-                            </button>
-                        </>
-                    )}
-
-                    {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
-                    {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (() => {
-                        const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
-                        const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
-                        const grade = latest?.pivot?.grade;
-                        const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
-
-                        return (
+                        {getStatus(selectedCourse) === 'available' && (
                             <>
-                                <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-rose-500/10 border-rose-400/20' : 'bg-emerald-500/10 border-emerald-400/20'} border p-4 rounded-xl backdrop-blur-sm`}>
-                                    <div className="flex items-start gap-3">
-                                        <span className="text-xl mt-0.5">{getStatus(selectedCourse) === 'failed' ? '❌' : '✅'}</span>
-                                        <div>
-                                            <h4 className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-200' : 'text-emerald-200'} font-[900] text-[13px]`}>
-                                                {getStatus(selectedCourse) === 'failed' ? 'مادة مرسوبة' : 'مادة منجزة (متاحة للإعادة)'}
-                                            </h4>
-                                            <p className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-300/70' : 'text-emerald-300/70'} text-[11px] font-bold mt-0.5 leading-relaxed`}>
-                                                {getStatus(selectedCourse) === 'passed' ? (
-                                                    gradeVal !== null
-                                                        ? `العلامة الحالية: ${grade}%. يمكنك إعادة تسجيل المادة مرة أخرى لرفع معدلك التراكمي.`
-                                                        : `لقد اجتزت هذه المادة، ولكن يمكنك إعادتها لرفع معدلك التراكمي إذا رغبت.`
-                                                ) : (
-                                                    gradeVal !== null && gradeVal < 35
-                                                        ? `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`
-                                                        : gradeVal !== null && gradeVal < 50
-                                                            ? `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`
-                                                            : 'يمكنك إعادة هذه المادة.'
-                                                )}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white/5 border border-white/10 p-4 rounded-xl backdrop-blur-sm space-y-3">
-                                    <label className="block text-[11px] font-[800] text-slate-300">تحديث علامة المادة (من 100):</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="number"
-                                            min="0" max="100"
-                                            placeholder="مثال: 85"
-                                            value={gradeInputs[selectedCourse.id] !== undefined ? gradeInputs[selectedCourse.id] : (grade !== null && grade !== undefined ? grade : '')}
-                                            onChange={(e) => handleGradeInputChange(selectedCourse.id, e.target.value)}
-                                            className="flex-1 bg-white/10 border border-white/15 rounded-lg text-white text-[12px] py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold"
-                                        />
-                                        <button
-                                            onClick={() => saveCourseGrade(selectedCourse.id)}
-                                            disabled={isSavingGrade === selectedCourse.id}
-                                            className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black px-4 py-1.5 rounded-lg active:scale-95 transition-all shadow-md shrink-0 disabled:opacity-50"
-                                        >
-                                            {isSavingGrade === selectedCourse.id ? 'حفظ...' : 'حفظ'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-amber-500/10 border-amber-400/20' : 'bg-sky-500/10 border-sky-400/20'} border p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5`}>
-                                    <span className={`text-[12px] font-[800] ${getStatus(selectedCourse) === 'failed' ? 'text-amber-300' : 'text-sky-300'} flex items-center gap-2`}>📅 تحديد فصل الإعادة:</span>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>السنة الدراسية</label>
-                                            <select
-                                                value={targetYear}
-                                                onChange={(e) => handleTargetYearChange(e.target.value)}
-                                                className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                            >
-                                                {yearOptions.map(year => (
-                                                    <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>الفصل</label>
-                                            <select
-                                                value={targetTerm}
-                                                onChange={(e) => handleTargetTermChange(e.target.value)}
-                                                className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
-                                            >
-                                                {termOptions.map(term => (
-                                                    <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button onClick={() => retakeCourse(selectedCourse.id)} className={`w-full ${getStatus(selectedCourse) === 'failed' ? 'bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20' : 'bg-gradient-to-l from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 shadow-sky-500/20'} text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg active:scale-[0.97] flex items-center justify-center gap-2`}>
-                                    🔄 إعادة المادة (محاولة جديدة)
-                                </button>
-                                <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/20 text-rose-300 hover:from-rose-500 hover:to-red-600 hover:text-white hover:border-transparent py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
-                                    ✖ إلغاء تسجيلات المادة بالكامل
+                                <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/10 border border-white/20 hover:bg-white/20 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] backdrop-blur-sm">🛒 إضافة للتسجيل التجريبي</button>
+                                <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                            </>
+                        )}
+                        {getStatus(selectedCourse) === 'cart' && (
+                            <>
+                                <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg shadow-emerald-500/30 active:scale-[0.97]">✅ تأكيد اجتياز المادة</button>
+                                <button onClick={() => toggleCart(selectedCourse)} className="w-full bg-white/5 border border-white/10 text-white/50 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-400/30 py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                                    ✖ إزالة من التسجيل التجريبي
                                 </button>
                             </>
-                        );
-                    })()}
-                </div>
+                        )}
+
+                        {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
+                        {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (() => {
+                            const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
+                            const latest = attempts.reduce((a, b) => ((a?.pivot?.attempt_number || 1) > (b?.pivot?.attempt_number || 1) ? a : b), attempts[0]);
+                            const grade = latest?.pivot?.grade;
+                            const gradeVal = grade !== null && grade !== undefined ? parseFloat(grade) : null;
+
+                            return (
+                                <>
+                                    <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-rose-500/10 border-rose-400/20' : 'bg-emerald-500/10 border-emerald-400/20'} border p-4 rounded-xl backdrop-blur-sm`}>
+                                        <div className="flex items-start gap-3">
+                                            <span className="text-xl mt-0.5">{getStatus(selectedCourse) === 'failed' ? '❌' : '✅'}</span>
+                                            <div>
+                                                <h4 className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-200' : 'text-emerald-200'} font-[900] text-[13px]`}>
+                                                    {getStatus(selectedCourse) === 'failed' ? 'مادة مرسوبة' : 'مادة منجزة (متاحة للإعادة)'}
+                                                </h4>
+                                                <p className={`${getStatus(selectedCourse) === 'failed' ? 'text-rose-300/70' : 'text-emerald-300/70'} text-[11px] font-bold mt-0.5 leading-relaxed`}>
+                                                    {getStatus(selectedCourse) === 'passed' ? (
+                                                        gradeVal !== null
+                                                            ? `العلامة الحالية: ${grade}%. يمكنك إعادة تسجيل المادة مرة أخرى لرفع معدلك التراكمي.`
+                                                            : `لقد اجتزت هذه المادة، ولكن يمكنك إعادتها لرفع معدلك التراكمي إذا رغبت.`
+                                                    ) : (
+                                                        gradeVal !== null && gradeVal < 35
+                                                            ? `العلامة: ${grade}% (صفر جامعي - تحسب 0 بالمعدل). يمكنك إعادة المادة لرفع معدلك.`
+                                                            : gradeVal !== null && gradeVal < 50
+                                                                ? `العلامة: ${grade}% (رسوب). يمكنك إعادة المادة للنجاح.`
+                                                                : 'يمكنك إعادة هذه المادة.'
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white/5 border border-white/10 p-4 rounded-xl backdrop-blur-sm space-y-3">
+                                        <label className="block text-[11px] font-[800] text-slate-300">تحديث علامة المادة (من 100):</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                min="0" max="100"
+                                                placeholder="مثال: 85"
+                                                value={gradeInputs[selectedCourse.id] !== undefined ? gradeInputs[selectedCourse.id] : (grade !== null && grade !== undefined ? grade : '')}
+                                                onChange={(e) => handleGradeInputChange(selectedCourse.id, e.target.value)}
+                                                className="flex-1 bg-white/10 border border-white/15 rounded-lg text-white text-[12px] py-1.5 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold"
+                                            />
+                                            <button
+                                                onClick={() => saveCourseGrade(selectedCourse.id)}
+                                                disabled={isSavingGrade === selectedCourse.id}
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black px-4 py-1.5 rounded-lg active:scale-95 transition-all shadow-md shrink-0 disabled:opacity-50"
+                                            >
+                                                {isSavingGrade === selectedCourse.id ? 'حفظ...' : 'حفظ'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className={`${getStatus(selectedCourse) === 'failed' ? 'bg-amber-500/10 border-amber-400/20' : 'bg-sky-500/10 border-sky-400/20'} border p-3 rounded-xl mb-3 shadow-sm backdrop-blur-sm space-y-2.5`}>
+                                        <span className={`text-[12px] font-[800] ${getStatus(selectedCourse) === 'failed' ? 'text-amber-300' : 'text-sky-300'} flex items-center gap-2`}>📅 تحديد فصل الإعادة:</span>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>السنة الدراسية</label>
+                                                <select
+                                                    value={targetYear}
+                                                    onChange={(e) => handleTargetYearChange(e.target.value)}
+                                                    className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                                >
+                                                    {yearOptions.map(year => (
+                                                        <option key={year.value} value={year.value} className="bg-slate-800 text-white">{year.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className={`text-[10px] font-bold ${getStatus(selectedCourse) === 'failed' ? 'text-amber-100/80' : 'text-sky-100/80'} mb-1 block`}>الفصل</label>
+                                                <select
+                                                    value={targetTerm}
+                                                    onChange={(e) => handleTargetTermChange(e.target.value)}
+                                                    className="w-full text-[12px] font-black text-white bg-white/10 border border-white/15 rounded-lg focus:ring-0 py-1.5 px-2 cursor-pointer shadow-sm outline-none"
+                                                >
+                                                    {termOptions.map(term => (
+                                                        <option key={term.value} value={term.value} className="bg-slate-800 text-white">{term.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => retakeCourse(selectedCourse.id)} className={`w-full ${getStatus(selectedCourse) === 'failed' ? 'bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20' : 'bg-gradient-to-l from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400 shadow-sky-500/20'} text-white py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-lg active:scale-[0.97] flex items-center justify-center gap-2`}>
+                                        🔄 إعادة المادة (محاولة جديدة)
+                                    </button>
+                                    <button onClick={() => togglePassed(selectedCourse.id)} className="w-full bg-gradient-to-r from-rose-500/10 to-red-500/10 border border-rose-500/20 text-rose-300 hover:from-rose-500 hover:to-red-600 hover:text-white hover:border-transparent py-3.5 rounded-xl font-[800] text-[13px] transition-all active:scale-[0.97]">
+                                        ✖ إلغاء تسجيلات المادة بالكامل
+                                    </button>
+                                </>
+                            );
+                        })()}
+                    </div>
+                )}
             </motion.div>
         ) : (
             <div className="h-full flex flex-col items-center justify-center text-white/40 mt-8">
@@ -3459,7 +3464,22 @@ export default function Tree({
                             </button>
 
                             <p className="text-[10px] sm:text-[11px] font-bold text-slate-500 font-i flex items-center gap-1.5 flex-wrap">
-                                <span>{major_name && `${major_name} • `}{student_name}</span>
+                                {is_instructor && available_majors && available_majors.length > 0 ? (
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={current_major_id || ''}
+                                            onChange={(e) => router.get(route('tree.index', { major_id: e.target.value }))}
+                                            className="appearance-none bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-1.5 rounded-lg text-[11px] font-black focus:outline-none focus:ring-2 focus:ring-indigo-400 cursor-pointer shadow-sm pr-6 hover:bg-indigo-100 transition-colors"
+                                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\\\'http://www.w3.org/2000/svg\\\' fill=\\\'none\\\' viewBox=\\\'0 0 24 24\\\' stroke=\\\'%234338ca\\\'%3E%3Cpath stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\' stroke-width=\\\'2\\\' d=\\\'M19 9l-7 7-7-7\\\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'left 6px center', backgroundRepeat: 'no-repeat', backgroundSize: '12px' }}
+                                        >
+                                            {available_majors.map(m => (
+                                                <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <span>{major_name && `${major_name} • `}{student_name}</span>
+                                )}
                                 <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-black text-indigo-700">
                                     خطة {study_plan_version}
                                 </span>
@@ -3468,7 +3488,7 @@ export default function Tree({
                                         {academicPeriodLabel}
                                     </span>
                                 )}
-                                {calculatedGpa.hasRecords && (
+                                {!is_instructor && calculatedGpa.hasRecords && (
                                     <span className="md:hidden inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
                                         🎓 المعدل {calculatedGpa.percentage}%
                                     </span>
@@ -3478,27 +3498,31 @@ export default function Tree({
 
                         {/* 🆕 Header مع Mini Stats */}
                         <div className="hidden md:flex items-center gap-4">
-                            {calculatedGpa.hasRecords && (
+                            {!is_instructor && calculatedGpa.hasRecords && (
                                 <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-xl border border-emerald-100 shadow-sm">
                                     <span className="text-[12px] font-black">🎓 المعدل:</span>
                                     <span className="text-[13px] font-black font-mono">{calculatedGpa.percentage}%</span>
                                 </div>
                             )}
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
-                                {miniStats.criticalCount > 0 && (
-                                    <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
-                                )}
-                            </div>
-                            <div className="flex flex-col items-end w-56">
-                                <div className="flex justify-between w-full mb-1.5 items-center">
-                                    <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
-                                    <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
-                                </div>
-                                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
-                                </div>
-                            </div>
+                            {!is_instructor && (
+                                <>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
+                                        {miniStats.criticalCount > 0 && (
+                                            <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col items-end w-56">
+                                        <div className="flex justify-between w-full mb-1.5 items-center">
+                                            <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
+                                            <span className="text-[10px] font-bold text-slate-400 font-i">{totalPassedCredits} / 132 ساعة</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-gradient-to-l from-emerald-400 to-emerald-500 rounded-full transition-all duration-[1500ms] ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ width: `${progressPct}%` }} />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -3615,11 +3639,15 @@ export default function Tree({
                                 </button>
                             )}
                             <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
-                            <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
-                                🪄 التخطيط
-                                {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
-                            </button>
-                            <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
+                            {!is_instructor && (
+                                <>
+                                    <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
+                                        🪄 التخطيط
+                                        {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
+                                    </button>
+                                    <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
+                                </>
+                            )}
                             <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
                         </div>
 
@@ -3847,12 +3875,13 @@ export default function Tree({
                                         ) : sortedUniversityCourses.map((course) => {
                                             const isPassed = passedIds.includes(course.id);
                                             return (
-                                                <label key={course.id} className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm cursor-pointer transition-all ${isPassed ? 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200' : 'bg-white border-slate-200 hover:border-cyan-200 hover:shadow-md'}`}>
+                                                <label key={course.id} className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm ${!is_instructor ? 'cursor-pointer hover:border-cyan-200 hover:shadow-md' : 'cursor-default'} transition-all ${isPassed ? 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200' : 'bg-white border-slate-200'}`}>
                                                     <div className="flex items-start gap-3 min-w-0">
                                                         <input
                                                             type="checkbox"
                                                             checked={isPassed}
-                                                            onChange={() => togglePassed(course.id)}
+                                                            onChange={() => { if (!is_instructor) togglePassed(course.id); }}
+                                                            disabled={is_instructor}
                                                             className="peer sr-only"
                                                         />
                                                         <span className={`mt-0.5 h-5 w-5 rounded-[0.55rem] border flex items-center justify-center transition-all duration-200 shadow-sm ${isPassed ? 'bg-emerald-600 border-emerald-600 shadow-emerald-200/70' : 'bg-white border-slate-300 group-hover:border-cyan-400'} peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white`}>

@@ -63,6 +63,36 @@ class InstructorAiAdvisorController extends Controller
         return back()->with('success', 'تم حفظ التفضيلات بنجاح.');
     }
 
+    private function getGeminiApiKeys(): array
+    {
+        $keys = [];
+        $csv = (string) config('services.gemini.keys', '');
+
+        foreach (explode(',', $csv) as $key) {
+            $value = trim($key);
+            if ($value !== '') {
+                $keys[] = $value;
+            }
+        }
+
+        $single = trim((string) config('services.gemini.key', ''));
+        if ($single !== '') {
+            $keys[] = $single;
+        }
+
+        // Fallback to env if config isn't populated
+        if (empty($keys)) {
+            $envKey = env('GEMINI_API_KEY');
+            if ($envKey) $keys[] = $envKey;
+            $envKey2 = env('GEMINI_API_KEY_2');
+            if ($envKey2) $keys[] = $envKey2;
+            $envKey3 = env('GEMINI_API_KEY_3');
+            if ($envKey3) $keys[] = $envKey3;
+        }
+
+        return array_unique($keys);
+    }
+
     public function chat(Request $request)
     {
         $request->validate([
@@ -102,8 +132,8 @@ class InstructorAiAdvisorController extends Controller
         })->toArray();
 
         try {
-            $apiKey = env('GEMINI_API_KEY');
-            if (!$apiKey) {
+            $apiKeys = $this->getGeminiApiKeys();
+            if (empty($apiKeys)) {
                 throw new \Exception('Gemini API key is not configured.');
             }
 
@@ -119,15 +149,36 @@ class InstructorAiAdvisorController extends Controller
                 ],
             ];
 
-            $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}", $payload);
+            $aiText = null;
+            $lastException = null;
 
-            if (!$response->successful()) {
-                throw new \Exception('Gemini API error: ' . $response->body());
+            foreach ($apiKeys as $apiKey) {
+                try {
+                    $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                        ->timeout(60)
+                        ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}", $payload);
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $aiText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                        if ($aiText) {
+                            break; // Success, stop trying keys
+                        }
+                    } else {
+                        throw new \Exception('API Error: ' . $response->body());
+                    }
+                } catch (\Exception $e) {
+                    $lastException = $e;
+                    Log::warning('Instructor AI Chat Key Failed', ['key' => substr($apiKey, 0, 5) . '...', 'error' => $e->getMessage()]);
+                    continue; // Try next key
+                }
             }
 
-            $data = $response->json();
-            $aiText = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{"reply":"حدث خطأ في فهم الرد."}';
+            if (!$aiText) {
+                throw $lastException ?? new \Exception('All Gemini API keys failed.');
+            }
+
+            $aiText = $aiText ?? '{"reply":"حدث خطأ في فهم الرد."}';
 
             Message::create([
                 'chat_id' => $chat->id,
@@ -145,7 +196,7 @@ class InstructorAiAdvisorController extends Controller
             Log::error('Instructor AI Chat Error', ['error' => $e->getMessage()]);
             return response()->json([
                 'status' => 'error',
-                'message' => 'تعذر الاتصال بالمساعد الذكي حالياً.',
+                'message' => 'تعذر الاتصال بالمساعد الذكي حالياً. الرجاء المحاولة مرة أخرى.',
             ], 500);
         }
     }
