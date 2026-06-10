@@ -182,9 +182,30 @@ class InstructorAiAdvisorController extends Controller
             $aiText = $aiText ?? '{"reply":"حدث خطأ في فهم الرد."}';
 
             // Clean Markdown code block formatting if present
-            $aiText = preg_replace('/```json/i', '', $aiText);
+            $aiText = preg_replace('/```(?:json)?\s*/i', '', $aiText);
             $aiText = preg_replace('/```/i', '', $aiText);
             $aiText = trim($aiText);
+
+            $decoded = json_decode($aiText, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                // Try to handle escaping issues
+                $cleanedAiText = str_replace("\n", "\\n", $aiText);
+                $cleanedAiText = str_replace("\r", "", $cleanedAiText);
+                $cleanedAiText = preg_replace('/[\x00-\x1F]/', '', $cleanedAiText);
+                $decoded = json_decode($cleanedAiText, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                     // Try extracting via regex
+                     if (preg_match('/"reply"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/is', $aiText, $matches)) {
+                         $decoded = ['reply' => str_replace('\n', "\n", stripcslashes($matches[1]))];
+                     } else {
+                         $decoded = ['reply' => $aiText];
+                     }
+                }
+            }
+
+            // Re-encode to ensure it's a perfectly valid JSON string in the DB
+            $aiText = json_encode($decoded, JSON_UNESCAPED_UNICODE);
 
             Message::create([
                 'chat_id' => $chat->id,
@@ -195,7 +216,7 @@ class InstructorAiAdvisorController extends Controller
             return response()->json([
                 'status' => 'success',
                 'chat_id' => $chat->id,
-                'message' => json_decode($aiText, true) ?? ['reply' => $aiText],
+                'message' => $decoded,
             ]);
 
         } catch (\Exception $e) {
@@ -216,12 +237,24 @@ class InstructorAiAdvisorController extends Controller
         $messages = $chat->messages()->orderBy('created_at')->get()->map(function ($msg) {
             $content = $msg->content;
             if ($msg->role === 'ai') {
-                $cleanedContent = preg_replace('/```json/i', '', $content);
-                $cleanedContent = preg_replace('/```/i', '', $cleanedContent);
-                $cleanedContent = trim($cleanedContent);
-                
-                $decoded = json_decode($cleanedContent, true);
-                $content = $decoded ?? ['reply' => $cleanedContent];
+                $decoded = json_decode($content, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $cleanedContent = preg_replace('/```(?:json)?\s*/i', '', $content);
+                    $cleanedContent = preg_replace('/```/i', '', $cleanedContent);
+                    $cleanedContent = str_replace("\n", "\\n", $cleanedContent);
+                    $cleanedContent = str_replace("\r", "", $cleanedContent);
+                    $cleanedContent = preg_replace('/[\x00-\x1F]/', '', $cleanedContent);
+                    $decoded = json_decode($cleanedContent, true);
+                    
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        if (preg_match('/"reply"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/is', $content, $matches)) {
+                            $decoded = ['reply' => str_replace('\n', "\n", stripcslashes($matches[1]))];
+                        } else {
+                            $decoded = ['reply' => $content];
+                        }
+                    }
+                }
+                $content = $decoded ?? ['reply' => $content];
             }
             return [
                 'id' => $msg->id,

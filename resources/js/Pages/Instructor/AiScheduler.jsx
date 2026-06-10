@@ -142,55 +142,69 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
         }
 
         return (
-            <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`} dir="rtl">
-                <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl p-4 shadow-sm ${
-                    isUser 
-                    ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-tl-none shadow-blue-500/10' 
-                    : 'bg-white dark:bg-gray-800 border border-slate-200/50 dark:border-gray-700 text-slate-700 dark:text-gray-200 rounded-tr-none'
-                }`}>
-                    <div className={`prose max-w-none prose-sm sm:prose-base prose-p:leading-relaxed ${isUser ? 'prose-invert text-white' : 'dark:prose-invert dark:text-gray-200 text-slate-700'}`}>
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentText}</ReactMarkdown>
-                    </div>
-                    
-                    {proposedSchedule && proposedSchedule.length > 0 && (
-                        <div className="mt-5 bg-gray-50 dark:bg-gray-900/50 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                            <div className="p-3 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <Calendar size={18} className="text-blue-600" /> الجدول المقترح
-                                </h4>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm text-right text-gray-600 dark:text-gray-400">
-                                    <thead className="text-xs text-gray-500 uppercase bg-gray-100/50 dark:bg-gray-800/50">
-                                        <tr>
-                                            <th className="px-4 py-3 font-semibold">المادة</th>
-                                            <th className="px-4 py-3 font-semibold">الأيام</th>
-                                            <th className="px-4 py-3 font-semibold">الوقت</th>
-                                            <th className="px-4 py-3 font-semibold">القاعة</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {proposedSchedule.map((row, i) => (
-                                            <tr key={i} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors">
-                                                <td className="px-4 py-3 font-bold text-gray-900 dark:text-white">{row.course_name}</td>
-                                                <td className="px-4 py-3">{row.days}</td>
-                                                <td className="px-4 py-3 font-mono text-sm">{row.time}</td>
-                                                <td className="px-4 py-3 text-blue-600 dark:text-blue-400">{row.hall}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                                <button 
-                                    onClick={() => commitSchedule(proposedSchedule)}
-                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all font-bold shadow-sm hover:shadow-md">
-                                    <Check size={18} />
-                                    اعتماد وتسليم للقسم
-                                </button>
-                            </div>
+            <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 sfr-slide-up`} dir="rtl">
+                <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${isUser ? 'flex-row-reverse' : ''} items-end`}>
+                    {isUser ? (
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white overflow-hidden">
+                            {auth?.user?.avatar ? <img src={auth.user.avatar} alt={auth.user.name} className="w-full h-full object-cover" /> : auth?.user?.name?.charAt(0)||'أ'}
+                        </div>
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-blue-50">
+                            <Bot size={20} className="text-blue-500" />
                         </div>
                     )}
+                    <div className={`group/m ${isUser ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-2xl rounded-se-sm shadow-lg shadow-blue-500/10 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
+                        {isUser ? (
+                            <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{contentText}</p>
+                        ) : (
+                            <div className="w-full">
+                                <div className="sfr-ai-shell">
+                                    <div className="sfr-ai-card">
+                                        <div className="sfr-md text-[12.5px] font-medium prose max-w-none prose-sm prose-p:leading-relaxed text-slate-700">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentText}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {proposedSchedule && proposedSchedule.length > 0 && (
+                                    <div className="mt-4 pt-3 border-t border-blue-100/40 sfr-fade-up">
+                                        <p className="text-[10px] font-black text-blue-600 mb-3 flex items-center gap-1.5"><Calendar size={14} /> 📋 الجدول المقترح</p>
+                                        <div className="bg-gradient-to-br from-slate-50/80 to-blue-50/30 rounded-2xl p-0 border border-slate-200/40 overflow-hidden shadow-sm">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-[11px] text-right text-slate-600">
+                                                    <thead className="bg-slate-100/50">
+                                                        <tr>
+                                                            <th className="px-3 py-2.5 font-bold text-slate-700">المادة</th>
+                                                            <th className="px-3 py-2.5 font-bold text-slate-700">الأيام</th>
+                                                            <th className="px-3 py-2.5 font-bold text-slate-700">الوقت</th>
+                                                            <th className="px-3 py-2.5 font-bold text-slate-700">القاعة</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100">
+                                                        {proposedSchedule.map((row, i) => (
+                                                            <tr key={i} className="hover:bg-slate-50 transition-colors">
+                                                                <td className="px-3 py-2.5 font-black text-slate-800">{row.course_name}</td>
+                                                                <td className="px-3 py-2.5 font-bold">{row.days}</td>
+                                                                <td className="px-3 py-2.5 font-mono text-[10px] text-blue-600 font-bold" dir="ltr">{row.time}</td>
+                                                                <td className="px-3 py-2.5 text-blue-500 font-bold">{row.hall}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="p-2.5 bg-white border-t border-slate-100">
+                                                <button 
+                                                    onClick={() => commitSchedule(proposedSchedule)}
+                                                    className="w-full flex items-center justify-center gap-1.5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-xl transition-all font-black text-[12px] shadow-sm shadow-emerald-500/20 active:scale-[.98]">
+                                                    <Check size={14} /> اعتماد وتسليم للقسم
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -199,6 +213,34 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
     return (
         <MainLayout user={auth.user}>
             <Head title="المساعد الذكي للجدول" />
+            <style dangerouslySetInnerHTML={{ __html: `
+            :root { --sfr-primary: #3b82f6; --sfr-accent: #6366f1; }
+            .sfr-scrollbar::-webkit-scrollbar { width: 4px; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(59,130,246,.2); border-radius: 10px; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,.4); }
+            .typing-dot { animation: sfr-bounce 1.4s infinite ease-in-out both; }
+            .typing-dot:nth-child(1) { animation-delay: -.32s; }
+            .typing-dot:nth-child(2) { animation-delay: -.16s; }
+            @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
+            .sfr-md p { margin-bottom: .6rem; line-height: 1.85; color: #334155; }
+            .sfr-md p:last-child { margin-bottom: 0; }
+            .sfr-md p:first-child { background: linear-gradient(to left, rgba(59,130,246,0.06), transparent); border-right: 3px solid var(--sfr-primary); padding: .5rem .7rem; border-radius: 8px; font-weight: 600; color: #1e293b; margin-bottom: .8rem; }
+            .sfr-md strong { color: #1d4ed8; font-weight: 800; background: rgba(59,130,246,0.08); padding: 0.15rem 0.4rem; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(59,130,246,0.15); margin: 0 0.1rem; }
+            .sfr-md em { color: #4338ca; font-style: normal; font-weight: 700; background: rgba(99,102,241,0.08); padding: 0 0.2rem; border-radius: 4px; }
+            .sfr-md ul { list-style: none; padding-right: .2rem; margin-bottom: .8rem; margin-top: .4rem; }
+            .sfr-md li { position: relative; padding-right: 1.2rem; margin-bottom: .4rem; line-height: 1.7; color: #475569; }
+            .sfr-md li::before { content: ""; position: absolute; right: .15rem; top: .6em; width: 6px; height: 6px; background: linear-gradient(135deg, var(--sfr-primary), var(--sfr-accent)); border-radius: 50%; box-shadow: 0 0 4px rgba(59,130,246,0.4); }
+            @keyframes sfr-su { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+            .sfr-slide-up { animation: sfr-su .3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+            @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
+            .sfr-fade-up { animation: sfr-fu .25s ease-out forwards; }
+            @keyframes sfr-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,.2); } 50% { box-shadow: 0 0 0 5px rgba(59,130,246,0); } }
+            .sfr-glow { animation: sfr-glow 3s infinite; }
+            .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .2s; cursor: pointer; color: #64748b; }
+            .sfr-action-btn:hover { background: #f1f5f9; color: #334155; transform: scale(1.05); }
+            .sfr-ai-shell { background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(99,102,241,0.3), rgba(14,165,233,0.4)); padding: 1.5px; border-radius: 20px; box-shadow: 0 4px 20px -10px rgba(59,130,246,0.4); margin-bottom: 0.2rem; }
+            .sfr-ai-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); border-radius: 19px; padding: 1rem 1.1rem; }
+            ` }} />
 
             <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-80px)] flex flex-col lg:flex-row gap-6" dir="rtl">
                 
