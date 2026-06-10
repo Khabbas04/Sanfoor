@@ -144,7 +144,7 @@ class InstructorAiAdvisorController extends Controller
                 'contents' => $history,
                 'generationConfig' => [
                     'temperature' => 0.7,
-                    'maxOutputTokens' => 2000,
+                    'maxOutputTokens' => 4000,
                     'responseMimeType' => 'application/json',
                 ],
             ];
@@ -198,6 +198,9 @@ class InstructorAiAdvisorController extends Controller
                      // Try extracting via regex
                      if (preg_match('/"reply"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/is', $aiText, $matches)) {
                          $decoded = ['reply' => str_replace('\n', "\n", stripcslashes($matches[1]))];
+                     } elseif (preg_match('/"reply"\s*:\s*"((?:\\\\.|[^"\\\\])*)/is', $aiText, $matches)) {
+                         // Fallback for truncated JSON
+                         $decoded = ['reply' => str_replace('\n', "\n", stripcslashes($matches[1]))];
                      } else {
                          $decoded = ['reply' => $aiText];
                      }
@@ -248,6 +251,8 @@ class InstructorAiAdvisorController extends Controller
                     
                     if (json_last_error() !== JSON_ERROR_NONE) {
                         if (preg_match('/"reply"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/is', $content, $matches)) {
+                            $decoded = ['reply' => str_replace('\n', "\n", stripcslashes($matches[1]))];
+                        } elseif (preg_match('/"reply"\s*:\s*"((?:\\\\.|[^"\\\\])*)/is', $content, $matches)) {
                             $decoded = ['reply' => str_replace('\n', "\n", stripcslashes($matches[1]))];
                         } else {
                             $decoded = ['reply' => $content];
@@ -349,6 +354,7 @@ class InstructorAiAdvisorController extends Controller
 2. تحليل الضغط (Demand vs Capacity): إذا كان الطلب على مادة 120 طالباً والقاعة تسع 50، اقترح فتح 3 شعب، ونبه الدكتور.
 3. راعِ الحد الأقصى لنصاب الدكتور ({$maxCourses} مواد). لا تقترح عليه تدريس أكثر من الحد.
 4. استخدم Markdown في ردودك لتنسيق الجداول بشكل جميل. يمنع منعاً باتاً استخدام كود HTML في الرد. يجب أن يكون التنسيق فقط Markdown.
+5. اجعل ردك مختصراً، احترافياً، واقتصادياً في الكلام. قدم الجداول والنصائح مباشرة بدون إطالة مفرطة.
 
 ⚠️ شكل الرد الإجباري (JSON صالح فقط):
 {
