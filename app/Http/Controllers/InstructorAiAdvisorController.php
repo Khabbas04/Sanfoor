@@ -6,8 +6,8 @@ use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Models\Landmark;
 use App\Models\User;
-use App\Models\AiChat;
-use App\Models\AiMessage;
+use App\Models\Chat;
+use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -20,8 +20,7 @@ class InstructorAiAdvisorController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $chats = AiChat::where('user_id', $user->id)
-            ->where('context_type', 'instructor_scheduler')
+        $chats = Chat::where('user_id', $user->id)
             ->orderByDesc('updated_at')
             ->get(['id', 'title', 'updated_at']);
 
@@ -68,7 +67,7 @@ class InstructorAiAdvisorController extends Controller
     {
         $request->validate([
             'message' => 'required|string|max:1500',
-            'chat_id' => 'nullable|exists:ai_chats,id',
+            'chat_id' => 'nullable|exists:chats,id',
         ]);
 
         $user = Auth::user();
@@ -76,20 +75,18 @@ class InstructorAiAdvisorController extends Controller
         $chatId = $request->input('chat_id');
 
         if (!$chatId) {
-            $chat = AiChat::create([
+            $chat = Chat::create([
                 'user_id' => $user->id,
                 'title' => mb_substr($messageText, 0, 50) . (strlen($messageText) > 50 ? '...' : ''),
-                'context_type' => 'instructor_scheduler',
             ]);
         } else {
-            $chat = AiChat::where('user_id', $user->id)
-                ->where('context_type', 'instructor_scheduler')
+            $chat = Chat::where('user_id', $user->id)
                 ->findOrFail($chatId);
             $chat->touch();
         }
 
-        AiMessage::create([
-            'ai_chat_id' => $chat->id,
+        Message::create([
+            'chat_id' => $chat->id,
             'role' => 'user',
             'content' => $messageText,
         ]);
@@ -132,8 +129,8 @@ class InstructorAiAdvisorController extends Controller
             $data = $response->json();
             $aiText = $data['candidates'][0]['content']['parts'][0]['text'] ?? '{"reply":"حدث خطأ في فهم الرد."}';
 
-            AiMessage::create([
-                'ai_chat_id' => $chat->id,
+            Message::create([
+                'chat_id' => $chat->id,
                 'role' => 'assistant',
                 'content' => $aiText,
             ]);
@@ -155,8 +152,7 @@ class InstructorAiAdvisorController extends Controller
 
     public function getMessages($chat_id)
     {
-        $chat = AiChat::where('user_id', Auth::id())
-            ->where('context_type', 'instructor_scheduler')
+        $chat = Chat::where('user_id', Auth::id())
             ->findOrFail($chat_id);
 
         $messages = $chat->messages()->orderBy('created_at')->get()->map(function ($msg) {
@@ -182,8 +178,7 @@ class InstructorAiAdvisorController extends Controller
 
     public function destroy($chat_id)
     {
-        AiChat::where('user_id', Auth::id())
-            ->where('context_type', 'instructor_scheduler')
+        Chat::where('user_id', Auth::id())
             ->findOrFail($chat_id)
             ->delete();
 
