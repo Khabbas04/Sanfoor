@@ -3489,6 +3489,10 @@ export default function Tree({
                                             <option value="12">خطة 12</option>
                                             <option value="13">خطة 13</option>
                                         </select>
+                                        
+                                        <Link href={route('instructor.ai.scheduler')} className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-[11px] font-bold transition-colors">
+                                            <span>العودة لصفحة الشات</span>
+                                        </Link>
                                     </div>
                                 ) : (
                                     <span>{major_name && `${major_name} • `}{student_name}</span>

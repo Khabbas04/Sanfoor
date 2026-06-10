@@ -13,6 +13,7 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
     const [isLoading, setIsLoading] = useState(false);
     const [currentChatId, setCurrentChatId] = useState(null);
     const messagesEndRef = useRef(null);
+    const chatContainerRef = useRef(null);
 
     // Preferences State
     const [showPrefs, setShowPrefs] = useState(false);
@@ -22,7 +23,9 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
     const [carpoolIds, setCarpoolIds] = useState(preferences?.carpool_with_user_ids || []);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
     };
 
     useEffect(() => {
@@ -396,7 +399,7 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
                         </div>
                     ) : (
                         <>
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[url('/bg-pattern.svg')] bg-repeat opacity-95">
+                            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50">
                                 {messages.length === 0 ? (
                                     <div className="h-full flex flex-col items-center justify-center text-center opacity-80 max-w-md mx-auto">
                                         <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 rounded-full flex items-center justify-center mb-6 shadow-inner ring-4 ring-white dark:ring-gray-800">
