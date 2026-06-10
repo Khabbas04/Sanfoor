@@ -659,11 +659,40 @@ class AiAdvisorController extends Controller
                 if ($isSummer2026) {
                     $normalizedCourseName = $this->normalizeArabic($course->name);
                     $matchedKey = null;
+                    
+                    // 1. Exact match
                     foreach ($summer2026OfferedKeys as $offered) {
                         if ($this->normalizeArabic($offered) === $normalizedCourseName) {
                             $isOfferedInSummer = true;
                             $matchedKey = $offered;
                             break;
+                        }
+                    }
+                    
+                    // 2. Fuzzy match
+                    if (!$matchedKey) {
+                        $courseWords = array_filter(explode(' ', str_replace('ال', '', $normalizedCourseName)), fn($w) => mb_strlen($w) > 1 || is_numeric($w));
+                        
+                        foreach ($summer2026OfferedKeys as $offered) {
+                            $normOffered = $this->normalizeArabic($offered);
+                            
+                            // Partial inclusion
+                            if (mb_strlen($normalizedCourseName) > 5 && (mb_strpos($normOffered, $normalizedCourseName) !== false || mb_strpos($normalizedCourseName, $normOffered) !== false)) {
+                                $isOfferedInSummer = true;
+                                $matchedKey = $offered;
+                                break;
+                            }
+                            
+                            // Word intersection
+                            $offeredWords = array_filter(explode(' ', str_replace('ال', '', $normOffered)), fn($w) => mb_strlen($w) > 1 || is_numeric($w));
+                            $intersect = array_intersect($courseWords, $offeredWords);
+                            $maxWords = max(count($courseWords), count($offeredWords));
+                            
+                            if ($maxWords > 0 && (count($intersect) / $maxWords) >= 0.70) {
+                                $isOfferedInSummer = true;
+                                $matchedKey = $offered;
+                                break;
+                            }
                         }
                     }
                     
