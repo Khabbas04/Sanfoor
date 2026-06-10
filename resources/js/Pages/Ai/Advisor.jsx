@@ -452,6 +452,7 @@ export default function Advisor() {
     const initAdded = useMemo(() => { const s = {}; initialCartIds?.forEach(id => { s[id] = true; }); return s; }, [initialCartIds]);
     const [added, setAdded] = useState(initAdded);
     const [loadId, setLoadId] = useState(null);
+    const [showHelp, setShowHelp] = useState(false);
 
     const chatRef = useRef(null), inputRef = useRef(null), abortRef = useRef(null);
     const typewriterTimeoutRef = useRef(null);
@@ -795,6 +796,9 @@ export default function Advisor() {
                         {/* 🆕 تحديث الساعات في Header لتكون ديناميكية */}
                         {addedCount>0&&<div className="bg-emerald-50 rounded-lg px-2.5 py-1.5 border border-emerald-100"><span className="text-[10px] font-black text-emerald-700">🛒 {addedCount} مواد • {cartHours}س</span></div>}
                     </div>}
+                    <button onClick={() => setShowHelp(true)} className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 flex items-center justify-center font-bold shadow-sm transition-all text-sm ml-1" title="دليل المساعدة">
+                        ؟
+                    </button>
                 </div>
             </div>
 
@@ -904,6 +908,98 @@ export default function Advisor() {
             </div>
         </div>
         </div></div>
+        
+        {showHelp && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6 font-t" dir="rtl">
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onClick={() => setShowHelp(false)} />
+                <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col sfr-slide-up">
+                    <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-sky-50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-xl">💡</div>
+                            <div>
+                                <h3 className="font-black text-slate-800 text-[16px]">دليل استخدام المرشد الذكي</h3>
+                                <p className="text-[11px] font-bold text-slate-500 mt-0.5">كيف تستفيد من قدرات سنفور للحد الأقصى؟</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowHelp(false)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white text-slate-500 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors text-sm font-bold">✕</button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-5 sm:p-6 sfr-scrollbar space-y-6">
+                        {/* Section 1: Features */}
+                        <div>
+                            <h4 className="font-black text-blue-700 text-[13px] mb-3 flex items-center gap-2"><span className="text-lg">✨</span> قدرات المرشد الذكي</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <p className="font-black text-slate-800 text-[11px] mb-1">📅 التقويم ومواعيد المحاضرات</p>
+                                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يعرف سنفور التقويم الجامعي ومواعيد السحب والإضافة. كما أنه على اطلاع دائم بجميع الشُعب المطروحة، أوقاتها، وأسماء الدكاترة.</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <p className="font-black text-slate-800 text-[11px] mb-1">📊 تحليل أكاديمي دقيق</p>
+                                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">سنفور يقرأ معدلك، عدد ساعاتك المنجزة، والمواد التي نجحت بها سابقاً ليبني لك خطة تتناسب 100% مع وضعك الأكاديمي.</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <p className="font-black text-slate-800 text-[11px] mb-1">🎓 خطة التخرج وإنقاذ المعدل</p>
+                                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يمكنه توجيهك لمعرفة المواد المتبقية لتخرجك، أو اقتراح أسهل المواد لرفع معدلك التراكمي إذا كنت تحت الإنذار.</p>
+                                </div>
+                                <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                                    <p className="font-black text-slate-800 text-[11px] mb-1">🛒 ربط كامل بالتسجيل</p>
+                                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed">تستطيع سؤاله ليراجع التسجيل التجريبي الحالي الخاص بك وتخفيف العبء عنك، واقتراح بدائل مناسبة.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Magic Commands */}
+                        <div>
+                            <h4 className="font-black text-emerald-700 text-[13px] mb-3 flex items-center gap-2"><span className="text-lg">⚡</span> الأوامر السحرية ( / )</h4>
+                            <p className="text-[11px] text-slate-600 font-bold mb-3 leading-relaxed">فقط اكتب علامة السلاش <kbd className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-mono mx-1">/</kbd> في صندوق المحادثة لفتح قائمة من الأوامر السريعة الجاهزة مثل:</p>
+                            <div className="flex flex-wrap gap-2">
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/جدول</span>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/صيفي</span>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/مواعيد</span>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/تقويم</span>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/رفع-معدل</span>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/تخرج</span>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Widgets */}
+                        <div>
+                            <h4 className="font-black text-amber-600 text-[13px] mb-3 flex items-center gap-2"><span className="text-lg">🧩</span> الأدوات التفاعلية (Widgets)</h4>
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-3 bg-amber-50/30 rounded-xl p-3 border border-amber-100/50">
+                                    <span className="text-xl bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">➕</span>
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px] mb-1">أزرار إضافة المواد بضغطة واحدة</p>
+                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">يقترح لك سنفور مواد على شكل بطاقات. بضغطة زر يمكنك إضافة المادة مباشرة لتسجيلك التجريبي بدون مغادرة المحادثة.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 bg-amber-50/30 rounded-xl p-3 border border-amber-100/50">
+                                    <span className="text-xl bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">🎚️</span>
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px] mb-1">مؤشر الساعات (Hours Slider)</p>
+                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">أداة مرئية تظهر لك الحد الأقصى والأدنى المسموح لك بتسجيله بناءً على معدلك الحالي، لتتأكد أنك ضمن الحدود المسموحة.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 bg-amber-50/30 rounded-xl p-3 border border-amber-100/50">
+                                    <span className="text-xl bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">⚖️</span>
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px] mb-1">بطاقات المقارنة والتصويت</p>
+                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">عندما تقارن بين عدة مواد، يعرضها لك في بطاقات منظمة مع ميزة التصويت، لتعرف رأي زملائك في كل مادة.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 bg-amber-50/30 rounded-xl p-3 border border-amber-100/50">
+                                    <span className="text-xl bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">📋</span>
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px] mb-1">تقييم التسجيل (Cart Review)</p>
+                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">أداة تقوم بفحص المواد الموجودة في تسجيلك التجريبي مادة بمادة، وتعطيك نصيحة مفصلة (احتفظ بها، احذفها، أو تحذير من الصعوبة) مع تقييم للعبء الإجمالي.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         </MainLayout>
     );
 }
