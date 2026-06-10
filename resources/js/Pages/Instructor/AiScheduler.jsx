@@ -145,10 +145,10 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
             <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`} dir="rtl">
                 <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl p-4 shadow-sm ${
                     isUser 
-                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tl-none' 
-                    : 'bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-tr-none'
+                    ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-tl-none shadow-blue-500/10' 
+                    : 'bg-white dark:bg-gray-800 border border-slate-200/50 dark:border-gray-700 text-slate-700 dark:text-gray-200 rounded-tr-none'
                 }`}>
-                    <div className={`prose max-w-none prose-sm sm:prose-base prose-p:leading-relaxed ${isUser ? 'prose-invert text-white' : 'dark:prose-invert dark:text-gray-200'}`}>
+                    <div className={`prose max-w-none prose-sm sm:prose-base prose-p:leading-relaxed ${isUser ? 'prose-invert text-white' : 'dark:prose-invert dark:text-gray-200 text-slate-700'}`}>
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentText}</ReactMarkdown>
                     </div>
                     

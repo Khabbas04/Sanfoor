@@ -181,6 +181,11 @@ class InstructorAiAdvisorController extends Controller
 
             $aiText = $aiText ?? '{"reply":"حدث خطأ في فهم الرد."}';
 
+            // Clean Markdown code block formatting if present
+            $aiText = preg_replace('/```json/i', '', $aiText);
+            $aiText = preg_replace('/```/i', '', $aiText);
+            $aiText = trim($aiText);
+
             Message::create([
                 'chat_id' => $chat->id,
                 'role' => 'ai',
@@ -211,8 +216,12 @@ class InstructorAiAdvisorController extends Controller
         $messages = $chat->messages()->orderBy('created_at')->get()->map(function ($msg) {
             $content = $msg->content;
             if ($msg->role === 'ai') {
-                $decoded = json_decode($content, true);
-                $content = $decoded ?? ['reply' => $content];
+                $cleanedContent = preg_replace('/```json/i', '', $content);
+                $cleanedContent = preg_replace('/```/i', '', $cleanedContent);
+                $cleanedContent = trim($cleanedContent);
+                
+                $decoded = json_decode($cleanedContent, true);
+                $content = $decoded ?? ['reply' => $cleanedContent];
             }
             return [
                 'id' => $msg->id,
