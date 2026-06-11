@@ -150,22 +150,50 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable $e) {
             }
         });
+
         Event::listen(\Illuminate\Auth\Events\Registered::class, function (\Illuminate\Auth\Events\Registered $event) {
             $url = config('services.discord.webhook_url');
             if ($url) {
                 try {
                     $user = $event->user;
-                    $name = $user->name ?? 'طالب جديد';
-                    $email = $user->email ?? 'بدون إيميل';
-                    $role = $user->role ?? 'student';
                     
-                    $message = "🎉 **تسجيل جديد في سنفور!** 🎉\n\n";
-                    $message .= "👤 **الاسم:** {$name}\n";
-                    $message .= "📧 **الإيميل:** {$email}\n";
-                    $message .= "🎓 **النوع:** {$role}\n";
-                    
+                    $embed = [
+                        'title' => '🎉 تسجيل مستخدم جديد',
+                        'color' => 5814783, // Discord Blurple
+                        'thumbnail' => [
+                            'url' => $user->avatar ?? 'https://sanfoor.me/logo.png', // Fallback to your site logo
+                        ],
+                        'fields' => [
+                            [
+                                'name' => '👤 الاسم',
+                                'value' => $user->name ?? 'غير معروف',
+                                'inline' => true,
+                            ],
+                            [
+                                'name' => '📧 الإيميل',
+                                'value' => $user->email ?? 'غير معروف',
+                                'inline' => true,
+                            ],
+                            [
+                                'name' => '🎓 نوع الحساب',
+                                'value' => ucfirst($user->role ?? 'student'),
+                                'inline' => true,
+                            ],
+                            [
+                                'name' => '🌐 IP Address',
+                                'value' => $user->ip_address ?? request()->ip() ?? 'غير معروف',
+                                'inline' => true,
+                            ],
+                        ],
+                        'timestamp' => now()->toIso8601String(),
+                        'footer' => [
+                            'text' => 'Sanfoor System',
+                            'icon_url' => 'https://sanfoor.me/logo.png',
+                        ],
+                    ];
+
                     Http::post($url, [
-                        'content' => $message,
+                        'embeds' => [$embed],
                     ]);
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::error('Failed to send Discord webhook', ['error' => $e->getMessage()]);
