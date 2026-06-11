@@ -13,7 +13,7 @@ const pillars = [
         text: 'سنفور يحول الخطة الأكاديمية من ملفات ورقية معقدة إلى مسار شجري مرئي وواضح، لتعرف تماماً ماذا أنجزت وماذا تبقى لك بضغطة زر.',
         color: 'from-emerald-400 to-emerald-600',
         bg: 'bg-emerald-50',
-        text: 'text-emerald-700'
+        textColor: 'text-emerald-700'
     },
     {
         icon: Bot,
@@ -21,7 +21,7 @@ const pillars = [
         text: 'نستخدم الذكاء الاصطناعي ليس للدردشة فقط، بل كمرشد حقيقي يقرأ بياناتك الأكاديمية بدقة ليقدم لك اقتراحات مواد وتقييم لجداولك التجريبية.',
         color: 'from-indigo-400 to-indigo-600',
         bg: 'bg-indigo-50',
-        text: 'text-indigo-700'
+        textColor: 'text-indigo-700'
     },
     {
         icon: Target,
@@ -29,7 +29,7 @@ const pillars = [
         text: 'بنينا سنفور ليخفف عنك التشتت والضغط النفسي وقت التسجيل. كل واجهة مصممة لتسريع اتخاذك للقرار الصحيح دون عناء.',
         color: 'from-blue-400 to-blue-600',
         bg: 'bg-blue-50',
-        text: 'text-blue-700'
+        textColor: 'text-blue-700'
     },
 ];
 
