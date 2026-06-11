@@ -1,5 +1,6 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import { Mail, Briefcase, Clock, Send, AlertCircle, MessageSquare } from 'lucide-react';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
@@ -8,22 +9,31 @@ const channels = [
         title: 'البريد الإلكتروني',
         value: 'noreply@sanfoor.me',
         href: 'mailto:noreply@sanfoor.me',
-        note: 'لطلبات الانضمام للفريق، الاستفسارات العامة، والشراكات.',
-        icon: '✉️',
+        note: 'لطلبات الشراكات والاستفسارات العامة.',
+        icon: Mail,
+        color: 'from-blue-400 to-blue-600',
+        bg: 'bg-blue-50',
+        text: 'text-blue-700'
     },
     {
         title: 'فرص الانضمام',
-        value: 'التطوع والتدريب',
+        value: 'فريق التطوير والمحتوى',
         href: null,
-        note: 'نحن نرحب دائماً بالطلاب الشغوفين للانضمام لفريق التطوير وإدارة المحتوى.',
-        icon: '🚀',
+        note: 'نرحب دائماً بالطلاب الشغوفين للانضمام والمساهمة في سنفور.',
+        icon: Briefcase,
+        color: 'from-indigo-400 to-indigo-600',
+        bg: 'bg-indigo-50',
+        text: 'text-indigo-700'
     },
     {
         title: 'ساعات الاستجابة',
-        value: 'عادة خلال 24-48 ساعة',
+        value: 'خلال 24-48 ساعة',
         href: null,
-        note: 'نقوم بمراجعة جميع الطلبات والرسائل بدقة واهتمام.',
-        icon: '⏱️',
+        note: 'نقوم بمراجعة جميع الطلبات بعناية للرد بشكل دقيق.',
+        icon: Clock,
+        color: 'from-emerald-400 to-emerald-600',
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-700'
     },
 ];
 
@@ -51,143 +61,152 @@ export default function Contact() {
     return (
         <MainLayout>
             <Head>
-                <title>انضم إلينا | سنفور</title>
+                <title>تواصل معنا | سنفور</title>
                 <meta name="description" content="تواصل مع فريق سنفور وكن جزءاً من مسيرتنا، سواء للانضمام للفريق، الشراكات، أو الاستفسارات العامة." />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/contact-us`} />
-                <meta property="og:type" content="website" />
-                <meta property="og:title" content="انضم إلينا | سنفور" />
-                <meta property="og:description" content="تواصل وانضم لفريق سنفور." />
-                <meta property="og:url" content={`${siteUrl}/contact-us`} />
-                <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
             </Head>
 
-            <div className="min-h-screen py-10 sm:py-14" dir="rtl">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <section className="relative overflow-hidden rounded-[2rem] bg-[#0b1224] text-white p-6 sm:p-10 border border-indigo-500/20 shadow-[0_30px_80px_rgba(2,6,23,0.45)]">
-                        <div className="absolute -top-16 -left-10 w-56 h-56 rounded-full blur-3xl bg-indigo-500/30" />
-                        <div className="absolute -bottom-16 -right-10 w-56 h-56 rounded-full blur-3xl bg-cyan-400/20" />
+            <div className="min-h-screen pb-16 font-t bg-[#f8f9fb]" dir="rtl">
+                {/* Hero Section */}
+                <div className="relative overflow-hidden bg-white border-b border-slate-200">
+                    <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-40" />
+                    <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[300px] h-[300px] bg-blue-50/60 rounded-full blur-3xl" />
+                    <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/50 rounded-full blur-3xl" />
+                    
+                    <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[11px] font-black tracking-wide mb-6 shadow-sm">
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            نحن هنا للاستماع
+                        </span>
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+                            انضم إلينا <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-600 to-indigo-400">وتواصل معنا</span>
+                        </h1>
+                        <p className="text-slate-500 font-bold text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+                            هل ترغب في الانضمام لفريق مطوري وداعمي سنفور؟ أو لديك فكرة رائعة للشراكة والتعاون؟ نحن نبحث دائماً عن العقول المبدعة.
+                        </p>
+                    </div>
+                </div>
 
-                        <div className="relative z-10">
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-black">
-                                🚀 Join Us
-                            </span>
-                            <h1 className="mt-4 text-3xl sm:text-5xl font-black">انضم إلينا وتواصل معنا</h1>
-                            <p className="mt-3 text-indigo-100 font-bold text-sm sm:text-base max-w-3xl leading-relaxed">
-                                هل ترغب في الانضمام لفريق سنفور؟ أو لديك فكرة للتعاون والشراكة؟ نحن نبحث دائماً عن العقول المبدعة التي تسعى لتطوير تجربة الطالب الجامعي.
-                            </p>
-                        </div>
-                    </section>
-
-                    <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
-                        {channels.map((channel) => (
-                            <article key={channel.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center text-2xl">{channel.icon}</div>
-                                <h2 className="mt-4 text-xl font-black text-slate-900">{channel.title}</h2>
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                        {channels.map((channel, idx) => (
+                            <div key={idx} className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md transition-shadow">
+                                <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${channel.color} text-white flex items-center justify-center mb-5 shadow-sm`}>
+                                    <channel.icon className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-lg font-black text-slate-900 mb-1">{channel.title}</h3>
                                 {channel.href ? (
-                                    <a href={channel.href} className="mt-2 inline-block text-indigo-700 font-black text-sm hover:text-indigo-800 transition-colors">
+                                    <a href={channel.href} className={`text-[13px] font-black ${channel.text} hover:underline block mb-2`}>
                                         {channel.value}
                                     </a>
                                 ) : (
-                                    <p className="mt-2 text-slate-800 font-black text-sm">{channel.value}</p>
+                                    <p className={`text-[13px] font-black ${channel.text} mb-2`}>{channel.value}</p>
                                 )}
-                                <p className="mt-2 text-slate-600 font-bold text-sm leading-relaxed">{channel.note}</p>
-                            </article>
+                                <p className="text-[13px] font-bold text-slate-500 leading-relaxed">
+                                    {channel.note}
+                                </p>
+                            </div>
                         ))}
-                    </section>
+                    </div>
 
-                    <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
-                        <h3 className="text-2xl font-black text-slate-900">نموذج الانضمام والتواصل</h3>
-                        <p className="mt-2 text-slate-600 font-bold text-sm sm:text-base">
-                            املأ النموذج التالي ببياناتك وسنقوم بالتواصل معك في أقرب فرصة.
-                        </p>
+                    <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-xl shadow-slate-200/20">
+                        <div className="mb-8 border-b border-slate-100 pb-6">
+                            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">نموذج التواصل السريع</h2>
+                            <p className="text-slate-500 font-bold text-sm">أخبرنا كيف يمكننا التعاون أو تقديم المساعدة، وسنرد عليك قريباً.</p>
+                        </div>
 
                         {flash?.message && (
-                            <div className={`mt-5 rounded-xl border px-4 py-3 text-sm font-bold ${flash?.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                                {flash.message}
+                            <div className={`mb-8 flex items-start gap-3 p-4 rounded-2xl border ${flash?.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-amber-50 border-amber-100 text-amber-800'}`}>
+                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                <p className="font-black text-sm">{flash.message}</p>
                             </div>
                         )}
 
-                        <form onSubmit={submit} className="mt-6 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <form onSubmit={submit} className="space-y-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-black text-slate-700 mb-2">الاسم</label>
+                                    <label className="block text-[13px] font-black text-slate-700 mb-2">الاسم الكامل</label>
                                     <input
                                         type="text"
                                         value={data.name}
                                         onChange={(e) => setData('name', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                                        placeholder="اسمك الكامل"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                        placeholder="محمد عبدالله"
                                     />
-                                    {errors.name && <p className="mt-1 text-xs font-bold text-rose-600">{errors.name}</p>}
+                                    {errors.name && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.name}</p>}
                                 </div>
-
                                 <div>
-                                    <label className="block text-sm font-black text-slate-700 mb-2">البريد الإلكتروني</label>
+                                    <label className="block text-[13px] font-black text-slate-700 mb-2">البريد الإلكتروني</label>
                                     <input
                                         type="email"
                                         value={data.email}
                                         onChange={(e) => setData('email', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
                                         placeholder="you@example.com"
                                     />
-                                    {errors.email && <p className="mt-1 text-xs font-bold text-rose-600">{errors.email}</p>}
+                                    {errors.email && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.email}</p>}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div>
-                                    <label className="block text-sm font-black text-slate-700 mb-2">رقم الهاتف (اختياري)</label>
+                                    <label className="block text-[13px] font-black text-slate-700 mb-2">رقم الهاتف <span className="text-slate-400 font-normal">(اختياري)</span></label>
                                     <input
                                         type="text"
                                         value={data.phone}
                                         onChange={(e) => setData('phone', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
                                         placeholder="079xxxxxxx"
                                     />
-                                    {errors.phone && <p className="mt-1 text-xs font-bold text-rose-600">{errors.phone}</p>}
+                                    {errors.phone && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.phone}</p>}
                                 </div>
-
                                 <div>
-                                    <label className="block text-sm font-black text-slate-700 mb-2">موضوع الرسالة</label>
+                                    <label className="block text-[13px] font-black text-slate-700 mb-2">موضوع الرسالة</label>
                                     <input
                                         type="text"
                                         value={data.subject}
                                         onChange={(e) => setData('subject', e.target.value)}
-                                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
-                                        placeholder="طلب انضمام لفريق المطورين، اقتراح شراكة، ..."
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                        placeholder="مثال: طلب انضمام لفريق التطوير..."
                                     />
-                                    {errors.subject && <p className="mt-1 text-xs font-bold text-rose-600">{errors.subject}</p>}
+                                    {errors.subject && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.subject}</p>}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-black text-slate-700 mb-2">نص الرسالة</label>
+                                <label className="block text-[13px] font-black text-slate-700 mb-2">نص الرسالة</label>
                                 <textarea
-                                    rows={6}
+                                    rows={5}
                                     value={data.message}
                                     onChange={(e) => setData('message', e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-y"
-                                    placeholder="اكتب تفاصيل طلبك أو خبراتك هنا إن كنت ترغب بالانضمام..."
+                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
+                                    placeholder="اكتب تفاصيل فكرتك، خبراتك، أو استفسارك هنا..."
                                 />
-                                {errors.message && <p className="mt-1 text-xs font-bold text-rose-600">{errors.message}</p>}
+                                {errors.message && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.message}</p>}
                             </div>
 
-                            <div className="flex flex-wrap gap-3 pt-2">
+                            <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="px-5 py-3 rounded-xl bg-indigo-600 text-white font-black text-sm hover:bg-indigo-700 transition-colors disabled:opacity-60"
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 active:scale-95 transition-all shadow-lg disabled:opacity-50"
                                 >
-                                    {processing ? 'جاري الإرسال...' : 'إرسال الرسالة'}
+                                    {processing ? 'جاري الإرسال...' : (
+                                        <>
+                                            <Send className="w-4 h-4" />
+                                            إرسال الرسالة
+                                        </>
+                                    )}
                                 </button>
                                 
-                                <p className="text-xs text-slate-500 font-bold self-center mr-4">
-                                    إذا كنت تواجه مشكلة فنية، يرجى استخدام <Link href={route('support.issue.create')} className="text-indigo-600 underline">صفحة البلاغات</Link> بدلاً من هذا النموذج.
+                                <p className="text-[11px] text-slate-500 font-bold flex items-center gap-1.5 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                                    <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+                                    للدعم الفني والأعطال، يرجى <Link href={route('support.issue.create')} className="text-blue-600 hover:underline">فتح تذكرة بلاغ</Link> مخصصة بدلاً من هنا.
                                 </p>
                             </div>
                         </form>
-                    </section>
+                    </div>
                 </div>
             </div>
         </MainLayout>

@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import { Compass, Bot, Target, Info, Sparkles, Code2, Users, ShieldCheck } from 'lucide-react';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 const founderName = 'Asem Alkhabbas';
@@ -7,40 +8,52 @@ const founderLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas-667471371/';
 
 const pillars = [
     {
-        icon: '🧭',
+        icon: Compass,
         title: 'وضوح المسار',
-        text: 'سنفور يحول الخطة الأكاديمية من ملف جامد إلى مسار واضح خطوة بخطوة، حتى يعرف الطالب ماذا أنجز وماذا تبقى.'
+        text: 'سنفور يحول الخطة الأكاديمية من ملفات ورقية معقدة إلى مسار شجري مرئي وواضح، لتعرف تماماً ماذا أنجزت وماذا تبقى لك بضغطة زر.',
+        color: 'from-emerald-400 to-emerald-600',
+        bg: 'bg-emerald-50',
+        text: 'text-emerald-700'
     },
     {
-        icon: '🤖',
+        icon: Bot,
         title: 'ذكاء عملي',
-        text: 'نستخدم الذكاء الاصطناعي كأداة مساعدة للقرار، ليقدم اقتراحات قابلة للتنفيذ بدل النصائح العامة.'
+        text: 'نستخدم الذكاء الاصطناعي ليس للدردشة فقط، بل كمرشد حقيقي يقرأ بياناتك الأكاديمية بدقة ليقدم لك اقتراحات مواد وتقييم لجداولك التجريبية.',
+        color: 'from-indigo-400 to-indigo-600',
+        bg: 'bg-indigo-50',
+        text: 'text-indigo-700'
     },
     {
-        icon: '🎯',
+        icon: Target,
         title: 'تجربة موجهة للطالب',
-        text: 'كل شاشة في سنفور مصممة لتقليل التشتت وزيادة الثقة أثناء اختيار المواد وتتبع الأداء الأكاديمي.'
+        text: 'بنينا سنفور ليخفف عنك التشتت والضغط النفسي وقت التسجيل. كل واجهة مصممة لتسريع اتخاذك للقرار الصحيح دون عناء.',
+        color: 'from-blue-400 to-blue-600',
+        bg: 'bg-blue-50',
+        text: 'text-blue-700'
     },
 ];
 
 const storyPoints = [
-    'بدأت فكرة سنفور من مشكلة حقيقية: الطالب يقضي وقتا طويلا في محاولة فهم الخطة والتعارضات والمتطلبات.',
-    'الهدف كان بناء منصة عربية واضحة، تجمع التخطيط والتتبع والتوصية الذكية في تجربة واحدة.',
-    'اليوم سنفور ليس مجرد واجهة، بل مساعد أكاديمي رقمي يدعم رحلة الطالب من الفصل الأول حتى التخرج.',
+    'بدأت فكرة سنفور من مشكلة حقيقية واجهناها كطلاب: ضياع الوقت في محاولة فهم المتطلبات السابقة وتعارض المواد.',
+    'كان الهدف بناء منصة توفر تجربة مستخدم تليق بالطالب الجامعي، تجمع بين التخطيط الشجري وتتبع الإنجاز.',
+    'اليوم، بفضل المرشد الذكي (AI) والتسجيل التجريبي، تحول سنفور إلى مساعد رقمي كامل يدعمك من فصلك الأول وحتى التخرج.'
 ];
 
 const valueCards = [
     {
+        icon: ShieldCheck,
         title: 'الشفافية',
-        desc: 'نشرح المنطق وراء التوصيات حتى يفهم الطالب القرار، لا أن ينفذه فقط.'
+        desc: 'نشرح لك دائماً المنطق وراء كل اقتراح أكاديمي يقدمه لك المرشد الذكي، لتفهم القرار وتكون واثقاً منه.'
     },
     {
+        icon: Code2,
         title: 'الاعتمادية',
-        desc: 'الأداء والاستقرار أولوية لأن الطالب يعتمد على المنصة في قرارات تسجيل حاسمة.'
+        desc: 'نضمن لك استقرار الأداء ودقة ربط المتطلبات الجامعية، لأننا نعلم أن قرارات التسجيل لا تحتمل الأخطاء.'
     },
     {
+        icon: Users,
         title: 'التحسين المستمر',
-        desc: 'نبني بشكل دوري بناء على الاستخدام الواقعي وليس الافتراضات.'
+        desc: 'كل تحديث جديد في سنفور مبني على الاستخدام الواقعي ومقترحات الطلاب المستمرة لتطوير المنصة.'
     },
 ];
 
@@ -50,200 +63,134 @@ export default function About() {
             <Head>
                 <title>من نحن | سنفور</title>
                 <meta name="description" content="تعرف على سنفور: منصة الإرشاد الأكاديمي الذكي التي تساعد الطالب على فهم خطته، اختيار مواده، واتخاذ قرارات أدق بثقة." />
-                <meta name="author" content={founderName} />
-                <meta name="creator" content={founderName} />
-                <meta name="publisher" content={founderName} />
                 <meta name="robots" content="index,follow" />
                 <link rel="canonical" href={`${siteUrl}/about-us`} />
-                <meta property="og:type" content="website" />
-                <meta property="og:title" content="من نحن | سنفور" />
-                <meta property="og:description" content="قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب الجامعات." />
-                <meta property="og:url" content={`${siteUrl}/about-us`} />
-                <meta property="og:image" content={`${siteUrl}/images/sanfoor.png`} />
-                <meta property="article:author" content={founderName} />
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="من نحن | سنفور" />
-                <meta name="twitter:description" content="تعرف على رؤية سنفور لبناء مساعد أكاديمي رقمي للطلاب." />
-                <script
-                    type="application/ld+json"
-                    dangerouslySetInnerHTML={{
-                        __html: JSON.stringify({
-                            '@context': 'https://schema.org',
-                            '@graph': [
-                                {
-                                    '@type': 'AboutPage',
-                                    name: 'من نحن | سنفور',
-                                    url: `${siteUrl}/about-us`,
-                                    description:
-                                        'قصة سنفور ورؤيته لبناء تجربة أكاديمية أوضح وأذكى لطلاب الجامعات.',
-                                    author: {
-                                        '@type': 'Person',
-                                        name: founderName,
-                                        url: founderLinkedIn,
-                                    },
-                                },
-                                {
-                                    '@type': 'Organization',
-                                    name: 'Sanfoor',
-                                    url: `${siteUrl}/`,
-                                    logo: `${siteUrl}/images/sanfoor.png`,
-                                    founder: {
-                                        '@type': 'Person',
-                                        name: founderName,
-                                        url: founderLinkedIn,
-                                    },
-                                },
-                            ],
-                        }),
-                    }}
-                />
             </Head>
 
-            <style
-                dangerouslySetInnerHTML={{
-                    __html: `
-                        @keyframes aboutFadeUp {
-                            from { opacity: 0; transform: translateY(22px); }
-                            to { opacity: 1; transform: translateY(0); }
-                        }
-                        @keyframes aboutGlow {
-                            0%, 100% { transform: scale(1); opacity: 0.35; }
-                            50% { transform: scale(1.08); opacity: 0.55; }
-                        }
-                        .about-reveal {
-                            opacity: 0;
-                            animation: aboutFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-                        }
-                        .about-card {
-                            transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease;
-                        }
-                        .about-card:hover {
-                            transform: translateY(-8px);
-                            box-shadow: 0 25px 50px -18px rgba(15, 23, 42, 0.22);
-                        }
-                    `,
-                }}
-            />
-
-            <div className="min-h-screen py-10 sm:py-16" dir="rtl">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <section className="relative overflow-hidden rounded-[2.2rem] bg-[#0b1224] text-white p-7 sm:p-10 md:p-14 border border-indigo-500/20 shadow-[0_30px_80px_rgba(2,6,23,0.45)]">
-                        <div
-                            className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl"
-                            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.45) 0%, transparent 72%)', animation: 'aboutGlow 7s ease-in-out infinite' }}
-                        />
-                        <div
-                            className="absolute -bottom-24 -right-20 w-72 h-72 rounded-full blur-3xl"
-                            style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.35) 0%, transparent 72%)', animation: 'aboutGlow 8s ease-in-out 1.2s infinite' }}
-                        />
-
-                        <div className="relative z-10">
-                            <span className="about-reveal inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[11px] font-black tracking-wide" style={{ animationDelay: '80ms' }}>
-                                ✨ About Sanfoor
-                            </span>
-
-                            <h1 className="about-reveal mt-5 text-3xl sm:text-5xl md:text-6xl font-black leading-[1.1] tracking-tight" style={{ animationDelay: '160ms' }}>
-                                من نحن في سنفور؟
-                            </h1>
-
-                            <p className="about-reveal mt-5 max-w-3xl text-sm sm:text-lg text-indigo-100/90 font-bold leading-relaxed" style={{ animationDelay: '240ms' }}>
-                                سنفور منصة إرشاد أكاديمي ذكية تساعد طلاب الجامعات على فهم خطتهم الدراسية، اختيار المواد بثقة، وتجنب العشوائية في قرارات التسجيل.
-                                نبني أدوات عملية تجعل الطالب أقرب للتخرج بخطة أوضح وقرارات أدق.
-                            </p>
-
-                            <div className="about-reveal mt-7 flex flex-wrap gap-3" style={{ animationDelay: '320ms' }}>
-                                <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-black">Smart Planning</span>
-                                <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-black">AI Advisor</span>
-                                <span className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-xs font-black">Student First</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section className="mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-                        {pillars.map((item, index) => (
-                            <article
-                                key={item.title}
-                                className="about-card about-reveal rounded-3xl border border-slate-200 bg-white p-6 sm:p-7"
-                                style={{ animationDelay: `${380 + index * 100}ms` }}
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-cyan-500 text-white flex items-center justify-center text-2xl shadow-lg">
-                                    {item.icon}
-                                </div>
-                                <h2 className="mt-4 text-xl font-black text-slate-900">{item.title}</h2>
-                                <p className="mt-3 text-slate-600 font-bold leading-relaxed text-sm sm:text-[15px]">{item.text}</p>
-                            </article>
-                        ))}
-                    </section>
-
-                    <section className="mt-8 sm:mt-10 about-reveal rounded-3xl border border-slate-200 bg-white p-6 sm:p-8" style={{ animationDelay: '600ms' }}>
-                        <p className="text-[12px] font-black text-slate-500 uppercase tracking-[0.12em]">Founder</p>
-                        <h3 className="mt-2 text-2xl font-black text-slate-900">{founderName}</h3>
-                        <p className="mt-2 text-slate-600 font-bold text-sm sm:text-[15px] leading-relaxed">
-                            تم تأسيس سنفور وتطويره برؤية تركز على الطالب أولا: تبسيط القرار الأكاديمي وتحويل التخطيط الجامعي إلى تجربة واضحة وعملية.
+            <div className="min-h-screen pb-16 font-t bg-[#f8f9fb]" dir="rtl">
+                {/* Hero Section */}
+                <div className="relative overflow-hidden bg-white border-b border-slate-200">
+                    <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-40" />
+                    <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/60 rounded-full blur-3xl" />
+                    <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-sky-50/50 rounded-full blur-3xl" />
+                    
+                    <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-[11px] font-black tracking-wide mb-6 shadow-sm">
+                            <Info className="w-3.5 h-3.5" />
+                            قصة سنفور
+                        </span>
+                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+                            من نحن في <span className="text-transparent bg-clip-text bg-gradient-to-l from-indigo-600 to-sky-400">سنفور</span>؟
+                        </h1>
+                        <p className="text-slate-500 font-bold text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+                            سنفور ليس مجرد موقع لعرض الخطط الجامعية؛ إنه مساعدك الأكاديمي الذكي الذي يرافقك طوال مسيرتك الجامعية، ويحوّل التخطيط والتسجيل إلى تجربة ممتعة ومضمونة.
                         </p>
-                        <a
-                            href={founderLinkedIn}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-black text-xs hover:bg-indigo-100 transition-colors"
-                        >
-                            LinkedIn Profile
-                        </a>
-                    </section>
+                    </div>
+                </div>
 
-                    <section className="mt-8 sm:mt-10 grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-6">
-                        <div className="lg:col-span-3 about-reveal rounded-3xl border border-slate-200 bg-white p-6 sm:p-8" style={{ animationDelay: '650ms' }}>
-                            <h3 className="text-2xl font-black text-slate-900">قصة سنفور</h3>
-                            <p className="mt-2 text-slate-500 font-bold text-sm">كيف بدأت الفكرة؟</p>
-                            <div className="mt-6 space-y-4">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10 space-y-8 sm:space-y-12">
+                    
+                    {/* Pillars Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {pillars.map((item, idx) => (
+                            <div key={idx} className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow">
+                                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-tr ${item.color} text-white flex items-center justify-center mb-6 shadow-md`}>
+                                    <item.icon className="w-7 h-7" />
+                                </div>
+                                <h3 className="text-xl font-black text-slate-900 mb-3">{item.title}</h3>
+                                <p className="text-[13px] sm:text-sm font-bold text-slate-500 leading-relaxed">
+                                    {item.text}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Story & Vision Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-6">
+                        <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm">
+                            <h3 className="text-2xl font-black text-slate-900 mb-2">كيف بدأت الفكرة؟</h3>
+                            <p className="text-[13px] font-bold text-slate-400 mb-6 uppercase tracking-wider">Our Story</p>
+                            <div className="space-y-5">
                                 {storyPoints.map((point, i) => (
-                                    <div key={point} className="flex items-start gap-3">
-                                        <span className="mt-1 w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-black text-xs flex items-center justify-center shrink-0">{i + 1}</span>
-                                        <p className="text-slate-700 font-bold leading-relaxed text-sm sm:text-[15px]">{point}</p>
+                                    <div key={i} className="flex items-start gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-black text-sm flex items-center justify-center shrink-0 border border-indigo-100">
+                                            {i + 1}
+                                        </div>
+                                        <p className="text-slate-600 font-bold leading-relaxed text-[14px] mt-1">
+                                            {point}
+                                        </p>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="lg:col-span-2 about-reveal rounded-3xl border border-slate-200 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-6 sm:p-8" style={{ animationDelay: '760ms' }}>
-                            <h3 className="text-2xl font-black text-slate-900">رؤيتنا</h3>
-                            <p className="mt-3 text-slate-700 font-bold leading-relaxed text-sm sm:text-[15px]">
-                                أن يصبح لكل طالب مساعد أكاديمي رقمي يفهم مساره ويختصر عليه الوقت والقلق، ويحوّل قراراته من التخمين إلى الوضوح.
+                        <div className="lg:col-span-2 bg-gradient-to-br from-indigo-600 to-blue-500 rounded-3xl border border-indigo-400 p-6 sm:p-10 text-white shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                            <h3 className="text-2xl font-black mb-4 relative z-10">رؤيتنا</h3>
+                            <p className="text-indigo-50 font-bold leading-relaxed text-[14px] relative z-10 mb-8">
+                                أن يصبح لكل طالب مساعد أكاديمي رقمي يفهم مساره ويختصر عليه الوقت والقلق، ويحوّل قراراته من التخمين العشوائي إلى الوضوح التام.
                             </p>
-
-                            <div className="mt-6 rounded-2xl border border-indigo-100 bg-white/80 p-4">
-                                <p className="text-[12px] text-slate-500 font-black">المبدأ الرئيسي</p>
-                                <p className="mt-1 text-indigo-700 font-black text-sm">القرار الأكاديمي الأفضل يبدأ بمعلومة أوضح.</p>
+                            
+                            <div className="bg-white/10 border border-white/20 rounded-2xl p-5 relative z-10 backdrop-blur-sm">
+                                <p className="text-[11px] text-indigo-100 font-black mb-1">المبدأ الرئيسي للتطوير</p>
+                                <p className="text-white font-black text-[15px]">القرار الأكاديمي الأفضل، يبدأ بمعلومة أوضح.</p>
                             </div>
                         </div>
-                    </section>
+                    </div>
 
-                    <section className="mt-8 sm:mt-10 about-reveal rounded-3xl border border-slate-200 bg-white p-6 sm:p-8" style={{ animationDelay: '880ms' }}>
-                        <h3 className="text-2xl font-black text-slate-900">القيم التي نبني عليها</h3>
-                        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {valueCards.map((card) => (
-                                <article key={card.title} className="rounded-2xl border border-slate-200 p-4 bg-slate-50/60">
-                                    <h4 className="text-lg font-black text-slate-900">{card.title}</h4>
-                                    <p className="mt-2 text-slate-600 font-bold text-sm leading-relaxed">{card.desc}</p>
-                                </article>
+                    {/* Values Section */}
+                    <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm">
+                        <div className="text-center mb-8">
+                            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">القيم التي نبني عليها</h3>
+                            <p className="text-slate-500 font-bold text-sm">مبادئنا الأساسية في تطوير المنصة</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            {valueCards.map((card, i) => (
+                                <div key={i} className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-700 mb-4 border border-slate-200">
+                                        <card.icon className="w-5 h-5" />
+                                    </div>
+                                    <h4 className="text-lg font-black text-slate-900 mb-2">{card.title}</h4>
+                                    <p className="text-[13px] font-bold text-slate-500 leading-relaxed">{card.desc}</p>
+                                </div>
                             ))}
                         </div>
-                    </section>
+                    </div>
 
-                    <section className="mt-8 sm:mt-10 about-reveal rounded-3xl border border-slate-200 bg-[#0d1327] text-white p-6 sm:p-10 text-center" style={{ animationDelay: '980ms' }}>
-                        <h3 className="text-2xl sm:text-3xl font-black">جاهز تبدأ رحلتك مع سنفور؟</h3>
-                        <p className="mt-3 text-indigo-100 font-bold max-w-2xl mx-auto leading-relaxed text-sm sm:text-base">
-                            سجّل الآن وابدأ ببناء خطتك الدراسية بطريقة أوضح، أسرع، وأكثر ذكاء.
-                        </p>
-                        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                            <a href={route('auth.microsoft.redirect')} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-black text-sm hover:bg-slate-100 transition-colors">
-                                ابدأ الآن (Microsoft)
-                            </a>
-                            <Link href={route('login')} className="px-6 py-3 rounded-xl border border-white/25 text-white font-black text-sm hover:bg-white/10 transition-colors">
-                                دخول الحسابات الخارجية
+                    {/* Founder & CTA Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+                        <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-sm flex flex-col justify-center">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Founder & Developer</span>
+                            <h3 className="text-2xl font-black text-slate-900 mb-3">{founderName}</h3>
+                            <p className="text-slate-600 font-bold text-[14px] leading-relaxed mb-6">
+                                تم تأسيس سنفور وتطويره برؤية تركز على الطالب أولاً: تبسيط القرار الأكاديمي وتحويل التخطيط الجامعي إلى تجربة واضحة، تفاعلية، وعملية.
+                            </p>
+                            <div>
+                                <a
+                                    href={founderLinkedIn}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-slate-900 text-white font-black text-xs hover:bg-slate-800 transition-colors shadow-md"
+                                >
+                                    LinkedIn Profile
+                                </a>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#0f172a] rounded-3xl border border-slate-800 p-6 sm:p-10 text-center relative overflow-hidden shadow-xl flex flex-col justify-center items-center">
+                            <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-10" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/20 rounded-full blur-[60px] pointer-events-none" />
+                            
+                            <h3 className="relative z-10 text-2xl sm:text-3xl font-black text-white mb-3">ابدأ رحلتك الآن</h3>
+                            <p className="relative z-10 text-slate-400 font-bold text-[14px] mb-6 leading-relaxed max-w-sm mx-auto">
+                                انضم لآلاف الطلاب الذين نظموا خططهم الأكاديمية بنجاح عبر سنفور.
+                            </p>
+                            <Link href={route('register')} className="relative z-10 w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-500 to-sky-400 text-white font-black text-sm hover:from-blue-600 hover:to-sky-500 transition-all shadow-lg active:scale-95">
+                                إنشاء حساب مجاني
                             </Link>
                         </div>
-                    </section>
+                    </div>
+
                 </div>
             </div>
         </MainLayout>
