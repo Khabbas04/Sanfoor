@@ -149,6 +149,7 @@ class MicrosoftAuthController extends Controller
 
             // Log a NEW_USER_REGISTERED event for the admin notification system.
             if ($isNewUser) {
+                event(new \Illuminate\Auth\Events\Registered($user));
                 try {
                     AdminLog::create([
                         'user_id' => $user->id,

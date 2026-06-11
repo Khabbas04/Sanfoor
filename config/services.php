@@ -39,6 +39,10 @@ return [
         'key' => env('BREVO_API_KEY'),
     ],
 
+    'discord' => [
+        'webhook_url' => env('DISCORD_WEBHOOK_URL'),
+    ],
+
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
         'keys' => env('GEMINI_API_KEYS', ''),

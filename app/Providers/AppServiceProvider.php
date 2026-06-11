@@ -150,5 +150,27 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable $e) {
             }
         });
+        Event::listen(\Illuminate\Auth\Events\Registered::class, function (\Illuminate\Auth\Events\Registered $event) {
+            $url = config('services.discord.webhook_url');
+            if ($url) {
+                try {
+                    $user = $event->user;
+                    $name = $user->name ?? 'طالب جديد';
+                    $email = $user->email ?? 'بدون إيميل';
+                    $role = $user->role ?? 'student';
+                    
+                    $message = "🎉 **تسجيل جديد في سنفور!** 🎉\n\n";
+                    $message .= "👤 **الاسم:** {$name}\n";
+                    $message .= "📧 **الإيميل:** {$email}\n";
+                    $message .= "🎓 **النوع:** {$role}\n";
+                    
+                    Http::post($url, [
+                        'content' => $message,
+                    ]);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to send Discord webhook', ['error' => $e->getMessage()]);
+                }
+            }
+        });
     }
 }
