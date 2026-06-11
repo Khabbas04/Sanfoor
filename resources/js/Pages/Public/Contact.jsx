@@ -70,7 +70,7 @@ export default function Contact() {
             <div className="min-h-screen pb-16 font-t bg-[#f8f9fb]" dir="rtl">
                 {/* Hero Section */}
                 <div className="relative overflow-hidden bg-white border-b border-slate-200">
-                    <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-40" />
+                    <div className="absolute inset-0 bg-center opacity-40" style={{ backgroundImage: "url('/images/grid.svg')" }} />
                     <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[300px] h-[300px] bg-blue-50/60 rounded-full blur-3xl" />
                     <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/50 rounded-full blur-3xl" />
                     

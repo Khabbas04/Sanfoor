@@ -77,7 +77,7 @@ export default function Faq() {
             <div className="min-h-screen pb-16 font-t bg-[#f8f9fb]" dir="rtl">
                 {/* Hero Section */}
                 <div className="relative overflow-hidden bg-white border-b border-slate-200">
-                    <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-40" />
+                    <div className="absolute inset-0 bg-center opacity-40" style={{ backgroundImage: "url('/images/grid.svg')" }} />
                     <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[300px] h-[300px] bg-amber-50/60 rounded-full blur-3xl" />
                     <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/50 rounded-full blur-3xl" />
                     
@@ -137,7 +137,7 @@ export default function Faq() {
                 {/* Contact CTA */}
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-12">
                     <div className="bg-[#0f172a] rounded-3xl p-8 sm:p-10 text-center relative overflow-hidden shadow-2xl flex flex-col items-center">
-                        <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-10" />
+                        <div className="absolute inset-0 bg-center opacity-10" style={{ backgroundImage: "url('/images/grid.svg')" }} />
                         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[60px] pointer-events-none" />
                         
                         <div className="relative z-10 w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-5 backdrop-blur-md border border-white/10">

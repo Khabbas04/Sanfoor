@@ -65,7 +65,7 @@ export default function HowItWorks() {
             <div className="min-h-screen pb-16 font-t bg-[#f8f9fb]" dir="rtl">
                 {/* Hero Section */}
                 <div className="relative overflow-hidden bg-white border-b border-slate-200">
-                    <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-50" />
+                    <div className="absolute inset-0 bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-50" style={{ backgroundImage: "url('/images/grid.svg')" }} />
                     <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-3xl" />
                     <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/50 rounded-full blur-3xl" />
                     
@@ -162,7 +162,7 @@ export default function HowItWorks() {
 
                     {/* CTA Section */}
                     <div className="bg-[#0f172a] rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden shadow-2xl">
-                        <div className="absolute inset-0 bg-[url('/images/grid.svg')] bg-center opacity-10" />
+                        <div className="absolute inset-0 bg-center opacity-10" style={{ backgroundImage: "url('/images/grid.svg')" }} />
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/20 rounded-full blur-[80px] pointer-events-none" />
                         
                         <div className="relative z-10">
