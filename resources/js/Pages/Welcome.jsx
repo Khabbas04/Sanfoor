@@ -6,7 +6,7 @@ import TourManager, { startWelcomeTour } from '@/Components/TourManager';
 import { 
     Network, Target, Bot, BookOpen, 
     FileText, Map, Sparkles, ArrowLeft, 
-    ChevronLeft, ShieldCheck 
+    ChevronLeft, ShieldCheck, CheckCircle
 } from 'lucide-react';
 
 // Resolve the public site URL for canonical and social metadata.
