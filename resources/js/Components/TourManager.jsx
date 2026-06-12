@@ -156,7 +156,7 @@ export const startWelcomeTour = () => {
             showProgress: true,
             animate: true,
             popoverClass: 'driver-theme-sanfoor',
-            allowClose: false,
+            allowClose: true,
             overlayOpacity: 0.75,
             doneBtnText: 'جاهز؟ انطلق! 🚀',
             nextBtnText: 'التالي ←',
@@ -321,22 +321,12 @@ export const startTreeTour = () => {
                     element: '#tour-tree-cart', // The cart toggle button or sidebar
                     popover: {
                         title: '🛒 مسودة التسجيل (التجريبي)',
-                        description: '<div style="margin-bottom:8px;">الآن دورك! لن نكمل الجولة حتى تجربها بنفسك 🤩</div><strong style="color:#0ea5e9;">اضغط على الزر المضيء نفسه 👆</strong> لفتح السلة وتجربة النظام عملياً.',
+                        description: 'من هنا يمكنك فتح سلة المواد، واختيار المواد التي ترغب بتجربة تسجيلها لمعرفة إذا كان هنالك أي تعارض أو مشاكل بالخطة.',
                         side: 'right',
-                        align: 'start',
-                        showButtons: ['close'] // Hide Next button to force interaction
+                        align: 'start'
                     },
-                    onHighlightStarted: (el) => {
+                    onHighlightStarted: () => {
                         window.dispatchEvent(new CustomEvent('tour-update', { detail: { sidebar: true } }));
-                        if (el && !el.dataset.tourListenerAttached) {
-                            el.dataset.tourListenerAttached = 'true';
-                            const handler = () => {
-                                setTimeout(() => driverObj.moveNext(), 300);
-                                el.removeEventListener('click', handler);
-                                delete el.dataset.tourListenerAttached;
-                            };
-                            el.addEventListener('click', handler);
-                        }
                     }
                 },
                 {
