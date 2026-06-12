@@ -301,6 +301,8 @@ function TreePreviewAnimation({ start }) {
             </svg>
         </div>
     );
+}
+
 function AiChatAnimation({ start }) {
     const [step, setStep] = useState(0);
 
@@ -876,30 +878,38 @@ export default function Welcome({ auth }) {
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-14 relative">
-                            {/* Dashed connector (desktop) */}
-                            <svg className="hidden md:block absolute top-14 left-0 right-0 w-full h-4 pointer-events-none" viewBox="0 0 900 10" preserveAspectRatio="none">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                            {/* Subtle connector behind cards */}
+                            <svg className="hidden md:block absolute top-1/2 -translate-y-1/2 left-0 right-0 w-full h-full pointer-events-none -z-10" viewBox="0 0 900 100" preserveAspectRatio="none">
                                 {howIn && <>
-                                    <line x1="210" y1="5" x2="390" y2="5" stroke="#e2e8f0" strokeWidth="2.5" strokeDasharray="8 6" style={{ animation: 'dash-flow 1.5s linear infinite' }} />
-                                    <line x1="510" y1="5" x2="690" y2="5" stroke="#e2e8f0" strokeWidth="2.5" strokeDasharray="8 6" style={{ animation: 'dash-flow 1.5s linear infinite', animationDelay: '0.5s' }} />
+                                    <path d="M 150 50 Q 300 10, 450 50 T 750 50" fill="none" stroke="#f1f5f9" strokeWidth="4" />
+                                    <path d="M 150 50 Q 300 10, 450 50 T 750 50" fill="none" stroke="#94a3b8" strokeWidth="4" strokeDasharray="10 10" className="opacity-30" style={{ animation: 'dash-flow 2s linear infinite' }} />
                                 </>}
                             </svg>
 
                             {[
-                                { step: '01', title: 'اختار تخصصك', desc: 'حدد تخصصك، و سنفور بيجهز لك المواد والمتطلبات تلقائياً بثوانٍ.', gradient: 'from-sky-400 to-blue-500', glow: 'shadow-blue-500/30' },
-                                { step: '02', title: 'حدد المواد المنجزة', desc: 'علّم على المواد اللي نجحت فيها. الشجرة بتتحدث فوراً وبتفتحلك المتاح.', gradient: 'from-cyan-500 to-cyan-600', glow: 'shadow-cyan-500/30' },
-                                { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم التسجيل التجريبي الذكي أو اسأل المرشد الآلي لترتيب جدولك صح.', gradient: 'from-emerald-500 to-emerald-600', glow: 'shadow-emerald-500/30' },
+                                { step: '01', title: 'اختار تخصصك', desc: 'بضغطة زر، سنفور بيجهز لك هيكل تخصصك وكل متطلباته بشكل مرئي متكامل.', gradient: 'from-sky-400 to-blue-500', glow: 'shadow-blue-500/20', icon: '🎯', delay: 100 },
+                                { step: '02', title: 'حدد إنجازك', desc: 'علّم المواد اللي اجتزتها. النظام فوراً رح يحدث خطتك ويفتحلك المواد المتاحة.', gradient: 'from-cyan-400 to-teal-500', glow: 'shadow-cyan-500/20', icon: '✨', delay: 300 },
+                                { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم السلة التجريبية لحساب العبء، واسأل الذكاء الاصطناعي لأفضل خيارات التنزيل.', gradient: 'from-emerald-400 to-green-500', glow: 'shadow-emerald-500/20', icon: '🚀', delay: 500 },
                             ].map((s, i) => (
                                 <div
                                     key={i}
-                                    className={`relative text-center md:text-right transition-all duration-[1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}
-                                    style={{ transitionDelay: `${i * 200 + 100}ms` }}
+                                    className={`relative bg-white rounded-[2rem] p-8 border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-24'}`}
+                                    style={{ transitionDelay: `${s.delay}ms` }}
                                 >
-                                    <div className={`mx-auto md:mx-0 w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white text-xl font-black mb-6 shadow-xl ${s.glow} hover:scale-110 hover:rotate-3 transition-all duration-500 cursor-default`}>
-                                        {s.step}
+                                    {/* Corner gradient flair */}
+                                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${s.gradient} opacity-[0.08] group-hover:opacity-[0.15] rounded-tr-[2rem] rounded-bl-full pointer-events-none transition-all duration-500 transform group-hover:scale-110 origin-top-right`}></div>
+                                    
+                                    <div className="flex justify-between items-start mb-12 relative z-10">
+                                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white text-3xl font-black shadow-xl ${s.glow} group-hover:-translate-y-2 group-hover:rotate-6 transition-all duration-500`}>
+                                            {s.icon}
+                                        </div>
+                                        <div className="text-5xl font-black text-slate-100 transition-colors duration-500 group-hover:text-slate-200 pointer-events-none">
+                                            {s.step}
+                                        </div>
                                     </div>
-                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-3">{s.title}</h3>
-                                    <p className="text-slate-500 font-medium leading-[1.85] text-sm sm:text-[15px]">{s.desc}</p>
+                                    <h3 className="text-2xl font-black text-slate-900 mb-4 relative z-10">{s.title}</h3>
+                                    <p className="text-slate-500 font-medium leading-[1.8] text-[15px] relative z-10">{s.desc}</p>
                                 </div>
                             ))}
                         </div>
