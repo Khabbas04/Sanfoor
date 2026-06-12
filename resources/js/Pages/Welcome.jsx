@@ -41,11 +41,25 @@ function MagneticButton({ children, className = '', ...props }) {
 }
 
 // Small SVG helpers used to visualize the study-tree concept in the landing page.
-function TreeNode({ x, y, delay, color, size = 52, label }) {
+function TreeNode({ x, y, delay, color, size = 52, label, shape = 'mandatory', textColor = 'white' }) {
+    const width = size;
+    const height = size * 0.58;
+    const cx = parseFloat(x) + width / 2;
+    const cy = parseFloat(y) + height / 2;
+    
+    let shapeElement;
+    if (shape === 'supporting') {
+        shapeElement = <rect x={x} y={y} width={width} height={height} rx={height / 2} fill={color} className="tree-node-rect" style={{ animationDelay: `${delay}s` }} />;
+    } else if (shape === 'elective') {
+        shapeElement = <rect x={x} y={y} width={width} height={height} rx="4" fill={color} className="tree-node-rect" transform={`translate(${cx}, ${cy}) skewX(-15) translate(${-cx}, ${-cy})`} style={{ animationDelay: `${delay}s` }} />;
+    } else {
+        shapeElement = <rect x={x} y={y} width={width} height={height} rx="6" fill={color} className="tree-node-rect" style={{ animationDelay: `${delay}s` }} />;
+    }
+
     return (
-        <g className="tree-node" style={{ animationDelay: `${delay}s` }}>
-            <rect x={x} y={y} width={size} height={size * 0.58} rx="12" fill={color} className="tree-node-rect" style={{ animationDelay: `${delay}s` }} />
-            {label && <text x={x + size / 2} y={y + size * 0.35} textAnchor="middle" fill="white" fontSize="8" fontWeight="800" className="select-none">{label}</text>}
+        <g className="tree-node drop-shadow-sm" style={{ animationDelay: `${delay}s` }}>
+            {shapeElement}
+            {label && <text x={cx} y={parseFloat(y) + height * 0.6} textAnchor="middle" fill={textColor} fontSize="8" fontWeight="800" className="select-none">{label}</text>}
         </g>
     );
 }
@@ -57,7 +71,7 @@ function TreeEdge({ x1, y1, x2, y2, delay, active = 'inactive' }) {
     // Determine color based on active state
     let strokeColor = "rgba(148, 163, 184, 0.4)";
     if (active === 'active') strokeColor = "#10b981";
-    if (active === 'cyan') strokeColor = "#06b6d4";
+    if (active === 'available') strokeColor = "#6366f1";
     
     return (
         <path 
@@ -306,41 +320,41 @@ function TreePreviewAnimation({ start }) {
                     <marker id="arrow-active" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
                         <path d="M 0 2 L 8 5 L 0 8 z" fill="#10b981" />
                     </marker>
-                    <marker id="arrow-cyan" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                        <path d="M 0 2 L 8 5 L 0 8 z" fill="#06b6d4" />
+                    <marker id="arrow-available" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 2 L 8 5 L 0 8 z" fill="#6366f1" />
                     </marker>
                 </defs>
 
                 {start && <>
                     {/* Edges */}
-                    <TreeEdge x1="130" y1="38" x2="70" y2="95" delay={0.5} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
-                    <TreeEdge x1="130" y1="38" x2="190" y2="95" delay={0.6} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
-                    <TreeEdge x1="70" y1="128" x2="40" y2="185" delay={0.9} active={step >= 3 ? 'cyan' : 'inactive'} />
-                    <TreeEdge x1="70" y1="128" x2="130" y2="185" delay={1.0} active={step >= 3 ? 'cyan' : 'inactive'} />
-                    <TreeEdge x1="190" y1="128" x2="190" y2="185" delay={1.0} active={step >= 3 ? 'cyan' : 'inactive'} />
-                    <TreeEdge x1="370" y1="38" x2="310" y2="95" delay={0.7} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
-                    <TreeEdge x1="370" y1="38" x2="430" y2="95" delay={0.8} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
-                    <TreeEdge x1="310" y1="128" x2="310" y2="185" delay={1.1} active={step >= 3 ? 'cyan' : 'inactive'} />
-                    <TreeEdge x1="430" y1="128" x2="370" y2="185" delay={1.1} active={step >= 3 ? 'cyan' : 'inactive'} />
-                    <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.2} active={step >= 3 ? 'cyan' : 'inactive'} />
+                    <TreeEdge x1="130" y1="38" x2="70" y2="95" delay={0.5} active={step >= 2 ? 'available' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="130" y1="38" x2="190" y2="95" delay={0.6} active={step >= 2 ? 'available' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="70" y1="128" x2="40" y2="185" delay={0.9} active={step >= 3 ? 'available' : 'inactive'} />
+                    <TreeEdge x1="70" y1="128" x2="130" y2="185" delay={1.0} active={step >= 3 ? 'available' : 'inactive'} />
+                    <TreeEdge x1="190" y1="128" x2="190" y2="185" delay={1.0} active={step >= 3 ? 'available' : 'inactive'} />
+                    <TreeEdge x1="370" y1="38" x2="310" y2="95" delay={0.7} active={step >= 2 ? 'available' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="370" y1="38" x2="430" y2="95" delay={0.8} active={step >= 2 ? 'available' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="310" y1="128" x2="310" y2="185" delay={1.1} active={step >= 3 ? 'available' : 'inactive'} />
+                    <TreeEdge x1="430" y1="128" x2="370" y2="185" delay={1.1} active={step >= 3 ? 'available' : 'inactive'} />
+                    <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.2} active={step >= 3 ? 'available' : 'inactive'} />
 
                     {/* Nodes Level 1 (Roots) */}
-                    <TreeNode x="104" y="8" delay={0.1} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
-                    <TreeNode x="344" y="8" delay={0.2} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
+                    <TreeNode x="104" y="8" delay={0.1} shape="mandatory" color={step >= 1 ? "#10b981" : "#e2e8f0"} textColor={step >= 1 ? "white" : "#64748b"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
+                    <TreeNode x="344" y="8" delay={0.2} shape="elective" color={step >= 1 ? "#10b981" : "#e2e8f0"} textColor={step >= 1 ? "white" : "#64748b"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
 
                     {/* Nodes Level 2 */}
-                    <TreeNode x="44" y="95" delay={0.3} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
-                    <TreeNode x="164" y="95" delay={0.4} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
-                    <TreeNode x="284" y="95" delay={0.5} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
-                    <TreeNode x="404" y="95" delay={0.6} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="44" y="95" delay={0.3} shape="mandatory" color={step >= 2 ? "#6366f1" : "#e2e8f0"} textColor={step >= 2 ? "white" : "#64748b"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="164" y="95" delay={0.4} shape="supporting" color={step >= 2 ? "#6366f1" : "#e2e8f0"} textColor={step >= 2 ? "white" : "#64748b"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="284" y="95" delay={0.5} shape="mandatory" color={step >= 2 ? "#ef4444" : "#e2e8f0"} textColor={step >= 2 ? "white" : "#64748b"} label={step >= 2 ? "راسب ↺" : "مغلقة"} />
+                    <TreeNode x="404" y="95" delay={0.6} shape="elective" color={step >= 2 ? "#6366f1" : "#e2e8f0"} textColor={step >= 2 ? "white" : "#64748b"} label={step >= 2 ? "متاحة" : "مغلقة"} />
 
                     {/* Nodes Level 3 */}
-                    <TreeNode x="14" y="185" delay={0.7} color={step >= 3 ? "#f59e0b" : "#334155"} label={step >= 3 ? "تجريبي 🛒" : "مغلقة"} />
-                    <TreeNode x="104" y="185" delay={0.75} color="#334155" label="مغلقة 🔒" />
-                    <TreeNode x="164" y="185" delay={0.8} color="#334155" label="مغلقة 🔒" />
-                    <TreeNode x="284" y="185" delay={0.85} color="#334155" label="مغلقة 🔒" />
-                    <TreeNode x="344" y="185" delay={0.9} color={step >= 3 ? "#f59e0b" : "#334155"} label={step >= 3 ? "تجريبي 🛒" : "مغلقة"} />
-                    <TreeNode x="434" y="185" delay={0.95} color="#334155" label="مغلقة 🔒" />
+                    <TreeNode x="14" y="185" delay={0.7} shape="mandatory" color={step >= 3 ? "#f59e0b" : "#e2e8f0"} textColor={step >= 3 ? "white" : "#64748b"} label={step >= 3 ? "تجريبي 🛒" : "مغلقة"} />
+                    <TreeNode x="104" y="185" delay={0.75} shape="supporting" color="#e2e8f0" textColor="#64748b" label="مغلقة 🔒" />
+                    <TreeNode x="164" y="185" delay={0.8} shape="mandatory" color="#e2e8f0" textColor="#64748b" label="مغلقة 🔒" />
+                    <TreeNode x="284" y="185" delay={0.85} shape="elective" color="#e2e8f0" textColor="#64748b" label="مغلقة 🔒" />
+                    <TreeNode x="344" y="185" delay={0.9} shape="supporting" color={step >= 3 ? "#f59e0b" : "#e2e8f0"} textColor={step >= 3 ? "white" : "#64748b"} label={step >= 3 ? "تجريبي 🛒" : "مغلقة"} />
+                    <TreeNode x="434" y="185" delay={0.95} shape="mandatory" color="#e2e8f0" textColor="#64748b" label="مغلقة 🔒" />
                 </>}
             </svg>
         </div>
@@ -847,18 +861,46 @@ export default function Welcome({ auth }) {
                                 <TreePreviewAnimation start={previewIn} />
 
                                 {/* Legend below SVG */}
-                                <div className="relative z-10 mt-8 pt-6 border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-                                    {[
-                                        { label: 'منجزة', color: 'bg-[#10b981]' },
-                                        { label: 'متاحة', color: 'bg-[#06b6d4]' },
-                                        { label: 'في السلة', color: 'bg-[#f59e0b]' },
-                                        { label: 'مغلقة', color: 'bg-[#334155]' },
-                                    ].map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-2">
-                                            <span className={`w-3 h-3 rounded-full ${item.color} shadow-[0_0_8px_currentColor]`} />
-                                            <span className="text-slate-600 text-xs sm:text-sm font-bold tracking-wide">{item.label}</span>
+                                <div className="relative z-10 mt-8 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row justify-between gap-8 sm:gap-12 w-full text-right" dir="rtl">
+                                    
+                                    {/* حالة المادة */}
+                                    <div className="flex-1">
+                                        <h4 className="text-slate-400 font-bold text-xs sm:text-sm mb-4 tracking-wide">حالة المادة</h4>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
+                                            {[
+                                                { label: 'منجز', color: 'bg-[#10b981]' },
+                                                { label: 'راسب (إعادة)', color: 'bg-[#ef4444]' },
+                                                { label: 'متاح', color: 'bg-[#6366f1]' },
+                                                { label: 'في التسجيل التجريبي', color: 'bg-[#f59e0b]' },
+                                                { label: 'مغلق', color: 'bg-[#e2e8f0]', border: 'border-slate-300/50' },
+                                            ].map((item, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <span className={`w-4 h-4 sm:w-5 sm:h-5 rounded-[4px] ${item.color} ${item.border ? 'border ' + item.border : ''} shadow-sm`} />
+                                                    <span className="text-slate-600 text-xs sm:text-sm font-bold">{item.label}</span>
+                                                </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    {/* الرموز والمسار */}
+                                    <div className="sm:w-1/3">
+                                        <h4 className="text-slate-400 font-bold text-xs sm:text-sm mb-4 tracking-wide">الرموز والمسار</h4>
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-4 bg-[#e2e8f0] border border-slate-300/60 rounded-[4px]"></div>
+                                                <span className="text-slate-600 text-xs sm:text-sm font-bold">إجباري (مستطيل)</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-4 bg-[#e2e8f0] border border-slate-300/60 rounded-full"></div>
+                                                <span className="text-slate-600 text-xs sm:text-sm font-bold">مساندة (بيضاوي)</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-4 bg-[#e2e8f0] border border-slate-300/60 rounded-[3px] -skew-x-12"></div>
+                                                <span className="text-slate-600 text-xs sm:text-sm font-bold">اختياري (مائل)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
                                 </div>
                             </div>
                         </div>
