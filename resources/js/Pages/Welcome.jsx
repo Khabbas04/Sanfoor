@@ -51,8 +51,22 @@ function TreeNode({ x, y, delay, color, size = 52, label }) {
 }
 
 function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
+    const midY = (parseFloat(y1) + parseFloat(y2)) / 2;
+    const d = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
     return (
-        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={dashed ? "5,5" : "none"} className="tree-edge" style={{ animationDelay: `${delay}s` }} />
+        <path 
+            d={d} 
+            fill="none" 
+            stroke="rgba(148, 163, 184, 0.4)" 
+            strokeWidth="3.5" 
+            strokeLinecap="round" 
+            className="tree-edge-path" 
+            style={{ 
+                animationDelay: `${delay}s`,
+                strokeDasharray: dashed ? "8 8" : "300",
+                strokeDashoffset: dashed ? 0 : "300"
+            }} 
+        />
     );
 }
 
@@ -358,8 +372,8 @@ export default function Welcome({ auth }) {
                 /* ── SVG TREE ANIMATIONS ── */
                 .tree-node-rect { opacity: 0; animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
                 @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
-                .tree-edge { stroke-dasharray: 100; stroke-dashoffset: 100; animation: drawLine 1s ease forwards; }
-                @keyframes drawLine { to { stroke-dashoffset: 0; } }
+                .tree-edge-path { animation: drawPath 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                @keyframes drawPath { to { stroke-dashoffset: 0; } }
 
                 /* ── AI CHAT ANIMATIONS ── */
                 @keyframes chat-pop {
@@ -393,7 +407,7 @@ export default function Welcome({ auth }) {
                     .chat-msg-1,
                     .chat-msg-2,
                     .tree-node-rect,
-                    .tree-edge,
+                    .tree-edge-path,
                     .animate-float,
                     .animate-ping-large,
                     .typing-dot {
