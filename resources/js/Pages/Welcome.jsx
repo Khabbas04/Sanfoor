@@ -538,24 +538,15 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES (Stacked Cards)
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-[#050505] relative overflow-hidden -mt-10 pt-32">
+                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32">
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-white/[0.02] whitespace-nowrap tracking-tighter">FEATURES</span>
+                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
                     
                     {/* Dark aesthetic subtle glow */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-900/10 rounded-full blur-[120px] pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-400/5 rounded-full blur-[120px] pointer-events-none" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                        <div className={`text-center mb-10 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <PremiumBadge text="تجربة تفاعلية جديدة" color="sky" />
-                            <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-white mb-5 tracking-tight leading-[1.15]">
-                                كل اللي بتحتاجه في <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500">مكان واحد.</span>
-                            </h2>
-                            <p className="text-zinc-400 font-medium max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
-                                اكتشف الميزات اللي بتسهل عليك حياتك الجامعية. <strong className="text-white">اضغط على أي بطاقة بالخلف</strong> لعرض التفاصيل.
-                            </p>
-                        </div>
 
                         <div className={`transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
                             <StackedFeaturesSection />
@@ -574,15 +565,6 @@ export default function Welcome({ auth }) {
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
 
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                        <div className={`text-center mb-12 sm:mb-16 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${previewIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <PremiumBadge text="شكل الخطة الشجرية" color="cyan" />
-                            <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-white mb-5 tracking-tight leading-[1.15]">
-                                شوف خطتك كأنك <span className="text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 to-blue-400">بتلعب لعبة</span>
-                            </h2>
-                            <p className="text-slate-400 font-medium max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
-                                الأخضر منجز، الأزرق متاح، الرمادي مقفل. الخطة الأكاديمية عمرها ما كانت بهالوضوح.
-                            </p>
-                        </div>
 
                         <div className={`max-w-3xl mx-auto transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${previewIn ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`} style={{ transitionDelay: '200ms' }}>
                             <div className="relative bg-white/5 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] p-6 sm:p-10 overflow-hidden shadow-2xl">
