@@ -220,7 +220,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                 ` }} />
             </Head>
 
-            <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)] py-8 sm:py-10" dir="rtl">
+            <div className={`min-h-screen py-8 sm:py-10 ${isDark ? 'bg-slate-950' : 'bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.14),_transparent_28%),radial-gradient(circle_at_top_left,_rgba(14,165,233,0.12),_transparent_22%),linear-gradient(180deg,#f8fbff_0%,#ffffff_48%,#f4f7fb_100%)]'}`} dir="rtl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
                     <section className="relative overflow-hidden py-10 sm:py-16 text-center mb-10">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none select-none z-0">
@@ -235,14 +235,14 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                     </section>
 
                     {/* Smart Room Decoder Section */}
-                    <section className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 sm:p-8 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl relative overflow-hidden">
+                    <section className={`rounded-[2rem] border p-6 sm:p-8 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl relative overflow-hidden ${isDark ? 'border-slate-800 bg-slate-900/90' : 'border-slate-200 bg-white/90'}`}>
                         <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none"></div>
                         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                             <div>
-                                <h2 className="text-2xl sm:text-3xl font-black text-slate-950 mb-3 flex items-center gap-3">
+                                <h2 className={`text-2xl sm:text-3xl font-black mb-3 flex items-center gap-3 ${isDark ? 'text-white' : 'text-slate-950'}`}>
                                     <span className="text-indigo-500">✨</span> المستكشف الذكي للقاعات
                                 </h2>
-                                <p className="text-slate-600 font-medium mb-6">
+                                <p className={`font-medium mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                     اكتب رمز قاعتك كما هو بالجدول وسنحدد لك المبنى والطابق فوراً.
                                 </p>
                                 
@@ -252,7 +252,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                         value={roomInput}
                                         onChange={(e) => setRoomInput(e.target.value)}
                                         placeholder="مثال: 305د أو 201أ"
-                                        className="w-full text-xl sm:text-2xl font-black rounded-2xl border-2 border-slate-200 bg-slate-50 py-4 pr-4 pl-12 text-slate-800 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 placeholder:text-slate-300 placeholder:font-medium text-center tracking-widest uppercase"
+                                        className={`w-full text-xl sm:text-2xl font-black rounded-2xl border-2 py-4 pr-4 pl-12 outline-none transition focus:ring-4 placeholder:font-medium text-center tracking-widest uppercase ${isDark ? 'border-slate-700 bg-slate-800 text-white placeholder:text-slate-500 focus:border-indigo-500 focus:ring-indigo-500/20' : 'border-slate-200 bg-slate-50 text-slate-800 placeholder:text-slate-300 focus:border-indigo-400 focus:ring-indigo-100'}`}
                                         dir="ltr"
                                     />
                                     <span className="absolute inset-y-0 left-4 flex items-center text-2xl opacity-40">🔍</span>
@@ -261,12 +261,12 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             
                             <div className="h-full">
                                 {!decodedRoom ? (
-                                    <div className="h-full min-h-[140px] rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 flex flex-col items-center justify-center text-center p-6 text-slate-400 font-medium">
+                                    <div className={`h-full min-h-[140px] rounded-2xl border border-dashed flex flex-col items-center justify-center text-center p-6 font-medium ${isDark ? 'border-slate-700 bg-slate-800/50 text-slate-500' : 'border-slate-300 bg-slate-50/50 text-slate-400'}`}>
                                         <span className="text-4xl mb-2 opacity-50">🧭</span>
                                         <p>اكتب رمز القاعة لفك التشفير...</p>
                                     </div>
                                 ) : decodedRoom.valid ? (
-                                    <div className="directory-card-reveal h-full rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-sm relative overflow-hidden">
+                                    <div className={`directory-card-reveal h-full rounded-2xl border p-6 shadow-sm relative overflow-hidden ${isDark ? 'border-indigo-500/30 bg-slate-800/80' : 'border-indigo-100 bg-gradient-to-br from-indigo-50 to-white'}`}>
                                         <div className="absolute top-0 right-0 w-2 h-full bg-indigo-500"></div>
                                         <div className="space-y-4">
                                             <div className="flex items-start gap-4">
@@ -275,24 +275,24 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-black text-indigo-500 mb-1">المبنى الكود</p>
-                                                    <h3 className="text-lg font-black text-slate-900">{decodedRoom.building}</h3>
+                                                    <h3 className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{decodedRoom.building}</h3>
                                                 </div>
                                             </div>
                                             
                                             <div className="grid grid-cols-2 gap-3 pt-2">
-                                                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-sm text-center">
+                                                <div className={`rounded-xl p-3 border shadow-sm text-center ${isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-white border-slate-100'}`}>
                                                     <p className="text-xs font-bold text-slate-400 mb-1">الطابق</p>
-                                                    <p className="text-base font-black text-slate-800">{decodedRoom.floor}</p>
+                                                    <p className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{decodedRoom.floor}</p>
                                                 </div>
-                                                <div className="rounded-xl bg-white p-3 border border-slate-100 shadow-sm text-center">
+                                                <div className={`rounded-xl p-3 border shadow-sm text-center ${isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-white border-slate-100'}`}>
                                                     <p className="text-xs font-bold text-slate-400 mb-1">القاعة</p>
-                                                    <p className="text-base font-black text-slate-800">{decodedRoom.room}</p>
+                                                    <p className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{decodedRoom.room}</p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="directory-card-reveal h-full min-h-[140px] rounded-2xl border border-rose-100 bg-rose-50/50 flex items-center justify-center text-center p-6 text-rose-500 font-bold">
+                                    <div className={`directory-card-reveal h-full min-h-[140px] rounded-2xl border flex items-center justify-center text-center p-6 font-bold ${isDark ? 'border-rose-900/50 bg-rose-900/20 text-rose-400' : 'border-rose-100 bg-rose-50/50 text-rose-500'}`}>
                                         <div className="space-y-2">
                                             <span className="text-3xl block">⚠️</span>
                                             <p>{decodedRoom.message}</p>
@@ -306,15 +306,15 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                     {OFFICIAL_BUILDING_GUIDE.length > 0 && (
                         <section className="space-y-6">
                             <div className="flex items-center gap-3">
-                                <h2 className="text-2xl sm:text-3xl font-black text-slate-950">المرجع الرسمي للمباني والكليات</h2>
-                                <div className="h-px flex-1 bg-slate-200"></div>
+                                <h2 className={`text-2xl sm:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-950'}`}>المرجع الرسمي للمباني والكليات</h2>
+                                <div className={`h-px flex-1 ${isDark ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                                 {OFFICIAL_BUILDING_GUIDE.map((entry, idx) => (
                                     <article
                                         key={entry.symbol}
-                                        className="directory-card-reveal group relative overflow-hidden rounded-[2rem] bg-white border border-slate-200 p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)]"
+                                        className={`directory-card-reveal group relative overflow-hidden rounded-[2rem] border p-6 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}
                                         style={{ animationDelay: `${idx * 70}ms` }}
                                     >
                                         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-50/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"></div>
@@ -325,7 +325,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                                     {entry.symbol}
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-lg font-black text-slate-900 leading-tight">{entry.building}</h3>
+                                                    <h3 className={`text-lg font-black leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{entry.building}</h3>
                                                 </div>
                                             </div>
                                             
@@ -336,7 +336,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                                             <button
                                                                 key={college}
                                                                 onClick={() => setSelectedCollegeInfo({ college, building: entry })}
-                                                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition-all hover:scale-105 hover:shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
+                                                                className={`rounded-xl border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 hover:shadow-sm cursor-pointer ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-indigo-500 hover:bg-indigo-500/20 hover:text-indigo-300' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'}`}
                                                             >
                                                                 {college}
                                                             </button>
@@ -344,7 +344,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                                     ) : (
                                                         <button 
                                                             onClick={() => setSelectedCollegeInfo({ college: 'كلية طب الأسنان', building: entry })}
-                                                            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 transition-all hover:scale-105 hover:shadow-sm hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer"
+                                                            className={`rounded-xl border px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 hover:shadow-sm cursor-pointer ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-indigo-500 hover:bg-indigo-500/20 hover:text-indigo-300' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'}`}
                                                         >
                                                             مبنى متخصص (طب الأسنان)
                                                         </button>
@@ -356,11 +356,11 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                 ))}
                             </div>
 
-                            <div className="directory-card-reveal rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between" style={{ animationDelay: `${OFFICIAL_BUILDING_GUIDE.length * 70}ms` }}>
+                            <div className={`directory-card-reveal rounded-[2rem] border p-6 shadow-sm flex flex-col sm:flex-row items-center gap-4 justify-between ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`} style={{ animationDelay: `${OFFICIAL_BUILDING_GUIDE.length * 70}ms` }}>
                                 <div className="flex items-center gap-3">
                                     <span className="text-2xl bg-indigo-100 text-indigo-600 p-2 rounded-xl">🔢</span>
                                     <div>
-                                        <p className="text-base font-black text-slate-900">دليل ترميز الطوابق</p>
+                                        <p className={`text-base font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>دليل ترميز الطوابق</p>
                                         <p className="text-xs font-medium text-slate-500">الرقم الأول من القاعة يمثل الطابق</p>
                                     </div>
                                 </div>
@@ -368,9 +368,9 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                                     {OFFICIAL_FLOOR_LEGEND.map((floor) => {
                                         const [code, name] = floor.split(' = ');
                                         return (
-                                            <div key={floor} className="flex items-center rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
-                                                <span className="bg-slate-800 text-white font-black text-xs px-3 py-2">{code}</span>
-                                                <span className="text-xs font-bold text-slate-700 px-3 py-2">{name}</span>
+                                            <div key={floor} className={`flex items-center rounded-xl border overflow-hidden ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                                <span className={`font-black text-xs px-3 py-2 ${isDark ? 'bg-slate-700 text-white' : 'bg-slate-800 text-white'}`}>{code}</span>
+                                                <span className={`text-xs font-bold px-3 py-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{name}</span>
                                             </div>
                                         );
                                     })}
@@ -564,7 +564,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         className="absolute inset-0" 
                         onClick={() => setSelectedCollegeInfo(null)}
                     ></div>
-                    <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden directory-card-reveal">
+                    <div className={`relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden directory-card-reveal ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
                         <div className="bg-gradient-to-l from-indigo-600 to-indigo-500 p-6 sm:p-8 text-white relative">
                             <button 
                                 onClick={() => setSelectedCollegeInfo(null)}
@@ -578,24 +578,24 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                         
                         <div className="p-6 sm:p-8 space-y-6">
                             <div className="flex items-start gap-4">
-                                <div className="w-14 h-14 shrink-0 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center text-2xl font-black border border-slate-200">
+                                <div className={`w-14 h-14 shrink-0 rounded-2xl flex items-center justify-center text-2xl font-black border ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-800'}`}>
                                     {selectedCollegeInfo.building.symbol}
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-slate-400 mb-1">المبنى الرئيسي</p>
-                                    <h4 className="text-xl font-black text-slate-900">{selectedCollegeInfo.building.building}</h4>
+                                    <h4 className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedCollegeInfo.building.building}</h4>
                                 </div>
                             </div>
 
-                            <div className="h-px w-full bg-slate-100"></div>
+                            <div className={`h-px w-full ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}></div>
 
                             <div>
-                                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2 mb-3">
+                                <h4 className={`text-sm font-black flex items-center gap-2 mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                     <span className="text-indigo-500">✨</span> أهم المرافق في المبنى:
                                 </h4>
                                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                     {selectedCollegeInfo.building.facilities.map((facility, index) => (
-                                        <li key={index} className="flex items-center gap-2 text-sm font-medium text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                        <li key={index} className={`flex items-center gap-2 text-sm font-medium p-2.5 rounded-xl border ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
                                             <span className="text-emerald-500 text-lg">✓</span> {facility}
                                         </li>
                                     ))}
@@ -603,7 +603,7 @@ export default function Directory({ auth, colleges = [], landmarks = [] }) {
                             </div>
                         </div>
 
-                        <div className="bg-slate-50 p-4 sm:p-6 border-t border-slate-100 flex justify-end">
+                        <div className={`p-4 sm:p-6 border-t flex justify-end ${isDark ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
                             <button 
                                 onClick={() => setSelectedCollegeInfo(null)}
                                 className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition"
