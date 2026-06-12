@@ -301,6 +301,57 @@ export default function Tree({
         }
     };
 
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+    const submitScheduleReview = async () => {
+        if (cartIds.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'تنبيه', text: 'لا يوجد مواد في التسجيل التجريبي لإرسالها.', ...swalTheme });
+            return;
+        }
+
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'إرسال للمراجعة؟',
+            text: 'هل أنت متأكد من إرسال خطتك التجريبية للكادر التدريسي لأخذ رأيهم وتقييمهم؟',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، أرسل الآن',
+            cancelButtonText: 'إلغاء',
+            ...swalTheme
+        });
+
+        if (result.isConfirmed) {
+            setIsSubmittingReview(true);
+            try {
+                // نجهز البيانات: المواد المختارة في التسجيل التجريبي مع تفاصيلها
+                const planData = coursesWithDifficulty.filter(c => cartIds.includes(c.id)).map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    code: c.code,
+                    credit_hours: c.credit_hours,
+                    type: c.type,
+                    semester: c.semester
+                }));
+
+                const response = await axios.post(route('tree.submit_review'), {
+                    plan_data: planData
+                });
+
+                if (response.data.status === 'success') {
+                    Swal.fire({ icon: 'success', title: 'تم الإرسال!', text: response.data.message, ...swalTheme });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ!',
+                    text: error.response?.data?.message || 'تعذر إرسال الخطة. حاول مرة أخرى.',
+                    ...swalTheme
+                });
+            } finally {
+                setIsSubmittingReview(false);
+            }
+        }
+    };
+
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [targetSemester, setTargetSemester] = useState(1);
     const [targetYear, setTargetYear] = useState(1);
@@ -3780,6 +3831,13 @@ export default function Tree({
                                                     <button onClick={() => toggleCart(c)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all text-xs shrink-0 active:scale-90 shadow-sm">✕</button>
                                                 </div>
                                             ))}
+                                            <button 
+                                                onClick={submitScheduleReview} 
+                                                disabled={isSubmittingReview}
+                                                className={`w-full mt-3 py-3 rounded-xl font-[800] text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 ${isSubmittingReview ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 shadow-indigo-500/30 active:scale-[0.98]'}`}
+                                            >
+                                                {isSubmittingReview ? 'جاري الإرسال...' : '📤 إرسال الخطة للمراجعة'}
+                                            </button>
                                         </div>
                                     ) : (<div className="text-center py-8"><div className="text-3xl mb-2 opacity-30">🛒</div><p className="text-[12px] font-bold text-slate-400 font-i">أضف مواد من الشجرة لاستكشاف العبء.</p></div>)}
                                 </div>

@@ -782,4 +782,57 @@ class TreeController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * إرسال الخطة للتسجيل التجريبي إلى الإدارة أو الكادر التدريسي للمراجعة.
+     */
+    public function submitReview(Request $request)
+    {
+        $request->validate([
+            'plan_data' => 'required|array',
+        ]);
+
+        try {
+            $user = Auth::user();
+
+            // التحقق إذا كان هناك طلب قيد المراجعة حالياً
+            $existingPending = \App\Models\ScheduleReview::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->first();
+
+            if ($existingPending) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'لديك طلب مراجعة قيد الانتظار حالياً، يرجى الانتظار لحين الرد عليه.'
+                ], 422);
+            }
+
+            \App\Models\ScheduleReview::create([
+                'user_id' => $user->id,
+                'plan_data' => $request->input('plan_data'),
+                'status' => 'pending',
+            ]);
+
+            StudentActivityLog::create([
+                'user_id' => $user->id,
+                'action' => 'schedule_review_submitted',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'تم إرسال الخطة للمراجعة بنجاح! سيتم إشعارك عند الرد.'
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Tree submitReview failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'حدث خطأ أثناء إرسال الخطة. يرجى المحاولة مرة أخرى.',
+            ], 500);
+        }
+    }
 }

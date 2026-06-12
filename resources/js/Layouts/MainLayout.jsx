@@ -280,6 +280,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                         <Link href={route('instructor.students')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('instructor.students') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">👥</span> {t.students}
                                         </Link>
+
+                                        <Link href={safeRoute('schedule_reviews.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('schedule_reviews.index', '/schedule-reviews') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                            <span className="transition-transform group-hover:scale-110">📑</span> {lang === 'ar' ? 'مراجعة الخطط' : 'Plan Reviews'}
+                                        </Link>
                                     </>
                                 )}
 
@@ -440,6 +444,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 <>
                                     <Link onClick={() => setMobileOpen(false)} href={safeRoute('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {lang === 'ar' ? 'خطط الكلية' : 'College Plans'}</Link>
                                     <Link onClick={() => setMobileOpen(false)} href={route('instructor.students')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">👥 {t.students}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href={safeRoute('schedule_reviews.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📑 {lang === 'ar' ? 'مراجعة الخطط' : 'Plan Reviews'}</Link>
                                 </>
                             )}
                             {!isInstructor && (
@@ -538,7 +543,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 )}
                                 <li><Link href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}</Link></li>
                                 {isInstructor && (
-                                    <li><Link href={route('instructor.students')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.students}</Link></li>
+                                    <>
+                                        <li><Link href={route('instructor.students')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{t.students}</Link></li>
+                                        <li><Link href={safeRoute('schedule_reviews.index')} className="text-slate-400 hover:text-blue-300 transition-colors text-sm font-bold">{lang === 'ar' ? 'مراجعة الخطط' : 'Plan Reviews'}</Link></li>
+                                    </>
                                 )}
                             </ul>
                         </div>

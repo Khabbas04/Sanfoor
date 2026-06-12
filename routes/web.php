@@ -304,6 +304,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/tree/retake', [TreeController::class, 'retakeCourse'])->name('tree.retake');
     Route::post('/tree/update-grade', [TreeController::class, 'updateGrade'])->name('tree.update_grade');
     Route::post('/tree/reset', [TreeController::class, 'resetPlan'])->name('tree.reset');
+    Route::post('/tree/submit-review', [TreeController::class, 'submitReview'])->name('tree.submit_review');
     Route::post('/graduation-plan', [GraduationPlanController::class, 'store'])->name('graduation-plan.store');
     Route::delete('/graduation-plan', [GraduationPlanController::class, 'destroy'])->name('graduation-plan.destroy');
 
@@ -380,6 +381,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/ai-scheduler/chat/{chat_id}', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'getMessages'])->name('ai.scheduler.messages');
         Route::delete('/ai-scheduler/chat/{chat_id}', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'destroy'])->name('ai.scheduler.destroy');
         Route::post('/ai-scheduler/commit', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'commitSchedule'])->name('ai.scheduler.commit');
+        
+        // Schedule Reviews
+        Route::get('/schedule-reviews', [\App\Http\Controllers\ScheduleReviewController::class, 'index'])->name('schedule_reviews.index');
+        Route::get('/schedule-reviews/{scheduleReview}', [\App\Http\Controllers\ScheduleReviewController::class, 'show'])->name('schedule_reviews.show');
+        Route::post('/schedule-reviews/{scheduleReview}/feedback', [\App\Http\Controllers\ScheduleReviewController::class, 'submitFeedback'])->name('schedule_reviews.feedback');
     });
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
@@ -397,6 +403,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/api/new-registrations', [AdminController::class, 'getNewRegistrations'])->name('api.new_registrations');
             Route::post('/api/heartbeat', [AdminController::class, 'updateLastActivity'])->name('api.heartbeat');
             Route::post('/api/browser-close', [AdminController::class, 'handleBrowserClose'])->name('api.browser_close');
+
+        // Schedule Reviews
+        Route::get('/schedule-reviews', [\App\Http\Controllers\ScheduleReviewController::class, 'index'])->name('schedule_reviews.index');
+        Route::get('/schedule-reviews/{scheduleReview}', [\App\Http\Controllers\ScheduleReviewController::class, 'show'])->name('schedule_reviews.show');
+        Route::post('/schedule-reviews/{scheduleReview}/feedback', [\App\Http\Controllers\ScheduleReviewController::class, 'submitFeedback'])->name('schedule_reviews.feedback');
 
         // Instructor management endpoints.
         Route::get('/instructors', [App\Http\Controllers\Admin\AdminInstructorController::class, 'index'])->name('instructors.index');
