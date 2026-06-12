@@ -572,6 +572,12 @@ export default function Welcome({ auth }) {
                                     <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_0%,#6366f140_25%,transparent_50%)]" style={{ animation: 'rotate-border 8s linear infinite' }} />
                                 </div>
 
+                                {/* Title above SVG */}
+                                <div className="relative z-10 mb-8 flex flex-col items-center justify-center text-center">
+                                    <PremiumBadge text="شكل الخطة الشجرية" color="cyan" className="mb-4" />
+                                    <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">الشجرة التفاعلية</h3>
+                                </div>
+
                                 <svg viewBox="0 0 500 280" className="w-full h-auto relative z-10" dir="ltr">
                                     {previewIn && <>
                                         {/* Edges */}
@@ -603,6 +609,22 @@ export default function Welcome({ auth }) {
                                         <TreeNode x="434" y="185" delay={1.45} color="#334155" label="مغلقة 🔒" />
                                     </>}
                                 </svg>
+
+                                {/* Legend below SVG */}
+                                <div className="relative z-10 mt-8 pt-6 border-t border-slate-700/50 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+                                    {[
+                                        { label: 'منجزة', color: 'bg-[#10b981]' },
+                                        { label: 'متاحة', color: 'bg-[#06b6d4]' },
+                                        { label: 'قيد الإنجاز', color: 'bg-[#3b82f6]' },
+                                        { label: 'في السلة', color: 'bg-[#f59e0b]' },
+                                        { label: 'مغلقة', color: 'bg-[#334155]' },
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <span className={`w-3 h-3 rounded-full ${item.color} shadow-[0_0_8px_currentColor]`} />
+                                            <span className="text-slate-300 text-xs sm:text-sm font-bold tracking-wide">{item.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
