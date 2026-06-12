@@ -373,7 +373,6 @@ function AiChatAnimation({ start }) {
             setTimeout(() => setStep(2), 1500),  // AI starts typing/scanning
             setTimeout(() => setStep(3), 3000),  // AI shows processing progress bar
             setTimeout(() => setStep(4), 5000),  // AI shows the final answer
-            setTimeout(() => setStep(0), 12000), // Loop back
         ];
         
         return () => timers.forEach(clearTimeout);
