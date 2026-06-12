@@ -176,7 +176,7 @@ function StackedFeaturesSection() {
                         className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
                             ${isFront 
                                 ? `bg-slate-900 border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)]` 
-                                : `bg-slate-800 border border-slate-700/50 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)] hover:bg-slate-700`}
+                                : `bg-white border border-slate-200/80 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] hover:bg-slate-50`}
                         `}
                         style={{ 
                             transformOrigin: "top center",
@@ -186,7 +186,7 @@ function StackedFeaturesSection() {
                         {/* Tab Header (always visible, peeks out at the top) */}
                         <div className={`px-6 py-4 flex items-center gap-3 ${isFront ? 'border-b border-slate-800 bg-white/[0.02]' : ''}`}>
                             <div className={`w-3 h-3 rounded-full ${card.color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor] ${card.color}`} />
-                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase ${isFront ? 'text-white' : 'text-slate-400'}`}>
+                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase ${isFront ? 'text-white' : 'text-slate-500'}`}>
                                 {card.title}
                             </span>
                         </div>
@@ -205,7 +205,7 @@ function StackedFeaturesSection() {
                                     {card.icon}
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-xl sm:text-2xl font-black text-white mb-3 sm:mb-4 leading-snug">
+                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4 leading-snug">
                                         {card.title}
                                     </h3>
                                     <p className="text-slate-400 text-sm sm:text-base leading-[1.8] font-medium max-w-2xl">
@@ -798,13 +798,13 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES (Stacked Cards)
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-[#0B1121] relative overflow-hidden -mt-10 pt-32">
+                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-gradient-to-b from-white to-slate-50/80 relative overflow-hidden -mt-10 pt-32">
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-white/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
+                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
                     
                     {/* Dark aesthetic subtle glow */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-400/5 rounded-full blur-[120px] pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-400/10 rounded-full blur-[120px] pointer-events-none" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
@@ -817,31 +817,31 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     3. TREE PREVIEW (Animated SVG)
                 ════════════════════════════════════ */}
-                <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-900 border-t border-slate-800">
+                <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-50/50 border-t border-slate-200/50">
                     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-white/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
+                        <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
                     </div>
-                    <div className="absolute inset-0 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:32px_32px] opacity-5 z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.15] z-0"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none"></div>
 
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
                         <div className={`max-w-3xl mx-auto transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${previewIn ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`} style={{ transitionDelay: '200ms' }}>
-                            <div className="relative bg-white/5 backdrop-blur-xl border border-slate-700/50 rounded-[2rem] p-6 sm:p-10 overflow-hidden shadow-2xl">
-                                <div className="absolute -inset-[1px] rounded-[2rem] overflow-hidden pointer-events-none">
-                                    <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_0%,#6366f140_25%,transparent_50%)]" style={{ animation: 'rotate-border 8s linear infinite' }} />
+                            <div className="relative bg-white/70 backdrop-blur-2xl border border-slate-200 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] rounded-[2rem] p-6 sm:p-10 overflow-hidden">
+                                <div className="absolute -inset-[1px] rounded-[2rem] overflow-hidden pointer-events-none opacity-40">
+                                    <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg,transparent_0%,#0ea5e930_25%,transparent_50%)]" style={{ animation: 'rotate-border 8s linear infinite' }} />
                                 </div>
 
                                 {/* Title above SVG */}
                                 <div className="relative z-10 mb-8 flex flex-col items-center justify-center text-center">
                                     <PremiumBadge text="شكل الخطة الشجرية" color="cyan" className="mb-4" />
-                                    <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">الشجرة التفاعلية</h3>
+                                    <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">الشجرة التفاعلية</h3>
                                 </div>
 
                                 <TreePreviewAnimation start={previewIn} />
 
                                 {/* Legend below SVG */}
-                                <div className="relative z-10 mt-8 pt-6 border-t border-slate-700/50 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+                                <div className="relative z-10 mt-8 pt-6 border-t border-slate-200/80 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
                                     {[
                                         { label: 'منجزة', color: 'bg-[#10b981]' },
                                         { label: 'متاحة', color: 'bg-[#06b6d4]' },
@@ -850,7 +850,7 @@ export default function Welcome({ auth }) {
                                     ].map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-2">
                                             <span className={`w-3 h-3 rounded-full ${item.color} shadow-[0_0_8px_currentColor]`} />
-                                            <span className="text-slate-300 text-xs sm:text-sm font-bold tracking-wide">{item.label}</span>
+                                            <span className="text-slate-600 text-xs sm:text-sm font-bold tracking-wide">{item.label}</span>
                                         </div>
                                     ))}
                                 </div>
