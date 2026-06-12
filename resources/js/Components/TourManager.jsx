@@ -145,11 +145,8 @@ const injectTourStyles = () => {
 export const startWelcomeTour = () => {
     injectTourStyles();
     
-    // Smooth scroll to features first
-    const featuresSection = document.getElementById('features');
-    if (featuresSection) {
-        featuresSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // Smooth scroll to top first
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     setTimeout(() => {
         const driverObj = driver({
@@ -157,7 +154,7 @@ export const startWelcomeTour = () => {
             animate: true,
             popoverClass: 'driver-theme-sanfoor',
             allowClose: true,
-            overlayOpacity: 0.75,
+            overlayOpacity: 0.8,
             doneBtnText: 'جاهز؟ انطلق! 🚀',
             nextBtnText: 'التالي ←',
             prevBtnText: '→ السابق',
@@ -166,72 +163,59 @@ export const startWelcomeTour = () => {
                 popover.wrapper.setAttribute('dir', 'rtl');
             },
             onDestroyed: () => {
-                // If they close or finish the welcome tour, setup the tree tour pending state
                 localStorage.setItem('sanfoor_tour', 'tree_pending');
-                
-                // Navigate to the tree page smoothly
                 router.visit(route('tree.index'));
             },
             steps: [
                 {
-                    element: '#tour-feature-1',
                     popover: {
-                        title: '🌳 خطتك الدراسية بين يديك',
-                        description: 'تخلص من الجداول الورقية المعقدة! شجرتك التفاعلية توضح لك بنظرة واحدة المواد المنجزة، المتاحة للتسجيل، والمغلقة بألوان مريحة للعين.',
+                        title: '👋 أهلاً بك في سنفور',
+                        description: 'المنصة الأذكى والأسرع لتخطيط مسارك الجامعي. دعنا نأخذك في جولة سريعة لنريك كيف يمكنك إنهاء معاناتك مع الجداول الأكاديمية للأبد!',
+                        side: 'center',
+                        align: 'center'
+                    }
+                },
+                {
+                    element: '#features',
+                    popover: {
+                        title: '✨ مميزات ذكية متكاملة',
+                        description: 'بدلاً من البحث المشتت، جمعنا لك كل ما تحتاجه هنا: الشجرة التفاعلية، الذكاء الاصطناعي، الشباتر، التسجيل التجريبي وبنك الأسئلة. كل شيء في مكان واحد لخدمتك!',
                         side: 'top',
                         align: 'center'
                     }
                 },
                 {
-                    element: '#tour-feature-2',
+                    element: 'section:nth-of-type(3)', // Tree Preview Section
                     popover: {
-                        title: '🛒 جرب قبل أن تسجل',
-                        description: 'خاصية التسجيل التجريبي تتيح لك اختيار المواد وقياس العبء الدراسي مسبقاً. سنقوم بتنبيهك تلقائياً في حال وجود أي تعارض.',
+                        title: '🌳 الشجرة التفاعلية',
+                        description: 'بمجرد تسجيل دخولك، سنقوم ببناء خريطة مرئية (شجرة) ذكية لموادك. يمكنك من خلالها معرفة المواد المنجزة والمفتوحة بلمحة بصر!',
                         side: 'top',
                         align: 'center'
                     }
                 },
                 {
-                    element: '#tour-feature-3',
+                    element: 'section:nth-of-type(4)', // AI Section
                     popover: {
-                        title: '🤖 مرشدك الأكاديمي الذكي',
-                        description: '<div style="display:flex; gap:15px; align-items:center;"><img src="/images/ai_robot.png" style="width:64px; height:64px; border-radius:16px; object-fit:cover; background:white; box-shadow:0 8px 16px rgba(14,165,233,0.15); border:1px solid #e2e8f0; margin-top:5px; flex-shrink:0;"/><div style="line-height: 1.6;">AI Sanfoor يقرأ خطتك ويقترح لك أفضل جدول لرفع معدلك التراكمي في ثوانٍ.</div></div>',
+                        title: '🤖 الذكاء الاصطناعي',
+                        description: '<div style="display:flex; gap:15px; align-items:center;"><img src="/images/ai_robot.png" style="width:64px; height:64px; border-radius:16px; object-fit:cover; background:white; box-shadow:0 8px 16px rgba(14,165,233,0.15); border:1px solid #e2e8f0; margin-top:5px; flex-shrink:0;"/><div style="line-height: 1.6;">AI Sanfoor هو مساعدك الشخصي. يقرأ خطتك ويقترح لك أفضل جدول لتسجيل المواد لرفع معدلك بأسرع وقت!</div></div>',
                         side: 'top',
                         align: 'center'
                     }
                 },
                 {
-                    element: '#tour-feature-4',
+                    element: 'section:nth-of-type(5)', // Workflow Section
                     popover: {
-                        title: '📚 الشباتر الدراسية',
-                        description: 'وفرنا لك شروحات مركزة ومبسطة لكل فصل دراسي مع أمثلة وتمارين تثبت المعلومة بذهنك ليلة الامتحان.',
+                        title: '⚡ ٣ خطوات فقط',
+                        description: 'العملية بسيطة جداً: اختار تخصصك، حدد موادك المنجزة، ثم خطط بذكاء! النظام سيقوم بالباقي.',
                         side: 'top',
                         align: 'center'
                     }
                 },
                 {
-                    element: '#tour-feature-5',
-                    popover: {
-                        title: '📝 بنك الأسئلة الشامل',
-                        description: 'اختبر نفسك قبل الامتحان الحقيقي من خلال تجميعاتنا للأسئلة المختارة والمتدرجة الصعوبة.',
-                        side: 'top',
-                        align: 'center'
-                    }
-                },
-                {
-                    element: '#tour-feature-6',
-                    popover: {
-                        title: '🏫 دليلك داخل الجامعة',
-                        description: 'لا تضيع بين الكليات! دليلنا بساعدك تعرف أماكن المباني، القاعات، والخدمات القريبة منها بسهولة تامة.',
-                        side: 'top',
-                        align: 'center'
-                    }
-                },
-                {
-                    element: '#tour-cta-btn',
+                    element: 'section:nth-of-type(6)', // CTA
                     popover: {
                         title: '🚀 حان وقت الانطلاق',
-                        description: 'الخطوة الأولى تبدأ من هنا! افتح خطتك واستكشف سحر الشجرة الأكاديمية عملياً.',
+                        description: 'انضم لآلاف الطلاب اللي غيروا طريقتهم بالتخطيط. جاهز تبدأ؟',
                         side: 'top',
                         align: 'center'
                     }
@@ -239,7 +223,7 @@ export const startWelcomeTour = () => {
             ]
         });
         driverObj.drive();
-    }, 800); // Wait for scroll
+    }, 500); 
 };
 
 export const startTreeTour = () => {
