@@ -802,8 +802,8 @@ export default function Welcome({ auth }) {
                     {/* Straight Background */}
                     <div className="absolute inset-0 bg-white -z-10 shadow-sm border-b border-slate-200/50"></div>
                     
-                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
+                    <div className="w-full text-center pointer-events-none select-none z-0 overflow-hidden mb-8 sm:mb-16">
+                        <span className="block leading-none text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
                     
                     {/* Dark aesthetic subtle glow */}
@@ -824,8 +824,8 @@ export default function Welcome({ auth }) {
                     {/* Skewed Background */}
                     <div className="absolute inset-0 bg-slate-100 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-inner border-y border-slate-200"></div>
 
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
+                    <div className="w-full text-center pointer-events-none select-none z-0 overflow-hidden mb-8 sm:mb-16">
+                        <span className="block leading-none text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
                     </div>
                     <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.15] -z-10"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
@@ -873,8 +873,8 @@ export default function Welcome({ auth }) {
                     {/* Skewed Background */}
                     <div className="absolute inset-0 bg-white -skew-y-3 sm:-skew-y-2 origin-top-left -z-10 shadow-inner border-y border-slate-200"></div>
 
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">SMART AI</span>
+                    <div className="w-full text-center pointer-events-none select-none z-0 overflow-hidden mb-8 sm:mb-16">
+                        <span className="block leading-none text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">SMART AI</span>
                     </div>
                     <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none -z-10" />
 
@@ -917,9 +917,12 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     6. HOW IT WORKS
                 ════════════════════════════════════ */}
-                <section ref={howRef} className="py-20 sm:py-32 bg-white relative overflow-hidden">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">WORKFLOW</span>
+                <section ref={howRef} className="py-24 sm:py-32 relative mt-16 z-10">
+                    {/* Skewed Background */}
+                    <div className="absolute inset-0 bg-slate-100 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-inner border-y border-slate-200"></div>
+
+                    <div className="w-full text-center pointer-events-none select-none z-0 overflow-hidden mb-8 sm:mb-16">
+                        <span className="block leading-none text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">WORKFLOW</span>
                     </div>
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
