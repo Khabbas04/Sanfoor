@@ -56,6 +56,40 @@ function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
     );
 }
 
+function PremiumBadge({ text, color = 'sky', className = 'mb-6' }) {
+    const colors = {
+        sky: { from: 'from-sky-400', to: 'to-blue-500', text: 'text-sky-400', border: 'border-sky-500/20' },
+        cyan: { from: 'from-cyan-400', to: 'to-teal-500', text: 'text-cyan-400', border: 'border-cyan-500/20' },
+        emerald: { from: 'from-emerald-400', to: 'to-green-500', text: 'text-emerald-400', border: 'border-emerald-500/20' },
+    };
+    const theme = colors[color] || colors.sky;
+
+    return (
+        <div className={`relative inline-flex items-center justify-center ${className} group cursor-default`}>
+            {/* Background glow */}
+            <div className={`absolute inset-0 bg-gradient-to-r ${theme.from} ${theme.to} rounded-full blur-[12px] opacity-20 group-hover:opacity-40 transition-opacity duration-500`}></div>
+            
+            {/* Pill Container */}
+            <div className={`relative inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-[#050505]/90 backdrop-blur-xl border ${theme.border} shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] overflow-hidden`}>
+                
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
+                
+                {/* Blinking dot */}
+                <span className="relative flex h-2 w-2">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-60 ${theme.text}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 bg-current ${theme.text}`}></span>
+                </span>
+                
+                {/* Text */}
+                <span className={`text-xs sm:text-sm font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-l ${theme.from} ${theme.to}`}>
+                    {text}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 function StackedFeaturesSection() {
     const [cards, setCards] = useState([
         { id: 1, icon: "🌳", title: 'الشجرة التفاعلية', desc: 'خريطة مرئية كاملة لموادك، تتحدث تلقائياً لتظهر لك ما تم إنجازه وما فُتح لك للتسجيل بألوان واضحة.', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
@@ -78,15 +112,15 @@ function StackedFeaturesSection() {
     };
 
     return (
-        <div className="relative h-[600px] sm:h-[500px] w-full max-w-4xl mx-auto mt-16 sm:mt-24 perspective-1000" dir="rtl">
+        <div className="relative h-[650px] sm:h-[550px] w-full max-w-4xl mx-auto mt-12 perspective-1000" dir="rtl">
             {cards.map((card, index) => {
                 const isFront = index === cards.length - 1;
                 const reverseIndex = cards.length - 1 - index;
                 
-                // Increase yOffset so the headers are clearly visible above the front card
-                const yOffset = reverseIndex * -58; 
+                // Stack downwards to avoid upward overlap into the title
+                const yOffset = index * 35; 
                 const scale = 1 - reverseIndex * 0.04;
-                const opacity = reverseIndex > 4 ? 0 : 1 - reverseIndex * 0.15; 
+                const opacity = 1 - reverseIndex * 0.15; 
 
                 return (
                     <motion.div
@@ -108,10 +142,10 @@ function StackedFeaturesSection() {
                             bounce: 0.2
                         }}
                         onClick={() => bringToFront(card.id)}
-                        className={`absolute top-10 left-0 right-0 mx-auto w-full max-w-2xl rounded-[2rem] p-6 sm:p-8 cursor-pointer backdrop-blur-2xl transition-colors duration-500
+                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-2xl rounded-[2rem] p-6 sm:p-8 cursor-pointer backdrop-blur-2xl transition-colors duration-500
                             ${isFront 
-                                ? 'bg-zinc-900/95 border border-zinc-700/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]' 
-                                : 'bg-zinc-950/60 border border-zinc-800/40 shadow-2xl hover:bg-zinc-900/60'}
+                                ? 'bg-[#0a0a0a]/95 border border-white/10 shadow-[0_30px_80px_-15px_rgba(0,0,0,1)]' 
+                                : 'bg-[#0a0a0a]/50 border border-white/5 shadow-2xl hover:bg-[#111]/70'}
                         `}
                         style={{ transformOrigin: "top center" }}
                     >
@@ -506,10 +540,7 @@ export default function Welcome({ auth }) {
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className={`text-center mb-10 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-sky-300 text-xs font-bold mb-6 border border-white/10 backdrop-blur-sm">
-                                <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" />
-                                <span>تجربة تفاعلية جديدة</span>
-                            </div>
+                            <PremiumBadge text="تجربة تفاعلية جديدة" color="sky" />
                             <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-white mb-5 tracking-tight leading-[1.15]">
                                 كل اللي بتحتاجه في <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500">مكان واحد.</span>
                             </h2>
@@ -536,10 +567,7 @@ export default function Welcome({ auth }) {
 
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className={`text-center mb-12 sm:mb-16 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${previewIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-cyan-300 text-xs font-bold mb-6 border border-white/10 backdrop-blur-sm">
-                                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full" />
-                                <span>شكل الخطة الشجرية</span>
-                            </div>
+                            <PremiumBadge text="شكل الخطة الشجرية" color="cyan" />
                             <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-white mb-5 tracking-tight leading-[1.15]">
                                 شوف خطتك كأنك <span className="text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 to-blue-400">بتلعب لعبة</span>
                             </h2>
@@ -605,10 +633,7 @@ export default function Welcome({ auth }) {
 
                             {/* Text Info */}
                             <div className={`transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${aiIn ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-14'}`}>
-                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-100 text-sky-700 border-sky-200">
-                                    <span className="w-1.5 h-1.5 bg-sky-500 rounded-full" />
-                                    <span>ميزة حصرية</span>
-                                </div>
+                                <PremiumBadge text="ميزة حصرية" color="sky" />
                                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-6 tracking-tight leading-[1.2]">
                                     محتار شو تنزل؟ <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500">اسأل مستشارك الذكي.</span>
@@ -682,10 +707,7 @@ export default function Welcome({ auth }) {
                     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
                         <div className={`text-center mb-16 sm:mb-20 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-50 text-cyan-700 text-xs font-bold mb-6 border border-cyan-100">
-                                <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
-                                <span>كيف بيشتغل؟</span>
-                            </div>
+                            <PremiumBadge text="كيف بيشتغل؟" color="cyan" />
                             <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-slate-900 mb-5 tracking-tight">
                                 ثلاث خطوات <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500">وبتكون جاهز.</span>
                             </h2>
