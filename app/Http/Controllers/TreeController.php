@@ -87,7 +87,7 @@ class TreeController extends Controller
 
         $latestScheduleReview = \App\Models\ScheduleReview::query()
             ->where('user_id', $user->id)
-            ->latest()
+            ->latest('id')
             ->first();
 
         return Inertia::render('Tree/Index', [
