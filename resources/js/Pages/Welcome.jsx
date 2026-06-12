@@ -111,16 +111,27 @@ function StackedFeaturesSection() {
         });
     };
 
+    const activeBorderColors = {
+        1: 'border-sky-500',
+        2: 'border-cyan-500',
+        3: 'border-emerald-500',
+        4: 'border-amber-500',
+        5: 'border-blue-500',
+        6: 'border-purple-500',
+    };
+
     return (
-        <div className="relative h-[650px] sm:h-[550px] w-full max-w-4xl mx-auto mt-12 perspective-1000" dir="rtl">
+        <div className="relative h-[650px] sm:h-[550px] w-full max-w-4xl mx-auto mt-48 perspective-1000" dir="rtl">
             {cards.map((card, index) => {
                 const isFront = index === cards.length - 1;
                 const reverseIndex = cards.length - 1 - index;
                 
-                // Stack downwards to avoid upward overlap into the title
-                const yOffset = index * 35; 
-                const scale = 1 - reverseIndex * 0.04;
+                // Stack UPWARDS to match the tab look
+                const yOffset = reverseIndex * -45; 
+                const scale = 1 - reverseIndex * 0.05;
                 const opacity = 1 - reverseIndex * 0.15; 
+                
+                const activeBorderClass = activeBorderColors[card.id] || 'border-zinc-500';
 
                 return (
                     <motion.div
@@ -142,57 +153,54 @@ function StackedFeaturesSection() {
                             bounce: 0.2
                         }}
                         onClick={() => bringToFront(card.id)}
-                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-2xl rounded-[2rem] p-6 sm:p-8 cursor-pointer backdrop-blur-2xl transition-colors duration-500
+                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-3xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-2xl transition-colors duration-500
                             ${isFront 
-                                ? 'bg-[#0a0a0a]/95 border border-white/10 shadow-[0_30px_80px_-15px_rgba(0,0,0,1)]' 
-                                : 'bg-[#0a0a0a]/50 border border-white/5 shadow-2xl hover:bg-[#111]/70'}
+                                ? `bg-[#121212] border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,1)]` 
+                                : 'bg-[#1a1a1a] border border-white/5 shadow-2xl hover:bg-[#222]'}
                         `}
                         style={{ transformOrigin: "top center" }}
                     >
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-4 sm:gap-6">
-                                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-3xl ${card.bg} ${card.color} border ${card.border} shadow-inner`}>
-                                    {card.icon}
-                                </div>
-                                <div>
-                                    <h3 className={`text-xl sm:text-2xl font-black transition-colors duration-300 tracking-wide ${isFront ? 'text-white' : 'text-zinc-300'}`}>
-                                        {card.title}
-                                    </h3>
-                                    {!isFront && (
-                                        <p className="text-zinc-500 text-xs sm:text-sm mt-1 font-medium hidden sm:block">انقر للعرض</p>
-                                    )}
-                                </div>
-                            </div>
-                            
-                            <div className="flex space-x-1.5 space-x-reverse items-center pt-2">
-                                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${isFront ? card.bg.replace('/10', '') : 'bg-zinc-700'}`} />
-                                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${isFront ? card.bg.replace('/10', '/50') : 'bg-zinc-800'}`} />
-                            </div>
+                        {/* Tab Header (always visible, peeks out at the top) */}
+                        <div className={`px-6 py-4 flex items-center gap-3 ${isFront ? 'border-b border-white/5 bg-white/[0.02]' : ''}`}>
+                            <div className={`w-3 h-3 rounded-full ${card.color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor] ${card.color}`} />
+                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase ${isFront ? 'text-white' : 'text-zinc-400'}`}>
+                                {card.title}
+                            </span>
                         </div>
 
+                        {/* Expandable Content for the Front Card */}
                         <motion.div 
                             initial={false}
                             animate={{ 
                                 opacity: isFront ? 1 : 0, 
                                 height: isFront ? 'auto' : 0,
-                                marginTop: isFront ? '1.5rem' : '0rem'
                             }}
                             className="overflow-hidden"
                         >
-                            <p className="text-zinc-400 text-sm sm:text-base leading-[1.8] font-medium sm:pr-20">
-                                {card.desc}
-                            </p>
-                            
-                            {/* Call to action inside the active card */}
-                            <div className="mt-6 flex justify-end">
-                                <span className={`text-xs font-bold px-4 py-2 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700`}>
-                                    ميزة رقم {card.id} من 6
-                                </span>
+                            <div className="p-6 sm:p-10 flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
+                                <div className={`w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl ${card.bg} ${card.color} border ${card.border} shadow-inner`}>
+                                    {card.icon}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-xl sm:text-2xl font-black text-white mb-3 sm:mb-4 leading-snug">
+                                        {card.title}
+                                    </h3>
+                                    <p className="text-zinc-400 text-sm sm:text-base leading-[1.8] font-medium max-w-2xl">
+                                        {card.desc}
+                                    </p>
+                                    
+                                    {/* Call to action inside the active card */}
+                                    <div className="mt-6 flex justify-end">
+                                        <span className={`text-xs font-bold px-4 py-2 rounded-full bg-[#1e1e1e] text-zinc-300 border border-white/10`}>
+                                            ميزة رقم {card.id} من 6
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
 
                         {isFront && (
-                            <div className={`absolute -inset-[1px] rounded-[2rem] blur-xl opacity-20 -z-10 bg-gradient-to-br ${card.color.replace('text-', 'from-')} to-transparent pointer-events-none`} />
+                            <div className={`absolute -inset-[1px] rounded-[1.5rem] sm:rounded-[2rem] blur-2xl opacity-10 -z-10 bg-gradient-to-br ${card.color.replace('text-', 'from-')} to-transparent pointer-events-none`} />
                         )}
                     </motion.div>
                 );
