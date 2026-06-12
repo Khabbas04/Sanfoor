@@ -468,6 +468,21 @@ export default function Tree({
         setTargetHours(isSummerTerm ? 9 : 15);
     }, [isSummerTerm]);
 
+    // 🔥 بولينج (Polling) ذكي لجلب التحديثات فوراً إذا كان الطلب قيد الانتظار
+    useEffect(() => {
+        let interval;
+        if (latest_schedule_review?.status === 'pending') {
+            interval = setInterval(() => {
+                router.reload({
+                    only: ['latest_schedule_review'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }, 5000); // تحديث كل 5 ثواني
+        }
+        return () => clearInterval(interval);
+    }, [latest_schedule_review?.status]);
+
     useEffect(() => {
         if (!planDraft?.semesters?.length) return;
         if (planSelectedSemester >= planDraft.semesters.length) {
