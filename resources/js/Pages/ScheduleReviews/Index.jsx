@@ -2,11 +2,20 @@ import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { motion } from 'framer-motion';
-import moment from 'moment';
-import 'moment/locale/ar';
 
 export default function Index({ reviews }) {
-    moment.locale('ar');
+    // تنسيق التاريخ محلياً بدون استخدام مكتبات خارجية
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('ar-EG', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
+    };
 
     return (
         <MainLayout>
@@ -50,7 +59,7 @@ export default function Index({ reviews }) {
                                                 {review.user?.major?.name || 'غير محدد'}
                                             </td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-sm font-bold" dir="ltr">
-                                                {moment(review.created_at).fromNow()}
+                                                {formatDate(review.created_at)}
                                             </td>
                                             <td className="px-6 py-4">
                                                 {review.status === 'pending' ? (
