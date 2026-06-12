@@ -128,10 +128,9 @@ function StackedFeaturesSection() {
                 
                 // Stack UPWARDS to match the tab look
                 const yOffset = reverseIndex * -45; 
-                const scale = 1 - reverseIndex * 0.05;
-                const opacity = 1 - reverseIndex * 0.15; 
+                const scale = 1 - reverseIndex * 0.04;
                 
-                const activeBorderClass = activeBorderColors[card.id] || 'border-zinc-500';
+                const activeBorderClass = activeBorderColors[card.id] || 'border-slate-500';
 
                 return (
                     <motion.div
@@ -142,7 +141,6 @@ function StackedFeaturesSection() {
                         animate={{
                             y: yOffset,
                             scale: scale,
-                            opacity: opacity,
                             zIndex: index,
                         }}
                         transition={{
@@ -153,17 +151,20 @@ function StackedFeaturesSection() {
                             bounce: 0.2
                         }}
                         onClick={() => bringToFront(card.id)}
-                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-3xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-2xl transition-colors duration-500
+                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-3xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
                             ${isFront 
-                                ? `bg-[#121212] border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,1)]` 
-                                : 'bg-[#1a1a1a] border border-white/5 shadow-2xl hover:bg-[#222]'}
+                                ? `bg-slate-900 border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)]` 
+                                : `bg-slate-800 border border-slate-700/50 shadow-xl hover:bg-slate-700`}
                         `}
-                        style={{ transformOrigin: "top center" }}
+                        style={{ 
+                            transformOrigin: "top center",
+                            filter: isFront ? 'brightness(1)' : `brightness(${1 - reverseIndex * 0.05})`
+                        }}
                     >
                         {/* Tab Header (always visible, peeks out at the top) */}
-                        <div className={`px-6 py-4 flex items-center gap-3 ${isFront ? 'border-b border-white/5 bg-white/[0.02]' : ''}`}>
+                        <div className={`px-6 py-4 flex items-center gap-3 ${isFront ? 'border-b border-slate-800 bg-white/[0.02]' : ''}`}>
                             <div className={`w-3 h-3 rounded-full ${card.color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor] ${card.color}`} />
-                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase ${isFront ? 'text-white' : 'text-zinc-400'}`}>
+                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase ${isFront ? 'text-white' : 'text-slate-400'}`}>
                                 {card.title}
                             </span>
                         </div>
