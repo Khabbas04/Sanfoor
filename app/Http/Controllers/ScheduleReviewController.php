@@ -65,7 +65,7 @@ class ScheduleReviewController extends Controller
     /**
      * Submit feedback for a request.
      */
-    public function submitFeedback(Request $request, ScheduleReview $scheduleReview)
+    public function submitFeedback(Request $request, $id)
     {
         $user = Auth::user();
         abort_unless($user->isAdminOrOwner() || $user->isInstructor(), 403);
@@ -75,11 +75,12 @@ class ScheduleReviewController extends Controller
             'status' => 'required|in:reviewed,rejected',
         ]);
 
-        $scheduleReview->update([
-            'feedback' => $request->feedback,
-            'status' => $request->status,
-            'reviewed_by' => $user->id,
-        ]);
+        $scheduleReview = ScheduleReview::findOrFail($id);
+        
+        $scheduleReview->feedback = $request->feedback;
+        $scheduleReview->status = $request->status;
+        $scheduleReview->reviewed_by = $user->id;
+        $scheduleReview->save();
 
         return redirect()->back()->with('success', 'تم إرسال التقييم للطالب بنجاح.');
     }
