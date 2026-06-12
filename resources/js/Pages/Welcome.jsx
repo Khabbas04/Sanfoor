@@ -3,6 +3,7 @@ import MainLayout from '@/Layouts/MainLayout';
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import TourManager, { startWelcomeTour } from '@/Components/TourManager';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Resolve the public site URL for canonical and social metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -52,6 +53,117 @@ function TreeNode({ x, y, delay, color, size = 52, label }) {
 function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
     return (
         <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#cbd5e1" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={dashed ? "5,5" : "none"} className="tree-edge" style={{ animationDelay: `${delay}s` }} />
+    );
+}
+
+function StackedFeaturesSection() {
+    const [cards, setCards] = useState([
+        { id: 1, icon: "🌳", title: 'الشجرة التفاعلية', desc: 'خريطة مرئية كاملة لموادك، تتحدث تلقائياً لتظهر لك ما تم إنجازه وما فُتح لك للتسجيل بألوان واضحة.', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
+        { id: 2, icon: "⚖️", title: 'التسجيل التجريبي الذكي', desc: 'ضيف المواد للتسجيل التجريبي وشوف العبء الدراسي، النظام رح ينبهك إذا اخترت مواد بتتعارض مع قوانين الخطة.', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+        { id: 3, icon: "📈", title: 'AI Sanfoor', desc: 'مساعد ذكي يقرأ خطتك، يفهم المتطلبات، ويقترح لك أفضل خيارات التسجيل بشكل واضح وسريع.', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+        { id: 4, icon: "📚", title: 'الشباتر الدراسية', desc: 'شروحات مركزة لكل فصل مع أمثلة وتمارين تساعدك تراجع وتثبت المعلومة بسرعة.', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+        { id: 5, icon: "📝", title: 'بنك الأسئلة', desc: 'تجميعة أسئلة مختارة وتمارين متدرجة عشان تختبر نفسك قبل الامتحان بثقة.', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+        { id: 6, icon: "🏫", title: 'دليل الكليات', desc: 'اعرف مباني الكليات ومواقعها والخدمات القريبة منها عبر دليل واضح وسهل التصفح.', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+    ]);
+
+    const bringToFront = (id) => {
+        setCards(prev => {
+            const index = prev.findIndex(c => c.id === id);
+            if (index === prev.length - 1) return prev;
+            const newCards = [...prev];
+            const [clicked] = newCards.splice(index, 1);
+            newCards.push(clicked);
+            return newCards;
+        });
+    };
+
+    return (
+        <div className="relative h-[600px] sm:h-[500px] w-full max-w-4xl mx-auto mt-16 sm:mt-24 perspective-1000" dir="rtl">
+            {cards.map((card, index) => {
+                const isFront = index === cards.length - 1;
+                const reverseIndex = cards.length - 1 - index;
+                
+                // Increase yOffset so the headers are clearly visible above the front card
+                const yOffset = reverseIndex * -58; 
+                const scale = 1 - reverseIndex * 0.04;
+                const opacity = reverseIndex > 4 ? 0 : 1 - reverseIndex * 0.15; 
+
+                return (
+                    <motion.div
+                        key={card.id}
+                        id={`tour-feature-${card.id}`}
+                        layout
+                        initial={false}
+                        animate={{
+                            y: yOffset,
+                            scale: scale,
+                            opacity: opacity,
+                            zIndex: index,
+                        }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 280,
+                            damping: 25,
+                            mass: 1,
+                            bounce: 0.2
+                        }}
+                        onClick={() => bringToFront(card.id)}
+                        className={`absolute top-10 left-0 right-0 mx-auto w-full max-w-2xl rounded-[2rem] p-6 sm:p-8 cursor-pointer backdrop-blur-2xl transition-colors duration-500
+                            ${isFront 
+                                ? 'bg-zinc-900/95 border border-zinc-700/60 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]' 
+                                : 'bg-zinc-950/60 border border-zinc-800/40 shadow-2xl hover:bg-zinc-900/60'}
+                        `}
+                        style={{ transformOrigin: "top center" }}
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-4 sm:gap-6">
+                                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-3xl ${card.bg} ${card.color} border ${card.border} shadow-inner`}>
+                                    {card.icon}
+                                </div>
+                                <div>
+                                    <h3 className={`text-xl sm:text-2xl font-black transition-colors duration-300 tracking-wide ${isFront ? 'text-white' : 'text-zinc-300'}`}>
+                                        {card.title}
+                                    </h3>
+                                    {!isFront && (
+                                        <p className="text-zinc-500 text-xs sm:text-sm mt-1 font-medium hidden sm:block">انقر للعرض</p>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="flex space-x-1.5 space-x-reverse items-center pt-2">
+                                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${isFront ? card.bg.replace('/10', '') : 'bg-zinc-700'}`} />
+                                <div className={`w-2 h-2 rounded-full transition-all duration-300 ${isFront ? card.bg.replace('/10', '/50') : 'bg-zinc-800'}`} />
+                            </div>
+                        </div>
+
+                        <motion.div 
+                            initial={false}
+                            animate={{ 
+                                opacity: isFront ? 1 : 0, 
+                                height: isFront ? 'auto' : 0,
+                                marginTop: isFront ? '1.5rem' : '0rem'
+                            }}
+                            className="overflow-hidden"
+                        >
+                            <p className="text-zinc-400 text-sm sm:text-base leading-[1.8] font-medium sm:pr-20">
+                                {card.desc}
+                            </p>
+                            
+                            {/* Call to action inside the active card */}
+                            <div className="mt-6 flex justify-end">
+                                <span className={`text-xs font-bold px-4 py-2 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700`}>
+                                    ميزة رقم {card.id} من 6
+                                </span>
+                            </div>
+                        </motion.div>
+
+                        {isFront && (
+                            <div className={`absolute -inset-[1px] rounded-[2rem] blur-xl opacity-20 -z-10 bg-gradient-to-br ${card.color.replace('text-', 'from-')} to-transparent pointer-events-none`} />
+                        )}
+                    </motion.div>
+                );
+            })}
+        </div>
     );
 }
 
@@ -382,87 +494,32 @@ export default function Welcome({ auth }) {
 
 
                 {/* ════════════════════════════════════
-                    2. FEATURES
+                    2. FEATURES (Stacked Cards)
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
+                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-[#050505] relative overflow-hidden -mt-10 pt-32">
+                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
+                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-white/[0.02] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
-                    <div className="absolute inset-0 dot-grid opacity-40 pointer-events-none z-0" />
+                    
+                    {/* Dark aesthetic subtle glow */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-900/10 rounded-full blur-[120px] pointer-events-none" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                        <div className={`text-center mb-10 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 text-sky-300 text-xs font-bold mb-6 border border-white/10 backdrop-blur-sm">
+                                <span className="w-1.5 h-1.5 bg-sky-400 rounded-full" />
+                                <span>تجربة تفاعلية جديدة</span>
+                            </div>
+                            <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-white mb-5 tracking-tight leading-[1.15]">
+                                كل اللي بتحتاجه في <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-500">مكان واحد.</span>
+                            </h2>
+                            <p className="text-zinc-400 font-medium max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
+                                اكتشف الميزات اللي بتسهل عليك حياتك الجامعية. <strong className="text-white">اضغط على أي بطاقة بالخلف</strong> لعرض التفاصيل.
+                            </p>
+                        </div>
 
-
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-                            {[
-                                {
-                                    icon: "🌳",
-                                    title: 'الشجرة التفاعلية',
-                                    desc: 'خريطة مرئية كاملة لموادك، تتحدث تلقائياً لتظهر لك ما تم إنجازه وما فُتح لك للتسجيل بألوان واضحة.',
-                                    gradient: 'from-sky-400 to-blue-500',
-                                    accentBg: 'bg-sky-50',
-                                    delay: 0,
-                                },
-                                {
-                                    icon: "�",
-                                    title: 'التسجيل التجريبي الذكي',
-                                    desc: 'ضيف المواد للتسجيل التجريبي وشوف العبء الدراسي، النظام رح ينبهك إذا اخترت مواد بتتعارض مع قوانين الخطة.',
-                                    gradient: 'from-cyan-500 to-teal-500',
-                                    accentBg: 'bg-cyan-50',
-                                    delay: 150,
-                                },
-                                {
-                                    icon: "📈",
-                                    title: 'AI Sanfoor',
-                                    desc: 'مساعد ذكي يقرأ خطتك، يفهم المتطلبات، ويقترح لك أفضل خيارات التسجيل بشكل واضح وسريع.',
-                                    gradient: 'from-emerald-500 to-green-500',
-                                    accentBg: 'bg-emerald-50',
-                                    delay: 300,
-                                },
-                                {
-                                    icon: "📚",
-                                    title: 'الشباتر الدراسية',
-                                    desc: 'شروحات مركزة لكل فصل مع أمثلة وتمارين تساعدك تراجع وتثبت المعلومة بسرعة.',
-                                    gradient: 'from-amber-500 to-orange-500',
-                                    accentBg: 'bg-amber-50',
-                                    delay: 450,
-                                },
-                                {
-                                    icon: "📝",
-                                    title: 'بنك الأسئلة',
-                                    desc: 'تجميعة أسئلة مختارة وتمارين متدرجة عشان تختبر نفسك قبل الامتحان بثقة.',
-                                    gradient: 'from-sky-400 to-blue-500',
-                                    accentBg: 'bg-sky-50',
-                                    delay: 600,
-                                },
-                                {
-                                    icon: "🏫",
-                                    title: 'دليل الكليات',
-                                    desc: 'اعرف مباني الكليات ومواقعها والخدمات القريبة منها عبر دليل واضح وسهل التصفح.',
-                                    gradient: 'from-purple-500 to-fuchsia-500',
-                                    accentBg: 'bg-purple-50',
-                                    delay: 750,
-                                },
-                            ].map((f, i) => (
-                                <div
-                                    key={i}
-                                    id={`tour-feature-${i + 1}`}
-                                    className={`card-lift group p-8 sm:p-10 rounded-[2.5rem] bg-white border border-slate-100 relative overflow-hidden cursor-default transition-all duration-[0.9s] ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-xl ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}
-                                    style={{ transitionDelay: `${f.delay + 100}ms` }}
-                                >
-                                    <div className={`absolute -top-16 -left-16 w-48 h-48 ${f.accentBg} rounded-full opacity-0 group-hover:opacity-100 blur-3xl transition-opacity duration-700 pointer-events-none`} />
-
-                                    <div className={`relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-br ${f.gradient} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500 text-3xl`}>
-                                        {f.icon}
-                                    </div>
-
-                                    <h3 className="relative z-10 text-xl sm:text-2xl font-black text-slate-800 mb-4 leading-snug">{f.title}</h3>
-                                    <p className="relative z-10 text-slate-500 font-medium leading-[1.85] text-sm sm:text-[15px]">{f.desc}</p>
-
-                                    <div className={`absolute bottom-0 left-0 right-0 h-[4px] bg-gradient-to-r ${f.gradient} scale-x-0 group-hover:scale-x-100 transition-transform duration-[600ms] origin-right`} />
-                                </div>
-                            ))}
+                        <div className={`transition-all duration-[1.5s] ease-[cubic-bezier(0.16,1,0.3,1)] ${featIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
+                            <StackedFeaturesSection />
                         </div>
                     </div>
                 </section>
