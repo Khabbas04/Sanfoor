@@ -50,21 +50,29 @@ function TreeNode({ x, y, delay, color, size = 52, label }) {
     );
 }
 
-function TreeEdge({ x1, y1, x2, y2, delay, dashed = false }) {
+function TreeEdge({ x1, y1, x2, y2, delay, active = 'inactive' }) {
     const midY = (parseFloat(y1) + parseFloat(y2)) / 2;
     const d = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+    
+    // Determine color based on active state
+    let strokeColor = "rgba(148, 163, 184, 0.4)";
+    if (active === 'active') strokeColor = "#10b981";
+    if (active === 'cyan') strokeColor = "#06b6d4";
+    
     return (
         <path 
             d={d} 
             fill="none" 
-            stroke="rgba(148, 163, 184, 0.4)" 
+            stroke={strokeColor} 
             strokeWidth="3.5" 
             strokeLinecap="round" 
             className="tree-edge-path" 
+            markerEnd={`url(#arrow-${active})`}
             style={{ 
                 animationDelay: `${delay}s`,
-                strokeDasharray: dashed ? "8 8" : "300",
-                strokeDashoffset: dashed ? 0 : "300"
+                strokeDasharray: "300",
+                strokeDashoffset: 0,
+                transition: "stroke 0.8s ease"
             }} 
         />
     );
@@ -168,7 +176,7 @@ function StackedFeaturesSection() {
                         className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
                             ${isFront 
                                 ? `bg-slate-900 border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)]` 
-                                : `bg-white border border-slate-200/80 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.05)] hover:bg-slate-50`}
+                                : `bg-slate-800 border border-slate-700/50 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.2)] hover:bg-slate-700`}
                         `}
                         style={{ 
                             transformOrigin: "top center",
@@ -200,13 +208,13 @@ function StackedFeaturesSection() {
                                     <h3 className="text-xl sm:text-2xl font-black text-white mb-3 sm:mb-4 leading-snug">
                                         {card.title}
                                     </h3>
-                                    <p className={`${isFront ? 'text-slate-400' : 'text-slate-500'} text-sm sm:text-base leading-[1.8] font-medium max-w-2xl`}>
+                                    <p className="text-slate-400 text-sm sm:text-base leading-[1.8] font-medium max-w-2xl">
                                         {card.desc}
                                     </p>
                                     
                                     {/* Call to action inside the active card */}
                                     <div className="mt-6 flex justify-end">
-                                        <span className={`text-xs font-bold px-4 py-2 rounded-full ${isFront ? 'bg-[#1e1e1e] text-slate-300 border-white/10' : 'bg-slate-100 text-slate-500 border-slate-200'} border`}>
+                                        <span className="text-xs font-bold px-4 py-2 rounded-full bg-[#1e1e1e] text-slate-300 border border-white/10">
                                             ميزة رقم {card.id} من 6
                                         </span>
                                     </div>
@@ -229,16 +237,27 @@ function TreePreviewAnimation({ start }) {
 
     useEffect(() => {
         if (!start) return;
-        setStep(0);
         
-        const timers = [
-            setTimeout(() => setStep(1), 1500), // Draw structure, show reading text
-            setTimeout(() => setStep(2), 3500), // Completed green
-            setTimeout(() => setStep(3), 5500), // Available cyan
-            setTimeout(() => setStep(4), 7500), // Cart orange
-        ];
+        let isMounted = true;
+        let timeoutIds = [];
+
+        const runSequence = () => {
+            if (!isMounted) return;
+            setStep(0);
+            
+            timeoutIds.push(setTimeout(() => isMounted && setStep(1), 1500));
+            timeoutIds.push(setTimeout(() => isMounted && setStep(2), 3500));
+            timeoutIds.push(setTimeout(() => isMounted && setStep(3), 5500));
+            timeoutIds.push(setTimeout(() => isMounted && setStep(4), 7500));
+            timeoutIds.push(setTimeout(() => isMounted && runSequence(), 12000));
+        };
+
+        runSequence();
         
-        return () => timers.forEach(clearTimeout);
+        return () => {
+            isMounted = false;
+            timeoutIds.forEach(clearTimeout);
+        };
     }, [start]);
 
     const stepData = [
@@ -246,7 +265,7 @@ function TreePreviewAnimation({ start }) {
         { title: "قراءة السجل الأكاديمي", text: "تحديد المواد المنجزة باللون الأخضر ✔️", color: "text-emerald-400", dot: "bg-emerald-400" },
         { title: "فتح المتطلبات", text: "إتاحة مواد جديدة باللون السماوي 🔓", color: "text-cyan-400", dot: "bg-cyan-400" },
         { title: "التسجيل التجريبي", text: "اختيار مواد الفصل القادم باللون البرتقالي 🛒", color: "text-amber-400", dot: "bg-amber-400" },
-        { title: "تحديث الشجرة", text: "توقع حالة خطتك بعد النجاح بالفصل 🌳", color: "text-blue-400", dot: "bg-blue-400" }
+        { title: "جاهز للتسجيل", text: "اكتملت محاكاة التسجيل بنجاح 🚀", color: "text-blue-400", dot: "bg-blue-400" }
     ];
 
     const currentInfo = stepData[Math.min(step, stepData.length - 1)];
@@ -267,31 +286,43 @@ function TreePreviewAnimation({ start }) {
             </div>
 
             <svg viewBox="0 0 500 280" className="w-full h-auto relative z-10" dir="ltr">
+                <defs>
+                    <marker id="arrow-inactive" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 2 L 8 5 L 0 8 z" fill="rgba(148, 163, 184, 0.4)" />
+                    </marker>
+                    <marker id="arrow-active" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 2 L 8 5 L 0 8 z" fill="#10b981" />
+                    </marker>
+                    <marker id="arrow-cyan" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 2 L 8 5 L 0 8 z" fill="#06b6d4" />
+                    </marker>
+                </defs>
+
                 {start && <>
                     {/* Edges */}
-                    <TreeEdge x1="130" y1="38" x2="70" y2="95" delay={0.5} dashed={false} />
-                    <TreeEdge x1="130" y1="38" x2="190" y2="95" delay={0.6} dashed={false} />
-                    <TreeEdge x1="70" y1="128" x2="40" y2="185" delay={0.9} dashed={false} />
-                    <TreeEdge x1="70" y1="128" x2="130" y2="185" delay={1.0} dashed={false} />
-                    <TreeEdge x1="190" y1="128" x2="190" y2="185" delay={1.0} dashed={false} />
-                    <TreeEdge x1="370" y1="38" x2="310" y2="95" delay={0.7} dashed={false} />
-                    <TreeEdge x1="370" y1="38" x2="430" y2="95" delay={0.8} dashed={false} />
-                    <TreeEdge x1="310" y1="128" x2="310" y2="185" delay={1.1} dashed={false} />
-                    <TreeEdge x1="430" y1="128" x2="370" y2="185" delay={1.1} dashed={false} />
-                    <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.2} dashed={false} />
+                    <TreeEdge x1="130" y1="38" x2="70" y2="95" delay={0.5} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="130" y1="38" x2="190" y2="95" delay={0.6} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="70" y1="128" x2="40" y2="185" delay={0.9} active={step >= 3 ? 'cyan' : 'inactive'} />
+                    <TreeEdge x1="70" y1="128" x2="130" y2="185" delay={1.0} active={step >= 3 ? 'cyan' : 'inactive'} />
+                    <TreeEdge x1="190" y1="128" x2="190" y2="185" delay={1.0} active={step >= 3 ? 'cyan' : 'inactive'} />
+                    <TreeEdge x1="370" y1="38" x2="310" y2="95" delay={0.7} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="370" y1="38" x2="430" y2="95" delay={0.8} active={step >= 2 ? 'cyan' : step >= 1 ? 'active' : 'inactive'} />
+                    <TreeEdge x1="310" y1="128" x2="310" y2="185" delay={1.1} active={step >= 3 ? 'cyan' : 'inactive'} />
+                    <TreeEdge x1="430" y1="128" x2="370" y2="185" delay={1.1} active={step >= 3 ? 'cyan' : 'inactive'} />
+                    <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.2} active={step >= 3 ? 'cyan' : 'inactive'} />
 
-                    {/* Nodes Level 1 */}
-                    <TreeNode x="104" y="8" delay={0.1} color={step >= 4 ? "#3b82f6" : "#334155"} label={step >= 4 ? "متطلب 1" : "مغلقة"} />
-                    <TreeNode x="344" y="8" delay={0.2} color={step >= 4 ? "#3b82f6" : "#334155"} label={step >= 4 ? "متطلب 2" : "مغلقة"} />
+                    {/* Nodes Level 1 (Roots) */}
+                    <TreeNode x="104" y="8" delay={0.1} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
+                    <TreeNode x="344" y="8" delay={0.2} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
 
                     {/* Nodes Level 2 */}
-                    <TreeNode x="44" y="95" delay={0.3} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
-                    <TreeNode x="164" y="95" delay={0.4} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
+                    <TreeNode x="44" y="95" delay={0.3} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="164" y="95" delay={0.4} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
                     <TreeNode x="284" y="95" delay={0.5} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
                     <TreeNode x="404" y="95" delay={0.6} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
 
                     {/* Nodes Level 3 */}
-                    <TreeNode x="14" y="185" delay={0.7} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="14" y="185" delay={0.7} color={step >= 3 ? "#f59e0b" : "#334155"} label={step >= 3 ? "تجريبي 🛒" : "مغلقة"} />
                     <TreeNode x="104" y="185" delay={0.75} color="#334155" label="مغلقة 🔒" />
                     <TreeNode x="164" y="185" delay={0.8} color="#334155" label="مغلقة 🔒" />
                     <TreeNode x="284" y="185" delay={0.85} color="#334155" label="مغلقة 🔒" />
@@ -754,9 +785,9 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES (Stacked Cards)
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-white relative overflow-hidden -mt-10 pt-32">
+                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-[#0B1121] relative overflow-hidden -mt-10 pt-32">
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
-                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
+                        <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-white/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
                     
                     {/* Dark aesthetic subtle glow */}
@@ -801,7 +832,6 @@ export default function Welcome({ auth }) {
                                     {[
                                         { label: 'منجزة', color: 'bg-[#10b981]' },
                                         { label: 'متاحة', color: 'bg-[#06b6d4]' },
-                                        { label: 'قيد الإنجاز', color: 'bg-[#3b82f6]' },
                                         { label: 'في السلة', color: 'bg-[#f59e0b]' },
                                         { label: 'مغلقة', color: 'bg-[#334155]' },
                                     ].map((item, idx) => (
