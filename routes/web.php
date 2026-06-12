@@ -310,6 +310,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/schedule-reviews', [\App\Http\Controllers\ScheduleReviewController::class, 'index'])->name('schedule_reviews.index');
     Route::get('/schedule-reviews/{scheduleReview}', [\App\Http\Controllers\ScheduleReviewController::class, 'show'])->name('schedule_reviews.show');
     Route::post('/schedule-reviews/{scheduleReview}/feedback', [\App\Http\Controllers\ScheduleReviewController::class, 'submitFeedback'])->name('schedule_reviews.feedback');
+    Route::delete('/schedule-reviews/{scheduleReview}', [\App\Http\Controllers\ScheduleReviewController::class, 'destroy'])->name('schedule_reviews.destroy');
 
     Route::post('/graduation-plan', [GraduationPlanController::class, 'store'])->name('graduation-plan.store');
     Route::delete('/graduation-plan', [GraduationPlanController::class, 'destroy'])->name('graduation-plan.destroy');

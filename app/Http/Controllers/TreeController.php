@@ -801,23 +801,16 @@ class TreeController extends Controller
         try {
             $user = Auth::user();
 
-            // التحقق إذا كان هناك طلب قيد المراجعة حالياً
-            $existingPending = \App\Models\ScheduleReview::where('user_id', $user->id)
-                ->where('status', 'pending')
-                ->first();
-
-            if ($existingPending) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'لديك طلب مراجعة قيد الانتظار حالياً، يرجى الانتظار لحين الرد عليه.'
-                ], 422);
-            }
-
-            \App\Models\ScheduleReview::create([
-                'user_id' => $user->id,
-                'plan_data' => $request->input('plan_data'),
-                'status' => 'pending',
-            ]);
+            // تحديث الطلب السابق إن وجد، أو إنشاء طلب جديد (تذكرة واحدة لكل طالب)
+            \App\Models\ScheduleReview::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'plan_data' => $request->input('plan_data'),
+                    'status' => 'pending',
+                    'feedback' => null,
+                    'reviewed_by' => null,
+                ]
+            );
 
             StudentActivityLog::create([
                 'user_id' => $user->id,

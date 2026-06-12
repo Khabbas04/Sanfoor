@@ -84,4 +84,18 @@ class ScheduleReviewController extends Controller
 
         return redirect()->back()->with('success', 'تم إرسال التقييم للطالب بنجاح.');
     }
+
+    /**
+     * Delete a request.
+     */
+    public function destroy($id)
+    {
+        $user = Auth::user();
+        abort_unless($user->isAdminOrOwner(), 403);
+
+        $scheduleReview = ScheduleReview::findOrFail($id);
+        $scheduleReview->delete();
+
+        return redirect()->route('schedule_reviews.index')->with('success', 'تم حذف التذكرة بنجاح.');
+    }
 }

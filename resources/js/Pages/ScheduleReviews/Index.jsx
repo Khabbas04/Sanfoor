@@ -1,8 +1,9 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { motion } from 'framer-motion';
+import Swal from 'sweetalert2';
 
 export default function Index({ reviews, auth }) {
     const isAdminOrOwner = auth?.user?.role === 'admin' || auth?.user?.role === 'owner' || auth?.user?.is_admin_or_owner;
@@ -18,6 +19,33 @@ export default function Index({ reviews, auth }) {
             hour: '2-digit',
             minute: '2-digit'
         }).format(date);
+    };
+
+    const handleDelete = (id) => {
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: "لن تتمكن من استرجاع هذا الطلب بعد حذفه!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'نعم، احذف!',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('schedule_reviews.destroy', id), {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الحذف!',
+                            text: 'تم حذف الطلب بنجاح.',
+                            confirmButtonColor: '#4f46e5'
+                        });
+                    }
+                });
+            }
+        });
     };
 
     return (
@@ -82,13 +110,20 @@ export default function Index({ reviews, auth }) {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-4 flex items-center justify-end gap-2">
                                                 <Link
                                                     href={route('schedule_reviews.show', review.id)}
                                                     className="inline-flex items-center justify-center px-4 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-xl font-[800] text-xs transition-colors"
                                                 >
                                                     عرض الخطة
                                                 </Link>
+                                                <button
+                                                    onClick={() => handleDelete(review.id)}
+                                                    className="inline-flex items-center justify-center px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 rounded-xl font-[800] text-xs transition-colors"
+                                                    title="حذف الطلب"
+                                                >
+                                                    🗑️
+                                                </button>
                                             </td>
                                         </motion.tr>
                                     ))}
