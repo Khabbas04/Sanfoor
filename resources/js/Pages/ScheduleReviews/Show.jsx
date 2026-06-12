@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { motion } from 'framer-motion';
 import Swal from 'sweetalert2';
 
-export default function Show({ schedule_review, student_stats, passed_courses }) {
+export default function Show({ schedule_review, student_stats, passed_courses, auth }) {
+    const isAdminOrOwner = auth?.user?.role === 'admin' || auth?.user?.role === 'owner' || auth?.user?.is_admin_or_owner;
+    const Layout = isAdminOrOwner ? AdminLayout : MainLayout;
+
     const { data, setData, post, processing, errors } = useForm({
         feedback: schedule_review.feedback || '',
         status: schedule_review.status !== 'pending' ? schedule_review.status : 'reviewed'
@@ -29,7 +33,7 @@ export default function Show({ schedule_review, student_stats, passed_courses })
     const totalProposedHours = planData.reduce((sum, c) => sum + (Number(c.credit_hours) || 0), 0);
 
     return (
-        <MainLayout>
+        <Layout>
             <Head title={`مراجعة خطة | ${schedule_review.user?.name}`} />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -189,6 +193,6 @@ export default function Show({ schedule_review, student_stats, passed_courses })
                     </div>
                 </div>
             </div>
-        </MainLayout>
+        </Layout>
     );
 }

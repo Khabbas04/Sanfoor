@@ -1,9 +1,12 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { motion } from 'framer-motion';
 
-export default function Index({ reviews }) {
+export default function Index({ reviews, auth }) {
+    const isAdminOrOwner = auth?.user?.role === 'admin' || auth?.user?.role === 'owner' || auth?.user?.is_admin_or_owner;
+    const Layout = isAdminOrOwner ? AdminLayout : MainLayout;
     // تنسيق التاريخ محلياً بدون استخدام مكتبات خارجية
     const formatDate = (dateString) => {
         if (!dateString) return '';
@@ -18,7 +21,7 @@ export default function Index({ reviews }) {
     };
 
     return (
-        <MainLayout>
+        <Layout>
             <Head title="مراجعة جداول الطلاب" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -101,6 +104,6 @@ export default function Index({ reviews }) {
                     )}
                 </div>
             </div>
-        </MainLayout>
+        </Layout>
     );
 }
