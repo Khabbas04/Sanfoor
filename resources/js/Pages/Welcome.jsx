@@ -128,12 +128,12 @@ function PremiumBadge({ text, color = 'sky', className = 'mb-6' }) {
 
 function StackedFeaturesSection() {
     const [cards, setCards] = useState([
-        { id: 1, icon: "🌳", title: 'الشجرة التفاعلية', desc: 'خريطة مرئية كاملة لموادك، تتحدث تلقائياً لتظهر لك ما تم إنجازه وما فُتح لك للتسجيل بألوان واضحة.', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
-        { id: 2, icon: "⚖️", title: 'التسجيل التجريبي الذكي', desc: 'ضيف المواد للتسجيل التجريبي وشوف العبء الدراسي، النظام رح ينبهك إذا اخترت مواد بتتعارض مع قوانين الخطة.', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
-        { id: 3, icon: "📈", title: 'AI Sanfoor', desc: 'مساعد ذكي يقرأ خطتك، يفهم المتطلبات، ويقترح لك أفضل خيارات التسجيل بشكل واضح وسريع.', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-        { id: 4, icon: "📚", title: 'الشباتر الدراسية', desc: 'شروحات مركزة لكل فصل مع أمثلة وتمارين تساعدك تراجع وتثبت المعلومة بسرعة.', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-        { id: 5, icon: "📝", title: 'بنك الأسئلة', desc: 'تجميعة أسئلة مختارة وتمارين متدرجة عشان تختبر نفسك قبل الامتحان بثقة.', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
-        { id: 6, icon: "🏫", title: 'دليل الكليات', desc: 'اعرف مباني الكليات ومواقعها والخدمات القريبة منها عبر دليل واضح وسهل التصفح.', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+        { id: 1, icon: "🌳", title: 'الشجرة التفاعلية', desc: 'خريطة مرئية كاملة لموادك، تتحدث تلقائياً لتظهر لك ما تم إنجازه وما فُتح لك للتسجيل بألوان واضحة.', themeColor: 'sky' },
+        { id: 2, icon: "⚖️", title: 'التسجيل التجريبي الذكي', desc: 'ضيف المواد للتسجيل التجريبي وشوف العبء الدراسي، النظام رح ينبهك إذا اخترت مواد بتتعارض مع قوانين الخطة.', themeColor: 'cyan' },
+        { id: 3, icon: "📈", title: 'AI Sanfoor', desc: 'مساعد ذكي يقرأ خطتك، يفهم المتطلبات، ويقترح لك أفضل خيارات التسجيل بشكل واضح وسريع.', themeColor: 'emerald' },
+        { id: 4, icon: "📚", title: 'الشباتر الدراسية', desc: 'شروحات مركزة لكل فصل مع أمثلة وتمارين تساعدك تراجع وتثبت المعلومة بسرعة.', themeColor: 'amber' },
+        { id: 5, icon: "📝", title: 'بنك الأسئلة', desc: 'تجميعة أسئلة مختارة وتمارين متدرجة عشان تختبر نفسك قبل الامتحان بثقة.', themeColor: 'blue' },
+        { id: 6, icon: "🏫", title: 'دليل الكليات', desc: 'اعرف مباني الكليات ومواقعها والخدمات القريبة منها عبر دليل واضح وسهل التصفح.', themeColor: 'purple' },
     ]);
 
     const bringToFront = (id) => {
@@ -147,26 +147,27 @@ function StackedFeaturesSection() {
         });
     };
 
-    const activeBorderColors = {
-        1: 'border-sky-500',
-        2: 'border-cyan-500',
-        3: 'border-emerald-500',
-        4: 'border-amber-500',
-        5: 'border-blue-500',
-        6: 'border-purple-500',
+    const themes = {
+        sky: { text: 'text-sky-400', bg: 'bg-sky-500/10', gradient: 'from-slate-900 via-[#0a192f] to-[#022c43]', glow: 'shadow-[0_0_30px_rgba(14,165,233,0.15)]' },
+        cyan: { text: 'text-cyan-400', bg: 'bg-cyan-500/10', gradient: 'from-slate-900 via-[#081e28] to-[#01353b]', glow: 'shadow-[0_0_30px_rgba(6,182,212,0.15)]' },
+        emerald: { text: 'text-emerald-400', bg: 'bg-emerald-500/10', gradient: 'from-slate-900 via-[#062016] to-[#013622]', glow: 'shadow-[0_0_30px_rgba(16,185,129,0.15)]' },
+        amber: { text: 'text-amber-400', bg: 'bg-amber-500/10', gradient: 'from-slate-900 via-[#261505] to-[#422002]', glow: 'shadow-[0_0_30px_rgba(245,158,11,0.15)]' },
+        blue: { text: 'text-blue-400', bg: 'bg-blue-500/10', gradient: 'from-slate-900 via-[#0a1128] to-[#051c4a]', glow: 'shadow-[0_0_30px_rgba(59,130,246,0.15)]' },
+        purple: { text: 'text-purple-400', bg: 'bg-purple-500/10', gradient: 'from-slate-900 via-[#150a24] to-[#2b0e4a]', glow: 'shadow-[0_0_30px_rgba(168,85,247,0.15)]' },
     };
 
     return (
-        <div className="relative h-[650px] sm:h-[550px] w-full max-w-5xl mx-auto mt-80 sm:mt-[24rem] perspective-1000" dir="rtl">
+        <div className="relative h-[480px] sm:h-[450px] w-full max-w-5xl mx-auto mt-4 sm:mt-10 perspective-1000" dir="rtl">
             {cards.map((card, index) => {
                 const isFront = index === cards.length - 1;
                 const reverseIndex = cards.length - 1 - index;
                 
-                // Stack UPWARDS to match the tab look
-                const yOffset = reverseIndex * -48; 
-                const scale = 1 - reverseIndex * 0.03;
+                // Stack DOWNWARDS to avoid huge margin-top.
+                // The back card is at y=0, the front card is pushed down, making tabs peek beautifully from above.
+                const yOffset = index * 36; 
+                const scale = 1 - reverseIndex * 0.04;
                 
-                const activeBorderClass = activeBorderColors[card.id] || 'border-slate-500';
+                const theme = themes[card.themeColor];
 
                 return (
                     <motion.div
@@ -181,26 +182,26 @@ function StackedFeaturesSection() {
                         }}
                         transition={{
                             type: "spring",
-                            stiffness: 280,
-                            damping: 25,
+                            stiffness: 300,
+                            damping: 30,
                             mass: 1,
-                            bounce: 0.2
+                            bounce: 0.1
                         }}
                         onClick={() => bringToFront(card.id)}
-                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
+                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden transition-colors duration-500
                             ${isFront 
-                                ? `bg-slate-900 border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)]` 
+                                ? `bg-gradient-to-br ${theme.gradient} border border-white/10 shadow-2xl ${theme.glow}` 
                                 : `bg-white border border-slate-200/80 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] hover:bg-slate-50`}
                         `}
                         style={{ 
                             transformOrigin: "top center",
-                            filter: isFront ? 'brightness(1)' : `brightness(${1 - reverseIndex * 0.03})`
+                            filter: isFront ? 'brightness(1)' : `brightness(${1 - reverseIndex * 0.04})`
                         }}
                     >
                         {/* Tab Header (always visible, peeks out at the top) */}
-                        <div className={`px-6 py-4 flex items-center gap-3 ${isFront ? 'border-b border-slate-800 bg-white/[0.02]' : ''}`}>
-                            <div className={`w-3 h-3 rounded-full ${card.color.replace('text-', 'bg-')} shadow-[0_0_12px_currentColor] ${card.color}`} />
-                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase ${isFront ? 'text-white' : 'text-slate-500'}`}>
+                        <div className={`px-6 py-4 flex items-center gap-3 ${isFront ? 'border-b border-white/5 bg-white/5' : ''}`}>
+                            <div className={`w-3 h-3 rounded-full ${theme.bg.replace('/10', '/80')} shadow-[0_0_10px_currentColor] ${theme.text}`} />
+                            <span className={`text-xs sm:text-sm font-black tracking-widest uppercase transition-colors duration-300 ${isFront ? 'text-white' : 'text-slate-500'}`}>
                                 {card.title}
                             </span>
                         </div>
@@ -214,31 +215,32 @@ function StackedFeaturesSection() {
                             }}
                             className="overflow-hidden"
                         >
-                            <div className="p-6 sm:p-10 flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
-                                <div className={`w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl ${card.bg} ${card.color} border ${card.border} shadow-inner`}>
+                            <div className="p-6 sm:p-10 flex flex-col sm:flex-row items-start gap-6 sm:gap-8 relative z-10">
+                                <div className={`w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl bg-white/5 ${theme.text} border border-white/10 shadow-inner`}>
                                     {card.icon}
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className={`text-xl sm:text-2xl font-black mb-3 sm:mb-4 leading-snug ${isFront ? 'text-white' : 'text-slate-900'}`}>
+                                    <h3 className={`text-xl sm:text-2xl font-black mb-3 sm:mb-4 leading-snug transition-colors duration-300 ${isFront ? 'text-white' : 'text-slate-900'}`}>
                                         {card.title}
                                     </h3>
-                                    <p className={`text-sm sm:text-base leading-[1.8] font-medium max-w-2xl ${isFront ? 'text-slate-300' : 'text-slate-500'}`}>
+                                    <p className={`text-sm sm:text-base leading-[1.8] font-medium max-w-2xl transition-colors duration-300 ${isFront ? 'text-slate-300' : 'text-slate-500'}`}>
                                         {card.desc}
                                     </p>
                                     
                                     {/* Call to action inside the active card */}
                                     <div className="mt-6 flex justify-end">
-                                        <span className="text-xs font-bold px-4 py-2 rounded-full bg-[#1e1e1e] text-slate-300 border border-white/10">
+                                        <span className={`text-xs font-bold px-4 py-2 rounded-full border bg-white/5 transition-colors duration-300 ${isFront ? 'text-slate-300 border-white/10' : 'text-slate-500 border-slate-200'}`}>
                                             ميزة رقم {card.id} من 6
                                         </span>
                                     </div>
                                 </div>
                             </div>
+                            
+                            {/* Inner ambient glow for the front card */}
+                            {isFront && (
+                                <div className={`absolute -inset-[1px] rounded-[1.5rem] sm:rounded-[2rem] blur-3xl opacity-20 -z-0 bg-gradient-to-br ${theme.text.replace('text-', 'from-')} to-transparent pointer-events-none`} />
+                            )}
                         </motion.div>
-
-                        {isFront && (
-                            <div className={`absolute -inset-[1px] rounded-[1.5rem] sm:rounded-[2rem] blur-2xl opacity-10 -z-10 bg-gradient-to-br ${card.color.replace('text-', 'from-')} to-transparent pointer-events-none`} />
-                        )}
                     </motion.div>
                 );
             })}
