@@ -798,13 +798,16 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES (Stacked Cards)
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 bg-gradient-to-b from-white to-slate-50/80 relative overflow-hidden -mt-10 pt-32">
-                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
+                <section id="features" ref={featRef} className="py-20 sm:py-32 relative -mt-10 pt-32 z-10">
+                    {/* Skewed Background */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50 -skew-y-3 sm:-skew-y-2 origin-top-left -z-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-b border-slate-200/50"></div>
+                    
+                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
                         <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
                     
                     {/* Dark aesthetic subtle glow */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-400/10 rounded-full blur-[120px] pointer-events-none" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-400/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
@@ -817,12 +820,15 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     3. TREE PREVIEW (Animated SVG)
                 ════════════════════════════════════ */}
-                <section ref={previewRef} className="py-20 sm:py-28 relative overflow-hidden bg-slate-50/50 border-t border-slate-200/50">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
+                <section ref={previewRef} className="py-20 sm:py-28 relative mt-16 z-10">
+                    {/* Skewed Background */}
+                    <div className="absolute inset-0 bg-slate-50/50 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-b border-slate-200/50"></div>
+
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
                     </div>
-                    <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.15] z-0"></div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none"></div>
+                    <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.15] -z-10"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-400/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
 
                     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
@@ -863,11 +869,14 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     5. AI BOT SECTION
                 ════════════════════════════════════ */}
-                <section ref={aiRef} className="py-24 sm:py-32 bg-slate-50 relative overflow-hidden">
-                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-20 overflow-hidden">
+                <section ref={aiRef} className="py-24 sm:py-32 relative mt-16 z-10">
+                    {/* Skewed Background */}
+                    <div className="absolute inset-0 bg-white -skew-y-3 sm:-skew-y-2 origin-top-left -z-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-b border-slate-200/50"></div>
+
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">SMART AI</span>
                     </div>
-                    <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none z-0" />
+                    <div className="absolute inset-0 dot-grid opacity-50 pointer-events-none -z-10" />
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-10 items-center">
