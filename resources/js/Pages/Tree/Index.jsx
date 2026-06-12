@@ -179,6 +179,7 @@ export default function Tree({
     is_instructor = false,
     available_majors = [],
     current_major_id = null,
+    latest_schedule_review = null,
 }) {
 
     // Page-level state drives filtering, course selection, and AI planning behavior.
@@ -3815,6 +3816,24 @@ export default function Tree({
                                                 <div className="bg-white border border-slate-100 rounded-xl p-2.5 text-center"><p className="text-[8px] font-bold text-slate-400">مواد حرجة</p><p className={`text-lg font-[900] leading-tight ${cartHealthAnalysis.criticalInCart > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{cartHealthAnalysis.criticalInCart}</p></div>
                                                 <div className="bg-white border border-slate-100 rounded-xl p-2.5 text-center"><p className="text-[8px] font-bold text-slate-400">مواد تتأثر</p><p className="text-lg font-[900] text-violet-600 leading-tight">{cartHealthAnalysis.totalImpactScore}</p></div>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* 📋 حالة طلب المراجعة */}
+                                    {latest_schedule_review && (
+                                        <div className={`p-4 rounded-[1.25rem] border shadow-sm ${latest_schedule_review.status === 'pending' ? 'bg-amber-50 border-amber-200' : latest_schedule_review.status === 'reviewed' ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className={`font-[900] text-[13px] flex items-center gap-2 ${latest_schedule_review.status === 'pending' ? 'text-amber-700' : latest_schedule_review.status === 'reviewed' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                                    {latest_schedule_review.status === 'pending' ? '⏳ طلب المراجعة قيد الانتظار' : latest_schedule_review.status === 'reviewed' ? '✅ تم تقييم خطتك!' : '❌ تم رفض الخطة'}
+                                                </h4>
+                                            </div>
+                                            {latest_schedule_review.feedback ? (
+                                                <div className="bg-white/60 p-3 rounded-xl border border-white mt-2">
+                                                    <p className="text-slate-700 font-bold text-xs leading-relaxed break-words">{latest_schedule_review.feedback}</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs font-bold opacity-70 mt-1">لم يتم إضافة تعليق بعد.</p>
+                                            )}
                                         </div>
                                     )}
 

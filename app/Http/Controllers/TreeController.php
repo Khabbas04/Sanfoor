@@ -85,6 +85,11 @@ class TreeController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
+        $latestScheduleReview = \App\Models\ScheduleReview::query()
+            ->where('user_id', $user->id)
+            ->latest()
+            ->first();
+
         return Inertia::render('Tree/Index', [
             'courses' => $courses,
             'passed_course_ids' => $passed_course_ids,
@@ -101,6 +106,7 @@ class TreeController extends Controller
                 'payload' => $approvedPlan->payload,
                 'approved_at' => optional($approvedPlan->approved_at)->toISOString(),
             ] : null,
+            'latest_schedule_review' => $latestScheduleReview,
             'is_instructor' => $isInstructor,
             'available_majors' => $availableMajors,
         ]);
