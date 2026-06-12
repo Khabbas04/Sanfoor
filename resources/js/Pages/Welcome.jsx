@@ -205,10 +205,10 @@ function StackedFeaturesSection() {
                                     {card.icon}
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4 leading-snug">
+                                    <h3 className={`text-xl sm:text-2xl font-black mb-3 sm:mb-4 leading-snug ${isFront ? 'text-white' : 'text-slate-900'}`}>
                                         {card.title}
                                     </h3>
-                                    <p className="text-slate-400 text-sm sm:text-base leading-[1.8] font-medium max-w-2xl">
+                                    <p className={`text-sm sm:text-base leading-[1.8] font-medium max-w-2xl ${isFront ? 'text-slate-300' : 'text-slate-500'}`}>
                                         {card.desc}
                                     </p>
                                     
@@ -798,9 +798,9 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     2. FEATURES (Stacked Cards)
                 ════════════════════════════════════ */}
-                <section id="features" ref={featRef} className="py-20 sm:py-32 relative -mt-10 pt-32 z-10">
-                    {/* Skewed Background */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-white to-slate-50 -skew-y-3 sm:-skew-y-2 origin-top-left -z-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-b border-slate-200/50"></div>
+                <section id="features" ref={featRef} className="py-20 sm:py-32 relative z-10">
+                    {/* Straight Background */}
+                    <div className="absolute inset-0 bg-white -z-10 shadow-sm border-b border-slate-200/50"></div>
                     
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
                         <span className="text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
@@ -820,9 +820,9 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     3. TREE PREVIEW (Animated SVG)
                 ════════════════════════════════════ */}
-                <section ref={previewRef} className="py-20 sm:py-28 relative mt-16 z-10">
+                <section ref={previewRef} className="py-24 sm:py-32 relative mt-16 z-10">
                     {/* Skewed Background */}
-                    <div className="absolute inset-0 bg-slate-50/50 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-b border-slate-200/50"></div>
+                    <div className="absolute inset-0 bg-slate-100 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-inner border-y border-slate-200"></div>
 
                     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.02] whitespace-nowrap tracking-tighter">PREVIEW</span>
@@ -871,7 +871,7 @@ export default function Welcome({ auth }) {
                 ════════════════════════════════════ */}
                 <section ref={aiRef} className="py-24 sm:py-32 relative mt-16 z-10">
                     {/* Skewed Background */}
-                    <div className="absolute inset-0 bg-white -skew-y-3 sm:-skew-y-2 origin-top-left -z-10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border-b border-slate-200/50"></div>
+                    <div className="absolute inset-0 bg-white -skew-y-3 sm:-skew-y-2 origin-top-left -z-10 shadow-inner border-y border-slate-200"></div>
 
                     <div className="absolute top-20 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden">
                         <span className="text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">SMART AI</span>
