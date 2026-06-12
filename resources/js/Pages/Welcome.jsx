@@ -1018,56 +1018,69 @@ export default function Welcome({ auth }) {
                 {/* ════════════════════════════════════
                     6. HOW IT WORKS
                 ════════════════════════════════════ */}
-                <section ref={howRef} className="py-24 sm:py-32 relative mt-16 z-10">
+                <section ref={howRef} className="py-24 sm:py-32 relative mt-16 z-10 overflow-hidden">
                     {/* Skewed Background */}
-                    <div className="absolute inset-0 bg-slate-100 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-inner border-y border-slate-200"></div>
+                    <div className="absolute inset-0 bg-slate-50 skew-y-3 sm:skew-y-2 origin-top-right -z-10 shadow-inner border-y border-slate-200/60"></div>
 
-                    <div className="w-full text-center pointer-events-none select-none z-0 overflow-hidden mb-8 sm:mb-16">
-                        <span className="block leading-none text-[6rem] sm:text-[12rem] md:text-[16rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">WORKFLOW</span>
+                    {/* Fixed Watermark positioning so it doesn't push content down */}
+                    <div className="absolute top-10 left-0 w-full text-center pointer-events-none select-none z-0 opacity-40">
+                        <span className="block leading-none text-[8rem] sm:text-[14rem] md:text-[18rem] font-black text-slate-900/[0.04] whitespace-nowrap tracking-tighter">WORKFLOW</span>
                     </div>
-                    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-                        <div className={`text-center mb-16 sm:mb-20 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
-                            <PremiumBadge text="كيف بيشتغل؟" color="cyan" />
-                            <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-slate-900 mb-5 tracking-tight">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-10">
+
+                        <div className={`text-center mb-20 transition-all duration-[1.1s] ease-[cubic-bezier(0.16,1,0.3,1)] ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-14'}`}>
+                            <PremiumBadge text="كيف بيشتغل؟" color="cyan" className="mb-6" />
+                            <h2 className="text-3xl sm:text-4xl md:text-[3.5rem] font-black text-slate-900 mb-5 tracking-tight leading-tight">
                                 ثلاث خطوات <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-500">وبتكون جاهز.</span>
                             </h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-                            {/* Subtle connector behind cards */}
-                            <svg className="hidden md:block absolute top-1/2 -translate-y-1/2 left-0 right-0 w-full h-full pointer-events-none -z-10" viewBox="0 0 900 100" preserveAspectRatio="none">
-                                {howIn && <>
-                                    <path d="M 150 50 Q 300 10, 450 50 T 750 50" fill="none" stroke="#f1f5f9" strokeWidth="4" />
-                                    <path d="M 150 50 Q 300 10, 450 50 T 750 50" fill="none" stroke="#94a3b8" strokeWidth="4" strokeDasharray="10 10" className="opacity-30" style={{ animation: 'dash-flow 2s linear infinite' }} />
-                                </>}
-                            </svg>
+                        <div className="relative mt-8">
+                            {/* Perfectly Aligned Connecting Line (Passes exactly through the icons) */}
+                            <div className="hidden md:block absolute top-[64px] left-[15%] right-[15%] h-[3px] z-0 bg-slate-200 rounded-full overflow-hidden">
+                                {howIn && (
+                                    <motion.div 
+                                        initial={{ scaleX: 0 }}
+                                        animate={{ scaleX: 1 }}
+                                        transition={{ duration: 1.5, ease: "easeInOut", delay: 0.3 }}
+                                        style={{ transformOrigin: "right" }}
+                                        className="h-full w-full bg-gradient-to-l from-blue-500 via-cyan-400 to-emerald-400"
+                                    />
+                                )}
+                            </div>
 
-                            {[
-                                { step: '01', title: 'اختار تخصصك', desc: 'بضغطة زر، سنفور بيجهز لك هيكل تخصصك وكل متطلباته بشكل مرئي متكامل.', gradient: 'from-sky-400 to-blue-500', glow: 'shadow-blue-500/20', icon: '🎯', delay: 100 },
-                                { step: '02', title: 'حدد إنجازك', desc: 'علّم المواد اللي اجتزتها. النظام فوراً رح يحدث خطتك ويفتحلك المواد المتاحة.', gradient: 'from-cyan-400 to-teal-500', glow: 'shadow-cyan-500/20', icon: '✨', delay: 300 },
-                                { step: '03', title: 'خطط فصلك بذكاء', desc: 'استخدم السلة التجريبية لحساب العبء، واسأل الذكاء الاصطناعي لأفضل خيارات التنزيل.', gradient: 'from-emerald-400 to-green-500', glow: 'shadow-emerald-500/20', icon: '🚀', delay: 500 },
-                            ].map((s, i) => (
-                                <div
-                                    key={i}
-                                    className={`relative bg-white rounded-[2rem] p-8 border border-slate-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-24'}`}
-                                    style={{ transitionDelay: `${s.delay}ms` }}
-                                >
-                                    {/* Corner gradient flair */}
-                                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${s.gradient} opacity-[0.08] group-hover:opacity-[0.15] rounded-tr-[2rem] rounded-bl-full pointer-events-none transition-all duration-500 transform group-hover:scale-110 origin-top-right`}></div>
-                                    
-                                    <div className="flex justify-between items-start mb-12 relative z-10">
-                                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white text-3xl font-black shadow-xl ${s.glow} group-hover:-translate-y-2 group-hover:rotate-6 transition-all duration-500`}>
-                                            {s.icon}
-                                        </div>
-                                        <div className="text-5xl font-black text-slate-100 transition-colors duration-500 group-hover:text-slate-200 pointer-events-none">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 relative z-10">
+                                {[
+                                    { step: '01', title: 'اختار تخصصك', desc: 'بضغطة زر، سنفور بيجهز لك هيكل تخصصك وكل متطلباته بشكل مرئي متكامل لتفهم خطتك بسرعة.', gradient: 'from-blue-500 to-sky-400', glow: 'shadow-blue-500/30', icon: '🎯', delay: 100 },
+                                    { step: '02', title: 'حدد إنجازك', desc: 'علّم المواد اللي اجتزتها. النظام فوراً رح يحلل سجلّك، يحدث خطتك، ويفتحلك المواد المتاحة للتسجيل.', gradient: 'from-cyan-500 to-teal-400', glow: 'shadow-cyan-500/30', icon: '✨', delay: 300 },
+                                    { step: '03', title: 'خطط بذكاء', desc: 'استخدم السلة التجريبية لحساب العبء، واسأل الذكاء الاصطناعي لاقتراح أفضل خيارات التنزيل.', gradient: 'from-emerald-500 to-green-400', glow: 'shadow-emerald-500/30', icon: '🚀', delay: 500 },
+                                ].map((s, i) => (
+                                    <div
+                                        key={i}
+                                        className={`relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group ${howIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-24'} overflow-hidden flex flex-col items-center text-center`}
+                                        style={{ transitionDelay: `${s.delay}ms` }}
+                                    >
+                                        {/* Huge background number watermark */}
+                                        <div className="absolute -top-6 -left-4 text-[10rem] font-black text-slate-900/[0.03] group-hover:text-slate-900/[0.06] transition-colors duration-500 pointer-events-none z-0 select-none leading-none">
                                             {s.step}
                                         </div>
+                                        
+                                        {/* Top Gradient Glow inside the card */}
+                                        <div className={`absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r ${s.gradient} opacity-80 group-hover:opacity-100 transition-opacity duration-500`}></div>
+
+                                        <div className="relative z-10 w-full flex flex-col items-center">
+                                            {/* Icon aligns with top-[64px] line (p-8=32px + half h-16=32px = 64px) */}
+                                            <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white text-3xl font-black shadow-xl ${s.glow} group-hover:-translate-y-2 group-hover:rotate-6 transition-transform duration-500 mb-8 border border-white/20`}>
+                                                {s.icon}
+                                            </div>
+                                            
+                                            <h3 className="text-2xl font-black text-slate-900 mb-4">{s.title}</h3>
+                                            <p className="text-slate-500 font-medium leading-relaxed text-[15px]">{s.desc}</p>
+                                        </div>
                                     </div>
-                                    <h3 className="text-2xl font-black text-slate-900 mb-4 relative z-10">{s.title}</h3>
-                                    <p className="text-slate-500 font-medium leading-[1.8] text-[15px] relative z-10">{s.desc}</p>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </section>
