@@ -369,52 +369,61 @@ function AiChatAnimation({ start }) {
         setStep(0);
         
         const timers = [
-            setTimeout(() => setStep(1), 500),  // User message appears
-            setTimeout(() => setStep(2), 1500), // AI starts typing
-            setTimeout(() => setStep(3), 3500), // AI finishes typing, shows result
+            setTimeout(() => setStep(1), 500),   // User message appears
+            setTimeout(() => setStep(2), 1500),  // AI starts typing/scanning
+            setTimeout(() => setStep(3), 3000),  // AI shows processing progress bar
+            setTimeout(() => setStep(4), 5000),  // AI shows the final answer
+            setTimeout(() => setStep(0), 12000), // Loop back
         ];
         
         return () => timers.forEach(clearTimeout);
     }, [start]);
 
     return (
-        <div className="relative w-full max-w-md mx-auto bg-[#171717] border border-[#2f2f2f] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col font-sans h-[420px]" dir="rtl">
-            
+        <div className="relative w-full max-w-[420px] mx-auto bg-slate-900/80 backdrop-blur-2xl border border-slate-700/60 rounded-[2.5rem] shadow-[0_30px_100px_-20px_rgba(16,185,129,0.2)] overflow-hidden flex flex-col font-sans h-[520px]" dir="rtl">
+            {/* Animated background glow inside the container */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-b from-emerald-500/10 to-transparent opacity-50 pointer-events-none" />
+
             {/* Header */}
-            <div className="px-5 py-3 border-b border-[#2f2f2f] flex justify-between items-center bg-[#171717] z-10">
+            <div className="px-5 py-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-900/50 backdrop-blur-md z-10 relative">
+                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
                 <div className="flex items-center gap-3">
-                    <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-white shadow-lg overflow-hidden p-1.5">
+                    <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] overflow-hidden p-2 border border-white/10">
                         <img src="/images/sanfoor.png" alt="AI" className="w-full h-full object-contain filter brightness-0 invert" />
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#171717] rounded-full"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent opacity-50" />
                     </div>
                     <div>
-                        <h4 className="text-white text-sm font-bold">Sanfoor AI</h4>
-                        <p className="text-emerald-400 text-[10px] font-medium tracking-wider">ONLINE</p>
+                        <h4 className="text-white text-base font-black tracking-wide flex items-center gap-2">
+                            Sanfoor AI <span className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-[9px] px-1.5 py-0.5 rounded font-black tracking-widest shadow-sm">PRO</span>
+                        </h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)] animate-pulse"></span>
+                            <p className="text-slate-400 text-[11px] font-bold tracking-wider">متصل ومستعد للمساعدة</p>
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#2f2f2f]"></div>
-                    <div className="w-2 h-2 rounded-full bg-[#2f2f2f]"></div>
-                    <div className="w-2 h-2 rounded-full bg-[#2f2f2f]"></div>
+                <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-800 border border-slate-700"></div>
                 </div>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-hidden p-5 flex flex-col gap-6">
+            <div className="flex-1 overflow-hidden p-5 flex flex-col gap-5 relative">
                 
                 {/* User Message */}
                 <AnimatePresence>
                     {step >= 1 && (
                         <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex gap-3 items-start"
+                            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            className="flex gap-3 items-end justify-end mb-2"
                         >
-                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                                أن
+                            <div className="bg-gradient-to-tr from-emerald-500 to-teal-400 text-white p-4 rounded-[1.5rem] rounded-br-sm text-sm font-semibold leading-relaxed shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] max-w-[85%]">
+                                بدي أرفع معدلي هاد الفصل، شو بتنصحني أنزل مواد خفيفة وتفتحلي مواد لقدام؟
                             </div>
-                            <div className="bg-[#2f2f2f] text-slate-100 p-3.5 rounded-2xl rounded-tr-sm text-sm font-medium leading-relaxed shadow-sm">
-                                شو أنزل مواد الفصل الجاي؟ بدي أرفع معدلي عشان هيك بدي مواد خفيفة.
+                            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 text-xs font-black shrink-0 shadow-inner">
+                                أن
                             </div>
                         </motion.div>
                     )}
@@ -424,39 +433,88 @@ function AiChatAnimation({ start }) {
                 <AnimatePresence>
                     {step >= 2 && (
                         <motion.div 
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
                             className="flex gap-3 items-start"
                         >
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-white shrink-0 p-1.5">
-                                <img src="/images/sanfoor.png" alt="AI" className="w-full h-full object-contain filter brightness-0 invert" />
+                            {/* AI Avatar */}
+                            <div className="relative w-9 h-9 shrink-0">
+                                <div className={`absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 ${step === 2 || step === 3 ? 'animate-[spin_2s_linear_infinite]' : ''}`} />
+                                <div className="absolute inset-[2px] bg-slate-900 rounded-full z-10 flex items-center justify-center">
+                                    <img src="/images/sanfoor.png" alt="AI" className="w-4 h-4 object-contain filter brightness-0 invert opacity-90" />
+                                </div>
                             </div>
-                            <div className="text-slate-300 text-sm font-medium leading-loose pt-1.5">
-                                {step === 2 ? (
-                                    <div className="flex gap-1.5 items-center h-5">
-                                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            
+                            <div className="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 text-slate-200 p-4 rounded-[1.5rem] rounded-tr-sm text-sm font-medium leading-loose shadow-xl max-w-[90%] w-full">
+                                {step === 2 && (
+                                    <div className="flex gap-1.5 items-center h-6">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_8px_rgba(16,185,129,0.8)]" style={{ animationDelay: '0ms' }}></div>
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_8px_rgba(16,185,129,0.8)]" style={{ animationDelay: '150ms' }}></div>
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce shadow-[0_0_8px_rgba(16,185,129,0.8)]" style={{ animationDelay: '300ms' }}></div>
                                     </div>
-                                ) : (
+                                )}
+                                {step >= 3 && (
                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                        أهلاً بك! بناءً على خطتك، أنصحك بتنزيل:
-                                        <div className="mt-3 space-y-2">
-                                            <div className="bg-[#212121] border border-[#2f2f2f] p-3 rounded-xl flex items-center gap-3">
-                                                <span className="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg text-lg">💻</span>
-                                                <div>
-                                                    <span className="block text-white font-bold">برمجة متقدمة (3س)</span>
-                                                    <span className="text-xs text-slate-400">تفتح 3 مواد للفصل القادم.</span>
+                                        <p className="mb-3 leading-relaxed">
+                                            أهلاً بك! قمت بتحليل <span className="text-emerald-400 font-bold">سجلك الأكاديمي</span> 📊
+                                            <br/>
+                                            بناءً على خطتك، هذه أفضل مواد لرفع المعدل:
+                                        </p>
+                                        
+                                        {step === 3 && (
+                                            <div className="flex flex-col gap-2 mt-4 mb-2">
+                                                <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
+                                                    <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_5px_currentColor]" /> جاري مطابقة قوانين الكلية...</span>
+                                                    <span className="text-cyan-400 font-mono">78%</span>
+                                                </div>
+                                                <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-700">
+                                                    <motion.div 
+                                                        initial={{ width: "20%" }} 
+                                                        animate={{ width: "78%" }} 
+                                                        transition={{ duration: 1.5, ease: "easeOut" }}
+                                                        className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full relative"
+                                                    >
+                                                        <div className="absolute inset-0 bg-white/20 animate-[pulse_1s_infinite]" />
+                                                    </motion.div>
                                                 </div>
                                             </div>
-                                            <div className="bg-[#212121] border border-[#2f2f2f] p-3 rounded-xl flex items-center gap-3">
-                                                <span className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-lg text-lg">🧠</span>
-                                                <div>
-                                                    <span className="block text-white font-bold">مهارات حياتية (3س)</span>
-                                                    <span className="text-xs text-slate-400">متطلب جامعة سهل يرفع المعدل.</span>
+                                        )}
+
+                                        {step >= 4 && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 gap-2.5 mt-4">
+                                                <div className="relative group bg-slate-900/60 hover:bg-slate-900 border border-slate-700/60 p-3 rounded-2xl transition-all duration-300 shadow-inner">
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                                                    <div className="flex items-center gap-3 relative z-10">
+                                                        <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-400/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                                                            💻
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <h5 className="text-white font-bold text-sm truncate">برمجة متقدمة (3س)</h5>
+                                                                <span className="text-[9px] shrink-0 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full font-bold">تفتح 3 مواد</span>
+                                                            </div>
+                                                            <p className="text-slate-400 text-[10px] mt-1 leading-snug truncate">متطلب تخصص، أساسية لفتح مواد السنة الثالثة.</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                                
+                                                <div className="relative group bg-slate-900/60 hover:bg-slate-900 border border-slate-700/60 p-3 rounded-2xl transition-all duration-300 shadow-inner">
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+                                                    <div className="flex items-center gap-3 relative z-10">
+                                                        <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                                                            🧠
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <h5 className="text-white font-bold text-sm truncate">مهارات حياتية (3س)</h5>
+                                                                <span className="text-[9px] shrink-0 bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 rounded-full font-bold">سهلة الامتياز</span>
+                                                            </div>
+                                                            <p className="text-slate-400 text-[10px] mt-1 leading-snug truncate">متطلب جامعة اختياري، ممتازة لرفع المعدل.</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </motion.div>
                                 )}
                             </div>
@@ -465,17 +523,18 @@ function AiChatAnimation({ start }) {
                 </AnimatePresence>
 
             </div>
-
-            {/* Chat Input Bar */}
-            <div className="p-4 bg-[#171717] border-t border-[#2f2f2f]">
-                <div className="relative flex items-center bg-[#212121] border border-[#2f2f2f] rounded-full p-1.5 pr-4">
-                    <span className="text-slate-500 text-sm flex-1">اكتب رسالتك لـ Sanfoor AI...</span>
-                    <button className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md hover:bg-emerald-400 transition-colors">
-                        <svg className="w-4 h-4 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                    </button>
-                </div>
-                <div className="text-center mt-2">
-                    <span className="text-[9px] text-slate-500">AI can make mistakes. Consider verifying your curriculum.</span>
+            
+            {/* Chat Input Mockup */}
+            <div className="p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 mt-auto relative z-10">
+                <div className="relative">
+                    <div className="w-full bg-slate-800 border border-slate-700 rounded-full h-12 flex items-center px-4 text-slate-500 text-sm font-medium">
+                        اسأل عن خطتك، موادك، أو قوانين الكلية...
+                    </div>
+                    <div className="absolute left-1.5 top-1.5 w-9 h-9 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 flex items-center justify-center shadow-md">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                    </div>
                 </div>
             </div>
             
