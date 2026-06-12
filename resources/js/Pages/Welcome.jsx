@@ -135,7 +135,7 @@ function StackedFeaturesSection() {
     };
 
     return (
-        <div className="relative h-[650px] sm:h-[550px] w-full max-w-5xl mx-auto mt-64 sm:mt-72 perspective-1000" dir="rtl">
+        <div className="relative h-[650px] sm:h-[550px] w-full max-w-5xl mx-auto mt-80 sm:mt-[24rem] perspective-1000" dir="rtl">
             {cards.map((card, index) => {
                 const isFront = index === cards.length - 1;
                 const reverseIndex = cards.length - 1 - index;
@@ -168,11 +168,11 @@ function StackedFeaturesSection() {
                         className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
                             ${isFront 
                                 ? `bg-slate-900 border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)]` 
-                                : `bg-slate-800 border border-slate-700/50 shadow-xl hover:bg-slate-700`}
+                                : `bg-white border border-slate-200/80 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.05)] hover:bg-slate-50`}
                         `}
                         style={{ 
                             transformOrigin: "top center",
-                            filter: isFront ? 'brightness(1)' : `brightness(${1 - reverseIndex * 0.05})`
+                            filter: isFront ? 'brightness(1)' : `brightness(${1 - reverseIndex * 0.03})`
                         }}
                     >
                         {/* Tab Header (always visible, peeks out at the top) */}
@@ -200,13 +200,13 @@ function StackedFeaturesSection() {
                                     <h3 className="text-xl sm:text-2xl font-black text-white mb-3 sm:mb-4 leading-snug">
                                         {card.title}
                                     </h3>
-                                    <p className="text-zinc-400 text-sm sm:text-base leading-[1.8] font-medium max-w-2xl">
+                                    <p className={`${isFront ? 'text-slate-400' : 'text-slate-500'} text-sm sm:text-base leading-[1.8] font-medium max-w-2xl`}>
                                         {card.desc}
                                     </p>
                                     
                                     {/* Call to action inside the active card */}
                                     <div className="mt-6 flex justify-end">
-                                        <span className={`text-xs font-bold px-4 py-2 rounded-full bg-[#1e1e1e] text-zinc-300 border border-white/10`}>
+                                        <span className={`text-xs font-bold px-4 py-2 rounded-full ${isFront ? 'bg-[#1e1e1e] text-slate-300 border-white/10' : 'bg-slate-100 text-slate-500 border-slate-200'} border`}>
                                             ميزة رقم {card.id} من 6
                                         </span>
                                     </div>
@@ -220,6 +220,205 @@ function StackedFeaturesSection() {
                     </motion.div>
                 );
             })}
+        </div>
+    );
+}
+
+function TreePreviewAnimation({ start }) {
+    const [step, setStep] = useState(0);
+
+    useEffect(() => {
+        if (!start) return;
+        setStep(0);
+        
+        const timers = [
+            setTimeout(() => setStep(1), 1500), // Draw structure, show reading text
+            setTimeout(() => setStep(2), 3500), // Completed green
+            setTimeout(() => setStep(3), 5500), // Available cyan
+            setTimeout(() => setStep(4), 7500), // Cart orange
+        ];
+        
+        return () => timers.forEach(clearTimeout);
+    }, [start]);
+
+    const stepData = [
+        { title: "تهيئة الخطة", text: "بناء هيكل التخصص الخاص بك...", color: "text-slate-400", dot: "bg-slate-400" },
+        { title: "قراءة السجل الأكاديمي", text: "تحديد المواد المنجزة باللون الأخضر ✔️", color: "text-emerald-400", dot: "bg-emerald-400" },
+        { title: "فتح المتطلبات", text: "إتاحة مواد جديدة باللون السماوي 🔓", color: "text-cyan-400", dot: "bg-cyan-400" },
+        { title: "التسجيل التجريبي", text: "اختيار مواد الفصل القادم باللون البرتقالي 🛒", color: "text-amber-400", dot: "bg-amber-400" },
+        { title: "تحديث الشجرة", text: "توقع حالة خطتك بعد النجاح بالفصل 🌳", color: "text-blue-400", dot: "bg-blue-400" }
+    ];
+
+    const currentInfo = stepData[Math.min(step, stepData.length - 1)];
+
+    return (
+        <div className="relative w-full flex flex-col items-center">
+            {/* Dynamic Info Box */}
+            <div className="absolute top-2 right-2 sm:right-6 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl p-4 sm:p-5 w-64 sm:w-72 z-20 transition-all duration-500 transform text-right">
+                <div className="flex items-center gap-3 mb-2 justify-end">
+                    <h4 className={`text-sm sm:text-base font-black ${currentInfo.color} transition-colors duration-300`}>{currentInfo.title}</h4>
+                    <span className={`w-2 h-2 rounded-full ${currentInfo.dot} animate-pulse shadow-[0_0_8px_currentColor]`} />
+                </div>
+                <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed" key={step}>
+                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+                        {currentInfo.text}
+                    </motion.span>
+                </p>
+            </div>
+
+            <svg viewBox="0 0 500 280" className="w-full h-auto relative z-10" dir="ltr">
+                {start && <>
+                    {/* Edges */}
+                    <TreeEdge x1="130" y1="38" x2="70" y2="95" delay={0.5} dashed={false} />
+                    <TreeEdge x1="130" y1="38" x2="190" y2="95" delay={0.6} dashed={false} />
+                    <TreeEdge x1="70" y1="128" x2="40" y2="185" delay={0.9} dashed={false} />
+                    <TreeEdge x1="70" y1="128" x2="130" y2="185" delay={1.0} dashed={false} />
+                    <TreeEdge x1="190" y1="128" x2="190" y2="185" delay={1.0} dashed={false} />
+                    <TreeEdge x1="370" y1="38" x2="310" y2="95" delay={0.7} dashed={false} />
+                    <TreeEdge x1="370" y1="38" x2="430" y2="95" delay={0.8} dashed={false} />
+                    <TreeEdge x1="310" y1="128" x2="310" y2="185" delay={1.1} dashed={false} />
+                    <TreeEdge x1="430" y1="128" x2="370" y2="185" delay={1.1} dashed={false} />
+                    <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.2} dashed={false} />
+
+                    {/* Nodes Level 1 */}
+                    <TreeNode x="104" y="8" delay={0.1} color={step >= 4 ? "#3b82f6" : "#334155"} label={step >= 4 ? "متطلب 1" : "مغلقة"} />
+                    <TreeNode x="344" y="8" delay={0.2} color={step >= 4 ? "#3b82f6" : "#334155"} label={step >= 4 ? "متطلب 2" : "مغلقة"} />
+
+                    {/* Nodes Level 2 */}
+                    <TreeNode x="44" y="95" delay={0.3} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
+                    <TreeNode x="164" y="95" delay={0.4} color={step >= 1 ? "#10b981" : "#334155"} label={step >= 1 ? "منجزة ✓" : "مغلقة"} />
+                    <TreeNode x="284" y="95" delay={0.5} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="404" y="95" delay={0.6} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+
+                    {/* Nodes Level 3 */}
+                    <TreeNode x="14" y="185" delay={0.7} color={step >= 2 ? "#06b6d4" : "#334155"} label={step >= 2 ? "متاحة" : "مغلقة"} />
+                    <TreeNode x="104" y="185" delay={0.75} color="#334155" label="مغلقة 🔒" />
+                    <TreeNode x="164" y="185" delay={0.8} color="#334155" label="مغلقة 🔒" />
+                    <TreeNode x="284" y="185" delay={0.85} color="#334155" label="مغلقة 🔒" />
+                    <TreeNode x="344" y="185" delay={0.9} color={step >= 3 ? "#f59e0b" : "#334155"} label={step >= 3 ? "تجريبي 🛒" : "مغلقة"} />
+                    <TreeNode x="434" y="185" delay={0.95} color="#334155" label="مغلقة 🔒" />
+                </>}
+            </svg>
+        </div>
+    );
+function AiChatAnimation({ start }) {
+    const [step, setStep] = useState(0);
+
+    useEffect(() => {
+        if (!start) return;
+        setStep(0);
+        
+        const timers = [
+            setTimeout(() => setStep(1), 500),  // User message appears
+            setTimeout(() => setStep(2), 1500), // AI starts typing
+            setTimeout(() => setStep(3), 3500), // AI finishes typing, shows result
+        ];
+        
+        return () => timers.forEach(clearTimeout);
+    }, [start]);
+
+    return (
+        <div className="relative w-full max-w-md mx-auto bg-[#171717] border border-[#2f2f2f] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col font-sans h-[420px]" dir="rtl">
+            
+            {/* Header */}
+            <div className="px-5 py-3 border-b border-[#2f2f2f] flex justify-between items-center bg-[#171717] z-10">
+                <div className="flex items-center gap-3">
+                    <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-white shadow-lg overflow-hidden p-1.5">
+                        <img src="/images/sanfoor.png" alt="AI" className="w-full h-full object-contain filter brightness-0 invert" />
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-[#171717] rounded-full"></div>
+                    </div>
+                    <div>
+                        <h4 className="text-white text-sm font-bold">Sanfoor AI</h4>
+                        <p className="text-emerald-400 text-[10px] font-medium tracking-wider">ONLINE</p>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#2f2f2f]"></div>
+                    <div className="w-2 h-2 rounded-full bg-[#2f2f2f]"></div>
+                    <div className="w-2 h-2 rounded-full bg-[#2f2f2f]"></div>
+                </div>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-hidden p-5 flex flex-col gap-6">
+                
+                {/* User Message */}
+                <AnimatePresence>
+                    {step >= 1 && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex gap-3 items-start"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                أن
+                            </div>
+                            <div className="bg-[#2f2f2f] text-slate-100 p-3.5 rounded-2xl rounded-tr-sm text-sm font-medium leading-relaxed shadow-sm">
+                                شو أنزل مواد الفصل الجاي؟ بدي أرفع معدلي عشان هيك بدي مواد خفيفة.
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* AI Typing / Response */}
+                <AnimatePresence>
+                    {step >= 2 && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex gap-3 items-start"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-white shrink-0 p-1.5">
+                                <img src="/images/sanfoor.png" alt="AI" className="w-full h-full object-contain filter brightness-0 invert" />
+                            </div>
+                            <div className="text-slate-300 text-sm font-medium leading-loose pt-1.5">
+                                {step === 2 ? (
+                                    <div className="flex gap-1.5 items-center h-5">
+                                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                        <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                    </div>
+                                ) : (
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                        أهلاً بك! بناءً على خطتك، أنصحك بتنزيل:
+                                        <div className="mt-3 space-y-2">
+                                            <div className="bg-[#212121] border border-[#2f2f2f] p-3 rounded-xl flex items-center gap-3">
+                                                <span className="bg-blue-500/20 text-blue-400 p-1.5 rounded-lg text-lg">💻</span>
+                                                <div>
+                                                    <span className="block text-white font-bold">برمجة متقدمة (3س)</span>
+                                                    <span className="text-xs text-slate-400">تفتح 3 مواد للفصل القادم.</span>
+                                                </div>
+                                            </div>
+                                            <div className="bg-[#212121] border border-[#2f2f2f] p-3 rounded-xl flex items-center gap-3">
+                                                <span className="bg-emerald-500/20 text-emerald-400 p-1.5 rounded-lg text-lg">🧠</span>
+                                                <div>
+                                                    <span className="block text-white font-bold">مهارات حياتية (3س)</span>
+                                                    <span className="text-xs text-slate-400">متطلب جامعة سهل يرفع المعدل.</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+            </div>
+
+            {/* Chat Input Bar */}
+            <div className="p-4 bg-[#171717] border-t border-[#2f2f2f]">
+                <div className="relative flex items-center bg-[#212121] border border-[#2f2f2f] rounded-full p-1.5 pr-4">
+                    <span className="text-slate-500 text-sm flex-1">اكتب رسالتك لـ Sanfoor AI...</span>
+                    <button className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-md hover:bg-emerald-400 transition-colors">
+                        <svg className="w-4 h-4 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </button>
+                </div>
+                <div className="text-center mt-2">
+                    <span className="text-[9px] text-slate-500">AI can make mistakes. Consider verifying your curriculum.</span>
+                </div>
+            </div>
+            
         </div>
     );
 }
@@ -593,37 +792,7 @@ export default function Welcome({ auth }) {
                                     <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tight">الشجرة التفاعلية</h3>
                                 </div>
 
-                                <svg viewBox="0 0 500 280" className="w-full h-auto relative z-10" dir="ltr">
-                                    {previewIn && <>
-                                        {/* Edges */}
-                                        <TreeEdge x1="130" y1="38" x2="70" y2="95" delay={0.8} />
-                                        <TreeEdge x1="130" y1="38" x2="190" y2="95" delay={0.9} />
-                                        <TreeEdge x1="70" y1="128" x2="40" y2="185" delay={1.2} />
-                                        <TreeEdge x1="70" y1="128" x2="130" y2="185" delay={1.3} />
-                                        <TreeEdge x1="190" y1="128" x2="190" y2="185" delay={1.3} />
-                                        <TreeEdge x1="370" y1="38" x2="310" y2="95" delay={1.0} />
-                                        <TreeEdge x1="370" y1="38" x2="430" y2="95" delay={1.1} />
-                                        <TreeEdge x1="310" y1="128" x2="310" y2="185" delay={1.4} />
-                                        <TreeEdge x1="430" y1="128" x2="370" y2="185" delay={1.4} />
-                                        <TreeEdge x1="430" y1="128" x2="460" y2="185" delay={1.5} />
-
-                                        {/* Nodes */}
-                                        <TreeNode x="104" y="8" delay={0.4} color="#3b82f6" label="متطلب 1" />
-                                        <TreeNode x="344" y="8" delay={0.5} color="#3b82f6" label="متطلب 2" />
-
-                                        <TreeNode x="44" y="95" delay={0.7} color="#10b981" label="منجزة ✓" />
-                                        <TreeNode x="164" y="95" delay={0.8} color="#10b981" label="منجزة ✓" />
-                                        <TreeNode x="284" y="95" delay={0.9} color="#06b6d4" label="متاحة" />
-                                        <TreeNode x="404" y="95" delay={1.0} color="#06b6d4" label="متاحة" />
-
-                                        <TreeNode x="14" y="185" delay={1.2} color="#06b6d4" label="متاحة" />
-                                        <TreeNode x="104" y="185" delay={1.25} color="#334155" label="مغلقة 🔒" />
-                                        <TreeNode x="164" y="185" delay={1.3} color="#334155" label="مغلقة 🔒" />
-                                        <TreeNode x="284" y="185" delay={1.35} color="#334155" label="مغلقة 🔒" />
-                                        <TreeNode x="344" y="185" delay={1.4} color="#f59e0b" label="تجريبي 🛒" />
-                                        <TreeNode x="434" y="185" delay={1.45} color="#334155" label="مغلقة 🔒" />
-                                    </>}
-                                </svg>
+                                <TreePreviewAnimation start={previewIn} />
 
                                 {/* Legend below SVG */}
                                 <div className="relative z-10 mt-8 pt-6 border-t border-slate-700/50 flex flex-wrap items-center justify-center gap-4 sm:gap-6">
@@ -680,42 +849,9 @@ export default function Welcome({ auth }) {
 
                             {/* Chat Simulation */}
                             <div className={`relative transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] delay-200 ${aiIn ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-14'}`}>
-                                <div className="absolute inset-0 bg-gradient-to-tr from-sky-500/20 to-blue-500/20 rounded-[2.5rem] blur-3xl transform rotate-6"></div>
-                                <div className="relative bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl p-6 sm:p-8 flex flex-col gap-6" dir="rtl">
-
-                                    {/* Student Message */}
-                                    {aiIn && (
-                                        <div className="chat-msg-1 self-end bg-blue-600 text-white p-4 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md">
-                                            <p className="text-sm font-bold leading-relaxed">
-                                                شو أنزل مواد الفصل الجاي؟ بدي أرفع معدلي عشان هيك بدي مواد خفيفة.
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* AI Message */}
-                                    {aiIn && (
-                                        <div className="chat-msg-2 self-start bg-slate-50 border border-slate-200 text-slate-700 p-5 rounded-2xl rounded-tl-sm max-w-[90%] shadow-sm relative">
-                                            <div className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-600 rounded-full flex items-center justify-center text-white text-xs shadow-md border-2 border-white">
-                                                🤖
-                                            </div>
-                                            <p className="text-sm font-semibold leading-loose">
-                                                أهلاً بك! بناءً على خطتك، أنصحك بتنزيل:
-                                                <br />
-                                                <strong className="text-blue-600">1. برمجة متقدمة (3س):</strong> ضرورية لأنها تفتح 3 مواد للفصل القادم.
-                                                <br />
-                                                <strong className="text-emerald-600">2. مهارات حياتية (3س):</strong> متطلب جامعة سهل يساعد برفع المعدل.
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Typing Indicator */}
-                                    {aiIn && (
-                                        <div className="self-start bg-slate-100 rounded-full px-4 py-2 flex items-center gap-1.5 opacity-0" style={{ animation: 'chat-pop 0.6s ease forwards', animationDelay: '2.5s' }}>
-                                            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
-                                            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
-                                            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
-                                        </div>
-                                    )}
+                                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 to-cyan-500/10 rounded-[2.5rem] blur-3xl transform rotate-6"></div>
+                                <div className="relative p-2 sm:p-4">
+                                    <AiChatAnimation start={aiIn} />
                                 </div>
                             </div>
 
