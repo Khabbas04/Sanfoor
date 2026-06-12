@@ -135,14 +135,14 @@ function StackedFeaturesSection() {
     };
 
     return (
-        <div className="relative h-[650px] sm:h-[550px] w-full max-w-4xl mx-auto mt-48 perspective-1000" dir="rtl">
+        <div className="relative h-[650px] sm:h-[550px] w-full max-w-5xl mx-auto mt-64 sm:mt-72 perspective-1000" dir="rtl">
             {cards.map((card, index) => {
                 const isFront = index === cards.length - 1;
                 const reverseIndex = cards.length - 1 - index;
                 
                 // Stack UPWARDS to match the tab look
-                const yOffset = reverseIndex * -45; 
-                const scale = 1 - reverseIndex * 0.04;
+                const yOffset = reverseIndex * -48; 
+                const scale = 1 - reverseIndex * 0.03;
                 
                 const activeBorderClass = activeBorderColors[card.id] || 'border-slate-500';
 
@@ -165,7 +165,7 @@ function StackedFeaturesSection() {
                             bounce: 0.2
                         }}
                         onClick={() => bringToFront(card.id)}
-                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-3xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
+                        className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden backdrop-blur-none transition-colors duration-500
                             ${isFront 
                                 ? `bg-slate-900 border-2 ${activeBorderClass} shadow-[0_30px_80px_-15px_rgba(0,0,0,0.4)]` 
                                 : `bg-slate-800 border border-slate-700/50 shadow-xl hover:bg-slate-700`}
