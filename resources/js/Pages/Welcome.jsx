@@ -261,28 +261,41 @@ function TreePreviewAnimation({ start }) {
     }, [start]);
 
     const stepData = [
-        { title: "تهيئة الخطة", text: "بناء هيكل التخصص الخاص بك...", color: "text-slate-400", dot: "bg-slate-400" },
-        { title: "قراءة السجل الأكاديمي", text: "تحديد المواد المنجزة باللون الأخضر ✔️", color: "text-emerald-400", dot: "bg-emerald-400" },
-        { title: "فتح المتطلبات", text: "إتاحة مواد جديدة باللون السماوي 🔓", color: "text-cyan-400", dot: "bg-cyan-400" },
-        { title: "التسجيل التجريبي", text: "اختيار مواد الفصل القادم باللون البرتقالي 🛒", color: "text-amber-400", dot: "bg-amber-400" },
-        { title: "جاهز للتسجيل", text: "اكتملت محاكاة التسجيل بنجاح 🚀", color: "text-blue-400", dot: "bg-blue-400" }
+        { title: "تحليل البيانات", text: "جاري استدعاء السجل الأكاديمي للطالب...", color: "text-slate-400", dot: "bg-slate-400" },
+        { title: "قراءة السجل", text: "تم العثور على مواد منجزة ومطابقتها بنجاح ✔️", color: "text-emerald-400", dot: "bg-emerald-400" },
+        { title: "فتح المتطلبات", text: "تحليل القوانين وإتاحة المواد الجديدة للتسجيل 🔓", color: "text-cyan-400", dot: "bg-cyan-400" },
+        { title: "اقتراح ذكي", text: "إضافة أفضل المواد للسلة التجريبية لرفع المعدل 🛒", color: "text-amber-400", dot: "bg-amber-400" },
+        { title: "النتيجة النهائية", text: "الخطة محدثة وجاهزة للتسجيل الفعلي 🚀", color: "text-blue-400", dot: "bg-blue-400" }
     ];
 
     const currentInfo = stepData[Math.min(step, stepData.length - 1)];
 
     return (
         <div className="relative w-full flex flex-col items-center">
-            {/* Dynamic Info Box */}
-            <div className="absolute top-2 right-2 sm:right-6 bg-slate-900/80 backdrop-blur-md border border-slate-700/60 shadow-xl rounded-2xl p-4 sm:p-5 w-64 sm:w-72 z-20 transition-all duration-500 transform text-right">
-                <div className="flex items-center gap-3 mb-2 justify-end">
-                    <h4 className={`text-sm sm:text-base font-black ${currentInfo.color} transition-colors duration-300`}>{currentInfo.title}</h4>
-                    <span className={`w-2 h-2 rounded-full ${currentInfo.dot} animate-pulse shadow-[0_0_8px_currentColor]`} />
+            {/* Smart Terminal Box */}
+            <div className="w-full max-w-2xl bg-[#0f172a]/95 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-xl overflow-hidden mb-8" dir="ltr">
+                {/* Window header */}
+                <div className="px-4 py-2.5 bg-[#1e293b]/80 border-b border-slate-700/50 flex items-center justify-between">
+                    <div className="flex gap-2">
+                        <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_8px_rgba(244,63,94,0.4)]"></div>
+                        <div className="w-3 h-3 rounded-full bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.4)]"></div>
+                        <div className="w-3 h-3 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Sanfoor Auto-Pilot</span>
                 </div>
-                <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed" key={step}>
-                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-                        {currentInfo.text}
-                    </motion.span>
-                </p>
+                {/* Content */}
+                <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4" dir="rtl">
+                    <div className="flex items-center gap-3 shrink-0 bg-slate-800/50 px-4 py-2 rounded-lg border border-slate-700/50 shadow-inner">
+                        <span className={`w-2.5 h-2.5 rounded-full ${currentInfo.dot} animate-pulse shadow-[0_0_8px_currentColor]`} />
+                        <h4 className={`text-sm sm:text-base font-black ${currentInfo.color} transition-colors duration-300`}>{currentInfo.title}</h4>
+                    </div>
+                    <p className="text-slate-300 text-sm sm:text-base font-medium w-full text-right leading-relaxed" key={step}>
+                        <motion.span initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                            <span className={`${currentInfo.color} ml-2 font-black`}>❯</span>
+                            {currentInfo.text}
+                        </motion.span>
+                    </p>
+                </div>
             </div>
 
             <svg viewBox="0 0 500 280" className="w-full h-auto relative z-10" dir="ltr">
