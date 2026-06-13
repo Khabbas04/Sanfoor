@@ -468,6 +468,7 @@ export default function Advisor() {
     const [added, setAdded] = useState(initAdded);
     const [loadId, setLoadId] = useState(null);
     const [showHelp, setShowHelp] = useState(false);
+    const [showFiltersPopup, setShowFiltersPopup] = useState(false);
 
     const chatRef = useRef(null), inputRef = useRef(null), abortRef = useRef(null);
     const typewriterTimeoutRef = useRef(null);
@@ -700,10 +701,10 @@ export default function Advisor() {
     const Grp = ({label, items}) => items.length === 0 ? null : <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-wider px-2.5 pt-2 pb-1">{label}</p>{items.map(c=><ChatItem key={c.id} c={c}/>)}</div>;
 
     const FiltersUI = (
-        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-4 shrink-0 relative overflow-hidden">
+        <div className="bg-white p-2 shrink-0 relative overflow-hidden">
             {/* Sparkle background decoration */}
-            <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl"></div>
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
             <div className="relative z-10 space-y-4">
                 {/* 1. نوع المواد */}
@@ -799,7 +800,7 @@ export default function Advisor() {
         <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
         {/* === Mobile Sidebar Overlay === */}
-        {sidebar&&<div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={()=>setSidebar(false)}/><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={()=>setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={()=>{setSidebar(false);newChat();}} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}{FiltersUI}</div></div>}
+        {sidebar&&<div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={()=>setSidebar(false)}/><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={()=>setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={()=>{setSidebar(false);newChat();}} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}</div></div>}
 
         {/* === Sidebar === */}
         <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
@@ -837,7 +838,7 @@ export default function Advisor() {
                 </div>
             </div>
 
-            {FiltersUI}
+
 
             <p className="text-[8px] text-slate-400 font-bold text-center"><kbd className="bg-slate-100 px-1 py-0.5 rounded text-[7px] font-mono">Ctrl+Shift+N</kbd> جديدة · <kbd className="bg-slate-100 px-1 py-0.5 rounded text-[7px] font-mono">Esc</kbd> إيقاف</p>
         </div>
@@ -946,31 +947,60 @@ export default function Advisor() {
                         </div>
                     </div>
                 )}
-                <div className="p-2.5 md:p-3">
-                    <form onSubmit={handleSend} className="relative flex items-center">
-                        <input 
-                            ref={inputRef} 
-                            type="text" 
-                            value={input} 
-                            onChange={e => {
-                                const val = e.target.value;
-                                setInput(val);
-                                // إظهار قائمة الأوامر إذا كتب /
-                                if (val.startsWith('/')) {
-                                    setShowCommandMenu(true);
-                                    setCommandFilter(val.slice(1));
-                                } else {
-                                    setShowCommandMenu(false);
-                                    setCommandFilter('');
-                                }
-                            }} 
-                            placeholder={limitReached ? "⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳" : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
-                            className={`w-full ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl py-3 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-400 focus:bg-white transition-all font-bold text-[12.5px]`} 
-                            disabled={typing||loadingChat||generating||limitReached}
-                        />
-                        <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||limitReached} className="absolute left-2 w-9 h-9 bg-gradient-to-tr from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-lg flex items-center justify-center disabled:opacity-20 shadow-md active:scale-90 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
+                <div className="p-2.5 md:p-3 relative z-50">
+                    {/* The popup overlay */}
+                    {showFiltersPopup && (
+                        <div className="absolute bottom-[calc(100%+10px)] right-3 sm:right-6 w-[calc(100%-24px)] sm:w-[360px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-200/80 p-2 z-50 sfr-slide-up origin-bottom-right">
+                            <div className="flex justify-between items-center p-3 border-b border-slate-100/80 mb-2 bg-slate-50/50 rounded-2xl">
+                                <h3 className="font-black text-slate-800 text-[12px] flex items-center gap-1.5"><span className="text-sm">🎛️</span> التفضيلات والإعدادات الذكية</h3>
+                                <button type="button" onClick={() => setShowFiltersPopup(false)} className="w-7 h-7 flex items-center justify-center bg-slate-200 hover:bg-slate-300 rounded-full text-slate-600 font-black text-[10px] transition-colors shadow-sm">✕</button>
+                            </div>
+                            {FiltersUI}
+                        </div>
+                    )}
+                    
+                    {/* Click outside to close (invisible overlay) */}
+                    {showFiltersPopup && (
+                        <div className="fixed inset-0 z-40" onClick={() => setShowFiltersPopup(false)} />
+                    )}
+
+                    <form onSubmit={handleSend} className="relative flex items-center gap-2 z-50">
+                        {/* Plus Button */}
+                        <button 
+                            type="button" 
+                            onClick={() => setShowFiltersPopup(!showFiltersPopup)} 
+                            className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm border-2 ${showFiltersPopup ? 'bg-slate-800 border-slate-800 text-white rotate-45 scale-95 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 hover:border-slate-300 active:scale-95'}`}
+                            title="إعدادات الذكاء"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                            </svg>
                         </button>
+
+                        <div className="relative flex-1">
+                            <input 
+                                ref={inputRef} 
+                                type="text" 
+                                value={input} 
+                                onChange={e => {
+                                    const val = e.target.value;
+                                    setInput(val);
+                                    if (val.startsWith('/')) {
+                                        setShowCommandMenu(true);
+                                        setCommandFilter(val.slice(1));
+                                    } else {
+                                        setShowCommandMenu(false);
+                                        setCommandFilter('');
+                                    }
+                                }} 
+                                placeholder={limitReached ? "⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳" : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
+                                className={`w-full ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-2xl py-3.5 pr-4 pl-14 focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[13px] shadow-inner`} 
+                                disabled={typing||loadingChat||generating||limitReached}
+                            />
+                            <button type="submit" disabled={!input.trim()||typing||loadingChat||generating||limitReached} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-tr from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-xl flex items-center justify-center disabled:opacity-20 shadow-md shadow-blue-500/20 active:scale-[0.93] transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z"/></svg>
+                            </button>
+                        </div>
                     </form>
                     <p className="text-[7.5px] font-bold text-center mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
                         <span className="text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
