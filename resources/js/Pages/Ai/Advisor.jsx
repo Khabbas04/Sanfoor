@@ -437,6 +437,8 @@ export default function Advisor() {
     const [showCommandMenu, setShowCommandMenu] = useState(false);
     const [commandFilter, setCommandFilter] = useState('');
 
+    const [difficulty, setDifficulty] = useState(null); // 'easy', 'balanced', 'hard'
+    const [criticalPath, setCriticalPath] = useState(false);
     const [selectedFilters, setSelectedFilters] = useState([]);
     const filterOptions = [
         { id: 'compulsory', label: 'إجباري' },
@@ -540,7 +542,7 @@ export default function Advisor() {
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
 
-            const pl = { message: t, filters: selectedFilters };
+            const pl = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath };
             if (activeId) pl.chat_id = activeId;
 
             const res = await axios.post(route('ai.advisor.chat'), pl, {
@@ -592,7 +594,7 @@ export default function Advisor() {
             setGenerating(false);
             setTimeout(scroll, 100);
         }
-    }, [activeId, generating, typing, magicCommands, scroll, selectedFilters]);
+    }, [activeId, generating, typing, magicCommands, scroll, selectedFilters, difficulty, criticalPath]);
 
 
     const handleSend = e => { e.preventDefault(); send(input); };
@@ -698,24 +700,61 @@ export default function Advisor() {
     const Grp = ({label, items}) => items.length === 0 ? null : <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-wider px-2.5 pt-2 pb-1">{label}</p>{items.map(c=><ChatItem key={c.id} c={c}/>)}</div>;
 
     const FiltersUI = (
-        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3 shrink-0">
-            <h3 className="font-black text-slate-600 text-[10px] mb-2 px-1">⚙️ تفضيلات المواد</h3>
-            <div className="flex flex-wrap gap-1.5">
-                {filterOptions.map(opt => (
-                    <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => toggleFilter(opt.id)}
-                        className={`px-3 py-1.5 text-[10.5px] font-bold rounded-xl transition-all duration-200 border flex-grow text-center ${
-                            selectedFilters.includes(opt.id) 
-                            ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white border-transparent shadow-md shadow-blue-500/20' 
-                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
-                    >
-                        {selectedFilters.includes(opt.id) && <span className="me-1 opacity-80">✓</span>}
-                        {opt.label}
-                    </button>
-                ))}
+        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-4 shrink-0 relative overflow-hidden">
+            {/* Sparkle background decoration */}
+            <div className="absolute -top-10 -right-10 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl"></div>
+
+            <div className="relative z-10 space-y-4">
+                {/* 1. نوع المواد */}
+                <div>
+                    <h3 className="font-black text-slate-600 text-[10px] mb-2 px-1 flex items-center gap-1.5"><span className="text-sm">⚙️</span> نوع المواد</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                        {filterOptions.map(opt => (
+                            <button key={opt.id} type="button" onClick={() => toggleFilter(opt.id)} className={`px-2.5 py-1.5 text-[10.5px] font-bold rounded-xl transition-all duration-200 border flex-grow text-center ${selectedFilters.includes(opt.id) ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white border-transparent shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}>
+                                {selectedFilters.includes(opt.id) && <span className="me-1 text-sky-400">✓</span>} {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 2. خيارات ذكية */}
+                <div className="pt-3 border-t border-slate-100/80">
+                    <h3 className="font-black text-blue-700 text-[10px] mb-2 px-1 flex items-center gap-1.5"><span className="text-sm">✨</span> إعدادات ذكية (AI)</h3>
+                    
+                    <div className="space-y-2.5">
+                        {/* المسار الحرج */}
+                        <button type="button" onClick={() => setCriticalPath(!criticalPath)} className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all ${criticalPath ? 'bg-amber-50 border-amber-300 shadow-sm shadow-amber-200/30' : 'bg-white border-slate-100 hover:border-amber-200 hover:bg-amber-50/30'}`}>
+                            <div className="flex items-center gap-2 text-right">
+                                <span className={`text-lg transition-transform ${criticalPath ? 'scale-110' : 'grayscale opacity-60'}`}>🔑</span>
+                                <div>
+                                    <p className={`text-[11px] font-black ${criticalPath ? 'text-amber-700' : 'text-slate-600'}`}>المسار الحرج (تفتح مواد)</p>
+                                    <p className="text-[8.5px] text-slate-400 font-bold mt-0.5">ركز لي على المواد اللي بتفتحلي مجالات قدام</p>
+                                </div>
+                            </div>
+                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${criticalPath ? 'bg-amber-500' : 'bg-slate-200'}`}>
+                                <div className={`bg-white w-3 h-3 rounded-full shadow-sm transition-transform ${criticalPath ? 'translate-x-[-16px]' : 'translate-x-0'}`} />
+                            </div>
+                        </button>
+
+                        {/* مستوى صعوبة الجدول */}
+                        <div className="bg-white border border-slate-100 rounded-xl p-1 flex">
+                            {[
+                                { id: 'easy', label: 'سهل (رفع المعدل)', icon: '🌟', activeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/50 shadow-sm' },
+                                { id: 'balanced', label: 'متوازن', icon: '⚖️', activeClass: 'bg-blue-50 text-blue-700 border-blue-200/50 shadow-sm' },
+                                { id: 'hard', label: 'صعب/دسم', icon: '🔥', activeClass: 'bg-rose-50 text-rose-700 border-rose-200/50 shadow-sm' }
+                            ].map(lvl => {
+                                const active = difficulty === lvl.id;
+                                return (
+                                    <button key={lvl.id} type="button" onClick={() => setDifficulty(active ? null : lvl.id)} className={`flex-1 py-1.5 px-1 rounded-lg text-[9px] font-black transition-all flex flex-col items-center justify-center gap-1 border ${active ? lvl.activeClass : 'border-transparent text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
+                                        <span className={`text-xs ${active ? 'scale-110' : 'opacity-70 grayscale'} transition-all`}>{lvl.icon}</span>
+                                        {lvl.label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -996,6 +1035,27 @@ export default function Advisor() {
                                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/تقويم</span>
                                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/رفع-معدل</span>
                                 <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/تخرج</span>
+                            </div>
+                        </div>
+
+                        {/* Section 3: Smart Settings */}
+                        <div>
+                            <h4 className="font-black text-sky-700 text-[13px] mb-3 flex items-center gap-2"><span className="text-lg">⚙️</span> إعدادات الذكاء وتفضيلات الجدول</h4>
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-3 bg-sky-50/30 rounded-xl p-3 border border-sky-100/50">
+                                    <span className="text-xl bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">🔑</span>
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px] mb-1">المسار الحرج (فتح مواد)</p>
+                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">عند تفعيل هذا الخيار، سيقوم الذكاء الاصطناعي بالبحث وإعطاء أولوية قصوى للمواد التي تفتح مجالات ومواد أخرى في خطتك (مثل المتطلبات السابقة لغيرها) لتضمن عدم تأخرك.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 bg-sky-50/30 rounded-xl p-3 border border-sky-100/50">
+                                    <span className="text-xl bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm">🌟</span>
+                                    <div>
+                                        <p className="font-black text-slate-800 text-[11px] mb-1">مستوى الصعوبة (سهل، متوازن، صعب)</p>
+                                        <p className="text-[10px] text-slate-500 font-bold leading-relaxed">أخبر سنفور ما إذا كنت تريد مواد سهلة جداً لترفع معدلك، أو جدول متوازن لتوزيع الجهد، وسيبحث هو عن مستوى صعوبة كل مادة ويرتب جدولك بناءً عليها.</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
