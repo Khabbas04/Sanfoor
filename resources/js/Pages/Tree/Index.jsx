@@ -338,7 +338,9 @@ export default function Tree({
                 });
 
                 if (response.data.status === 'success') {
-                    Swal.fire({ icon: 'success', title: 'تم الإرسال!', text: response.data.message, ...swalTheme });
+                    Swal.fire({ icon: 'success', title: 'تم الإرسال!', text: response.data.message, ...swalTheme }).then(() => {
+                        router.reload({ only: ['latest_schedule_review'], preserveScroll: true });
+                    });
                 }
             } catch (error) {
                 Swal.fire({
