@@ -3870,7 +3870,7 @@ export default function Tree({
                                                 disabled={isSubmittingReview}
                                                 className={`w-full mt-3 py-3 rounded-xl font-[800] text-sm text-white shadow-lg transition-all flex items-center justify-center gap-2 ${isSubmittingReview ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 shadow-indigo-500/30 active:scale-[0.98]'}`}
                                             >
-                                                {isSubmittingReview ? 'جاري الإرسال...' : '📤 إرسال الخطة للمراجعة'}
+                                                {isSubmittingReview ? '⏳ جاري عرض الخطة على المرشد...' : '👨🏻‍🏫 عرض الخطة على مرشدك الأكاديمي'}
                                             </button>
                                         </div>
                                     ) : (<div className="text-center py-8"><div className="text-3xl mb-2 opacity-30">🛒</div><p className="text-[12px] font-bold text-slate-400 font-i">أضف مواد من الشجرة لاستكشاف العبء.</p></div>)}
