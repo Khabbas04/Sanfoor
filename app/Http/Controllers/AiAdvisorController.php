@@ -105,6 +105,8 @@ class AiAdvisorController extends Controller
             'chat_id' => ['nullable', 'integer', 'exists:chats,id'],
             'filters' => ['nullable', 'array'],
             'filters.*' => ['string'],
+            'difficulty' => ['nullable', 'string', 'in:easy,balanced,hard'],
+            'critical_path' => ['nullable', 'boolean'],
         ]);
 
         $user = Auth::user();
@@ -898,7 +900,7 @@ class AiAdvisorController extends Controller
         return "\n🎯 [RAG الإرشاد الطلابي]:\n- نية_السؤال: {$intent}\n- ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "\n- ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "\n- حالة_الساعات: {$hoursState}\n- عدد_مواد_التسجيل_التجريبي: " . count($cartData['ids'] ?? []) . "\n- مواد_استراتيجية_مرشحة:\n" . ($strategic ? implode("\n", $strategic) : '- لا توجد مواد مرشحة حالياً') . "\n- عينات_حسب_تصنيف_الصعوبة_الاداري:\n  - خفيف: " . ($easy ? implode(' | ', array_slice($easy, 0, 4)) : 'لا يوجد') . "\n  - متوازن: " . ($balanced ? implode(' | ', array_slice($balanced, 0, 4)) : 'لا يوجد') . "\n  - مكثف: " . ($heavy ? implode(' | ', array_slice($heavy, 0, 4)) : 'لا يوجد');
     }
 
-    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = []): string
+    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = [], $difficulty = null, $criticalPath = null): string
     {
         $filterInstructions = "";
         if (!empty($filters)) {
@@ -910,7 +912,19 @@ class AiAdvisorController extends Controller
             ];
             $selectedLabels = array_map(fn($f) => $filterLabels[$f] ?? $f, $filters);
             $filterText = implode(' و ', $selectedLabels);
-            $filterInstructions = "- 🚨 تنبيه هام جداً: الطالب حدد تفضيلات خاصة بالمواد التي يبحث عنها وهي: ({$filterText}). يجب عليك الالتزام التام بهذه التفضيلات عند اقتراح المواد (suggested_courses) ولا تقترح مواد من خارج هذه الأنواع إلا إذا تعذر ذلك تماماً، مع توضيح ذلك للطالب.\n";
+            $filterInstructions .= "- 🚨 نوع المواد: الطالب حدد تفضيلات خاصة بالمواد التي يبحث عنها وهي: ({$filterText}). التزم بها عند اقتراح المواد.\n";
+        }
+
+        if ($criticalPath) {
+            $filterInstructions .= "- 🔑 المسار الحرج: الطالب يطلب التركيز على المواد المفصلية التي تفتح مواد أخرى (أكبر عدد من الـ children). أعطِ الأولوية القصوى للمواد التي تفتح مجالات في الخطة لمنع تأخر الطالب.\n";
+        }
+
+        if ($difficulty === 'easy') {
+            $filterInstructions .= "- 🌟 صعوبة الجدول: الطالب يطلب مواد (سهلة جداً) ومضمونة لرفع معدله. ابحث عن المواد ذات مستوى الصعوبة المنخفض (1 أو 2) وتجنب المواد الصعبة نهائياً.\n";
+        } elseif ($difficulty === 'balanced') {
+            $filterInstructions .= "- ⚖️ صعوبة الجدول: الطالب يطلب جدول (متوازن). اقترح مزيجاً يريح الطالب (مثلاً مادة صعبة واحدة فقط، والباقي متوسط وسهل) ولا تضغط الطالب بمواد صعبة معاً.\n";
+        } elseif ($difficulty === 'hard') {
+            $filterInstructions .= "- 🔥 صعوبة الجدول: الطالب يطلب مواد (دسمة / صعبة). يبدو أنه مستعد لبذل جهد كبير، لا تتردد في اقتراح مواد ذات مستوى صعوبة عالي إذا كانت تخدم خطته.\n";
         }
 
         $totalPassedHours = (int) ($academicData['total_passed_hours'] ?? 0);
