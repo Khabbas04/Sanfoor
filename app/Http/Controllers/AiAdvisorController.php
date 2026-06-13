@@ -103,6 +103,8 @@ class AiAdvisorController extends Controller
         $data = $request->validate([
             'message' => ['required', 'string', 'max:2000'],
             'chat_id' => ['nullable', 'integer', 'exists:chats,id'],
+            'filters' => ['nullable', 'array'],
+            'filters.*' => ['string'],
         ]);
 
         $user = Auth::user();
@@ -166,7 +168,7 @@ class AiAdvisorController extends Controller
         ]);
 
         $apiKeys = $this->getGeminiApiKeys();
-        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses);
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? []);
         $cachedAiResponse = Cache::get($responseCacheKey);
         if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
             $replyText = (string) $cachedAiResponse['reply'];
@@ -214,7 +216,7 @@ class AiAdvisorController extends Controller
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
                 $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
-                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext);
+                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? []);
                 $contents = $this->buildConversationContext($chat, $systemPrompt);
 
                 $rawText = $this->callGeminiAPI($contents, $apiKeys);
@@ -896,8 +898,22 @@ class AiAdvisorController extends Controller
         return "\n🎯 [RAG الإرشاد الطلابي]:\n- نية_السؤال: {$intent}\n- ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "\n- ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "\n- حالة_الساعات: {$hoursState}\n- عدد_مواد_التسجيل_التجريبي: " . count($cartData['ids'] ?? []) . "\n- مواد_استراتيجية_مرشحة:\n" . ($strategic ? implode("\n", $strategic) : '- لا توجد مواد مرشحة حالياً') . "\n- عينات_حسب_تصنيف_الصعوبة_الاداري:\n  - خفيف: " . ($easy ? implode(' | ', array_slice($easy, 0, 4)) : 'لا يوجد') . "\n  - متوازن: " . ($balanced ? implode(' | ', array_slice($balanced, 0, 4)) : 'لا يوجد') . "\n  - مكثف: " . ($heavy ? implode(' | ', array_slice($heavy, 0, 4)) : 'لا يوجد');
     }
 
-    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = ''): string
+    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = []): string
     {
+        $filterInstructions = "";
+        if (!empty($filters)) {
+            $filterLabels = [
+                'compulsory' => 'إجباري',
+                'elective' => 'اختياري',
+                'supporting' => 'مساندة',
+                'university_req' => 'متطلب جامعة',
+                'online' => 'أونلاين',
+            ];
+            $selectedLabels = array_map(fn($f) => $filterLabels[$f] ?? $f, $filters);
+            $filterText = implode(' و ', $selectedLabels);
+            $filterInstructions = "- 🚨 تنبيه هام جداً: الطالب حدد تفضيلات خاصة بالمواد التي يبحث عنها وهي: ({$filterText}). يجب عليك الالتزام التام بهذه التفضيلات عند اقتراح المواد (suggested_courses) ولا تقترح مواد من خارج هذه الأنواع إلا إذا تعذر ذلك تماماً، مع توضيح ذلك للطالب. إذا اختار (أونلاين)، ابحث في وصف المادة أو جدولها (Sched) عما يدل على أنها تُدرس عن بعد أو أونلاين.\n";
+        }
+
         $totalPassedHours = (int) ($academicData['total_passed_hours'] ?? 0);
         $studentYear = max(1, min(5, (int) ceil($totalPassedHours / 33)));
         $studentYearLabels = [1 => 'أولى', 2 => 'ثانية', 3 => 'ثالثة', 4 => 'رابعة', 5 => 'خامسة'];
@@ -954,6 +970,7 @@ class AiAdvisorController extends Controller
             "- اذكر الفصل، الحد الفعلي، ثم قيّم الحالة. الفصل الحالي: {$currentPeriodLabel}. حد الترم: {$currentTermLimit}س. الحد الأكاديمي: {$academicLimit}س. الحد المطبق: {$effectiveLimit}س.\n" .
             ($isSummer ? "- (صيفي: الحد 9س إلا باستثناء إداري). ركز على المواد المطروحة في الصيفي إن وجدت.\n" : "- (ليس صيفياً).\n") .
             "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني/الصيفي'.\n" .
+            $filterInstructions .
             "- الحساب الدقيق (صارم): لأسئلة حساب المعدل، **اكتب العملية الحسابية الدقيقة** خطوة بخطوة بشكل عمودي (باستخدام الرمز \\n لإنشاء أسطر جديدة داخل الـ JSON)، ولا تدمج الحسابات بفقرة واحدة. ولا تستخدم علامات التنصيص المزدوجة داخل نص الـ reply. القانون: (المعدل الحالي×الساعات المقطوعة + العلامة المتوقعة×الساعات المتوقعة)/إجمالي الساعات.\n" .
             "- كن جدياً وعملياً، استخدم ايموجيات خفيفة وميّز الكلمات بـ **bold**.\n" .
             "- خطة التخرج (132س): متطلبات جامعة 30س، تخصص إجباري 87س، اختياري 9س، مساندة 6س. التزم بهذه الساعات.\n" .
@@ -1543,10 +1560,11 @@ class AiAdvisorController extends Controller
         return mb_strtolower(trim($text), 'UTF-8');
     }
 
-    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses): string
+    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = []): string
     {
         $payload = [
             'message' => $this->normalizeArabic(mb_strtolower(trim($message))),
+            'filters' => $filters,
             'period' => $academicData['current_period_label'] ?? null,
             'term' => $academicData['current_period_term'] ?? null,
             'year' => $academicData['current_period_year'] ?? null,

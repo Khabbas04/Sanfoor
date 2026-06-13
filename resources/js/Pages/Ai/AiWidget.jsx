@@ -12,6 +12,22 @@ export default function AiWidget({ user }) {
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [chatId, setChatId] = useState(null);
+    const [selectedFilters, setSelectedFilters] = useState([]);
+
+    const filterOptions = [
+        { id: 'compulsory', label: 'إجباري' },
+        { id: 'elective', label: 'اختياري' },
+        { id: 'university_req', label: 'متطلب جامعة' },
+        { id: 'supporting', label: 'مساندة' },
+        { id: 'online', label: 'أونلاين' },
+    ];
+
+    const toggleFilter = (id) => {
+        setSelectedFilters(prev => 
+            prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+        );
+    };
     const [showEntrance, setShowEntrance] = useState(true);
     const scrollRef = useRef(null);
     const dragRef = useRef({ startX: 0, active: false });
@@ -45,8 +61,13 @@ export default function AiWidget({ user }) {
         setIsTyping(true);
 
         try {
-            const response = await axios.post(route('ai.advisor.chat'), { message: msg });
+            const response = await axios.post(route('ai.advisor.chat'), { 
+                message: msg,
+                chat_id: chatId,
+                filters: selectedFilters
+            });
             if (response.data.status === 'success') {
+                if (response.data.chat_id) setChatId(response.data.chat_id);
                 setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: response.data.reply }]);
             } else {
                 setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', content: response.data.message || 'في مشكلة بالاتصال، جرب كمان شوي.' }]);
@@ -149,15 +170,46 @@ export default function AiWidget({ user }) {
                             )}
                         </div>
 
-                        {/* Input */}
-                        <form onSubmit={handleSend} className="p-3 border-t dark:border-white/10 bg-white dark:bg-slate-900">
-                            <input
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="اسأل سنفور..."
-                                className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl py-2.5 px-4 text-xs font-bold focus:ring-2 focus:ring-blue-500 dark:text-white"
-                            />
-                        </form>
+                        {/* Input area */}
+                        <div className="flex flex-col border-t dark:border-white/10 bg-white dark:bg-slate-900">
+                            {/* فلاتر المواد */}
+                            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 flex gap-2 overflow-x-auto scrollbar-hide items-center border-b dark:border-white/5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold whitespace-nowrap">تفضيلات:</span>
+                                {filterOptions.map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => toggleFilter(opt.id)}
+                                        className={`whitespace-nowrap px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 border flex-shrink-0 ${
+                                            selectedFilters.includes(opt.id) 
+                                            ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-white border-transparent shadow-md shadow-blue-500/20' 
+                                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                        }`}
+                                    >
+                                        {selectedFilters.includes(opt.id) && <span className="me-1 opacity-80">✓</span>}
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <form onSubmit={handleSend} className="p-3 bg-white dark:bg-slate-900">
+                                <div className="relative">
+                                    <input
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        placeholder="اسأل سنفور (اختر التفضيلات أولاً)..."
+                                        className="w-full bg-slate-100 dark:bg-white/5 border-none rounded-xl py-3 px-4 pe-12 text-xs font-bold focus:ring-2 focus:ring-blue-500 dark:text-white placeholder:text-slate-400"
+                                        disabled={isTyping}
+                                    />
+                                    <button 
+                                        type="submit" 
+                                        disabled={!inputValue.trim() || isTyping}
+                                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4 -ms-0.5 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}
