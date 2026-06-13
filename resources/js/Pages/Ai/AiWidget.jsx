@@ -18,9 +18,8 @@ export default function AiWidget({ user }) {
     const filterOptions = [
         { id: 'compulsory', label: 'إجباري' },
         { id: 'elective', label: 'اختياري' },
-        { id: 'university_req', label: 'متطلب جامعة' },
+        { id: 'university_req', label: 'متطلب جامعة (أونلاين)' },
         { id: 'supporting', label: 'مساندة' },
-        { id: 'online', label: 'أونلاين' },
     ];
 
     const toggleFilter = (id) => {

@@ -441,9 +441,8 @@ export default function Advisor() {
     const filterOptions = [
         { id: 'compulsory', label: 'إجباري' },
         { id: 'elective', label: 'اختياري' },
-        { id: 'university_req', label: 'متطلب جامعة' },
+        { id: 'university_req', label: 'متطلب جامعة (أونلاين)' },
         { id: 'supporting', label: 'مساندة' },
-        { id: 'online', label: 'أونلاين' },
     ];
     const toggleFilter = (id) => {
         setSelectedFilters(prev => 
@@ -698,6 +697,29 @@ export default function Advisor() {
     );
     const Grp = ({label, items}) => items.length === 0 ? null : <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-wider px-2.5 pt-2 pb-1">{label}</p>{items.map(c=><ChatItem key={c.id} c={c}/>)}</div>;
 
+    const FiltersUI = (
+        <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3 shrink-0">
+            <h3 className="font-black text-slate-600 text-[10px] mb-2 px-1">⚙️ تفضيلات المواد</h3>
+            <div className="flex flex-wrap gap-1.5">
+                {filterOptions.map(opt => (
+                    <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => toggleFilter(opt.id)}
+                        className={`px-3 py-1.5 text-[10.5px] font-bold rounded-xl transition-all duration-200 border flex-grow text-center ${
+                            selectedFilters.includes(opt.id) 
+                            ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white border-transparent shadow-md shadow-blue-500/20' 
+                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
+                    >
+                        {selectedFilters.includes(opt.id) && <span className="me-1 opacity-80">✓</span>}
+                        {opt.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+
     return (
         <MainLayout><Head>
             <title>المستشار الأكاديمي الذكي | سنفور</title>
@@ -738,7 +760,7 @@ export default function Advisor() {
         <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
         {/* === Mobile Sidebar Overlay === */}
-        {sidebar&&<div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={()=>setSidebar(false)}/><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={()=>setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={()=>{setSidebar(false);newChat();}} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}</div></div>}
+        {sidebar&&<div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={()=>setSidebar(false)}/><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={()=>setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={()=>{setSidebar(false);newChat();}} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length>0?chats.map(c=><ChatItem key={c.id} c={c}/>):<p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}{FiltersUI}</div></div>}
 
         {/* === Sidebar === */}
         <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
@@ -775,6 +797,8 @@ export default function Advisor() {
                     {chats.length>0?<><Grp label="اليوم" items={grouped.today}/><Grp label="أمس" items={grouped.yesterday}/><Grp label="هالأسبوع" items={grouped.week}/><Grp label="أقدم" items={grouped.older}/></>:<div className="py-8 flex flex-col items-center text-slate-400 opacity-40"><span className="text-xl">📭</span></div>}
                 </div>
             </div>
+
+            {FiltersUI}
 
             <p className="text-[8px] text-slate-400 font-bold text-center"><kbd className="bg-slate-100 px-1 py-0.5 rounded text-[7px] font-mono">Ctrl+Shift+N</kbd> جديدة · <kbd className="bg-slate-100 px-1 py-0.5 rounded text-[7px] font-mono">Esc</kbd> إيقاف</p>
         </div>
@@ -883,25 +907,6 @@ export default function Advisor() {
                         </div>
                     </div>
                 )}
-                {/* 🆕 فلاتر التفضيلات */}
-                <div className="px-4 py-2 border-b border-slate-100/50 bg-slate-50/50 flex gap-2 overflow-x-auto items-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <span className="text-[10px] text-slate-500 font-bold whitespace-nowrap">تفضيلات المواد:</span>
-                    {filterOptions.map(opt => (
-                        <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => toggleFilter(opt.id)}
-                            className={`whitespace-nowrap px-3 py-1 text-[10px] font-bold rounded-full transition-all duration-200 border flex-shrink-0 ${
-                                selectedFilters.includes(opt.id) 
-                                ? 'bg-gradient-to-r from-sky-500 to-blue-500 text-white border-transparent shadow-md shadow-blue-500/20' 
-                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                            }`}
-                        >
-                            {selectedFilters.includes(opt.id) && <span className="me-1 opacity-80">✓</span>}
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
                 <div className="p-2.5 md:p-3">
                     <form onSubmit={handleSend} className="relative flex items-center">
                         <input 

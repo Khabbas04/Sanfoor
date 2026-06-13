@@ -906,12 +906,11 @@ class AiAdvisorController extends Controller
                 'compulsory' => 'إجباري',
                 'elective' => 'اختياري',
                 'supporting' => 'مساندة',
-                'university_req' => 'متطلب جامعة',
-                'online' => 'أونلاين',
+                'university_req' => 'متطلب جامعة (أونلاين)',
             ];
             $selectedLabels = array_map(fn($f) => $filterLabels[$f] ?? $f, $filters);
             $filterText = implode(' و ', $selectedLabels);
-            $filterInstructions = "- 🚨 تنبيه هام جداً: الطالب حدد تفضيلات خاصة بالمواد التي يبحث عنها وهي: ({$filterText}). يجب عليك الالتزام التام بهذه التفضيلات عند اقتراح المواد (suggested_courses) ولا تقترح مواد من خارج هذه الأنواع إلا إذا تعذر ذلك تماماً، مع توضيح ذلك للطالب. إذا اختار (أونلاين)، ابحث في وصف المادة أو جدولها (Sched) عما يدل على أنها تُدرس عن بعد أو أونلاين.\n";
+            $filterInstructions = "- 🚨 تنبيه هام جداً: الطالب حدد تفضيلات خاصة بالمواد التي يبحث عنها وهي: ({$filterText}). يجب عليك الالتزام التام بهذه التفضيلات عند اقتراح المواد (suggested_courses) ولا تقترح مواد من خارج هذه الأنواع إلا إذا تعذر ذلك تماماً، مع توضيح ذلك للطالب.\n";
         }
 
         $totalPassedHours = (int) ($academicData['total_passed_hours'] ?? 0);
