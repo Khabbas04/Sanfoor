@@ -170,7 +170,7 @@ class AiAdvisorController extends Controller
         ]);
 
         $apiKeys = $this->getGeminiApiKeys();
-        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? []);
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
         $cachedAiResponse = Cache::get($responseCacheKey);
         if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
             $replyText = (string) $cachedAiResponse['reply'];
@@ -218,7 +218,7 @@ class AiAdvisorController extends Controller
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
                 $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
-                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? []);
+                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
                 $contents = $this->buildConversationContext($chat, $systemPrompt);
 
                 $rawText = $this->callGeminiAPI($contents, $apiKeys);
@@ -1454,6 +1454,8 @@ class AiAdvisorController extends Controller
         };
     }
 
+
+
     private function enrichWidgetWithCourseIds(?array $widget, array $availableCoursesMap, array $cartCoursesMap): ?array
     {
         if (!$widget || !isset($widget['type'])) {
@@ -1573,11 +1575,13 @@ class AiAdvisorController extends Controller
         return mb_strtolower(trim($text), 'UTF-8');
     }
 
-    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = []): string
+    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = [], $difficulty = null, $criticalPath = null): string
     {
         $payload = [
             'message' => $this->normalizeArabic(mb_strtolower(trim($message))),
             'filters' => $filters,
+            'difficulty' => $difficulty,
+            'critical_path' => $criticalPath,
             'period' => $academicData['current_period_label'] ?? null,
             'term' => $academicData['current_period_term'] ?? null,
             'year' => $academicData['current_period_year'] ?? null,
