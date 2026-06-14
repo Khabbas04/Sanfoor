@@ -14,7 +14,7 @@ class ContactMessageController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:120'],
-            'email' => ['required', 'email:rfc,dns', 'max:180'],
+            'email' => ['required', 'email', 'max:180'],
             'phone' => ['nullable', 'string', 'max:40'],
             'subject' => ['required', 'string', 'min:5', 'max:180'],
             'message' => ['required', 'string', 'min:15', 'max:4000'],
