@@ -53,37 +53,39 @@ class AdminController extends Controller
         $currentPeriod = AcademicPeriod::current();
         $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
 
-        $demandReport = Course::whereHas('cartUsers', function ($query) use ($currentPeriod, $hasPeriodColumns) {
-                if ($currentPeriod && $hasPeriodColumns) {
-                    $query->where('user_carts.academic_year', $currentPeriod->academic_year)
-                          ->where('user_carts.academic_term', $currentPeriod->academic_term);
-                }
-            })
-            ->withCount(['cartUsers' => function ($query) use ($currentPeriod, $hasPeriodColumns) {
-                if ($currentPeriod && $hasPeriodColumns) {
-                    $query->where('user_carts.academic_year', $currentPeriod->academic_year)
-                          ->where('user_carts.academic_term', $currentPeriod->academic_term);
-                }
-            }])
-            ->get()
-            ->groupBy(function($course) {
-                $name = mb_strtolower(trim($course->name));
-                $name = preg_replace('/\s+/u', '', $name);
-                $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
-                $name = str_replace('ة', 'ه', $name);
-                $name = str_replace('ى', 'ي', $name);
-                return $name;
-            })
-            ->map(function($group) {
-                $first = $group->first();
-                $first->cart_users_count = $group->sum('cart_users_count');
-                $bestNameCourse = $group->sortByDesc(fn($c) => strlen($c->name))->first();
-                $first->name = $bestNameCourse->name;
-                return $first;
-            })
-            ->sortByDesc('cart_users_count')
-            ->take(10)
-            ->values();
+        $demandReport = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_demand_report', 300, function () use ($currentPeriod, $hasPeriodColumns) {
+            return Course::whereHas('cartUsers', function ($query) use ($currentPeriod, $hasPeriodColumns) {
+                    if ($currentPeriod && $hasPeriodColumns) {
+                        $query->where('user_carts.academic_year', $currentPeriod->academic_year)
+                              ->where('user_carts.academic_term', $currentPeriod->academic_term);
+                    }
+                })
+                ->withCount(['cartUsers' => function ($query) use ($currentPeriod, $hasPeriodColumns) {
+                    if ($currentPeriod && $hasPeriodColumns) {
+                        $query->where('user_carts.academic_year', $currentPeriod->academic_year)
+                              ->where('user_carts.academic_term', $currentPeriod->academic_term);
+                    }
+                }])
+                ->get()
+                ->groupBy(function($course) {
+                    $name = mb_strtolower(trim($course->name));
+                    $name = preg_replace('/\s+/u', '', $name);
+                    $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
+                    $name = str_replace('ة', 'ه', $name);
+                    $name = str_replace('ى', 'ي', $name);
+                    return $name;
+                })
+                ->map(function($group) {
+                    $first = $group->first();
+                    $first->cart_users_count = $group->sum('cart_users_count');
+                    $bestNameCourse = $group->sortByDesc(fn($c) => strlen($c->name))->first();
+                    $first->name = $bestNameCourse->name;
+                    return $first;
+                })
+                ->sortByDesc('cart_users_count')
+                ->take(10)
+                ->values();
+        });
 
         $issueSummary = [
             'open' => IssueReport::where('status', 'open')->count(),
@@ -134,8 +136,8 @@ class AdminController extends Controller
                 ->first()
             : null;
 
-        return Inertia::render('Admin/Dashboard', [
-            'stats' => [
+        $stats = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_stats', 300, function () use ($activeStudentIds, $activeAdminIds) {
+            return [
                 'students_count' => User::where('role', 'student')->count(),
                 'active_students_now' => $activeStudentIds->count(),
                 'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
@@ -155,12 +157,20 @@ class AdminController extends Controller
                 'contact_messages_count' => ContactMessage::count(),
                 'unread_contact_messages_count' => ContactMessage::where('status', 'new')->count(),
                 'landmarks_count' => Landmark::count(),
-            ],
-            'onlineUsers' => $onlineUsers,
-            'platform' => [
+            ];
+        });
+
+        $platform = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_platform', 300, function () {
+            return [
                 'colleges_count' => College::count(),
                 'majors_count' => Major::count(),
-            ],
+            ];
+        });
+
+        return Inertia::render('Admin/Dashboard', [
+            'stats' => $stats,
+            'onlineUsers' => $onlineUsers,
+            'platform' => $platform,
             'colleges' => College::select('id', 'name')->orderBy('name')->get(),
             'majors' => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get(),
             'demandReport' => $demandReport,
