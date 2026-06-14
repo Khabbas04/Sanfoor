@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { Mail, Briefcase, Clock, Send, AlertCircle, MessageSquare } from 'lucide-react';
@@ -39,21 +40,40 @@ const channels = [
 
 export default function Contact() {
     const { auth, flash } = usePage().props;
+    const [formType, setFormType] = useState('contact'); // 'contact' or 'join'
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, transform } = useForm({
         name: auth?.user?.name || '',
         email: auth?.user?.email || '',
         phone: '',
         subject: '',
         message: '',
+        
+        university_id: '',
+        academic_year: '',
+        gpa: '',
+        major: auth?.user?.major?.name || '',
+        experience: '',
+
         source_page: `${siteUrl}/contact-us`,
+    });
+
+    transform((formData) => {
+        if (formType === 'join') {
+            return {
+                ...formData,
+                subject: 'طلب انضمام لفريق سنفور',
+                message: `الرقم الجامعي: ${formData.university_id}\nالسنة الدراسية: ${formData.academic_year}\nالمعدل التراكمي: ${formData.gpa}\nالتخصص: ${formData.major}\n\nالخبرات والإضافات:\n${formData.experience}`
+            };
+        }
+        return formData;
     });
 
     const submit = (e) => {
         e.preventDefault();
         post(route('public.contact.store'), {
             onSuccess: () => {
-                reset('phone', 'subject', 'message');
+                reset('phone', 'subject', 'message', 'university_id', 'academic_year', 'gpa', 'experience');
             },
         });
     };
@@ -123,6 +143,23 @@ export default function Contact() {
                             </div>
                         )}
 
+                        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8 w-full max-w-sm mx-auto shadow-inner border border-slate-200/50">
+                            <button
+                                type="button"
+                                onClick={() => setFormType('contact')}
+                                className={`flex-1 py-2.5 text-[13px] font-black rounded-xl transition-all duration-300 ${formType === 'contact' ? 'bg-white text-blue-700 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                            >
+                                استفسار وتواصل
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormType('join')}
+                                className={`flex-1 py-2.5 text-[13px] font-black rounded-xl transition-all duration-300 ${formType === 'join' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                            >
+                                طلب انضمام للفريق
+                            </button>
+                        </div>
+
                         <form onSubmit={submit} className="space-y-5">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div>
@@ -133,6 +170,7 @@ export default function Contact() {
                                         onChange={(e) => setData('name', e.target.value)}
                                         className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
                                         placeholder="محمد عبدالله"
+                                        required
                                     />
                                     {errors.name && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.name}</p>}
                                 </div>
@@ -144,47 +182,126 @@ export default function Contact() {
                                         onChange={(e) => setData('email', e.target.value)}
                                         className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
                                         placeholder="you@example.com"
+                                        required
                                     />
                                     {errors.email && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.email}</p>}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div>
-                                    <label className="block text-[13px] font-black text-slate-700 mb-2">رقم الهاتف <span className="text-slate-400 font-normal">(اختياري)</span></label>
-                                    <input
-                                        type="text"
-                                        value={data.phone}
-                                        onChange={(e) => setData('phone', e.target.value)}
-                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                        placeholder="079xxxxxxx"
-                                    />
-                                    {errors.phone && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.phone}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-[13px] font-black text-slate-700 mb-2">موضوع الرسالة</label>
-                                    <input
-                                        type="text"
-                                        value={data.subject}
-                                        onChange={(e) => setData('subject', e.target.value)}
-                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                                        placeholder="مثال: طلب انضمام لفريق التطوير..."
-                                    />
-                                    {errors.subject && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.subject}</p>}
-                                </div>
-                            </div>
+                            {formType === 'contact' ? (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-[13px] font-black text-slate-700 mb-2">رقم الهاتف <span className="text-slate-400 font-normal">(اختياري)</span></label>
+                                            <input
+                                                type="text"
+                                                value={data.phone}
+                                                onChange={(e) => setData('phone', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                                placeholder="079xxxxxxx"
+                                            />
+                                            {errors.phone && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.phone}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[13px] font-black text-slate-700 mb-2">موضوع الرسالة</label>
+                                            <input
+                                                type="text"
+                                                value={data.subject}
+                                                onChange={(e) => setData('subject', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                                placeholder="مثال: استفسار عن الكورسات..."
+                                                required={formType === 'contact'}
+                                            />
+                                            {errors.subject && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.subject}</p>}
+                                        </div>
+                                    </div>
 
-                            <div>
-                                <label className="block text-[13px] font-black text-slate-700 mb-2">نص الرسالة</label>
-                                <textarea
-                                    rows={5}
-                                    value={data.message}
-                                    onChange={(e) => setData('message', e.target.value)}
-                                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
-                                    placeholder="اكتب تفاصيل فكرتك، خبراتك، أو استفسارك هنا..."
-                                />
-                                {errors.message && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.message}</p>}
-                            </div>
+                                    <div>
+                                        <label className="block text-[13px] font-black text-slate-700 mb-2">نص الرسالة</label>
+                                        <textarea
+                                            rows={5}
+                                            value={data.message}
+                                            onChange={(e) => setData('message', e.target.value)}
+                                            className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all resize-y"
+                                            placeholder="اكتب تفاصيل استفسارك أو مشكلتك هنا..."
+                                            required={formType === 'contact'}
+                                        />
+                                        {errors.message && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.message}</p>}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-[13px] font-black text-slate-700 mb-2">الرقم الجامعي</label>
+                                            <input
+                                                type="text"
+                                                value={data.university_id}
+                                                onChange={(e) => setData('university_id', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                                placeholder="مثال: 202110200"
+                                                required={formType === 'join'}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[13px] font-black text-slate-700 mb-2">السنة الدراسية</label>
+                                            <select
+                                                value={data.academic_year}
+                                                onChange={(e) => setData('academic_year', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                                required={formType === 'join'}
+                                            >
+                                                <option value="" disabled>اختر السنة الدراسية</option>
+                                                <option value="السنة الأولى">السنة الأولى</option>
+                                                <option value="السنة الثانية">السنة الثانية</option>
+                                                <option value="السنة الثالثة">السنة الثالثة</option>
+                                                <option value="السنة الرابعة">السنة الرابعة</option>
+                                                <option value="السنة الخامسة">السنة الخامسة</option>
+                                                <option value="خريج">خريج</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-[13px] font-black text-slate-700 mb-2">المعدل التراكمي (أو التقدير)</label>
+                                            <input
+                                                type="text"
+                                                value={data.gpa}
+                                                onChange={(e) => setData('gpa', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                                placeholder="مثال: 85.5 أو جيد جداً"
+                                                required={formType === 'join'}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[13px] font-black text-slate-700 mb-2">التخصص</label>
+                                            <input
+                                                type="text"
+                                                value={data.major}
+                                                onChange={(e) => setData('major', e.target.value)}
+                                                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                                placeholder="هندسة البرمجيات..."
+                                                required={formType === 'join'}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[13px] font-black text-slate-700 mb-2">خبراتك، مهاراتك، ولماذا تود الانضمام إلينا؟</label>
+                                        <textarea
+                                            rows={6}
+                                            value={data.experience}
+                                            onChange={(e) => setData('experience', e.target.value)}
+                                            className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all resize-y"
+                                            placeholder="تحدث عن نفسك بشكل عام، أي لغات برمجة تتقن، أعمال سابقة، أفكار إبداعية، أو أي شغف تمتلكه ويفيد المشروع..."
+                                            required={formType === 'join'}
+                                        />
+                                        {/* Show error if backend rejects the constructed message */}
+                                        {errors.message && <p className="mt-1.5 text-[11px] font-black text-rose-500">{errors.message}</p>}
+                                    </div>
+                                </>
+                            )}
 
                             <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <button
