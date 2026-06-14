@@ -166,63 +166,98 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
    ═══════════════════════════════════════════════════════════ */
 
 const DifficultyDropdown = ({ value, onChange }) => {
+    const { isDark } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
+    const triggerRef = useRef(null);
+    const [dropdownStyle, setDropdownStyle] = useState({});
+
     const options = [
-        { id: 'all', label: 'كل الصعوبات', icon: '🎚️', color: 'text-slate-200', bg: 'bg-slate-700/50' },
-        { id: 'easy', label: 'خفيف', icon: '🌿', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-        { id: 'balanced', label: 'متوسط', icon: '⚖️', color: 'text-amber-400', bg: 'bg-amber-400/10' },
-        { id: 'heavy', label: 'صعب', icon: '🔥', color: 'text-rose-400', bg: 'bg-rose-400/10' },
+        { id: 'all', label: 'كل الصعوبات', icon: '🎚️', color: isDark ? 'text-slate-200' : 'text-slate-700', bg: isDark ? 'bg-slate-700/50' : 'bg-slate-200/80' },
+        { id: 'easy', label: 'خفيف', icon: '🌿', color: isDark ? 'text-emerald-400' : 'text-emerald-600', bg: isDark ? 'bg-emerald-400/10' : 'bg-emerald-100' },
+        { id: 'balanced', label: 'متوسط', icon: '⚖️', color: isDark ? 'text-amber-400' : 'text-amber-600', bg: isDark ? 'bg-amber-400/10' : 'bg-amber-100' },
+        { id: 'heavy', label: 'صعب', icon: '🔥', color: isDark ? 'text-rose-400' : 'text-rose-600', bg: isDark ? 'bg-rose-400/10' : 'bg-rose-100' },
     ];
     
     const selected = options.find(o => o.id === value) || options[0];
 
+    useEffect(() => {
+        if (isOpen && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setDropdownStyle({
+                top: rect.bottom + 6,
+                left: rect.left,
+                width: rect.width,
+            });
+            
+            // Re-calculate on scroll or resize
+            const handleScroll = () => setIsOpen(false);
+            window.addEventListener('scroll', handleScroll, true);
+            window.addEventListener('resize', handleScroll);
+            return () => {
+                window.removeEventListener('scroll', handleScroll, true);
+                window.removeEventListener('resize', handleScroll);
+            };
+        }
+    }, [isOpen]);
+
     return (
         <div className="relative shrink-0 font-t">
             <button
+                ref={triggerRef}
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-[800] transition-all bg-slate-900/50 hover:bg-slate-800 text-slate-200 shadow-sm border border-slate-700/50 outline-none w-[130px]"
+                className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-[800] transition-all shadow-sm border outline-none w-[130px] ${
+                    isDark 
+                        ? 'bg-slate-800/80 hover:bg-slate-700 text-slate-200 border-slate-700/50' 
+                        : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200/80'
+                }`}
             >
                 <div className="flex items-center gap-2">
                     <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[10px] ${selected.bg}`}>{selected.icon}</span>
                     <span className={selected.color}>{selected.label}</span>
                 </div>
-                <span className="text-slate-500 text-[10px] mb-1">⌄</span>
+                <span className={`${isDark ? 'text-slate-500' : 'text-slate-400'} text-[10px] mb-1`}>⌄</span>
             </button>
 
-            <AnimatePresence>
-                {isOpen && (
-                    <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                        <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute top-full mt-2 left-0 w-[130px] bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] overflow-hidden z-50 flex flex-col p-1.5 gap-0.5"
-                        >
-                            {options.map((opt) => (
-                                <button
-                                    key={opt.id}
-                                    type="button"
-                                    onClick={() => {
-                                        onChange(opt.id);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`flex items-center gap-2 w-full text-right px-2 py-1.5 rounded-lg text-[11px] font-[800] transition-all ${
-                                        value === opt.id 
-                                            ? 'bg-slate-800 ' + opt.color 
-                                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                                >
-                                    <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[10px] ${opt.bg}`}>{opt.icon}</span>
-                                    <span className={value === opt.id ? opt.color : ''}>{opt.label}</span>
-                                </button>
-                            ))}
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+            {createPortal(
+                <AnimatePresence>
+                    {isOpen && (
+                        <>
+                            <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+                            <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                transition={{ duration: 0.15 }}
+                                style={dropdownStyle}
+                                className={`fixed z-[101] backdrop-blur-md border rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.15)] overflow-hidden flex flex-col p-1 gap-0.5 font-t ${
+                                    isDark ? 'bg-slate-900/95 border-slate-700/50' : 'bg-white/95 border-slate-200'
+                                }`}
+                            >
+                                {options.map((opt) => (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(opt.id);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`flex items-center gap-2 w-full text-right px-2 py-1.5 rounded-lg text-[11px] font-[800] transition-all ${
+                                            value === opt.id 
+                                                ? (isDark ? 'bg-slate-800 ' + opt.color : 'bg-slate-100 ' + opt.color)
+                                                : (isDark ? 'text-slate-400 hover:bg-slate-800 hover:text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900')
+                                        }`}
+                                    >
+                                        <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[10px] ${opt.bg}`}>{opt.icon}</span>
+                                        <span className={value === opt.id ? opt.color : ''}>{opt.label}</span>
+                                    </button>
+                                ))}
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 };
