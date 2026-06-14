@@ -16,10 +16,13 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
     const [error, setError] = useState('');
     const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-    const intervalMs = options.intervalMs ?? 5000; // default 5s
+    const intervalMs = options.intervalMs ?? 60000; // default 60s to prevent DDoS
     const minutes = options.minutes ?? 30; // look-back window
 
     const fetchOnlineUsers = async () => {
+        // Do not hit the server if the user is in another tab
+        if (document.hidden) return;
+
         try {
             const url = route('admin.api.online_users', { minutes });
             const response = await fetch(url, {
@@ -54,12 +57,23 @@ export function useOnlinePolling(initialOnlineUsers, initialStats, options = {})
     // 🔥 Polling for online users (configurable interval)
     useEffect(() => {
         // Initial poll
-        fetchOnlineUsers();
+        if (!document.hidden) fetchOnlineUsers();
 
         // Set up interval
         const pollInterval = setInterval(fetchOnlineUsers, intervalMs);
 
-        return () => clearInterval(pollInterval);
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                fetchOnlineUsers();
+            }
+        };
+
+        document.addEventListener('visibilitychange', onVisibilityChange);
+
+        return () => {
+            clearInterval(pollInterval);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
     }, [intervalMs, minutes]);
 
     // 🔥 Heartbeat: send activity every 60 seconds to keep session alive

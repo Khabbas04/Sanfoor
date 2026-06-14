@@ -199,6 +199,9 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
 
     useEffect(() => {
         const refreshDashboard = () => {
+            // Do not hit the server if the user is in another tab (fixes the DDoS issue)
+            if (document.hidden) return;
+
             router.reload({
                 only: ['stats', 'platform', 'demandReport', 'issueSummary', 'recentIssues', 'logs', 'onlineUsers', 'adminNotes', 'myAdminNote', 'notesEnabled'],
                 preserveState: true,
@@ -208,7 +211,8 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
             pollNewRegistrations();
         };
 
-        const timer = window.setInterval(refreshDashboard, 5000);
+        // Increase interval to 60 seconds to relieve the server
+        const timer = window.setInterval(refreshDashboard, 60000);
 
         const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
