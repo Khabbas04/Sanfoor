@@ -26,7 +26,7 @@ export default function GlobalLoader() {
                             return prev + Math.random() * 10;
                         });
                     }, 100);
-                }, 5000); // 5 seconds delay
+                }, 250); // 250ms delay
             }
         };
 

@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(SocialiteWasCalled::class, AzureExtendSocialite::class.'@handle');
 
         // Prefetch Vite chunks to improve perceived frontend performance.
-        Vite::prefetch(concurrency: 3);
+        // Vite::prefetch(concurrency: 3);
 
         // Register a custom mail macro that sends messages through the Brevo API.
         Mail::macro('brevo', function ($to, $subject, $html) {

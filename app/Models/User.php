@@ -193,7 +193,13 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function calculateGPA()
     {
-        $coursesWithGrades = $this->passedCourses()->whereNotNull('course_user.grade')->get();
+        if ($this->relationLoaded('passedCourses')) {
+            $coursesWithGrades = $this->passedCourses->filter(function ($course) {
+                return !is_null($course->pivot->grade);
+            });
+        } else {
+            $coursesWithGrades = $this->passedCourses()->whereNotNull('course_user.grade')->get();
+        }
 
         if ($coursesWithGrades->isEmpty()) {
             return ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
@@ -244,7 +250,11 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isEligibleForGraduation($requiredHours = 132)
     {
-        $completedHours = $this->passedCourses()->sum('credit_hours');
+        if ($this->relationLoaded('passedCourses')) {
+            $completedHours = $this->passedCourses->sum('credit_hours');
+        } else {
+            $completedHours = $this->passedCourses()->sum('credit_hours');
+        }
 
         return [
             'is_eligible' => $completedHours >= $requiredHours,

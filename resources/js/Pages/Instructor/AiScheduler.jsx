@@ -319,9 +319,6 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
                                 </div>
                                 المساعد الذكي
                             </h2>
-                            <Link href={route('tree.index')} className="p-2.5 text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/40 dark:text-slate-300 dark:hover:text-indigo-300 rounded-xl transition-all shadow-sm" title="العودة للخطط الشجرية">
-                                <ChevronLeft size={20} />
-                            </Link>
                         </div>
                         
                         <button 

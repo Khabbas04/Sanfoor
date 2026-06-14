@@ -114,6 +114,44 @@
 body{
 font-family:'Cairo',sans-serif;
 }
+
+/* Initial Loader Styles */
+#initial-loader {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #0f172a; /* Match theme background */
+    z-index: 999999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+/* Show the loader only if #app has no child elements (before React hydration) */
+#app:empty ~ #initial-loader {
+    display: flex;
+}
+.loader-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-top: 1rem;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.loader-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    animation: pulse-loader 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse-loader {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .7; transform: scale(0.95); }
+}
 </style>
 
 @routes
@@ -126,5 +164,10 @@ font-family:'Cairo',sans-serif;
 
 <body class="antialiased text-slate-900">
     @inertia
+
+    <div id="initial-loader" dir="ltr">
+        <img src="/images/sanfoor.png" alt="Sanfoor" class="loader-logo">
+        <div class="loader-spinner"></div>
+    </div>
 </body>
 </html>
