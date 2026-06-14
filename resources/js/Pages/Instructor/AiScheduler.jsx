@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Head, usePage, router, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
-import { Bot, Send, Trash2, Clock, Calendar, Users, Settings, Plus, Check, ArrowRight } from 'lucide-react';
+import { Bot, Send, Trash2, Clock, Calendar, Users, Settings, Plus, Check, ArrowRight, Sparkles, MessageSquare, Zap, ChevronLeft, CalendarDays, Briefcase } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import axios from 'axios';
@@ -69,11 +69,12 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
         }
     };
 
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        if (!input.trim() || isLoading) return;
+    const sendMessage = async (e, textOverride = null) => {
+        if (e) e.preventDefault();
+        const textToSend = textOverride || input;
+        if (!textToSend.trim() || isLoading) return;
 
-        const userMessage = { role: 'user', content: input };
+        const userMessage = { role: 'user', content: textToSend };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
@@ -114,9 +115,9 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
 
     const rankToText = (rank) => {
         switch (rank) {
-            case 'professor': return 'أستاذ دكتور (Professor)';
-            case 'doctor': return 'دكتور (Doctor)';
-            case 'master': return 'ماجستير (Master)';
+            case 'professor': return 'أستاذ دكتور';
+            case 'doctor': return 'دكتور';
+            case 'master': return 'ماجستير';
             default: return 'عضو هيئة تدريس';
         }
     };
@@ -142,63 +143,65 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
         }
 
         return (
-            <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4 sfr-slide-up`} dir="rtl">
-                <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${isUser ? 'flex-row-reverse' : ''} items-end`}>
+            <div key={idx} className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-6 sfr-slide-up w-full`} dir="rtl">
+                <div className={`flex max-w-[95%] xl:max-w-[85%] gap-3 ${isUser ? 'flex-row-reverse' : ''} items-end`}>
                     {isUser ? (
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[12px] font-black text-white shrink-0 shadow-lg shadow-indigo-500/30 overflow-hidden ring-2 ring-white dark:ring-slate-800">
                             {auth?.user?.avatar ? <img src={auth.user.avatar} alt={auth.user.name} className="w-full h-full object-cover" /> : auth?.user?.name?.charAt(0)||'أ'}
                         </div>
                     ) : (
-                        <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-blue-50">
-                            <Bot size={20} className="text-blue-500" />
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0 overflow-hidden shadow-lg shadow-teal-500/30 ring-2 ring-white dark:ring-slate-800">
+                            <Bot size={22} className="text-white" />
                         </div>
                     )}
-                    <div className={`group/m ${isUser ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-2xl rounded-se-sm shadow-lg shadow-blue-500/10 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
+                    
+                    <div className={`group/m ${isUser ? 'bg-gradient-to-tr from-indigo-500 to-purple-600 text-white rounded-3xl rounded-br-sm shadow-xl shadow-indigo-500/20 p-5' : 'glass-message text-slate-800 dark:text-slate-100 rounded-3xl rounded-bl-sm w-full shadow-lg p-5 border border-white/40 dark:border-slate-700/50'}`}>
                         {isUser ? (
-                            <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{contentText}</p>
+                            <p className="font-bold leading-relaxed text-[14px] whitespace-pre-wrap">{contentText}</p>
                         ) : (
                             <div className="w-full">
-                                <div className="sfr-ai-shell">
-                                    <div className="sfr-ai-card">
-                                        <div className="sfr-md text-[12.5px] font-medium prose max-w-none prose-sm prose-p:leading-relaxed text-slate-700">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentText}</ReactMarkdown>
-                                        </div>
-                                    </div>
+                                <div className="sfr-md text-[14px] font-medium prose max-w-none prose-p:leading-loose text-slate-700 dark:text-slate-300">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{contentText}</ReactMarkdown>
                                 </div>
                                 
                                 {proposedSchedule && proposedSchedule.length > 0 && (
-                                    <div className="mt-4 pt-3 border-t border-blue-100/40 sfr-fade-up">
-                                        <p className="text-[10px] font-black text-blue-600 mb-3 flex items-center gap-1.5"><Calendar size={14} /> 📋 الجدول المقترح</p>
-                                        <div className="bg-gradient-to-br from-slate-50/80 to-blue-50/30 rounded-2xl p-0 border border-slate-200/40 overflow-hidden shadow-sm">
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-[11px] text-right text-slate-600">
-                                                    <thead className="bg-slate-100/50">
-                                                        <tr>
-                                                            <th className="px-3 py-2.5 font-bold text-slate-700">المادة</th>
-                                                            <th className="px-3 py-2.5 font-bold text-slate-700">الأيام</th>
-                                                            <th className="px-3 py-2.5 font-bold text-slate-700">الوقت</th>
-                                                            <th className="px-3 py-2.5 font-bold text-slate-700">القاعة</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-100">
-                                                        {proposedSchedule.map((row, i) => (
-                                                            <tr key={i} className="hover:bg-slate-50 transition-colors">
-                                                                <td className="px-3 py-2.5 font-black text-slate-800">{row.course_name}</td>
-                                                                <td className="px-3 py-2.5 font-bold">{row.days}</td>
-                                                                <td className="px-3 py-2.5 font-mono text-[10px] text-blue-600 font-bold" dir="ltr">{row.time}</td>
-                                                                <td className="px-3 py-2.5 text-blue-500 font-bold">{row.hall}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
+                                    <div className="mt-6 pt-5 border-t border-slate-200/50 dark:border-slate-700/50 sfr-fade-up">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                                <CalendarDays size={18} />
                                             </div>
-                                            <div className="p-2.5 bg-white border-t border-slate-100">
-                                                <button 
-                                                    onClick={() => commitSchedule(proposedSchedule)}
-                                                    className="w-full flex items-center justify-center gap-1.5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-xl transition-all font-black text-[12px] shadow-sm shadow-emerald-500/20 active:scale-[.98]">
-                                                    <Check size={14} /> اعتماد وتسليم للقسم
-                                                </button>
-                                            </div>
+                                            <h4 className="text-[14px] font-black text-slate-800 dark:text-white">الجدول المقترح</h4>
+                                        </div>
+                                        
+                                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                            {proposedSchedule.map((row, i) => (
+                                                <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-shadow relative overflow-hidden group/card">
+                                                    <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-indigo-400 to-purple-500"></div>
+                                                    <h5 className="font-black text-slate-800 dark:text-white mb-2 pr-2 text-sm">{row.course_name}</h5>
+                                                    <div className="space-y-2 pr-2">
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                            <Calendar size={12} className="text-indigo-500" />
+                                                            <span>{row.days}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400" dir="ltr">
+                                                            <Clock size={12} className="text-purple-500" />
+                                                            <span className="flex-1 text-right">{row.time}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                                                            <Users size={12} className="text-emerald-500" />
+                                                            <span>{row.hall}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        <div className="mt-5 flex justify-end">
+                                            <button 
+                                                onClick={() => commitSchedule(proposedSchedule)}
+                                                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl transition-all font-black text-sm shadow-lg shadow-emerald-500/30 active:scale-95">
+                                                <Check size={18} /> اعتماد وإرسال للقسم
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -214,83 +217,155 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
         <MainLayout user={auth.user}>
             <Head title="المساعد الذكي للجدول" />
             <style dangerouslySetInnerHTML={{ __html: `
-            :root { --sfr-primary: #3b82f6; --sfr-accent: #6366f1; }
-            .sfr-scrollbar::-webkit-scrollbar { width: 4px; }
-            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(59,130,246,.2); border-radius: 10px; }
-            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59,130,246,.4); }
-            .typing-dot { animation: sfr-bounce 1.4s infinite ease-in-out both; }
-            .typing-dot:nth-child(1) { animation-delay: -.32s; }
-            .typing-dot:nth-child(2) { animation-delay: -.16s; }
-            @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
-            .sfr-md p { margin-bottom: .6rem; line-height: 1.85; color: #334155; }
+            :root { 
+                --sfr-primary: #4f46e5; 
+                --sfr-primary-light: #818cf8;
+                --sfr-accent: #0ea5e9; 
+                --sfr-bg: #f0fdf4;
+            }
+            .sfr-scrollbar::-webkit-scrollbar { width: 6px; }
+            .sfr-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 10px; }
+            .sfr-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+            
+            .glass-panel {
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.5);
+            }
+            .dark .glass-panel {
+                background: rgba(15, 23, 42, 0.75);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .glass-message {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(10px);
+            }
+            .dark .glass-message {
+                background: rgba(30, 41, 59, 0.85);
+            }
+            
+            .animate-float { animation: float 6s ease-in-out infinite; }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-12px); }
+                100% { transform: translateY(0px); }
+            }
+            
+            .gradient-text {
+                background: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .dark .gradient-text {
+                background: linear-gradient(135deg, #818cf8 0%, #38bdf8 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            
+            .suggestion-chip { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            .suggestion-chip:hover {
+                transform: translateY(-3px) scale(1.02);
+                box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.25);
+            }
+            
+            @keyframes sfr-su { from { opacity:0; transform: translateY(15px); } to { opacity:1; transform: translateY(0); } }
+            .sfr-slide-up { animation: sfr-su .4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+            
+            @keyframes sfr-fu { from { opacity:0; } to { opacity:1; } }
+            .sfr-fade-up { animation: sfr-fu .5s ease-out forwards; }
+            
+            .sfr-md p { margin-bottom: 0.8rem; line-height: 2; }
             .sfr-md p:last-child { margin-bottom: 0; }
-            .sfr-md p:first-child { background: linear-gradient(to left, rgba(59,130,246,0.06), transparent); border-right: 3px solid var(--sfr-primary); padding: .5rem .7rem; border-radius: 8px; font-weight: 600; color: #1e293b; margin-bottom: .8rem; }
-            .sfr-md strong { color: #1d4ed8; font-weight: 800; background: rgba(59,130,246,0.08); padding: 0.15rem 0.4rem; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(59,130,246,0.15); margin: 0 0.1rem; }
-            .sfr-md em { color: #4338ca; font-style: normal; font-weight: 700; background: rgba(99,102,241,0.08); padding: 0 0.2rem; border-radius: 4px; }
-            .sfr-md ul { list-style: none; padding-right: .2rem; margin-bottom: .8rem; margin-top: .4rem; }
-            .sfr-md li { position: relative; padding-right: 1.2rem; margin-bottom: .4rem; line-height: 1.7; color: #475569; }
-            .sfr-md li::before { content: ""; position: absolute; right: .15rem; top: .6em; width: 6px; height: 6px; background: linear-gradient(135deg, var(--sfr-primary), var(--sfr-accent)); border-radius: 50%; box-shadow: 0 0 4px rgba(59,130,246,0.4); }
-            @keyframes sfr-su { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
-            .sfr-slide-up { animation: sfr-su .3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-            @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
-            .sfr-fade-up { animation: sfr-fu .25s ease-out forwards; }
-            @keyframes sfr-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(59,130,246,.2); } 50% { box-shadow: 0 0 0 5px rgba(59,130,246,0); } }
-            .sfr-glow { animation: sfr-glow 3s infinite; }
-            .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .2s; cursor: pointer; color: #64748b; }
-            .sfr-action-btn:hover { background: #f1f5f9; color: #334155; transform: scale(1.05); }
-            .sfr-ai-shell { background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(99,102,241,0.3), rgba(14,165,233,0.4)); padding: 1.5px; border-radius: 20px; box-shadow: 0 4px 20px -10px rgba(59,130,246,0.4); margin-bottom: 0.2rem; }
-            .sfr-ai-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); border-radius: 19px; padding: 1rem 1.1rem; }
+            .sfr-md strong { color: #4338ca; font-weight: 800; background: rgba(79,70,229,0.08); padding: 0.2rem 0.5rem; border-radius: 8px; margin: 0 0.2rem; display: inline-block;}
+            .dark .sfr-md strong { color: #818cf8; background: rgba(129,140,248,0.15); }
+            .sfr-md ul { list-style: none; padding-right: 0.5rem; margin-bottom: 1rem; margin-top: 0.5rem; }
+            .sfr-md li { position: relative; padding-right: 1.5rem; margin-bottom: 0.6rem; line-height: 1.8; }
+            .sfr-md li::before { content: ""; position: absolute; right: 0.25rem; top: 0.7em; width: 6px; height: 6px; background: linear-gradient(135deg, var(--sfr-primary), var(--sfr-accent)); border-radius: 50%; box-shadow: 0 0 8px rgba(79,70,229,0.5); }
+            
+            .typing-indicator span {
+                display: inline-block;
+                width: 6px;
+                height: 6px;
+                background-color: #4f46e5;
+                border-radius: 50%;
+                animation: typing 1.4s infinite ease-in-out both;
+                margin: 0 2px;
+            }
+            .dark .typing-indicator span { background-color: #818cf8; }
+            .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+            .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+            @keyframes typing {
+                0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+                40% { transform: scale(1); opacity: 1; }
+            }
             ` }} />
 
-            <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 min-h-[calc(100vh-80px)] flex flex-col lg:flex-row gap-6" dir="rtl">
+            <div className="fixed inset-0 top-[64px] bg-[url('/assets/grid-pattern.svg')] bg-repeat opacity-[0.03] dark:opacity-[0.05] pointer-events-none z-0"></div>
+            
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-400/20 dark:bg-indigo-600/20 blur-[120px] rounded-full mix-blend-multiply pointer-events-none -z-10"></div>
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-teal-400/20 dark:bg-teal-600/20 blur-[150px] rounded-full mix-blend-multiply pointer-events-none -z-10"></div>
+
+            <div className="max-w-[1600px] mx-auto h-[calc(100vh-64px)] flex flex-col lg:flex-row p-2 sm:p-4 gap-4 relative z-10" dir="rtl">
                 
                 {/* Sidebar */}
-                <div className="w-full lg:w-[320px] shrink-0 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden flex flex-col h-[auto] lg:h-[calc(100vh-120px)] max-h-[800px]">
-                    <div className="p-5 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
-                                <Bot className="text-blue-600" /> المساعد الذكي
+                <div className="w-full lg:w-[380px] shrink-0 glass-panel rounded-[2rem] shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden flex flex-col h-full z-20 transition-all duration-300">
+                    <div className="p-6 pb-4">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="font-black text-xl text-slate-800 dark:text-white flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/20">
+                                    <Sparkles className="text-white" size={20} />
+                                </div>
+                                المساعد الذكي
                             </h2>
-                            <Link href={route('tree.index')} className="flex items-center gap-2 px-3 py-1.5 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 dark:bg-slate-700/50 dark:hover:bg-slate-700 dark:text-slate-300 dark:hover:text-white rounded-lg transition-colors font-bold text-[11px]" title="العودة للخطط الشجرية">
-                                <ArrowRight size={14} /> عودة للخطط
+                            <Link href={route('tree.index')} className="p-2.5 text-slate-400 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-900/40 dark:text-slate-300 dark:hover:text-indigo-300 rounded-xl transition-all shadow-sm" title="العودة للخطط الشجرية">
+                                <ChevronLeft size={20} />
                             </Link>
                         </div>
+                        
                         <button 
                             onClick={() => { setCurrentChatId(null); setMessages([]); setShowPrefs(false); setShowDirectory(false); }}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-bold text-sm">
-                            <Plus size={18} strokeWidth={3} />
-                            محادثة جديدة
+                            className="w-full relative group overflow-hidden flex items-center justify-center gap-3 px-6 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl transition-all shadow-xl hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-0.5">
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <Plus size={20} strokeWidth={3} className="relative z-10" />
+                            <span className="font-black text-[15px] relative z-10">محادثة جديدة</span>
                         </button>
                     </div>
 
-                    <div className="flex gap-2 p-3 bg-gray-50/50 dark:bg-gray-900/20 border-b border-gray-100 dark:border-gray-700">
-                        <button 
-                            onClick={() => { setShowDirectory(true); setShowPrefs(false); }}
-                            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all text-xs font-bold ${showDirectory ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-                            <Users size={20} />
-                            الكادر
-                        </button>
-                        <button 
-                            onClick={() => { setShowPrefs(true); setShowDirectory(false); }}
-                            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all text-xs font-bold ${showPrefs ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shadow-sm ring-1 ring-blue-200 dark:ring-blue-800' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-                            <Settings size={20} />
-                            تفضيلاتي
-                        </button>
+                    <div className="px-4 pb-2">
+                        <div className="flex bg-slate-100 dark:bg-slate-800/50 p-1.5 rounded-2xl">
+                            <button 
+                                onClick={() => { setShowDirectory(true); setShowPrefs(false); }}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all text-sm font-bold ${showDirectory ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+                                <Users size={18} />
+                                الكادر
+                            </button>
+                            <button 
+                                onClick={() => { setShowPrefs(true); setShowDirectory(false); }}
+                                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all text-sm font-bold ${showPrefs ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>
+                                <Settings size={18} />
+                                التفضيلات
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-3 space-y-1">
-                        <div className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-2 pt-2 pb-1">السجل المسبق</div>
+                    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 sfr-scrollbar">
+                        <div className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 pt-2 pb-2">السجل المسبق</div>
                         {chats.length === 0 ? (
-                            <div className="text-center py-6 text-sm text-gray-400">لا يوجد محادثات سابقة</div>
+                            <div className="text-center py-10 flex flex-col items-center justify-center opacity-60">
+                                <MessageSquare size={32} className="text-slate-300 dark:text-slate-600 mb-3" />
+                                <span className="text-sm font-bold text-slate-400">لا يوجد محادثات سابقة</span>
+                            </div>
                         ) : (
                             chats.map(chat => (
                                 <div key={chat.id} 
-                                    className={`group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${currentChatId === chat.id && !showPrefs && !showDirectory ? 'bg-blue-50 dark:bg-blue-900/30 ring-1 ring-blue-100 dark:ring-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
-                                    <div onClick={() => loadChat(chat.id)} className={`flex-1 truncate text-sm font-medium ${currentChatId === chat.id && !showPrefs && !showDirectory ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'}`}>
+                                    className={`group flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border ${currentChatId === chat.id && !showPrefs && !showDirectory ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800/50 shadow-sm' : 'bg-transparent border-transparent hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm'}`}>
+                                    <div onClick={() => loadChat(chat.id)} className={`flex-1 truncate text-[14px] font-bold ${currentChatId === chat.id && !showPrefs && !showDirectory ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
                                         {chat.title}
                                     </div>
-                                    <button onClick={() => deleteChat(chat.id)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-lg">
-                                        <Trash2 size={14} />
+                                    <button onClick={() => deleteChat(chat.id)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-all p-2 rounded-xl">
+                                        <Trash2 size={16} />
                                     </button>
                                 </div>
                             ))
@@ -299,54 +374,57 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200/60 dark:border-gray-700 overflow-hidden flex flex-col relative h-[600px] lg:h-[calc(100vh-120px)] max-h-[800px]">
+                <div className="flex-1 glass-panel rounded-[2rem] shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden flex flex-col relative h-full z-20">
                     
                     {/* Disclaimer */}
-                    <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-2.5 text-center text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-200 border-b border-amber-200/50 dark:border-amber-800/30 flex items-center justify-center gap-2">
-                        <span className="text-lg">⚠️</span> النظام حالياً يستخدم بيانات افتراضية لتوضيح قدرة الذكاء الاصطناعي لحين ربط السعات الحقيقية.
+                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-400/10 to-amber-500/10 backdrop-blur-md border-b border-amber-500/20 px-6 py-3 flex items-center justify-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                            <span className="text-amber-600 dark:text-amber-400 text-xs font-black">!</span>
+                        </div>
+                        <p className="text-sm font-bold text-amber-700 dark:text-amber-300">النظام حالياً يستخدم بيانات افتراضية لتوضيح قدرة الذكاء الاصطناعي لحين ربط السعات الحقيقية.</p>
                     </div>
 
                     {showDirectory ? (
-                        <div className="p-6 md:p-10 flex-1 overflow-y-auto bg-gray-50/30 dark:bg-gray-900/30">
-                            <div className="max-w-4xl mx-auto">
-                                <div className="mb-8">
-                                    <h3 className="text-2xl font-[900] text-gray-900 dark:text-white flex items-center gap-3">
-                                        <div className="p-3 bg-blue-100 dark:bg-blue-900/50 text-blue-600 rounded-2xl"><Users size={24} /></div>
+                        <div className="p-6 lg:p-12 flex-1 overflow-y-auto sfr-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="max-w-5xl mx-auto sfr-fade-up">
+                                <div className="mb-10 text-center lg:text-right">
+                                    <h3 className="text-3xl font-[900] text-slate-900 dark:text-white flex items-center justify-center lg:justify-start gap-4 mb-4">
+                                        <div className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl shadow-lg shadow-blue-500/30"><Users size={28} /></div>
                                         كادر القسم 
                                     </h3>
-                                    <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm leading-relaxed">تصفح معلومات زملائك في القسم وتفضيلاتهم الأكاديمية لمساعدتك في تنسيق الجداول والأوقات المشتركة.</p>
+                                    <p className="text-slate-500 dark:text-slate-400 text-[15px] font-medium leading-relaxed max-w-2xl">تصفح معلومات زملائك في القسم وتفضيلاتهم الأكاديمية لمساعدتك في تنسيق الجداول والأوقات المشتركة.</p>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                     {other_instructors.length === 0 ? (
-                                        <div className="col-span-full text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
-                                            لا يوجد كادر تدريسي آخر مسجل في قسمك حالياً.
+                                        <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white/50 dark:bg-slate-800/50 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                            <Users size={48} className="text-slate-300 dark:text-slate-600 mb-4" />
+                                            <p className="text-slate-400 font-bold text-lg">لا يوجد كادر تدريسي آخر مسجل في قسمك حالياً.</p>
                                         </div>
                                     ) : (
-                                        other_instructors.map(inst => (
-                                            <div key={inst.id} className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                                                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-50 to-transparent dark:from-blue-900/20 rounded-bl-[100px] -z-10 transition-transform group-hover:scale-110"></div>
-                                                <div className="flex items-center gap-4 mb-5">
-                                                    <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 rounded-2xl flex items-center justify-center text-blue-700 dark:text-blue-300 font-black text-2xl shadow-inner">
+                                        other_instructors.map((inst, index) => (
+                                            <div key={inst.id} className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group" style={{animationDelay: `${index * 100}ms`}}>
+                                                <div className="flex items-center gap-5 mb-6">
+                                                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-2xl shadow-inner group-hover:scale-110 transition-transform">
                                                         {inst.name.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-bold text-gray-900 dark:text-white text-lg">{inst.name}</h4>
-                                                        <span className="inline-block px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-lg mt-1">{rankToText(inst.academic_rank)}</span>
+                                                        <h4 className="font-black text-slate-800 dark:text-white text-lg mb-1">{inst.name}</h4>
+                                                        <span className="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-black rounded-lg">{rankToText(inst.academic_rank)}</span>
                                                     </div>
                                                 </div>
-                                                <div className="space-y-3 border-t border-gray-50 dark:border-gray-700 pt-4">
-                                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                        <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></div>
+                                                <div className="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
+                                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-600 dark:text-slate-400">
+                                                        <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-indigo-500 shadow-sm"><Briefcase size={16} /></div>
                                                         <span className="truncate">{inst.email}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                        <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400"><Calendar size={16} /></div>
-                                                        <span className="font-medium">{inst.preferences?.preferred_days?.length ? inst.preferences.preferred_days.join('، ') : 'لم يحدد أيام'}</span>
+                                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-600 dark:text-slate-400">
+                                                        <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-purple-500 shadow-sm"><Calendar size={16} /></div>
+                                                        <span className="truncate">{inst.preferences?.preferred_days?.length ? inst.preferences.preferred_days.join('، ') : 'لم يحدد أيام'}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                                                        <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400"><Clock size={16} /></div>
-                                                        <span className="font-medium">{inst.preferences?.preferred_times?.length ? inst.preferences.preferred_times.join('، ') : 'لم يحدد أوقات'}</span>
+                                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-600 dark:text-slate-400">
+                                                        <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-emerald-500 shadow-sm"><Clock size={16} /></div>
+                                                        <span className="truncate">{inst.preferences?.preferred_times?.length ? inst.preferences.preferred_times.join('، ') : 'لم يحدد أوقات'}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -356,83 +434,87 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
                             </div>
                         </div>
                     ) : showPrefs ? (
-                        <div className="p-6 md:p-10 flex-1 overflow-y-auto bg-gray-50/30 dark:bg-gray-900/30">
-                            <div className="max-w-3xl mx-auto">
-                                <div className="mb-8">
-                                    <h3 className="text-2xl font-[900] text-gray-900 dark:text-white flex items-center gap-3">
-                                        <div className="p-3 bg-blue-100 dark:bg-blue-900/50 text-blue-600 rounded-2xl"><Settings size={24} /></div>
+                        <div className="p-6 lg:p-12 flex-1 overflow-y-auto sfr-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                            <div className="max-w-4xl mx-auto sfr-fade-up">
+                                <div className="mb-10 text-center lg:text-right">
+                                    <h3 className="text-3xl font-[900] text-slate-900 dark:text-white flex items-center justify-center lg:justify-start gap-4 mb-4">
+                                        <div className="p-4 bg-gradient-to-br from-emerald-400 to-teal-500 text-white rounded-2xl shadow-lg shadow-teal-500/30"><Settings size={28} /></div>
                                         تفضيلاتي وقيودي
                                     </h3>
-                                    <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm leading-relaxed">حدد تفضيلاتك ليتعلم الذكاء الاصطناعي طريقة جدولتك المفضلة ويطبقها تلقائياً عند طلب اقتراح جداول.</p>
+                                    <p className="text-slate-500 dark:text-slate-400 text-[15px] font-medium leading-relaxed max-w-2xl">حدد تفضيلاتك ليتعلم الذكاء الاصطناعي طريقة جدولتك المفضلة ويطبقها تلقائياً عند طلب اقتراح جداول.</p>
                                 </div>
                                 
-                                <div className="bg-white dark:bg-gray-800 border border-gray-200/60 dark:border-gray-700 rounded-3xl p-6 md:p-8 shadow-sm space-y-8">
+                                <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 shadow-sm border border-slate-100 dark:border-slate-700 space-y-10">
                                     {/* Days */}
                                     <div>
-                                        <label className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                            <Calendar className="text-blue-500" size={20} /> الأيام المفضلة للدوام
-                                        </label>
-                                        <div className="flex flex-wrap gap-3">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl"><Calendar size={20} /></div>
+                                            <h4 className="text-xl font-black text-slate-800 dark:text-white">الأيام المفضلة للدوام</h4>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                             {['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'].map(day => (
                                                 <button key={day}
                                                     onClick={() => setPrefDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])}
-                                                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${prefDays.includes(day) ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-400 shadow-sm' : 'bg-transparent border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'}`}>
+                                                    className={`relative overflow-hidden px-4 py-4 rounded-2xl text-[15px] font-black transition-all border-2 ${prefDays.includes(day) ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-md transform scale-[1.02]' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                                                    {prefDays.includes(day) && <div className="absolute top-2 left-2"><Check size={14} className="text-indigo-600 dark:text-indigo-400" /></div>}
                                                     {day}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    <hr className="border-gray-100 dark:border-gray-700" />
-
                                     {/* Times */}
                                     <div>
-                                        <label className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white mb-4">
-                                            <Clock className="text-blue-500" size={20} /> الأوقات المفضلة
-                                        </label>
-                                        <div className="flex flex-wrap gap-3">
+                                        <div className="flex items-center gap-3 mb-6">
+                                            <div className="p-2 bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 rounded-xl"><Clock size={20} /></div>
+                                            <h4 className="text-xl font-black text-slate-800 dark:text-white">الأوقات المفضلة</h4>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             {['صباحي (08:00 - 11:00)', 'ظهيرة (11:00 - 14:00)', 'مسائي (14:00 - 17:00)'].map(time => (
                                                 <button key={time}
                                                     onClick={() => setPrefTimes(prev => prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time])}
-                                                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${prefTimes.includes(time) ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-400 shadow-sm' : 'bg-transparent border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'}`}>
-                                                    {time}
+                                                    className={`relative overflow-hidden px-6 py-5 rounded-2xl text-[14px] font-black transition-all border-2 ${prefTimes.includes(time) ? 'bg-purple-50 dark:bg-purple-900/30 border-purple-500 text-purple-700 dark:text-purple-300 shadow-md transform scale-[1.02]' : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>
+                                                    {prefTimes.includes(time) && <div className="absolute top-3 left-3"><Check size={16} className="text-purple-600 dark:text-purple-400" /></div>}
+                                                    {time.split(' (')[0]}
+                                                    <span className="block mt-1 text-xs opacity-70 font-bold" dir="ltr">{time.split('(')[1]?.replace(')', '')}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    <hr className="border-gray-100 dark:border-gray-700" />
-
                                     {/* Carpooling */}
                                     <div>
-                                        <label className="flex items-center gap-2 text-base font-bold text-gray-900 dark:text-white mb-2">
-                                            <Users className="text-blue-500" size={20} /> مرافقة الزملاء (Carpooling)
-                                        </label>
-                                        <p className="text-sm text-gray-500 mb-4">حدد الزملاء الذين تتشارك معهم المواصلات، ليقوم المساعد بمزامنة أوقات فراغكم.</p>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-xl"><Users size={20} /></div>
+                                            <h4 className="text-xl font-black text-slate-800 dark:text-white">مرافقة الزملاء (Carpooling)</h4>
+                                        </div>
+                                        <p className="text-sm font-bold text-slate-500 mb-6">حدد الزملاء الذين تتشارك معهم المواصلات، ليقوم المساعد بمزامنة أوقات فراغكم.</p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {other_instructors.length === 0 ? (
-                                                <span className="text-sm text-gray-400">لا يوجد زملاء متاحين حالياً.</span>
+                                                <div className="col-span-full p-6 text-center border-2 border-dashed rounded-2xl border-slate-200 dark:border-slate-700 text-slate-400 font-bold">لا يوجد زملاء متاحين حالياً.</div>
                                             ) : (
                                                 other_instructors.map(inst => (
                                                     <div key={inst.id} 
                                                         onClick={() => toggleCarpool(inst.id)}
-                                                        className={`cursor-pointer border rounded-2xl p-3 flex items-center gap-3 transition-all ${carpoolIds.includes(inst.id) ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-300'}`}>
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg transition-colors ${carpoolIds.includes(inst.id) ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                                                        className={`cursor-pointer border-2 rounded-2xl p-4 flex items-center gap-4 transition-all ${carpoolIds.includes(inst.id) ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-500 shadow-md transform scale-[1.02]' : 'bg-slate-50 dark:bg-slate-800/50 border-transparent hover:border-emerald-300'}`}>
+                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl transition-colors ${carpoolIds.includes(inst.id) ? 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-white dark:bg-slate-700 text-slate-400 dark:text-slate-500 shadow-sm'}`}>
                                                             {inst.name.charAt(0)}
                                                         </div>
                                                         <div className="flex-1 truncate">
-                                                            <div className={`text-sm font-bold truncate transition-colors ${carpoolIds.includes(inst.id) ? 'text-blue-900 dark:text-blue-100' : 'text-gray-700 dark:text-gray-300'}`}>{inst.name}</div>
+                                                            <div className={`text-[15px] font-black truncate transition-colors ${carpoolIds.includes(inst.id) ? 'text-emerald-800 dark:text-emerald-200' : 'text-slate-700 dark:text-slate-300'}`}>{inst.name}</div>
                                                         </div>
-                                                        {carpoolIds.includes(inst.id) && <Check size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />}
+                                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${carpoolIds.includes(inst.id) ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                            {carpoolIds.includes(inst.id) && <Check size={14} strokeWidth={3} />}
+                                                        </div>
                                                     </div>
                                                 ))
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="pt-4">
-                                        <button onClick={handleSavePrefs} className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-l from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
-                                            <Check size={20} />
+                                    <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex justify-end">
+                                        <button onClick={handleSavePrefs} className="px-10 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-lg transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-3">
+                                            <Check size={24} strokeWidth={3} />
                                             حفظ تفضيلاتي الذكية
                                         </button>
                                     </div>
@@ -440,63 +522,93 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
                             </div>
                         </div>
                     ) : (
-                        <>
-                            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50">
+                        <div className="flex flex-col h-full relative">
+                            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 lg:p-10 sfr-scrollbar">
                                 {messages.length === 0 ? (
-                                    <div className="h-full flex flex-col items-center justify-center text-center opacity-80 max-w-md mx-auto">
-                                        <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/50 dark:to-blue-800/50 rounded-full flex items-center justify-center mb-6 shadow-inner ring-4 ring-white dark:ring-gray-800">
-                                            <Bot size={48} className="text-blue-600 dark:text-blue-400" />
+                                    <div className="h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto sfr-fade-up mt-[-40px]">
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 bg-indigo-500 blur-3xl opacity-20 dark:opacity-40 rounded-full animate-float"></div>
+                                            <div className="w-32 h-32 bg-gradient-to-br from-indigo-500 via-purple-500 to-emerald-500 rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/30 animate-float relative z-10 border-4 border-white dark:border-slate-800">
+                                                <Bot size={64} className="text-white" />
+                                            </div>
                                         </div>
-                                        <h3 className="text-2xl font-[900] text-gray-900 dark:text-white mb-3">أهلاً د. {auth.user.name}</h3>
-                                        <p className="text-gray-500 dark:text-gray-400 leading-relaxed text-sm">
-                                            أنا هنا لمساعدتك في بناء وتنسيق جدولك الأكاديمي. أستطيع اقتراح الأوقات وتوزيع المواد حسب العبء التدريسي وتفضيلاتك الشخصية.
+                                        <h3 className="text-4xl font-[900] text-slate-800 dark:text-white mb-4 tracking-tight">أهلاً بك د. <span className="gradient-text">{auth.user.name}</span></h3>
+                                        <p className="text-slate-500 dark:text-slate-400 text-lg font-bold leading-relaxed mb-12">
+                                            أنا مساعدك الذكي لتنسيق الجداول. أستطيع اقتراح أوقات مثالية بناءً على تفضيلاتك وعبئك التدريسي. كيف يمكنني مساعدتك اليوم؟
                                         </p>
+                                        
+                                        <div className="w-full">
+                                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center justify-center gap-2"><Zap size={16} className="text-amber-500" /> اقتراحات للبدء</p>
+                                            <div className="flex flex-wrap justify-center gap-3">
+                                                {[
+                                                    "اقترح لي جدولاً بـ 3 أيام فقط",
+                                                    "وزع محاضراتي على الفترة الصباحية",
+                                                    "ابحث عن أوقات مشتركة مع زملائي",
+                                                    "تجنب المحاضرات المتتالية"
+                                                ].map((suggestion, i) => (
+                                                    <button 
+                                                        key={i}
+                                                        onClick={() => sendMessage(null, suggestion)}
+                                                        className="suggestion-chip px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-full text-sm shadow-sm hover:border-indigo-300 dark:hover:border-indigo-600 flex items-center gap-2"
+                                                    >
+                                                        <Sparkles size={14} className="text-indigo-500" />
+                                                        {suggestion}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="max-w-4xl mx-auto space-y-6">
+                                    <div className="max-w-4xl mx-auto space-y-2 pb-6">
                                         {messages.map((msg, idx) => renderMessage(msg, idx))}
                                         {isLoading && (
-                                            <div className="flex justify-start mb-4" dir="rtl">
-                                                <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 rounded-tr-none">
-                                                    <div className="flex gap-2">
-                                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                                        <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                            <div className="flex justify-start mb-6 sfr-slide-up w-full" dir="rtl">
+                                                <div className="flex max-w-[95%] xl:max-w-[85%] gap-3 items-end">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shrink-0 shadow-lg shadow-teal-500/30">
+                                                        <Bot size={22} className="text-white" />
+                                                    </div>
+                                                    <div className="glass-message text-slate-800 dark:text-slate-100 rounded-3xl rounded-bl-sm shadow-lg p-5 border border-white/40 dark:border-slate-700/50 flex items-center h-[60px]">
+                                                        <div className="typing-indicator flex items-center">
+                                                            <span></span><span></span><span></span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
-                                        <div ref={messagesEndRef} />
+                                        <div ref={messagesEndRef} className="h-4" />
                                     </div>
                                 )}
                             </div>
 
-                            <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200/60 dark:border-gray-700 z-10">
-                                <form onSubmit={sendMessage} className="relative max-w-4xl mx-auto">
-                                    <textarea
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                sendMessage(e);
-                                            }
-                                        }}
-                                        placeholder="اكتب طلبك... (مثال: اقترح لي جدول بأيامي المفضلة بحيث ما أداوم أكثر من 3 محاضرات متتالية)"
-                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl pr-5 pl-16 py-4 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none shadow-inner"
-                                        rows="2"
-                                        dir="rtl"
-                                    />
+                            <div className="p-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 z-30">
+                                <form onSubmit={(e) => sendMessage(e)} className="relative max-w-4xl mx-auto flex items-end gap-3">
+                                    <div className="relative flex-1 bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
+                                        <textarea
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    sendMessage(e);
+                                                }
+                                            }}
+                                            placeholder="اسأل المساعد عن تنسيق جدولك... (Shift + Enter لسطر جديد)"
+                                            className="w-full bg-transparent border-none focus:ring-0 resize-none px-6 py-5 text-slate-800 dark:text-white font-bold text-[15px] max-h-40 min-h-[64px]"
+                                            rows="1"
+                                            dir="rtl"
+                                            style={{ outline: 'none' }}
+                                        />
+                                    </div>
                                     <button
                                         type="submit"
                                         disabled={!input.trim() || isLoading}
-                                        className="absolute left-3 bottom-3 top-3 px-5 bg-gradient-to-l from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm"
+                                        className="h-16 w-16 bg-gradient-to-br from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-3xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-xl shadow-indigo-500/30 shrink-0 transform active:scale-95"
                                     >
-                                        <Send size={20} className="mr-1" />
+                                        <Send size={24} className="ml-1 rtl:ml-0 rtl:mr-1" />
                                     </button>
                                 </form>
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
