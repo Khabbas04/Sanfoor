@@ -165,6 +165,69 @@ const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { widt
    TREE PAGE
    ═══════════════════════════════════════════════════════════ */
 
+const DifficultyDropdown = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const options = [
+        { id: 'all', label: 'كل الصعوبات', icon: '🎚️', color: 'text-slate-200', bg: 'bg-slate-700/50' },
+        { id: 'easy', label: 'خفيف', icon: '🌿', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+        { id: 'balanced', label: 'متوسط', icon: '⚖️', color: 'text-amber-400', bg: 'bg-amber-400/10' },
+        { id: 'heavy', label: 'صعب', icon: '🔥', color: 'text-rose-400', bg: 'bg-rose-400/10' },
+    ];
+    
+    const selected = options.find(o => o.id === value) || options[0];
+
+    return (
+        <div className="relative shrink-0 font-t">
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-[800] transition-all bg-slate-900/50 hover:bg-slate-800 text-slate-200 shadow-sm border border-slate-700/50 outline-none w-[130px]"
+            >
+                <div className="flex items-center gap-2">
+                    <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[10px] ${selected.bg}`}>{selected.icon}</span>
+                    <span className={selected.color}>{selected.label}</span>
+                </div>
+                <span className="text-slate-500 text-[10px] mb-1">⌄</span>
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                        <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full mt-2 left-0 w-[130px] bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.5)] overflow-hidden z-50 flex flex-col p-1.5 gap-0.5"
+                        >
+                            {options.map((opt) => (
+                                <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(opt.id);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`flex items-center gap-2 w-full text-right px-2 py-1.5 rounded-lg text-[11px] font-[800] transition-all ${
+                                        value === opt.id 
+                                            ? 'bg-slate-800 ' + opt.color 
+                                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                                >
+                                    <span className={`w-5 h-5 flex items-center justify-center rounded-md text-[10px] ${opt.bg}`}>{opt.icon}</span>
+                                    <span className={value === opt.id ? opt.color : ''}>{opt.label}</span>
+                                </button>
+                            ))}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+
 export default function Tree({
     courses = [],
     passed_course_ids = [],
@@ -3631,19 +3694,10 @@ export default function Tree({
                                     <button key={f.id} onClick={() => setFilterMode(f.id)} className={`${filterButtonSizing} rounded-lg font-[800] transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${filterMode === f.id ? f.active : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>{f.dot && <span className={`w-1.5 h-1.5 rounded-full ${f.dot}`} />}{isMobile ? (f.mobileLabel || f.label) : f.label}</button>
                                 ))}
 
-                                <div className="relative shrink-0">
-                                    <select
-                                        value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
-                                        onChange={(e) => setFilterMode(e.target.value === 'all' ? 'none' : e.target.value)}
-                                        className="appearance-none px-3.5 py-2 rounded-lg text-[11px] font-[800] transition-all bg-white text-slate-900 shadow-sm border border-white/10 pr-9 outline-none hover:bg-slate-50 focus:ring-2 focus:ring-indigo-400/60"
-                                    >
-                                        <option value="all">🎚️ كل الصعوبات</option>
-                                        <option value="easy">🌿 خفيف</option>
-                                        <option value="balanced">⚖️ متوسط</option>
-                                        <option value="heavy">🔥 صعب</option>
-                                    </select>
-                                    <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-slate-400 text-[10px]">⌄</span>
-                                </div>
+                                <DifficultyDropdown 
+                                    value={['easy', 'balanced', 'heavy'].includes(filterMode) ? filterMode : 'all'}
+                                    onChange={(val) => setFilterMode(val === 'all' ? 'none' : val)}
+                                />
 
                                 <button
                                     onClick={handlePrint}
