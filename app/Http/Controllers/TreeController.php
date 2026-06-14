@@ -317,8 +317,6 @@ class TreeController extends Controller
                     'action' => 'course_unpassed',
                 ]);
 
-                self::flushCourseTreeCache();
-
                 return response()->json(['status' => 'removed']);
             }
 
@@ -422,8 +420,6 @@ class TreeController extends Controller
                 'details' => ['grade' => $cleanGrade],
             ]);
 
-            self::flushCourseTreeCache();
-
             return response()->json(['status' => 'added']);
         } catch (\Throwable $e) {
             Log::error('Tree toggle failed', [
@@ -483,8 +479,6 @@ class TreeController extends Controller
                 'action' => 'grade_updated',
                 'details' => ['grade' => $cleanGrade],
             ]);
-
-            self::flushCourseTreeCache();
 
             $user = Auth::user();
             $newGpa = $user->calculateGPA();
@@ -727,8 +721,6 @@ class TreeController extends Controller
                 'details' => ['attempt_number' => $newAttemptNumber],
             ]);
 
-            self::flushCourseTreeCache();
-
             return response()->json([
                 'status' => 'retake_added',
                 'attempt_number' => $newAttemptNumber,
@@ -769,8 +761,6 @@ class TreeController extends Controller
                 'user_id' => $userId,
                 'action' => 'plan_reset',
             ]);
-
-            self::flushCourseTreeCache();
 
             return response()->json([
                 'status' => 'success',
