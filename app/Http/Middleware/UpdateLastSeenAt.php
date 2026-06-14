@@ -18,8 +18,15 @@ class UpdateLastSeenAt
     public function handle(Request $request, Closure $next): Response
     {
         if (Auth::check()) {
-            // Update the last_seen_at column for the currently authenticated user
-            User::where('id', Auth::id())->update(['last_seen_at' => now()]);
+            $userId = Auth::id();
+            $cacheKey = "user_last_seen_{$userId}";
+
+            // Only update the database once every 5 minutes per user
+            // This prevents a heavy database write on every single page navigation
+            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                User::where('id', $userId)->update(['last_seen_at' => now()]);
+                \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addMinutes(5));
+            }
         }
 
         return $next($request);
