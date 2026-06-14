@@ -139,7 +139,8 @@ Route::get('/dashboard', function () {
 
     $layoutMajorId = (int) ($user->major_id ?? 0);
     $planVersion = (int) ($user->study_plan_version ?? 12);
-    $cacheKey = "dashboard:planner_courses:major:{$layoutMajorId}:plan:{$planVersion}";
+    $globalVersion = \Illuminate\Support\Facades\Cache::get('dashboard_courses_version', 1);
+    $cacheKey = "dashboard:planner_courses:major:{$layoutMajorId}:plan:{$planVersion}:v:{$globalVersion}";
 
     $plannerCourses = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(15), function() use ($hasCourseUser, $layoutMajorId, $planVersion) {
         $plannerCoursesQuery = Course::query()

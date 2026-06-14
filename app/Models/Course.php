@@ -50,6 +50,16 @@ class Course extends Model
                       });
             });
         });
+
+        static::saved(function ($course) {
+            \Illuminate\Support\Facades\Cache::increment('dashboard_courses_version');
+            \App\Http\Controllers\TreeController::flushCourseTreeCache();
+        });
+
+        static::deleted(function ($course) {
+            \Illuminate\Support\Facades\Cache::increment('dashboard_courses_version');
+            \App\Http\Controllers\TreeController::flushCourseTreeCache();
+        });
     }
 
     // These fields are managed directly from the admin course CRUD flows.
