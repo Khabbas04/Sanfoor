@@ -179,7 +179,7 @@ class MicrosoftAuthController extends Controller
                         ->get('https://graph.microsoft.com/v1.0/me/photo/$value');
 
                     if ($response->successful()) {
-                        $filename = 'avatars/' . $user->id . '_' . time() . '.jpg';
+                        $filename = 'avatars/' . Str::random(40) . '.jpg';
                         \Illuminate\Support\Facades\Storage::disk('public')->put($filename, $response->body());
                         $user->avatar = '/storage/' . $filename;
                         $user->save();
