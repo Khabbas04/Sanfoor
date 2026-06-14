@@ -137,60 +137,66 @@ Route::get('/dashboard', function () {
         ? $user->calculateGPA()
         : ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
 
-    $plannerCoursesQuery = Course::query()
-        ->select([
-            'courses.id',
-            'courses.name',
-            'courses.code',
-            'courses.credit_hours',
-            'courses.type',
-            'courses.semester',
-            'courses.major_id',
-        ])
-        ->withCount('prerequisites')
-        ->with(['prerequisites:id']);
+    $layoutMajorId = (int) ($user->major_id ?? 0);
+    $planVersion = (int) ($user->study_plan_version ?? 12);
+    $cacheKey = "dashboard:planner_courses:major:{$layoutMajorId}:plan:{$planVersion}";
 
-    if ($hasCourseUser) {
-        $courseStatsSubquery = DB::table('course_user')
-            ->selectRaw('course_id')
-            ->selectRaw('AVG(grade) as avg_grade')
-            ->selectRaw('COUNT(*) as graded_attempts')
-            ->selectRaw('SUM(CASE WHEN grade < 60 THEN 1 ELSE 0 END) as failed_attempts')
-            ->whereNotNull('grade')
-            ->groupBy('course_id');
+    $plannerCourses = \Illuminate\Support\Facades\Cache::remember($cacheKey, now()->addMinutes(15), function() use ($hasCourseUser, $layoutMajorId, $planVersion) {
+        $plannerCoursesQuery = Course::query()
+            ->select([
+                'courses.id',
+                'courses.name',
+                'courses.code',
+                'courses.credit_hours',
+                'courses.type',
+                'courses.semester',
+                'courses.major_id',
+            ])
+            ->withCount('prerequisites')
+            ->with(['prerequisites:id']);
 
-        $plannerCoursesQuery
-            ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
-                $join->on('courses.id', '=', 'course_stats.course_id');
-            })
-            ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
-            ->selectRaw('COALESCE(course_stats.graded_attempts, 0) as graded_attempts')
-            ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
-            ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate');
-    } else {
-        $plannerCoursesQuery
-            ->selectRaw('72 as avg_grade')
-            ->selectRaw('0 as graded_attempts')
-            ->selectRaw('0 as failed_attempts')
-            ->selectRaw('18 as fail_rate');
-    }
+        if ($hasCourseUser) {
+            $courseStatsSubquery = DB::table('course_user')
+                ->selectRaw('course_id')
+                ->selectRaw('AVG(grade) as avg_grade')
+                ->selectRaw('COUNT(*) as graded_attempts')
+                ->selectRaw('SUM(CASE WHEN grade < 60 THEN 1 ELSE 0 END) as failed_attempts')
+                ->whereNotNull('grade')
+                ->groupBy('course_id');
 
-    if ($user->major_id) {
-        $plannerCoursesQuery->where(function ($query) use ($user) {
-            $query->where(function ($majorScope) use ($user) {
-                $majorScope->where('major_id', $user->major_id)
-                    ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
-            })->orWhere(function ($universityScope) use ($user) {
-                $universityScope->whereNull('major_id')
-                    ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+            $plannerCoursesQuery
+                ->leftJoinSub($courseStatsSubquery, 'course_stats', function ($join) {
+                    $join->on('courses.id', '=', 'course_stats.course_id');
+                })
+                ->selectRaw('COALESCE(course_stats.avg_grade, 72) as avg_grade')
+                ->selectRaw('COALESCE(course_stats.graded_attempts, 0) as graded_attempts')
+                ->selectRaw('COALESCE(course_stats.failed_attempts, 0) as failed_attempts')
+                ->selectRaw('CASE WHEN COALESCE(course_stats.graded_attempts, 0) > 0 THEN (course_stats.failed_attempts / course_stats.graded_attempts) * 100 ELSE 18 END as fail_rate');
+        } else {
+            $plannerCoursesQuery
+                ->selectRaw('72 as avg_grade')
+                ->selectRaw('0 as graded_attempts')
+                ->selectRaw('0 as failed_attempts')
+                ->selectRaw('18 as fail_rate');
+        }
+
+        if ($layoutMajorId) {
+            $plannerCoursesQuery->where(function ($query) use ($layoutMajorId, $planVersion) {
+                $query->where(function ($majorScope) use ($layoutMajorId, $planVersion) {
+                    $majorScope->where('major_id', $layoutMajorId)
+                        ->where('study_plan_version', $planVersion);
+                })->orWhere(function ($universityScope) use ($planVersion) {
+                    $universityScope->whereNull('major_id')
+                        ->where('study_plan_version', $planVersion);
+                });
             });
-        });
-    } else {
-        $plannerCoursesQuery->whereNull('major_id')
-            ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
-    }
+        } else {
+            $plannerCoursesQuery->whereNull('major_id')
+                ->where('study_plan_version', $planVersion);
+        }
 
-    $plannerCourses = $plannerCoursesQuery->get();
+        return $plannerCoursesQuery->get();
+    });
 
     // Keep the payload focused on the fields rendered in the dashboard UI.
     $passedCourses = $hasCourseUser
