@@ -69,9 +69,6 @@ export default function Terms() {
             <div className="min-h-screen py-10 sm:py-14" dir="rtl">
                 <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)] p-6 sm:p-10 mb-8">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden flex justify-center items-center">
-                            <span className="block leading-none text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] dark:text-white/[0.03] whitespace-nowrap tracking-tighter">TERMS OF USE</span>
-                        </div>
                         <div className="absolute -top-14 -left-10 w-44 h-44 bg-indigo-500/15 rounded-full blur-3xl" />
                         <div className="absolute -bottom-16 -right-12 w-48 h-48 bg-cyan-400/10 rounded-full blur-3xl" />
 
