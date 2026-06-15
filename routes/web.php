@@ -71,6 +71,13 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('/welcome-new', function () {
+    return Inertia::render('WelcomeExperimental', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+    ]);
+})->name('welcome.experimental');
+
 Route::middleware('guest')->group(function () {
     Route::get('/auth/microsoft', [MicrosoftAuthController::class, 'redirectToMicrosoft'])->name('auth.microsoft.redirect');
     Route::get('/auth/microsoft/callback', [MicrosoftAuthController::class, 'handleMicrosoftCallback'])->name('auth.microsoft.callback');
