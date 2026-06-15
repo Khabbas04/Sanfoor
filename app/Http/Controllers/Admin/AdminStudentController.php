@@ -82,6 +82,8 @@ class AdminStudentController extends Controller
                     'created_at' => $student->created_at ? $student->created_at->format('Y-m-d') : '---',
                     'major' => $student->major ? $student->major->name : 'غير محدد',
                     'college' => $student->major && $student->major->college ? $student->major->college->name : 'غير محدد',
+                    'portal_student_id' => $student->portal_student_id,
+                    'graduation_eligibility' => $student->isEligibleForGraduation(),
                     'stats' => [
                         'gpa' => $gpa,
                         'total_passed_credits' => $totalCredits,

@@ -381,7 +381,14 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                         ) : (
                                             <h2 className="text-xl font-black">{selectedStudent?.name}</h2>
                                         )}
-                                        <p className="text-indigo-200 font-bold text-xs mt-1">{selectedStudent?.major}</p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <p className="text-indigo-200 font-bold text-xs">{selectedStudent?.major}</p>
+                                            {selectedStudent?.study_plan_version && (
+                                                <span className="bg-indigo-500/30 text-indigo-100 border border-indigo-400/30 text-[9px] px-1.5 py-0.5 rounded uppercase font-black tracking-wider">
+                                                    خطة {selectedStudent.study_plan_version}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -536,10 +543,42 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                         {/* 3. بيانات النظام و الـ IP */}
                                         {activeTab === 'info' && (
                                             <div className="space-y-4">
+                                                {/* Graduation Progress Banner */}
+                                                {selectedStudent?.graduation_eligibility && (
+                                                    <div className={`${isDark ? 'bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-indigo-500/30' : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200'} border p-4 rounded-2xl shadow-sm relative overflow-hidden`}>
+                                                        <div className="flex justify-between items-end mb-2">
+                                                            <div>
+                                                                <h4 className={`text-xs font-black ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>نسبة إنجاز الخطة والتخرج</h4>
+                                                                <p className={`text-[10px] font-bold ${isDark ? 'text-indigo-400/70' : 'text-indigo-600/70'} mt-0.5`}>
+                                                                    متبقي {selectedStudent.graduation_eligibility.remaining_hours} ساعة
+                                                                </p>
+                                                            </div>
+                                                            <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-indigo-900'}`}>{selectedStudent.graduation_eligibility.progress_percentage}%</span>
+                                                        </div>
+                                                        <div className={`w-full h-2 rounded-full overflow-hidden ${isDark ? 'bg-indigo-950' : 'bg-indigo-100'}`}>
+                                                            <div 
+                                                                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000"
+                                                                style={{ width: `${Math.min(100, selectedStudent.graduation_eligibility.progress_percentage)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        {selectedStudent.graduation_eligibility.is_eligible && (
+                                                            <div className="mt-3 flex items-center gap-2 text-[10px] font-black text-emerald-500 bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
+                                                                <span>🎓</span> الطالب استكمل الساعات المطلوبة للتخرج
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
                                                 <div className={`${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} border p-4 rounded-2xl shadow-sm`}>
                                                     <h4 className={`text-xs font-black ${isDark ? 'text-slate-200 border-slate-700' : 'text-slate-800 border-slate-100'} border-b pb-2 mb-3`}>{t.infoCardTitle}</h4>
                                                     
                                                     <div className="space-y-3">
+                                                        {selectedStudent?.portal_student_id && (
+                                                            <div className="flex justify-between items-center">
+                                                                <span className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>الرقم الجامعي:</span>
+                                                                <span className={`text-xs font-black font-mono ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>{selectedStudent?.portal_student_id}</span>
+                                                            </div>
+                                                        )}
                                                         <div className="flex justify-between items-center">
                                                             <span className={`text-[10px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.ipLabel}:</span>
                                                             <span className={`text-xs font-black font-mono ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700'} px-2 py-0.5 rounded`}>{selectedStudent?.ip_address}</span>
