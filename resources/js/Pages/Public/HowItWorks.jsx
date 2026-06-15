@@ -65,7 +65,9 @@ export default function HowItWorks() {
             <div className="min-h-screen pb-16 font-t bg-[#f8f9fb]" dir="rtl">
                 {/* Hero Section */}
                 <div className="relative overflow-hidden bg-white border-b border-slate-200">
-                    <div className="absolute inset-0 bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-50" style={{ backgroundImage: "url('/images/grid.svg')" }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden flex justify-center items-center">
+                        <span className="block leading-none text-[5rem] sm:text-[8rem] md:text-[12rem] font-black text-slate-900/[0.03] dark:text-white/[0.03] whitespace-nowrap tracking-tighter">كيف يعمل سنفور</span>
+                    </div>
                     <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[400px] h-[400px] bg-blue-50/50 rounded-full blur-3xl" />
                     <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/50 rounded-full blur-3xl" />
                     

@@ -90,7 +90,9 @@ export default function Contact() {
             <div className="min-h-screen pb-16 font-t bg-[#f8f9fb] dark:bg-[#050b14] transition-colors duration-500" dir="rtl">
                 {/* Hero Section */}
                 <div className="relative overflow-hidden bg-white dark:bg-[#0a0f18] border-b border-slate-200 dark:border-white/5 transition-colors duration-500">
-                    <div className="absolute inset-0 bg-center opacity-40 dark:opacity-10" style={{ backgroundImage: "url('/images/grid.svg')" }} />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none select-none z-0 overflow-hidden flex justify-center items-center">
+                        <span className="block leading-none text-[5rem] sm:text-[8rem] md:text-[12rem] font-black text-slate-900/[0.03] dark:text-white/[0.03] whitespace-nowrap tracking-tighter">تواصل معنا</span>
+                    </div>
                     <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[300px] h-[300px] bg-blue-50/60 dark:bg-blue-500/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-0 left-0 translate-y-1/3 -translate-x-1/3 w-[300px] h-[300px] bg-indigo-50/50 dark:bg-indigo-500/10 rounded-full blur-3xl" />
                     
