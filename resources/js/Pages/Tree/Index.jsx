@@ -391,7 +391,8 @@ export default function Tree({
             const isLastTerm = key === lastTermKey;
             
             let limit = term.isSummer ? (term.hasLab ? 10 : 9) : 18;
-            if (isLastTerm) {
+            const totalCredits = localPassedCourses.reduce((acc, c) => acc + Number(c.credit_hours || 0), 0);
+            if (isLastTerm && totalCredits >= 111) {
                 limit = term.isSummer ? 12 : 21; // Graduation exception for the last term
             }
 
@@ -3822,12 +3823,6 @@ export default function Tree({
                             )}
                             {!is_instructor && (
                                 <>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-[800] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg border border-indigo-100 flex items-center gap-1.5">🔓 {miniStats.availableCount} متاحة</span>
-                                        {miniStats.criticalCount > 0 && (
-                                            <span className="text-[10px] font-[800] bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5 animate-pulse">🚨 {miniStats.criticalCount} حرجة</span>
-                                        )}
-                                    </div>
                                     <div className="flex flex-col items-end w-56">
                                         <div className="flex justify-between w-full mb-1.5 items-center">
                                             <span className="text-[10px] font-[800] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">نسبة الإنجاز</span>
@@ -4206,36 +4201,77 @@ export default function Tree({
                                             </div>
                                         ) : sortedUniversityCourses.map((course) => {
                                             const isPassed = passedIds.includes(course.id);
+                                            const inCart = cartIds.includes(course.id);
+
+                                            let statusText = 'غير منجزة';
+                                            let bgClass = 'bg-slate-50 text-slate-600 border-slate-200';
+                                            let mainBgClass = 'bg-white border-slate-200 hover:border-cyan-200 hover:shadow-md';
+                                            let iconWrapperClass = 'bg-white border-slate-300 group-hover:border-cyan-400';
+                                            let titleColorClass = 'text-slate-800 group-hover:text-cyan-800';
+                                            let statusColorClass = 'text-slate-400';
+                                            let iconContent = null;
+
+                                            if (isPassed) {
+                                                statusText = 'منجزة';
+                                                bgClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                                mainBgClass = 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200 hover:shadow-md';
+                                                iconWrapperClass = 'bg-emerald-600 border-emerald-600 shadow-emerald-200/70 text-white';
+                                                titleColorClass = 'text-emerald-800';
+                                                statusColorClass = 'text-emerald-700';
+                                                iconContent = <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 text-white" fill="none"><path d="M3.5 8.3L6.5 11.2L12.5 5.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+                                            } else if (inCart) {
+                                                statusText = 'تجريبي';
+                                                bgClass = 'bg-blue-100 text-blue-700 border-blue-200';
+                                                mainBgClass = 'bg-blue-50/50 border-blue-300 border-dashed hover:border-blue-400 hover:shadow-md';
+                                                iconWrapperClass = 'bg-blue-500 border-blue-500 shadow-blue-200/70 text-white';
+                                                titleColorClass = 'text-blue-900';
+                                                statusColorClass = 'text-blue-700';
+                                                iconContent = <span className="text-[10px] pb-0.5">🛒</span>;
+                                            }
+
                                             return (
-                                                <label key={course.id} className={`group flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm ${!is_instructor ? 'cursor-pointer hover:border-cyan-200 hover:shadow-md' : 'cursor-default'} transition-all ${isPassed ? 'bg-gradient-to-r from-emerald-50 to-cyan-50/70 border-emerald-200' : 'bg-white border-slate-200'}`}>
+                                                <button
+                                                    key={course.id}
+                                                    type="button"
+                                                    disabled={is_instructor}
+                                                    onClick={() => {
+                                                        if (is_instructor) return;
+                                                        Swal.fire({
+                                                            title: `<span style="font-size: 16px;">إدارة مادة: ${course.name}</span>`,
+                                                            text: 'ما هو الإجراء الذي تود القيام به لهذه المادة؟',
+                                                            icon: 'question',
+                                                            showCancelButton: true,
+                                                            showDenyButton: true,
+                                                            confirmButtonText: isPassed ? '❌ إلغاء الإنجاز' : '✅ تحديد كمنجزة',
+                                                            denyButtonText: inCart ? '❌ إزالة من التجريبي' : '🛒 تسجيل تجريبي',
+                                                            cancelButtonText: 'إلغاء',
+                                                            confirmButtonColor: isPassed ? '#e11d48' : '#10b981',
+                                                            denyButtonColor: inCart ? '#e11d48' : '#3b82f6',
+                                                            ...swalTheme
+                                                        }).then((result) => {
+                                                            if (result.isConfirmed) {
+                                                                togglePassed(course.id);
+                                                            } else if (result.isDenied) {
+                                                                toggleCart(course);
+                                                            }
+                                                        });
+                                                    }}
+                                                    className={`group w-full flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-sm transition-all text-right ${!is_instructor ? 'cursor-pointer' : 'cursor-default opacity-90'} ${mainBgClass}`}
+                                                >
                                                     <div className="flex items-start gap-3 min-w-0">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={isPassed}
-                                                            onChange={() => { if (!is_instructor) togglePassed(course.id); }}
-                                                            disabled={is_instructor}
-                                                            className="peer sr-only"
-                                                        />
-                                                        <span className={`mt-0.5 h-5 w-5 rounded-[0.55rem] border flex items-center justify-center transition-all duration-200 shadow-sm ${isPassed ? 'bg-emerald-600 border-emerald-600 shadow-emerald-200/70' : 'bg-white border-slate-300 group-hover:border-cyan-400'} peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/60 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-white`}>
-                                                            <svg
-                                                                viewBox="0 0 16 16"
-                                                                className={`w-3.5 h-3.5 transition-all duration-200 ${isPassed ? 'text-white opacity-100 scale-100' : 'text-transparent opacity-0 scale-75'}`}
-                                                                fill="none"
-                                                                aria-hidden="true"
-                                                            >
-                                                                <path d="M3.5 8.3L6.5 11.2L12.5 5.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
+                                                        <span className={`mt-0.5 h-5 w-5 shrink-0 rounded-[0.55rem] border flex items-center justify-center transition-all duration-200 shadow-sm ${iconWrapperClass}`}>
+                                                            {iconContent}
                                                         </span>
                                                         <div className="min-w-0">
-                                                            <p className={`text-[12px] font-[900] truncate transition-colors ${isPassed ? 'text-emerald-800' : 'text-slate-800 group-hover:text-cyan-800'}`}>{course.name}</p>
+                                                            <p className={`text-[12px] font-[900] truncate transition-colors ${titleColorClass}`}>{course.name}</p>
                                                             <p className="text-[10px] text-slate-500 font-bold mt-0.5 font-mono tracking-wide" dir="ltr">{course.code}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="shrink-0 text-right">
-                                                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border shadow-sm ${isPassed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{course.credit_hours} س</span>
-                                                        <p className={`text-[9px] font-bold mt-1.5 ${isPassed ? 'text-emerald-700' : 'text-slate-400'}`}>{isPassed ? 'منجزة' : 'غير منجزة'}</p>
+                                                    <div className="shrink-0 text-left">
+                                                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black border shadow-sm ${bgClass}`}>{course.credit_hours} س</span>
+                                                        <p className={`text-[9px] font-bold mt-1.5 ${statusColorClass}`}>{statusText}</p>
                                                     </div>
-                                                </label>
+                                                </button>
                                             );
                                         })}
                                     </div>
