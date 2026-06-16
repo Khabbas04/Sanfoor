@@ -50,13 +50,12 @@ class AuthenticatedSessionController extends Controller
         try {
             AdminLog::create([
                 'user_id' => $user->id,
-                'action' => 'USER_LOGIN',
+                'action' => 'تسجيل دخول',
                 'details' => sprintf(
-                    'User login: %s (%s) | role: %s | ip: %s',
+                    'تسجيل الدخول يدوياً: %s (%s) | الدور: %s',
                     $user->name,
                     $user->email,
-                    $user->role,
-                    $request->ip()
+                    $user->role
                 ),
                 'ip_address' => $request->ip(),
             ]);

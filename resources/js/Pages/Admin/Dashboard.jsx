@@ -105,6 +105,25 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeNotes = Array.isArray(adminNotes) ? adminNotes : [];
     const safeMyNote = myAdminNote || null;
 
+    const parseDevice = (userAgent) => {
+        if (!userAgent) return 'جهاز غير معروف';
+        let os = 'جهاز غير معروف';
+        let browser = '';
+
+        if (userAgent.includes('Windows')) os = 'ويندوز';
+        else if (userAgent.includes('Mac OS')) os = 'ماك';
+        else if (userAgent.includes('Android')) os = 'أندرويد';
+        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'آبل';
+        else if (userAgent.includes('Linux')) os = 'لينكس';
+
+        if (userAgent.includes('Edg') || userAgent.includes('Edge')) browser = 'إيدج';
+        else if (userAgent.includes('Chrome')) browser = 'كروم';
+        else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'سفاري';
+        else if (userAgent.includes('Firefox')) browser = 'فايرفوكس';
+
+        return browser ? `${os} - ${browser}` : os;
+    };
+
     // ── New User Notification System ──
     const lastRegIdRef = useRef(0);
     const audioRef = useRef(null);
@@ -528,9 +547,26 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                         <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
                             {safeLogs.length > 0 ? safeLogs.map((log) => (
                                 <div key={log.id} className={`p-3.5 border rounded-xl transition-colors ${logRow}`}>
-                                    <p className="text-[11px] font-black text-indigo-500 mb-1">{log.action}</p>
-                                    <p className={`text-[13px] font-bold leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{log.details}</p>
-                                    <p className={`text-[10px] font-black mt-1.5 ${subtext}`}>{log.user?.name || 'System'} • {new Date(log.created_at).toLocaleString()}</p>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <p className="text-[11px] font-black text-indigo-500">{log.action}</p>
+                                        <p className={`text-[10px] font-black ${subtext}`}>{new Date(log.created_at).toLocaleString()}</p>
+                                    </div>
+                                    <p className={`text-[13px] font-bold leading-relaxed mb-2 ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{log.details}</p>
+                                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                                        <span className={`text-[10px] font-black px-2 py-1 rounded-md ${isDark ? 'bg-slate-700/50 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>
+                                            👤 {log.user?.name || 'System'}
+                                        </span>
+                                        {log.ip_address && (
+                                            <span className={`text-[10px] font-black px-2 py-1 rounded-md font-mono ${isDark ? 'bg-orange-900/30 text-orange-300 border border-orange-700/50' : 'bg-orange-50 text-orange-700 border border-orange-200'}`} dir="ltr">
+                                                🌐 {log.ip_address}
+                                            </span>
+                                        )}
+                                        {log.meta?.user_agent && (
+                                            <span className={`text-[10px] font-black px-2 py-1 rounded-md ${isDark ? 'bg-blue-900/30 text-blue-300 border border-blue-700/50' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                                                💻 {parseDevice(log.meta.user_agent)}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             )) : <p className={`text-sm font-bold py-8 text-center ${subtext}`}>{t.noLogEntries}</p>}
                         </div>

@@ -745,7 +745,7 @@ class AdminController extends Controller
         return Inertia::render('Admin/Logs', [
             'logs' => AdminLog::with('user:id,name,email')->select('*')->latest()->take(200)->get(),
             'loginLogs' => AdminLog::with('user:id,name,email,role')
-                ->where('action', 'USER_LOGIN')
+                ->whereIn('action', ['USER_LOGIN', 'تسجيل دخول'])
                 ->latest()
                 ->take(120)
                 ->get(),

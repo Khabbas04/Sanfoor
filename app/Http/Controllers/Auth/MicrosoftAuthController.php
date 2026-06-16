@@ -206,9 +206,9 @@ class MicrosoftAuthController extends Controller
             try {
                 AdminLog::create([
                     'user_id' => $user->id,
-                    'action' => 'USER_LOGIN',
+                    'action' => 'تسجيل دخول',
                     'details' => sprintf(
-                        'User login via Microsoft: %s (%s) | role: %s | ip: %s',
+                        'تسجيل الدخول عبر مايكروسوفت: %s (%s) | الدور: %s | ip: %s',
                         $user->name,
                         $user->email,
                         $user->role,

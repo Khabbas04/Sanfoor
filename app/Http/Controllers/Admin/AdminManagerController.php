@@ -39,7 +39,7 @@ class AdminManagerController extends Controller
 
         $loginLogs = AdminLog::query()
             ->with('user:id,name,avatar,email,role')
-            ->where('action', 'USER_LOGIN')
+            ->whereIn('action', ['USER_LOGIN', 'تسجيل دخول'])
             ->latest()
             ->take(80)
             ->get(['id', 'user_id', 'action', 'details', 'created_at']);
