@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
+import { UAParser } from 'ua-parser-js';
 
 const t = {
     ar: {
@@ -41,21 +42,31 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
 
     const parseDevice = (userAgent) => {
         if (!userAgent) return 'جهاز غير معروف';
-        let os = 'جهاز غير معروف';
-        let browser = '';
+        try {
+            const parser = new UAParser(userAgent);
+            const res = parser.getResult();
+            
+            const os = res.os.name || 'غير معروف';
+            const browser = res.browser.name || '';
+            const deviceType = res.device.type; // 'mobile', 'tablet'
+            const deviceVendor = res.device.vendor || ''; // 'Samsung', 'Apple'
+            const deviceModel = res.device.model || ''; // 'SM-A505F', 'iPhone'
+            
+            let deviceIcon = '💻';
+            if (deviceType === 'mobile') deviceIcon = '📱';
+            else if (deviceType === 'tablet') deviceIcon = '💊';
+            
+            let deviceLabel = '';
+            if (deviceVendor || deviceModel) {
+                deviceLabel = `${deviceVendor} ${deviceModel}`.trim();
+            } else {
+                deviceLabel = os;
+            }
 
-        if (userAgent.includes('Windows')) os = 'ويندوز';
-        else if (userAgent.includes('Mac OS')) os = 'ماك';
-        else if (userAgent.includes('Android')) os = 'أندرويد';
-        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'آبل';
-        else if (userAgent.includes('Linux')) os = 'لينكس';
-
-        if (userAgent.includes('Edg') || userAgent.includes('Edge')) browser = 'إيدج';
-        else if (userAgent.includes('Chrome')) browser = 'كروم';
-        else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'سفاري';
-        else if (userAgent.includes('Firefox')) browser = 'فايرفوكس';
-
-        return browser ? `${os} - ${browser}` : os;
+            return `${deviceIcon} ${deviceLabel} - ${browser}`.trim();
+        } catch (e) {
+            return `💻 جهاز غير معروف`;
+        }
     };
 
     const filteredLogs = React.useMemo(() => {
@@ -338,7 +349,7 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
                                                             )}
                                                             {log.meta?.user_agent && (
                                                                 <div className={`rounded-lg px-3 py-2 border text-right ${isDark ? 'bg-slate-700/50 border-slate-600 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
-                                                                    <div className="text-[10px] font-bold opacity-75">💻 الجهاز</div>
+                                                                    <div className="text-[10px] font-bold opacity-75">الجهاز</div>
                                                                     <div className="text-xs font-black">{parseDevice(log.meta.user_agent)}</div>
                                                                 </div>
                                                             )}
@@ -454,7 +465,7 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
 
                                                             {log.meta?.user_agent && (
                                                                 <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1.5 rounded-lg border border-gray-200">
-                                                                    💻 {parseDevice(log.meta.user_agent)}
+                                                                    {parseDevice(log.meta.user_agent)}
                                                                 </span>
                                                             )}
 

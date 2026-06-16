@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Head } from '@inertiajs/react';
+import { UAParser } from 'ua-parser-js';
 import AdminLayout from '@/Layouts/AdminLayout';
 import axios from 'axios';
 
@@ -44,21 +45,31 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
 
     const parseDevice = (userAgent) => {
         if (!userAgent) return 'جهاز غير معروف';
-        let os = 'جهاز غير معروف';
-        let browser = '';
+        try {
+            const parser = new UAParser(userAgent);
+            const res = parser.getResult();
+            
+            const os = res.os.name || 'غير معروف';
+            const browser = res.browser.name || '';
+            const deviceType = res.device.type; // 'mobile', 'tablet'
+            const deviceVendor = res.device.vendor || ''; // 'Samsung', 'Apple'
+            const deviceModel = res.device.model || ''; // 'SM-A505F', 'iPhone'
+            
+            let deviceIcon = '💻';
+            if (deviceType === 'mobile') deviceIcon = '📱';
+            else if (deviceType === 'tablet') deviceIcon = '💊';
+            
+            let deviceLabel = '';
+            if (deviceVendor || deviceModel) {
+                deviceLabel = `${deviceVendor} ${deviceModel}`.trim();
+            } else {
+                deviceLabel = os;
+            }
 
-        if (userAgent.includes('Windows')) os = 'ويندوز';
-        else if (userAgent.includes('Mac OS')) os = 'ماك';
-        else if (userAgent.includes('Android')) os = 'أندرويد';
-        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'آبل';
-        else if (userAgent.includes('Linux')) os = 'لينكس';
-
-        if (userAgent.includes('Edg') || userAgent.includes('Edge')) browser = 'إيدج';
-        else if (userAgent.includes('Chrome')) browser = 'كروم';
-        else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'سفاري';
-        else if (userAgent.includes('Firefox')) browser = 'فايرفوكس';
-
-        return browser ? `${os} - ${browser}` : os;
+            return `${deviceIcon} ${deviceLabel} - ${browser}`.trim();
+        } catch (e) {
+            return `💻 جهاز غير معروف`;
+        }
     };
 
     return (
@@ -106,7 +117,7 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
 
                                 {log.meta?.user_agent && (
                                     <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                        💻 {parseDevice(log.meta.user_agent)}
+                                        {parseDevice(log.meta.user_agent)}
                                     </span>
                                 )}
                             </div>
@@ -142,7 +153,7 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
 
                                 {log.meta?.user_agent && (
                                     <span className="inline-flex items-center gap-1 text-xs bg-white/10 text-gray-300 px-2 py-1 rounded-full">
-                                        💻 {parseDevice(log.meta.user_agent)}
+                                        {parseDevice(log.meta.user_agent)}
                                     </span>
                                 )}
                             </div>
