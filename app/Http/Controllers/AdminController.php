@@ -180,7 +180,7 @@ class AdminController extends Controller
             'issueSummary' => $issueSummary,
             'recentIssues' => IssueReport::with('user:id,name,email')->latest()->take(6)->get(),
             'logs' => AdminLog::with('user:id,name,email')->where('owner_only', false)->latest()->take(25)->get(),
-            'ownerLogs' => Auth::user() && Auth::user()->isOwner() ? AdminLog::with('user:id,name,email')->where('owner_only', true)->latest()->take(200)->get() : collect(),
+
             'adminNotes' => $adminNotes,
             'myAdminNote' => $myAdminNote,
             'notesEnabled' => $notesEnabled,
@@ -756,40 +756,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Owner-only page that shows owner logs.
-     */
-    public function ownerLogsPage()
-    {
-        $user = Auth::user();
-        abort_unless($user && $user->isOwner(), 403);
-
-        return Inertia::render('Admin/OwnerLogs', [
-            'ownerLogs' => AdminLog::with('user:id,name,email')->where('owner_only', true)->latest()->take(200)->get(),
-            'logs' => AdminLog::with('user:id,name,email')->where('owner_only', false)->latest()->take(200)->get(),
-        ]);
-    }
-
-    /**
      * API endpoint for polling owner-only logs (JSON).
-     */
-    public function apiOwnerLogs(Request $request)
-    {
-        $request->session()->save(); // Release session lock
-        $user = Auth::user();
-        abort_unless($user && $user->isOwner(), 403);
-
-        $sinceId = (int) $request->query('since_id', 0);
-
-        $query = AdminLog::with('user:id,name,email')->where('owner_only', true)->latest();
-        if ($sinceId > 0) {
-            // return logs newer than since_id (by id)
-            $query = AdminLog::with('user:id,name,email')->where('owner_only', true)->where('id', '>', $sinceId)->orderBy('id', 'asc');
-        }
-
-        $logs = $query->take(200)->get();
-
-        return response()->json(['logs' => $logs]);
-    }
 
     /**
      * تنفيذ تفريغ كاش النظام بأوامر Artisan بشكل آمن.

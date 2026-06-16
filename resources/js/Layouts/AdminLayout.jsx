@@ -212,7 +212,6 @@ export default function AdminLayout({ children }) {
             label: lang === 'ar' ? 'النظام' : 'System',
             items: [
                 { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
-                ...(isOwner ? [{ icon: '🕵️', name: lang === 'ar' ? 'سجل المالك' : 'Owner Logs', route: 'admin.owner.logs', pattern: 'admin.owner.logs' }] : []),
                 { icon: '⚙️', name: t.settings, route: 'admin.settings', pattern: 'admin.settings' },
             ],
         },
