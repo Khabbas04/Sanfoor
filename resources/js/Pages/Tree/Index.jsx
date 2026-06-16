@@ -342,6 +342,23 @@ export default function Tree({
         return localPassedCourses.filter(c => c.pivot?.grade === null || c.pivot?.grade === undefined || String(c.pivot?.grade).trim() === '').length;
     }, [localPassedCourses]);
 
+    const handleMissingGradesClick = () => {
+        Swal.fire({
+            icon: 'info',
+            title: 'لماذا يجب إدخال العلامات؟',
+            html: '<div style="line-height: 1.8; text-align: right;">إدخالك لعلامات المواد التي اجتزتها ليس إجبارياً، ولكنه <b>مهم جداً</b> لكي يتمكن النظام من:<br><br>1. حساب معدلك التراكمي الحقيقي 🎓<br>2. اقتراح خطة ذكية ومناسبة لمستواك الأكاديمي 🧠<br>3. مساعدتك في اتخاذ قرارات الإعادة لرفع المعدل 📈<br><br><b>هل ترغب في إدخال العلامات الآن؟</b></div>',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، إدخال العلامات',
+            cancelButtonText: 'ليس الآن',
+            ...swalTheme
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setActiveTab('details');
+                setIsSidebarOpen(true); // لضمان فتح القائمة في الجوال
+            }
+        });
+    };
+
     const handleGradeInputChange = (courseId, value) => {
         setGradeInputs(prev => ({
             ...prev,
@@ -3679,7 +3696,7 @@ export default function Tree({
                                     </span>
                                 )}
                                 {!is_instructor && missingGradesCount > 0 && (
-                                    <button onClick={() => setActiveTab('details')} className="md:hidden inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-black text-amber-700 whitespace-nowrap animate-pulse">
+                                    <button onClick={handleMissingGradesClick} className="md:hidden inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-black text-amber-700 whitespace-nowrap animate-pulse">
                                         ⚠️ {missingGradesCount} علامات ناقصة!
                                     </button>
                                 )}
@@ -3694,7 +3711,7 @@ export default function Tree({
                         {/* 🆕 Header مع Mini Stats */}
                         <div className="hidden md:flex items-center gap-4">
                             {!is_instructor && missingGradesCount > 0 && (
-                                <button onClick={() => setActiveTab('details')} className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition-colors" title="إدخال العلامات يزيد من دقة التخطيط للمواد">
+                                <button onClick={handleMissingGradesClick} className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition-colors" title="إدخال العلامات يزيد من دقة التخطيط للمواد">
                                     <span className="text-base">⚠️</span>
                                     <span className="text-[11px] font-black">يوجد {missingGradesCount} مواد بدون علامة!</span>
                                 </button>
