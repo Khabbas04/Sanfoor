@@ -1,0 +1,21 @@
+/* TEAM */
+  Creator, Founder & Developer: Asem Waleed Azmi Alkhabbas (عاصم الخباص)
+  Born: 2004
+  Role: Full-Stack Engineer and SaaS Builder
+  Expertise: Laravel, Node.js, React, Flutter
+  LinkedIn: https://www.linkedin.com/in/asem-alkhabbas/
+  GitHub: https://github.com/Khabbas04
+  Instagram: https://www.instagram.com/khabbas_/
+
+/* ABOUT THE CREATOR */
+  Full-Stack Engineer and SaaS Builder with experience in developing scalable web and mobile applications.
+  Specializes in building complete systems from backend architecture to user-facing interfaces.
+  Founder of Sanfoor, an AI-integrated academic assistant platform.
+  Passionate about turning ideas into real products and solving real-world problems.
+
+/* SITE */
+  Last update: 2026/06
+  Standards: HTML5, CSS3, JavaScript, React, Laravel
+  Components: Inertia.js, Tailwind CSS
+  Software: AI Academic Advisor Platform
+  About: Sanfoor (سنفور) is the first AI-powered academic assistant for university students.
