@@ -288,7 +288,7 @@ export default function Tree({
     const academicPeriod = props?.academic_period || null;
     const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
     const isSummerTerm = Number(academicPeriod?.academic_term || 0) === 3;
-    const maxTrialHours = isSummerTerm ? 9 : 18;
+
     const authUser = props?.auth?.user;
     const canEditTreePositions = Boolean(authUser?.is_admin_or_owner);
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
@@ -1405,6 +1405,19 @@ export default function Tree({
             .reduce((acc, c) => acc + (c.credit_hours || 0), 0);
         return calculated > 0 ? calculated : Number(total_passed_hours || 0);
     }, [courses, passedIds, total_passed_hours]);
+
+    const maxTrialHours = useMemo(() => {
+        let base = isSummerTerm ? 9 : 18;
+        if (totalPassedCredits >= 111) {
+            base = isSummerTerm ? 12 : 21;
+        } else if (isSummerTerm) {
+            const hasLabInCart = courses.some(c => cartIds.includes(c.id) && c.credit_hours == 1);
+            if (hasLabInCart) {
+                base = 10;
+            }
+        }
+        return base;
+    }, [isSummerTerm, totalPassedCredits, cartIds, courses]);
 
     const isLockedByHours = useCallback((course) => {
         const required = Number(course?.minimum_passed_hours || 0);
@@ -2573,11 +2586,16 @@ export default function Tree({
             .filter(c => cartIds.includes(c.id))
             .reduce((sum, c) => sum + (c.credit_hours || 0), 0);
 
-        if (currentCartHours + course.credit_hours > maxTrialHours) {
+        let dynamicLimit = maxTrialHours;
+        if (isSummerTerm && maxTrialHours === 9 && course.credit_hours == 1) {
+            dynamicLimit = 10;
+        }
+
+        if (currentCartHours + course.credit_hours > dynamicLimit) {
             Swal.fire({
                 icon: 'error',
                 title: 'تجاوزت الحد الأقصى!',
-                html: `التسجيل التجريبي حالياً <b>${currentCartHours} ساعة</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours} ساعات) ستتجاوز الحد الأقصى <b>${maxTrialHours} ساعة</b>.<br/><br/>احذف مادة أولاً لتوفير مساحة.`,
+                html: `التسجيل التجريبي حالياً <b>${currentCartHours} ساعة</b>.<br/>إضافة <b>${course.name}</b> (${course.credit_hours} ساعات) ستتجاوز الحد الأقصى <b>${dynamicLimit} ساعة</b>.<br/><br/>احذف مادة أولاً لتوفير مساحة.`,
                 ...swalTheme
             });
             return;
