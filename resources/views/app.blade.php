@@ -21,7 +21,19 @@
 @php
     $appUrl = rtrim(config('app.url', url('/')), '/');
     $creatorName = 'Asem Alkhabbas';
-    $creatorLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas-667471371/';
+    $creatorLinkedIn = 'https://www.linkedin.com/in/asem-alkhabbas/';
+    
+    // حساباتك الشخصية لمحركات البحث
+    $creatorSocials = [
+        $creatorLinkedIn,
+        'https://github.com/Khabbas04',
+        'https://www.instagram.com/khabbas_/',
+    ];
+
+    // حسابات المشروع (يمكن تركها فارغة أو إضافة حسابات فيها لاحقاً)
+    $organizationSocials = [
+    ];
+
 	$schemaGraph = [
 		'@context' => 'https://schema.org',
 		'@graph' => [
@@ -31,7 +43,7 @@
 				'name' => $creatorName,
 				'jobTitle' => 'Founder & Developer',
 				'url' => $creatorLinkedIn,
-				'sameAs' => [$creatorLinkedIn],
+				'sameAs' => $creatorSocials,
 			],
 			[
 				'@id' => "{$appUrl}/#organization",
@@ -39,6 +51,7 @@
 				'name' => 'Sanfoor',
 				'url' => "{$appUrl}/",
 				'logo' => "{$appUrl}/images/sanfoor.png",
+				'sameAs' => $organizationSocials,
 				'creator' => [
 					'@id' => "{$appUrl}/#creator",
 				],
