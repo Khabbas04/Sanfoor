@@ -353,9 +353,65 @@ export default function Tree({
             ...swalTheme
         }).then((result) => {
             if (result.isConfirmed) {
-                setActiveTab('details');
-                setIsSidebarOpen(true); // لضمان فتح القائمة في الجوال
+                router.get(route('calculator.index'));
             }
+        });
+    };
+
+    const overloadedTermsCount = useMemo(() => {
+        const terms = {};
+        localPassedCourses.forEach(c => {
+            const y = c.pivot?.studied_year || 1;
+            const t = c.pivot?.studied_term || 1;
+            const key = `${y}-${t}`;
+            if (!terms[key]) {
+                terms[key] = { hours: 0, hasLab: false, isSummer: t === 3, coursesCount: 0 };
+            }
+            terms[key].hours += Number(c.credit_hours || 0);
+            terms[key].coursesCount++;
+            if (c.credit_hours == 1) terms[key].hasLab = true;
+        });
+
+        // Find the absolute last term chronologically
+        let lastTermKey = null;
+        let maxYear = 0;
+        let maxTerm = 0;
+        Object.keys(terms).forEach(k => {
+            const [y, t] = k.split('-').map(Number);
+            if (y > maxYear || (y === maxYear && t > maxTerm)) {
+                maxYear = y;
+                maxTerm = t;
+                lastTermKey = k;
+            }
+        });
+
+        let overloadedCount = 0;
+        Object.keys(terms).forEach(key => {
+            const term = terms[key];
+            const isLastTerm = key === lastTermKey;
+            
+            let limit = term.isSummer ? (term.hasLab ? 10 : 9) : 18;
+            if (isLastTerm) {
+                limit = term.isSummer ? 12 : 21; // Graduation exception for the last term
+            }
+
+            if (term.hours > limit) {
+                overloadedCount++;
+            }
+        });
+        return overloadedCount;
+    }, [localPassedCourses]);
+
+    const handleOverloadedTermsClick = () => {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تجاوز الحد المسموح',
+            html: '<div style="line-height: 1.8; text-align: right;">اكتشف النظام أن هناك <b>فصول دراسية تتجاوز الحد الأقصى للساعات المسموح بها</b> (18 عادي / 9 أو 10 صيفي).<br><br>إذا كنت قد أدخلت فصولاً بالخطأ، يرجى الدخول للتفاصيل وتصحيحها لكي يتمكن النظام من بناء خطتك المستقبلية بدقة.</div>',
+            confirmButtonText: 'حسناً، سأراجعها',
+            ...swalTheme
+        }).then(() => {
+            setActiveTab('details');
+            setIsSidebarOpen(true);
         });
     };
 
@@ -1552,9 +1608,16 @@ export default function Tree({
 
             const remainingHours = remainingCourses.reduce((sum, c) => sum + Number(c.credit_hours || 0), 0);
             const isSummer = currentSem % 3 === 0;
-            const baseMaxSemHours = isSummer ? 9 : 18;
-            const canGraduateBoost = remainingHours <= baseMaxSemHours + 3;
-            const maxSemHours = currentSem === 1 ? 12 : (canGraduateBoost ? baseMaxSemHours + 3 : baseMaxSemHours);
+            
+            let maxSemHours = 18;
+            if (isSummer) {
+                if (remainingHours <= 12) maxSemHours = 12;
+                else maxSemHours = 9;
+            } else {
+                if (remainingHours <= 21) maxSemHours = 21;
+                else maxSemHours = 18;
+            }
+            if (currentSem === 1) maxSemHours = 12;
             const minSemHours = isSummer ? 0 : 12;
 
             let availableNow = remainingCourses.filter(c => {
@@ -1663,7 +1726,14 @@ export default function Tree({
                 const type = c.type || 'compulsory';
                 if (caps[type] !== undefined && categoryPassedHours[type] + Number(c.credit_hours || 0) > caps[type] && !cartIds.includes(c.id)) continue;
 
-                if (semHours + c.credit_hours <= maxSemHours) {
+                let allowedToInsert = semHours + c.credit_hours <= maxSemHours;
+                if (!allowedToInsert && isSummer && maxSemHours === 9 && (semHours + c.credit_hours === 10)) {
+                    if (c.credit_hours == 1 || semCourses.some(sc => sc.credit_hours == 1)) {
+                        allowedToInsert = true;
+                    }
+                }
+
+                if (allowedToInsert) {
                     semCourses.push({ ...c, isSummer, currentSem });
                     semHours += c.credit_hours;
                     if (isOnline) semOnlineCount++;

@@ -41,10 +41,35 @@ class CartController extends Controller
         $allowedIds = [];
         $blockedCourses = [];
 
+        $totalPassedHoursForGraduation = (int) $user->passedCourses()->sum('courses.credit_hours');
+        $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
+
         // Determine current term limits (summer vs regular)
         $currentAcademic = \App\Models\AcademicPeriod::current();
         $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
-        $maxTrialHours = $isSummer ? 9 : 18;
+        
+        $hasOneHourLab = false;
+        foreach ($requestedIds as $courseId) {
+            $c = $courses->get($courseId);
+            if ($c && $c->credit_hours == 1) {
+                $hasOneHourLab = true;
+                break;
+            }
+        }
+
+        if ($isSummer) {
+            if ($remainingHoursToGraduate <= 12) {
+                $maxTrialHours = 12;
+            } else {
+                $maxTrialHours = $hasOneHourLab ? 10 : 9;
+            }
+        } else {
+            if ($remainingHoursToGraduate <= 21) {
+                $maxTrialHours = 21;
+            } else {
+                $maxTrialHours = 18;
+            }
+        }
 
         $accHours = 0;
         foreach ($requestedIds as $courseId) {

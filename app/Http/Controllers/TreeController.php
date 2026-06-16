@@ -395,6 +395,55 @@ class TreeController extends Controller
                 }
             }
 
+            // === بداية التحقق الذكي لعدد ساعات الفصل الأقصى ===
+            $totalPassedHoursForGraduation = (int) DB::table('course_user')
+                ->join('courses', 'courses.id', '=', 'course_user.course_id')
+                ->where('course_user.user_id', $userId)
+                ->sum('courses.credit_hours');
+                
+            $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
+
+            // جلب المواد الحالية في نفس الفصل (باستثناء المادة الحالية إن كانت موجودة مسبقاً)
+            $currentSemesterCourses = DB::table('course_user')
+                ->join('courses', 'courses.id', '=', 'course_user.course_id')
+                ->where('course_user.user_id', $userId)
+                ->where('course_user.studied_year', $studiedYear)
+                ->where('course_user.studied_term', $studiedTerm)
+                ->where('course_user.course_id', '!=', $courseId)
+                ->select('courses.id', 'courses.credit_hours')
+                ->get();
+
+            $currentSemesterHours = (int) $currentSemesterCourses->sum('credit_hours');
+            $hasOneHourLab = $currentSemesterCourses->contains('credit_hours', 1) || $course->credit_hours == 1;
+
+            $isSummerTerm = ($studiedTerm === 3);
+
+            if ($isSummerTerm) {
+                if ($remainingHoursToGraduate <= 12) {
+                    $maxLimit = 12;
+                    $reason = ' (خريج صيفي)';
+                } else {
+                    $maxLimit = $hasOneHourLab ? 10 : 9;
+                    $reason = $hasOneHourLab ? ' (لأن لديك مادة مختبر)' : '';
+                }
+            } else {
+                if ($remainingHoursToGraduate <= 21) {
+                    $maxLimit = 21;
+                    $reason = ' (خريج)';
+                } else {
+                    $maxLimit = 18;
+                    $reason = '';
+                }
+            }
+
+            if (($currentSemesterHours + $course->credit_hours) > $maxLimit) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => "عذراً، يتجاوز مجموع الساعات الحد الأقصى المسموح لهذا الفصل وهو {$maxLimit} ساعة{$reason}. لديك حالياً في هذا الفصل {$currentSemesterHours} ساعة."
+                ], 422);
+            }
+            // === نهاية التحقق الذكي لعدد ساعات الفصل ===
+
             $grade = $request->input('grade');
             $cleanGrade = ($grade === '' || is_null($grade)) ? null : (float) $grade;
 
@@ -585,7 +634,31 @@ class TreeController extends Controller
             // Enforce per-term trial hours limit
             $currentAcademic = \App\Models\AcademicPeriod::current();
             $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
-            $maxTrialHours = $isSummer ? 9 : 18;
+
+            $totalPassedHoursForGraduation = (int) $user->passedCourses()->sum('courses.credit_hours');
+            $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
+
+            $currentCartCourses = $user->cartCourses()->select('courses.id', 'courses.credit_hours')->get();
+            $currentCartHours = (int) $currentCartCourses->sum('credit_hours');
+            $hasOneHourLab = $currentCartCourses->contains('credit_hours', 1) || $course->credit_hours == 1;
+
+            if ($isSummer) {
+                if ($remainingHoursToGraduate <= 12) {
+                    $maxTrialHours = 12;
+                    $reason = ' (خريج صيفي)';
+                } else {
+                    $maxTrialHours = $hasOneHourLab ? 10 : 9;
+                    $reason = $hasOneHourLab ? ' (لأن لديك مادة مختبر)' : '';
+                }
+            } else {
+                if ($remainingHoursToGraduate <= 21) {
+                    $maxTrialHours = 21;
+                    $reason = ' (خريج)';
+                } else {
+                    $maxTrialHours = 18;
+                    $reason = '';
+                }
+            }
 
             // التحقق من حد المواد الاختيارية (9 ساعات كحد أقصى)
             if ($course->type === 'elective') {
@@ -605,12 +678,11 @@ class TreeController extends Controller
                 }
             }
 
-            $currentCartHours = (int) $user->cartCourses()->sum('credit_hours');
             $courseHours = (int) ($course->credit_hours ?? 0);
             if (($currentCartHours + $courseHours) > $maxTrialHours) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => "يتجاوز مجموع الساعات القصوى للتسجيل التجريبي في هذا الفصل ({$maxTrialHours} ساعة). لديك حالياً {$currentCartHours} ساعة.",
+                    'message' => "يتجاوز مجموع الساعات الحد الأقصى المسموح لهذا الفصل وهو {$maxTrialHours} ساعة{$reason}. لديك حالياً {$currentCartHours} ساعة.",
                 ], 422);
             }
 
