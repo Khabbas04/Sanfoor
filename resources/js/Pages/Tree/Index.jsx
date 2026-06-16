@@ -392,8 +392,9 @@ export default function Tree({
             
             let limit = term.isSummer ? (term.hasLab ? 10 : 9) : 18;
             const totalCredits = localPassedCourses.reduce((acc, c) => acc + Number(c.credit_hours || 0), 0);
-            if (isLastTerm && totalCredits >= 111) {
-                limit = term.isSummer ? 12 : 21; // Graduation exception for the last term
+            if (isLastTerm) {
+                if (term.isSummer && totalCredits >= 120) limit = 12;
+                else if (!term.isSummer && totalCredits >= 111) limit = 21;
             }
 
             if (term.hours > limit) {
@@ -1408,8 +1409,10 @@ export default function Tree({
 
     const maxTrialHours = useMemo(() => {
         let base = isSummerTerm ? 9 : 18;
-        if (totalPassedCredits >= 111) {
-            base = isSummerTerm ? 12 : 21;
+        if (isSummerTerm && totalPassedCredits >= 120) {
+            base = 12;
+        } else if (!isSummerTerm && totalPassedCredits >= 111) {
+            base = 21;
         } else if (isSummerTerm) {
             const hasLabInCart = courses.some(c => cartIds.includes(c.id) && c.credit_hours == 1);
             if (hasLabInCart) {
