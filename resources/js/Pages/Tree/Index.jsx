@@ -3770,6 +3770,11 @@ export default function Tree({
                                         ⚠️ {missingGradesCount} علامات ناقصة!
                                     </button>
                                 )}
+                                {!is_instructor && overloadedTermsCount > 0 && (
+                                    <button onClick={handleOverloadedTermsClick} className="md:hidden inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-black text-rose-700 whitespace-nowrap animate-pulse">
+                                        🚨 تجاوز الساعات!
+                                    </button>
+                                )}
                                 {!is_instructor && calculatedGpa.hasRecords && (
                                     <span className="md:hidden inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-black text-emerald-700 whitespace-nowrap">
                                         🎓 المعدل {calculatedGpa.percentage}%
@@ -3784,6 +3789,12 @@ export default function Tree({
                                 <button onClick={handleMissingGradesClick} className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition-colors" title="إدخال العلامات يزيد من دقة التخطيط للمواد">
                                     <span className="text-base">⚠️</span>
                                     <span className="text-[11px] font-black">يوجد {missingGradesCount} مواد بدون علامة!</span>
+                                </button>
+                            )}
+                            {!is_instructor && overloadedTermsCount > 0 && (
+                                <button onClick={handleOverloadedTermsClick} className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-200 shadow-sm transition-colors animate-pulse" title="يوجد فصول تتجاوز الحد المسموح للساعات">
+                                    <span className="text-base">🚨</span>
+                                    <span className="text-[11px] font-black">فصول تتجاوز الحد المسموح!</span>
                                 </button>
                             )}
                             {!is_instructor && calculatedGpa.hasRecords && (
