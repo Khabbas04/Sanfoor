@@ -212,9 +212,12 @@ class MicrosoftAuthController extends Controller
                         $user->name,
                         $user->email,
                         $user->role,
-                        $request->ip()
+                        request()->ip()
                     ),
-                    'ip_address' => $request->ip(),
+                    'ip_address' => request()->ip(),
+                    'meta' => [
+                        'user_agent' => request()->header('User-Agent')
+                    ]
                 ]);
             } catch (Throwable $logException) {
                 Log::warning('Failed to write USER_LOGIN admin log for Microsoft login', [

@@ -38,7 +38,10 @@ class AdminController extends Controller
             'user_id' => Auth::id(),
             'action' => $action,
             'details' => $details,
-            'ip_address' => request()->ip()
+            'ip_address' => request()->ip(),
+            'meta' => [
+                'user_agent' => request()->header('User-Agent')
+            ]
         ]);
     }
 

@@ -58,6 +58,9 @@ class AuthenticatedSessionController extends Controller
                     $user->role
                 ),
                 'ip_address' => $request->ip(),
+                'meta' => [
+                    'user_agent' => $request->header('User-Agent')
+                ]
             ]);
         } catch (Throwable $e) {
             Log::warning('Failed to write USER_LOGIN admin log', [
