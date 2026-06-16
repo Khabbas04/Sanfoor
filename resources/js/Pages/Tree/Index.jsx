@@ -358,14 +358,14 @@ export default function Tree({
         });
     };
 
-    const overloadedTermsCount = useMemo(() => {
+    const overloadedTerms = useMemo(() => {
         const terms = {};
         localPassedCourses.forEach(c => {
             const y = c.pivot?.studied_year || 1;
             const t = c.pivot?.studied_term || 1;
             const key = `${y}-${t}`;
             if (!terms[key]) {
-                terms[key] = { hours: 0, hasLab: false, isSummer: t === 3, coursesCount: 0 };
+                terms[key] = { year: y, term: t, hours: 0, hasLab: false, isSummer: t === 3, coursesCount: 0 };
             }
             terms[key].hours += Number(c.credit_hours || 0);
             terms[key].coursesCount++;
@@ -385,7 +385,7 @@ export default function Tree({
             }
         });
 
-        let overloadedCount = 0;
+        let overloaded = [];
         Object.keys(terms).forEach(key => {
             const term = terms[key];
             const isLastTerm = key === lastTermKey;
@@ -396,17 +396,34 @@ export default function Tree({
             }
 
             if (term.hours > limit) {
-                overloadedCount++;
+                overloaded.push({
+                    year: term.year,
+                    term: term.term,
+                    hours: term.hours,
+                    limit: limit,
+                    isSummer: term.isSummer
+                });
             }
         });
-        return overloadedCount;
+        return overloaded;
     }, [localPassedCourses]);
 
     const handleOverloadedTermsClick = () => {
+        const detailsHtml = overloadedTerms.map(t => {
+            const termName = t.term === 1 ? 'الأول' : t.term === 2 ? 'الثاني' : 'الصيفي';
+            return `<li style="margin-bottom: 8px; padding: 8px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;">
+                <b>السنة ${t.year} - الفصل ${termName}:</b> مسجل <span style="color: #e11d48; font-weight: 900;">${t.hours}</span> ساعة (الحد المسموح <b>${t.limit}</b>)
+            </li>`;
+        }).join('');
+
         Swal.fire({
             icon: 'warning',
             title: 'تجاوز الحد المسموح',
-            html: '<div style="line-height: 1.8; text-align: right;">اكتشف النظام أن هناك <b>فصول دراسية تتجاوز الحد الأقصى للساعات المسموح بها</b> (18 عادي / 9 أو 10 صيفي).<br><br>إذا كنت قد أدخلت فصولاً بالخطأ، يرجى الدخول للتفاصيل وتصحيحها لكي يتمكن النظام من بناء خطتك المستقبلية بدقة.</div>',
+            html: `<div style="line-height: 1.8; text-align: right;">
+                اكتشف النظام فصولاً دراسية تتجاوز الحد الأقصى للساعات المسموح بها:<br><br>
+                <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">${detailsHtml}</ul><br>
+                إذا كنت قد أدخلت هذه الفصول بالخطأ، يرجى مراجعة التفاصيل وتصحيحها لضمان دقة الخطة المستقبلية.
+            </div>`,
             confirmButtonText: 'حسناً، سأراجعها',
             ...swalTheme
         }).then(() => {
@@ -3717,8 +3734,8 @@ export default function Tree({
                         </section>
                     )}
 
-                    <div className="flex justify-between items-center gap-3">
-                        <div className="flex items-center gap-3">
+                    <div className="flex justify-between items-center gap-3 flex-wrap w-full">
+                        <div className="flex items-center gap-3 flex-wrap">
                             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden w-10 h-10 bg-slate-50 border border-slate-200 text-slate-600 rounded-xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-colors active:scale-90 shadow-sm">
                                 {isSidebarOpen ? '✕' : '☰'}
                             </button>
@@ -3770,7 +3787,7 @@ export default function Tree({
                                         ⚠️ {missingGradesCount} علامات ناقصة!
                                     </button>
                                 )}
-                                {!is_instructor && overloadedTermsCount > 0 && (
+                                {!is_instructor && overloadedTerms.length > 0 && (
                                     <button onClick={handleOverloadedTermsClick} className="md:hidden inline-flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-black text-rose-700 whitespace-nowrap animate-pulse">
                                         🚨 تجاوز الساعات!
                                     </button>
@@ -3784,15 +3801,15 @@ export default function Tree({
                         </div>
 
                         {/* 🆕 Header مع Mini Stats */}
-                        <div className="hidden md:flex items-center gap-4">
+                        <div className="hidden md:flex items-center gap-2 lg:gap-4 flex-wrap justify-end flex-1">
                             {!is_instructor && missingGradesCount > 0 && (
-                                <button onClick={handleMissingGradesClick} className="flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition-colors" title="إدخال العلامات يزيد من دقة التخطيط للمواد">
+                                <button onClick={handleMissingGradesClick} className="shrink-0 flex items-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm transition-colors" title="إدخال العلامات يزيد من دقة التخطيط للمواد">
                                     <span className="text-base">⚠️</span>
                                     <span className="text-[11px] font-black">يوجد {missingGradesCount} مواد بدون علامة!</span>
                                 </button>
                             )}
-                            {!is_instructor && overloadedTermsCount > 0 && (
-                                <button onClick={handleOverloadedTermsClick} className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-200 shadow-sm transition-colors animate-pulse" title="يوجد فصول تتجاوز الحد المسموح للساعات">
+                            {!is_instructor && overloadedTerms.length > 0 && (
+                                <button onClick={handleOverloadedTermsClick} className="shrink-0 flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-xl border border-rose-200 shadow-sm transition-colors animate-pulse" title="يوجد فصول تتجاوز الحد المسموح للساعات">
                                     <span className="text-base">🚨</span>
                                     <span className="text-[11px] font-black">فصول تتجاوز الحد المسموح!</span>
                                 </button>
