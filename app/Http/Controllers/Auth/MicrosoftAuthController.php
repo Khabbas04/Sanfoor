@@ -47,6 +47,15 @@ class MicrosoftAuthController extends Controller
                 ]);
             }
 
+            $isBanned = \App\Models\BannedUser::where('email', $email)->exists();
+            if ($isBanned) {
+                return redirect()->route('login')->with([
+                    'message' => 'عذراً، لا يمكنك التسجيل. هذا الحساب محظور من استخدام المنصة.',
+                    'type' => 'error',
+                    'status' => 'عذراً، لا يمكنك التسجيل. هذا الحساب محظور من استخدام المنصة.',
+                ]);
+            }
+
             $profileName = trim(implode(' ', array_filter([
                 data_get($microsoftUser->user, 'givenName'),
                 data_get($microsoftUser->user, 'surname'),

@@ -145,6 +145,29 @@ class AdminStudentController extends Controller
     }
 
     /**
+     * حظر وحذف حساب الطالب نهائياً
+     */
+    public function banAndDestroy(User $student)
+    {
+        if (strtolower((string) $student->role) !== 'student') {
+            abort(403, 'غير مصرح بحظر هذا الحساب.');
+        }
+
+        $email = $student->email;
+
+        \App\Models\BannedUser::firstOrCreate([
+            'email' => $email
+        ], [
+            'reason' => 'Banned by admin via dashboard'
+        ]);
+
+        $student->delete();
+        $this->logAction('BAN_STUDENT', "تم حظر وحذف حساب الطالب {$email}");
+        
+        return back()->with('message', 'تم حظر وحذف حساب الطالب بنجاح، ولن يتمكن من التسجيل مجدداً.');
+    }
+
+    /**
      * Remove a course from a student's trial cart (admin action).
      */
     public function removeCartCourse(Request $request, User $student, $courseId)

@@ -195,6 +195,26 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
         });
     };
 
+    // 🔥 دالة الحظر والحذف 🔥
+    const handleBanAndDestroy = (id) => {
+        Swal.fire({
+            title: 'حظر وحذف الحساب',
+            text: 'سيتم حذف الحساب نهائياً وإضافة البريد الإلكتروني للقائمة السوداء لمنعه من التسجيل مجدداً!',
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#000000',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'نعم، احذف واحظر',
+            cancelButtonText: t.cancel
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('admin.students.ban', id), {
+                    onSuccess: () => setIsSidebarOpen(false)
+                });
+            }
+        });
+    };
+
     // ألوان العلامات
     const getBadgeColor = (grade) => {
         const val = parseFloat(grade);
@@ -594,13 +614,19 @@ export default function AdminStudents({ auth, students, filters, majors = [] }) 
                                                     </div>
                                                 </div>
 
-                                                <div className={`${isDark ? 'bg-rose-950/20 border-rose-900/30' : 'bg-rose-50 border-rose-100'} border p-4 rounded-2xl`}>
+                                                <div className={`${isDark ? 'bg-rose-950/20 border-rose-900/30' : 'bg-rose-50 border-rose-100'} border p-4 rounded-2xl space-y-2`}>
                                                     <h4 className={`text-xs font-black ${isDark ? 'text-rose-400' : 'text-rose-800'} mb-2`}>{t.dangerZone}</h4>
                                                     <button 
                                                         onClick={() => handleDelete(selectedStudent.id)}
                                                         className={`w-full py-2.5 ${isDark ? 'bg-slate-800 border-rose-800/50 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-white border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white'} border text-[11px] font-black rounded-xl transition-colors`}
                                                     >
                                                         {t.deleteAccount}
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleBanAndDestroy(selectedStudent.id)}
+                                                        className={`w-full py-2.5 ${isDark ? 'bg-black border-slate-700 text-slate-300 hover:bg-rose-900 hover:text-white' : 'bg-black border-slate-800 text-white hover:bg-rose-700'} border text-[11px] font-black rounded-xl transition-colors`}
+                                                    >
+                                                        🚫 حظر وحذف الحساب نهائياً
                                                     </button>
                                                 </div>
                                             </div>

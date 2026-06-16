@@ -422,6 +422,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/students', [AdminStudentController::class, 'index'])->name('students.index');
         Route::put('/students/{student}', [AdminStudentController::class, 'update'])->name('students.update');
         Route::delete('/students/{student}', [AdminStudentController::class, 'destroy'])->name('students.destroy');
+        Route::delete('/students/{student}/ban', [AdminStudentController::class, 'banAndDestroy'])->name('students.ban');
         Route::delete('/students/{student}/cart/{courseId}', [AdminStudentController::class, 'removeCartCourse'])
             ->whereNumber('courseId')
             ->name('students.cart.remove');
