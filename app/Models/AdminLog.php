@@ -13,6 +13,11 @@ class AdminLog extends Model
     // 🔥 هذا السطر هو الحل للمشكلة 🔥
     protected $fillable = ['user_id', 'action', 'details', 'ip_address', 'owner_only', 'meta'];
 
+    protected $casts = [
+        'meta' => 'array',
+        'owner_only' => 'boolean',
+    ];
+
     // علاقة عشان نعرف مين الأدمن صاحب الحركة
     public function user(): BelongsTo
     {

@@ -61,19 +61,30 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Global Eloquent event listeners to capture DB changes as owner-only logs.
-        Event::listen(EloquentCreated::class, function ($event) {
+        $modelNames = [
+            'App\Models\User' => 'المستخدم',
+            'App\Models\Course' => 'المادة الدراسية',
+            'App\Models\Major' => 'التخصص',
+            'App\Models\College' => 'الكلية',
+            'App\Models\Message' => 'الرسالة',
+            'App\Models\Chat' => 'المحادثة',
+            'App\Models\SiteMaintenance' => 'وضع الصيانة',
+            'App\Models\AcademicPeriod' => 'الفصل الأكاديمي',
+            'App\Models\BannedUser' => 'حساب محظور',
+        ];
+
+        Event::listen(EloquentCreated::class, function ($event) use ($modelNames) {
             try {
                 $model = $event->model ?? null;
                 if (!$model) return;
                 $class = get_class($model);
-                // Avoid logging admin logs themselves to prevent recursion
                 if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote')) return;
 
+                $modelNameAr = $modelNames[$class] ?? class_basename($class);
                 $meta = [
                     'event' => 'created',
                     'model' => $class,
                     'id' => $model->getKey(),
-                    'attributes' => $model->getAttributes(),
                     'route' => request()->path() ?? null,
                     'ip' => request()->ip() ?? null,
                     'user_agent' => request()->header('User-Agent') ?? null,
@@ -81,30 +92,33 @@ class AppServiceProvider extends ServiceProvider
 
                 AdminLog::create([
                     'user_id' => auth()->id() ?: null,
-                    'action' => 'MODEL_CREATED',
-                    'details' => "Created {$class} id=" . ($model->getKey() ?? 'null'),
+                    'action' => 'إضافة',
+                    'details' => "تم إضافة ($modelNameAr) جديد برقم #{$model->getKey()}",
                     'ip_address' => request()->ip() ?? null,
                     'owner_only' => true,
                     'meta' => json_encode($meta),
                 ]);
-            } catch (\Throwable $e) {
-                // swallow errors to avoid breaking requests
-            }
+            } catch (\Throwable $e) {}
         });
 
-        Event::listen(EloquentUpdated::class, function ($event) {
+        Event::listen(EloquentUpdated::class, function ($event) use ($modelNames) {
             try {
                 $model = $event->model ?? null;
                 if (!$model) return;
                 $class = get_class($model);
-                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote')) return;
+                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote') || Str::endsWith($class, 'Session')) return;
 
+                // Ignore minor updates like last_seen_at
+                $changes = $model->getChanges();
+                if (count($changes) === 1 && isset($changes['last_seen_at'])) return;
+                if (count($changes) === 1 && isset($changes['updated_at'])) return;
+                if (count($changes) === 2 && isset($changes['last_seen_at']) && isset($changes['updated_at'])) return;
+
+                $modelNameAr = $modelNames[$class] ?? class_basename($class);
                 $meta = [
                     'event' => 'updated',
                     'model' => $class,
                     'id' => $model->getKey(),
-                    'changes' => $model->getChanges(),
-                    'original' => $model->getOriginal(),
                     'route' => request()->path() ?? null,
                     'ip' => request()->ip() ?? null,
                     'user_agent' => request()->header('User-Agent') ?? null,
@@ -112,28 +126,27 @@ class AppServiceProvider extends ServiceProvider
 
                 AdminLog::create([
                     'user_id' => auth()->id() ?: null,
-                    'action' => 'MODEL_UPDATED',
-                    'details' => "Updated {$class} id=" . ($model->getKey() ?? 'null'),
+                    'action' => 'تعديل',
+                    'details' => "تم تعديل بيانات ($modelNameAr) برقم #{$model->getKey()}",
                     'ip_address' => request()->ip() ?? null,
                     'owner_only' => true,
                     'meta' => json_encode($meta),
                 ]);
-            } catch (\Throwable $e) {
-            }
+            } catch (\Throwable $e) {}
         });
 
-        Event::listen(EloquentDeleted::class, function ($event) {
+        Event::listen(EloquentDeleted::class, function ($event) use ($modelNames) {
             try {
                 $model = $event->model ?? null;
                 if (!$model) return;
                 $class = get_class($model);
-                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote')) return;
+                if (Str::endsWith($class, 'AdminLog') || Str::endsWith($class, 'AdminNote') || Str::endsWith($class, 'Session')) return;
 
+                $modelNameAr = $modelNames[$class] ?? class_basename($class);
                 $meta = [
                     'event' => 'deleted',
                     'model' => $class,
                     'id' => $model->getKey(),
-                    'attributes' => $model->getAttributes(),
                     'route' => request()->path() ?? null,
                     'ip' => request()->ip() ?? null,
                     'user_agent' => request()->header('User-Agent') ?? null,
@@ -141,14 +154,13 @@ class AppServiceProvider extends ServiceProvider
 
                 AdminLog::create([
                     'user_id' => auth()->id() ?: null,
-                    'action' => 'MODEL_DELETED',
-                    'details' => "Deleted {$class} id=" . ($model->getKey() ?? 'null'),
+                    'action' => 'حذف',
+                    'details' => "تم حذف ($modelNameAr) برقم #{$model->getKey()}",
                     'ip_address' => request()->ip() ?? null,
                     'owner_only' => true,
                     'meta' => json_encode($meta),
                 ]);
-            } catch (\Throwable $e) {
-            }
+            } catch (\Throwable $e) {}
         });
 
         Event::listen(\Illuminate\Auth\Events\Registered::class, function (\Illuminate\Auth\Events\Registered $event) {

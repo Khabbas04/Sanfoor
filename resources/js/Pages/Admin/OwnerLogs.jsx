@@ -42,6 +42,25 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
         return () => clearInterval(polling.current);
     }, []);
 
+    const parseDevice = (userAgent) => {
+        if (!userAgent) return 'جهاز غير معروف';
+        let os = 'جهاز غير معروف';
+        let browser = '';
+
+        if (userAgent.includes('Windows')) os = 'ويندوز';
+        else if (userAgent.includes('Mac OS')) os = 'ماك';
+        else if (userAgent.includes('Android')) os = 'أندرويد';
+        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'آبل';
+        else if (userAgent.includes('Linux')) os = 'لينكس';
+
+        if (userAgent.includes('Edg') || userAgent.includes('Edge')) browser = 'إيدج';
+        else if (userAgent.includes('Chrome')) browser = 'كروم';
+        else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'سفاري';
+        else if (userAgent.includes('Firefox')) browser = 'فايرفوكس';
+
+        return browser ? `${os} - ${browser}` : os;
+    };
+
     return (
         <AdminLayout>
             <Head title="سجل المالك — سنفور" />
@@ -67,16 +86,30 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
                             <div className="flex justify-between items-start">
                                 <div>
                                     <div className="font-semibold text-indigo-700">{log.action}</div>
-                                    <div className="text-sm text-gray-600 mt-1">{log.details}</div>
+                                    <div className="text-sm text-gray-600 mt-1 font-semibold">{log.details}</div>
                                 </div>
-                                <div className="text-xs text-gray-500">#{log.id} • {new Date(log.created_at).toLocaleString()}</div>
+                                <div className="text-xs text-gray-500" dir="ltr">#{log.id} • {new Date(log.created_at).toLocaleString()}</div>
                             </div>
-                            {log.user && (
-                                <div className="mt-2 text-xs text-gray-500">من: {log.user.name} ({log.user.email})</div>
-                            )}
-                            {log.meta && (
-                                <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-auto" style={{maxHeight: 220}}>{JSON.stringify(log.meta, null, 2)}</pre>
-                            )}
+                            
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                                {log.user && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full">
+                                        👤 {log.user.name} ({log.user.email})
+                                    </span>
+                                )}
+                                
+                                {log.ip_address && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full" dir="ltr">
+                                        🌐 {log.ip_address}
+                                    </span>
+                                )}
+
+                                {log.meta?.user_agent && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                        💻 {parseDevice(log.meta.user_agent)}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     ))}
 
@@ -85,17 +118,34 @@ export default function OwnerLogs({ ownerLogs: initialOwnerLogs, logs: initialLo
                     )}
 
                     {tab === 'all' && logs.map(log => (
-                        <div key={log.id} className="p-3 border rounded-md bg-white/5">
+                        <div key={log.id} className="p-3 border border-white/10 rounded-md bg-white/5">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <div className="font-medium">{log.action}</div>
-                                    <div className="text-sm text-gray-400">{log.details}</div>
+                                    <div className="font-semibold text-indigo-400">{log.action}</div>
+                                    <div className="text-sm text-gray-300 font-medium">{log.details}</div>
                                 </div>
-                                <div className="text-xs text-gray-500">#{log.id} • {new Date(log.created_at).toLocaleString()}</div>
+                                <div className="text-xs text-gray-500" dir="ltr">#{log.id} • {new Date(log.created_at).toLocaleString()}</div>
                             </div>
-                            {log.user && (
-                                <div className="mt-2 text-xs text-gray-400">من: {log.user.name} ({log.user.email})</div>
-                            )}
+
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                                {log.user && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-indigo-500/10 text-indigo-300 px-2 py-1 rounded-full">
+                                        👤 {log.user.name} ({log.user.email})
+                                    </span>
+                                )}
+                                
+                                {log.ip_address && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-white/10 text-gray-300 px-2 py-1 rounded-full" dir="ltr">
+                                        🌐 {log.ip_address}
+                                    </span>
+                                )}
+
+                                {log.meta?.user_agent && (
+                                    <span className="inline-flex items-center gap-1 text-xs bg-white/10 text-gray-300 px-2 py-1 rounded-full">
+                                        💻 {parseDevice(log.meta.user_agent)}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     ))}
                 </div>

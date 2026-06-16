@@ -39,6 +39,25 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
     const [loginQuery, setLoginQuery] = React.useState('');
     const [sortBy, setSortBy] = React.useState('recent');
 
+    const parseDevice = (userAgent) => {
+        if (!userAgent) return 'جهاز غير معروف';
+        let os = 'جهاز غير معروف';
+        let browser = '';
+
+        if (userAgent.includes('Windows')) os = 'ويندوز';
+        else if (userAgent.includes('Mac OS')) os = 'ماك';
+        else if (userAgent.includes('Android')) os = 'أندرويد';
+        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) os = 'آبل';
+        else if (userAgent.includes('Linux')) os = 'لينكس';
+
+        if (userAgent.includes('Edg') || userAgent.includes('Edge')) browser = 'إيدج';
+        else if (userAgent.includes('Chrome')) browser = 'كروم';
+        else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) browser = 'سفاري';
+        else if (userAgent.includes('Firefox')) browser = 'فايرفوكس';
+
+        return browser ? `${os} - ${browser}` : os;
+    };
+
     const filteredLogs = React.useMemo(() => {
         if (!query) return logs;
         const q = query.toLowerCase();
@@ -317,6 +336,12 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
                                                                     <div className="text-xs font-black font-mono">{log.ip_address}</div>
                                                                 </div>
                                                             )}
+                                                            {log.meta?.user_agent && (
+                                                                <div className={`rounded-lg px-3 py-2 border text-right ${isDark ? 'bg-slate-700/50 border-slate-600 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'}`}>
+                                                                    <div className="text-[10px] font-bold opacity-75">💻 الجهاز</div>
+                                                                    <div className="text-xs font-black">{parseDevice(log.meta.user_agent)}</div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -420,6 +445,18 @@ export default function AdminLogs({ auth, logs = [], loginLogs = [] }) {
                                                                     {relTime}
                                                                 </div>
                                                             </div>
+
+                                                            {log.ip_address && (
+                                                                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1.5 rounded-lg border border-gray-200" dir="ltr">
+                                                                    🌐 {log.ip_address}
+                                                                </span>
+                                                            )}
+
+                                                            {log.meta?.user_agent && (
+                                                                <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1.5 rounded-lg border border-gray-200">
+                                                                    💻 {parseDevice(log.meta.user_agent)}
+                                                                </span>
+                                                            )}
 
                                                             <span className={`text-xs font-black px-3 py-1.5 rounded-lg border whitespace-nowrap ${roleColors}`}>
                                                                 {role}
