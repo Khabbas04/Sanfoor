@@ -442,6 +442,12 @@ class AiAdvisorController extends Controller
             $contents = $this->buildConversationContext($chat, $systemPrompt);
         }
 
+        // Release the session lock EARLY so that if the user sends another request or refreshes,
+        // it doesn't hang waiting for the session and cause a 504 Gateway Timeout!
+        if (session()->isStarted()) {
+            session()->save();
+        }
+
         return response()->stream(function () use ($user, $data, $chat, $chatId, $isNewChat, $academicData, $cartData, $availableCourses, $apiKeys, $cachedAiResponse, $dailyLimit, $usage, $usageKey, $responseCacheKey, $contents) {
             while (ob_get_level()) ob_end_flush();
             ob_implicit_flush(true);
