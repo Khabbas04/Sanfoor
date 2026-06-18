@@ -37,7 +37,52 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
         return () => { if (raf.current) cancelAnimationFrame(raf.current); };
     }, [safeContent, isAnimating]);
     useEffect(() => { if (!isAnimating && !done.current) { setTxt(safeContent); done.current = true; } }, [isAnimating, safeContent]);
-    return <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5"><ReactMarkdown>{txt}</ReactMarkdown></div>;
+    return (
+        <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5">
+            <ReactMarkdown
+                components={{
+                    code({ node, inline, className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        return !inline ? (
+                            <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700/60 shadow-xl" dir="ltr">
+                                <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-slate-700/60">
+                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{match ? match[1] : 'CODE'}</span>
+                                    <button 
+                                        onClick={(e) => {
+                                            navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                                            const btn = e.currentTarget;
+                                            const originalText = btn.innerHTML;
+                                            btn.innerHTML = '✓ تم النسخ';
+                                            btn.classList.add('text-emerald-400');
+                                            setTimeout(() => {
+                                                btn.innerHTML = originalText;
+                                                btn.classList.remove('text-emerald-400');
+                                            }, 2000);
+                                        }}
+                                        className="text-[10px] text-slate-400 hover:text-white transition-colors flex items-center gap-1 bg-slate-700/50 hover:bg-slate-600/80 px-2.5 py-1 rounded-md font-bold"
+                                        title="نسخ الكود"
+                                    >
+                                        📋 Copy
+                                    </button>
+                                </div>
+                                <div className="p-4 overflow-x-auto" style={{ margin: 0 }}>
+                                    <code className={`text-[13px] text-slate-50 font-mono leading-relaxed block ${className || ''}`} {...props}>
+                                        {children}
+                                    </code>
+                                </div>
+                            </div>
+                        ) : (
+                            <code className="bg-slate-100/80 border border-slate-200 text-pink-600 px-1.5 py-0.5 rounded-md font-mono text-[12px] font-bold mx-0.5" dir="ltr" {...props}>
+                                {children}
+                            </code>
+                        );
+                    }
+                }}
+            >
+                {txt}
+            </ReactMarkdown>
+        </div>
+    );
 };
 
 
