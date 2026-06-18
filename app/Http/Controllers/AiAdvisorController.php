@@ -1356,13 +1356,17 @@ class AiAdvisorController extends Controller
     private function normalizeReplyText(string $text): string
     {
         $clean = str_replace(['\\n', '\n'], "\n", $text);
-        $clean = preg_replace('/```(?:json|html|markdown)?(.*?)```/is', '$1', $clean);
+        
+        // Remove style and script tags for safety
         $clean = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $clean);
         $clean = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $clean);
-        $clean = strip_tags($clean);
+        
+        // DO NOT use strip_tags as it ruins code containing < or > (like List<String>)
+        // DO NOT strip triple backticks as it ruins markdown code blocks
+        // DO NOT strip multiple spaces as it ruins code indentation
+        
         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
-        $clean = preg_replace('/[ \t]{2,}/', ' ', $clean);
 
         return trim($this->stripReplyEnvelope($clean)) ?: 'ما وصلني رد واضح هذه المرة. اكتب سؤالك بصيغة أقصر وأنا أجاوبك فوراً.';
     }
