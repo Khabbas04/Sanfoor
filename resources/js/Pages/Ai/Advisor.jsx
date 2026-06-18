@@ -43,7 +43,8 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
                 components={{
                     code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
-                        return !inline ? (
+                        const isBlock = !inline && (match || String(children).includes('\n'));
+                        return isBlock ? (
                             <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700/60 shadow-xl" dir="ltr">
                                 <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-slate-700/60">
                                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{match ? match[1] : 'CODE'}</span>
