@@ -317,11 +317,10 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                                 <div className="sfr-ai-card">
                                     <div className="sfr-md text-[12.5px] font-medium">
                                         <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone}/>
-                                        {msg.isStreaming && <span className="inline-block w-1.5 h-4 bg-blue-500 rounded-sm animate-pulse align-middle ml-0.5" />}
                                     </div>
                                 </div>
                             </div>
-                            {!msg.isAnimating && !msg.isStreaming && (() => {
+                            {!msg.isAnimating && (() => {
                                 const seenIds = new Set();
                                 const uniqueSuggested = msg.suggested_courses?.filter(c => {
                                     if (!c.id || seenIds.has(c.id)) return false;
@@ -332,10 +331,10 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                                 }) || [];
                                 return uniqueSuggested.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{uniqueSuggested.map(c=><CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle}/>)}</div></div>;
                             })()}
-                            {!msg.isAnimating && !msg.isStreaming && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
-                            {!msg.isAnimating && !msg.isStreaming && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
-                            {!msg.isAnimating && !msg.isStreaming && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
-                            {!msg.isAnimating && !msg.isStreaming && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
+                            {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c=><CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading===c.id} onToggle={onToggle} variant="remove"/>)}</div></div>}
+                            {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow}/>}
+                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q,i)=><button key={i} onClick={()=>onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
+                            {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb}/>}
                         </div>
                     )}
                 </div>
@@ -540,151 +539,60 @@ export default function Advisor() {
         const userMsgId = `u-${Date.now()}`;
         setMsgs(p => [...p, { id: userMsgId, role:'user', content:t }]); setTyping(true);
 
-        if (abortRef.current) abortRef.current.abort();
-        abortRef.current = new AbortController();
-
-        const pl = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath };
-        if (activeId) pl.chat_id = activeId;
-
-        const aiMsgId = `ai-${Date.now()}`;
-        let streamedText = '';
-        let gotDoneEvent = false;
-
         try {
-            // === SSE STREAMING ===
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-            const streamUrl = route('ai.advisor.chat.stream');
-            const response = await fetch(streamUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-CSRF-TOKEN': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify(pl),
+            if (abortRef.current) abortRef.current.abort();
+            abortRef.current = new AbortController();
+
+            const pl = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath };
+            if (activeId) pl.chat_id = activeId;
+
+            const res = await axios.post(route('ai.advisor.chat'), pl, {
                 signal: abortRef.current.signal,
-                credentials: 'same-origin',
             });
 
-            // If HTTP error, throw to trigger fallback
-            if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+            const data = res.data;
+            setTyping(false);
 
-            // Check if response is actually SSE (not JSON error from validation)
-            const contentType = response.headers.get('content-type') || '';
-            if (contentType.includes('application/json')) {
-                const errData = await response.json();
-                if (errData.status === 'error') {
-                    setTyping(false);
-                    if (errData.daily_messages_remaining !== undefined) setRemaining(errData.daily_messages_remaining);
-                    if (errData.has_daily_limit !== undefined) setHasDailyLimit(!!errData.has_daily_limit);
-                    setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: errData.message || 'خطأ غير متوقع.', isAnimating:false }]);
-                    return;
-                }
-                // Non-error JSON (rate limit etc) — treat as done
-                setTyping(false);
-                const safeReply = typeof errData.reply === 'string' && errData.reply.trim() ? errData.reply : 'ما وصلني رد واضح.';
-                setGenerating(true);
-                if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
-                typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
-                setMsgs(p => [...p, { id: aiMsgId, role:'ai', content: safeReply, suggested_courses: errData.suggested_courses||[], courses_to_remove: errData.courses_to_remove||[], follow_up_suggestions: errData.follow_up_suggestions||[], interactive_widget: errData.interactive_widget||null, isAnimating:true }]);
-                if (!activeId && errData.chat_id) { setActiveId(errData.chat_id); setChats(p => [{ id:errData.chat_id, title:errData.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
-                if (errData.has_daily_limit !== undefined) setHasDailyLimit(!!errData.has_daily_limit);
-                if (errData.daily_messages_remaining !== undefined) setRemaining(errData.daily_messages_remaining);
+            if (data.status === 'error') {
+                if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
+                if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+                setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: data.message || 'خطأ غير متوقع.', isAnimating:false }]);
                 return;
             }
 
-            // Show empty AI message placeholder + stop typing dots
-            setTyping(false);
+            if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+            if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
+            setIsFallback(!!data.is_fallback);
+
+            const safeReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : 'ما وصلني رد واضح.';
             setGenerating(true);
-            setMsgs(p => [...p, { id: aiMsgId, role:'ai', content:'', isStreaming:true, isAnimating:false, suggested_courses:[], courses_to_remove:[], follow_up_suggestions:[], interactive_widget:null }]);
+            if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
+            typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
+            
+            setMsgs(p => [...p, { 
+                id:`ai-${Date.now()}`, 
+                role:'ai', 
+                content:safeReply, 
+                suggested_courses:data.suggested_courses||[], 
+                courses_to_remove:data.courses_to_remove||[], 
+                follow_up_suggestions:data.follow_up_suggestions||[], 
+                interactive_widget:data.interactive_widget||null, 
+                isAnimating:true 
+            }]);
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let currentEvent = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const rawLine of lines) {
-                    const line = rawLine.trim();
-                    if (!line) { currentEvent = ''; continue; }
-
-                    if (line.startsWith('event:')) {
-                        currentEvent = line.slice(6).trim();
-                    } else if (line.startsWith('data:')) {
-                        try {
-                            const ed = JSON.parse(line.slice(5).trim());
-                            if (currentEvent === 'token') {
-                                streamedText += (ed.t || '');
-                                setMsgs(p => p.map(m => m.id === aiMsgId ? { ...m, content: streamedText } : m));
-                                scroll();
-                            } else if (currentEvent === 'done') {
-                                gotDoneEvent = true;
-                                const fr = typeof ed.reply === 'string' && ed.reply.trim() ? ed.reply : streamedText || 'ما وصلني رد واضح.';
-                                setMsgs(p => p.map(m => m.id === aiMsgId ? { ...m, content: fr, isStreaming:false, isAnimating:false, suggested_courses:ed.suggested_courses||[], courses_to_remove:ed.courses_to_remove||[], follow_up_suggestions:ed.follow_up_suggestions||[], interactive_widget:ed.interactive_widget||null } : m));
-                                if (ed.chat_id && !activeId) { setActiveId(ed.chat_id); setChats(p => [{ id:ed.chat_id, title:ed.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
-                                else if (ed.chat_title && ed.chat_id) { setChats(p => p.map(c => c.id === ed.chat_id ? {...c, title:ed.chat_title} : c)); }
-                                if (ed.has_daily_limit !== undefined) setHasDailyLimit(!!ed.has_daily_limit);
-                                if (ed.daily_messages_remaining !== undefined) setRemaining(ed.daily_messages_remaining);
-                                setIsFallback(!!ed.is_fallback);
-                            } else if (currentEvent === 'error') {
-                                gotDoneEvent = true;
-                                setMsgs(p => p.map(m => m.id === aiMsgId ? { ...m, content: ed.message || 'حدث خطأ.', isStreaming:false } : m));
-                            }
-                        } catch (_) { /* ignore individual parse errors */ }
-                    }
-                }
-            }
-
-            // Stream ended without done → finalize with streamed text
-            if (!gotDoneEvent && streamedText) {
-                setMsgs(p => p.map(m => m.id === aiMsgId ? { ...m, isStreaming:false } : m));
-            } else if (!gotDoneEvent && !streamedText) {
-                // No data at all → show error
-                setMsgs(p => p.map(m => m.id === aiMsgId ? { ...m, content:'عذراً، لم يصل رد من المرشد. حاول مرة أخرى.', isStreaming:false } : m));
+            if (!activeId && data.chat_id) { 
+                setActiveId(data.chat_id); 
+                setChats(p => [{ id:data.chat_id, title:data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); 
+            } else if (data.chat_title && data.chat_id) {
+                setChats(p => p.map(c => c.id === data.chat_id ? {...c, title: data.chat_title} : c));
             }
 
         } catch (err) {
-            if (err?.name === 'AbortError') { setTyping(false); setGenerating(false); return; }
-
-            // === FALLBACK: Old non-streaming endpoint ===
-            try {
-                if (!abortRef.current || abortRef.current.signal.aborted) abortRef.current = new AbortController();
-
-                const res = await axios.post(route('ai.advisor.chat'), pl, { signal: abortRef.current.signal });
-                const data = res.data;
-                setTyping(false);
-
-                if (data.status === 'error') {
-                    if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
-                    if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
-                    setMsgs(p => [...p, { id:`e-${Date.now()}`, role:'ai', content: data.message || 'خطأ غير متوقع.', isAnimating:false }]);
-                    return;
-                }
-
-                if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
-                if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
-                setIsFallback(!!data.is_fallback);
-
-                const safeReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : 'ما وصلني رد واضح.';
-                setGenerating(true);
-                if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
-                typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
-
-                setMsgs(p => [...p, { id:`ai-${Date.now()}`, role:'ai', content:safeReply, suggested_courses:data.suggested_courses||[], courses_to_remove:data.courses_to_remove||[], follow_up_suggestions:data.follow_up_suggestions||[], interactive_widget:data.interactive_widget||null, isAnimating:true }]);
-
-                if (!activeId && data.chat_id) { setActiveId(data.chat_id); setChats(p => [{ id:data.chat_id, title:data.chat_title||t.substring(0,40)+'...', created_at:new Date().toISOString() }, ...p]); }
-                else if (data.chat_title && data.chat_id) { setChats(p => p.map(c => c.id === data.chat_id ? {...c, title:data.chat_title} : c)); }
-            } catch (fallbackErr) {
-                setTyping(false);
-                if (axios.isCancel(fallbackErr) || fallbackErr?.name === 'AbortError') return;
-                setMsgs(p => [...p, { id:`err-${Date.now()}`, role:'ai', content:'عذراً، حدث خطأ في الاتصال. حاول مرة أخرى.', isAnimating:false }]);
-            }
+            setTyping(false);
+            if (axios.isCancel(err) || err?.name === 'AbortError') return;
+            setMsgs(p => [...p, { id:`err-${Date.now()}`, role:'ai', content:'عذراً، حدث خطأ في الاتصال. حاول مرة أخرى.', isAnimating:false }]);
         } finally {
             setGenerating(false);
-            setTyping(false);
             setTimeout(scroll, 100);
         }
     }, [activeId, generating, typing, magicCommands, scroll, selectedFilters, difficulty, criticalPath]);
