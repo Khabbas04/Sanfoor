@@ -1306,13 +1306,6 @@ class AiAdvisorController extends Controller
             }
         }
 
-        if (preg_match('/"reply"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $clean, $matches)) {
-            return [
-                'reply' => str_replace(['\\n', '\\"'], ["\n", '"'], $matches[1]),
-                'follow_up_suggestions' => [],
-                'interactive_widget' => null,
-            ];
-        }
 
         return [
             'reply' => $this->stripReplyEnvelope($clean) ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.',
