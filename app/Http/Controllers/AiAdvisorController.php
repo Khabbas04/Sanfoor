@@ -1282,7 +1282,8 @@ class AiAdvisorController extends Controller
 
     private function parseAIResponse(string $rawText): array
     {
-        $clean = trim((string) preg_replace('/```(?:json)?(.*?)```/is', '$1', $rawText));
+        // Only strip the outer markdown formatting if the entire response is wrapped in it.
+        $clean = preg_replace('/^```(?:json)?\s*(.*?)\s*```$/is', '$1', trim($rawText));
 
         $decoded = json_decode($clean, true);
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
