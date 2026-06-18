@@ -485,6 +485,7 @@ export default function Advisor() {
 
     const [difficulty, setDifficulty] = useState(null); // 'easy', 'balanced', 'hard'
     const [criticalPath, setCriticalPath] = useState(false);
+    const [wantsCode, setWantsCode] = useState(false);
     const [selectedFilters, setSelectedFilters] = useState([]);
     const filterOptions = [
         { id: 'compulsory', label: 'إجباري' },
@@ -589,7 +590,7 @@ export default function Advisor() {
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
 
-            const pl = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath };
+            const pl = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath, wants_code: wantsCode };
             if (activeId) pl.chat_id = activeId;
 
             const res = await axios.post(route('ai.advisor.chat'), pl, {
@@ -650,7 +651,7 @@ export default function Advisor() {
     const regen = useCallback(async () => {
         if (!activeId || regenning || generating) return; setRegenning(true);
         setMsgs(p => { const c=[...p]; if(c.length>0&&c[c.length-1].role==='ai')c.pop(); return c; }); setTyping(true);
-        try { const r=await axios.post(route('ai.advisor.regenerate'),{chat_id:activeId});
+        try { const r=await axios.post(route('ai.advisor.regenerate'),{chat_id:activeId, filters: selectedFilters, difficulty, critical_path: criticalPath, wants_code: wantsCode});
             if(r.data.status==='success'){
                 const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
                     ? r.data.reply
@@ -781,6 +782,20 @@ export default function Advisor() {
                             </div>
                             <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${criticalPath ? 'bg-amber-500' : 'bg-slate-200'}`}>
                                 <div className={`bg-white w-3 h-3 rounded-full shadow-sm transition-transform ${criticalPath ? 'translate-x-[-16px]' : 'translate-x-0'}`} />
+                            </div>
+                        </button>
+
+                        {/* وضع الأكواد */}
+                        <button type="button" onClick={() => setWantsCode(!wantsCode)} className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all ${wantsCode ? 'bg-sky-50 border-sky-300 shadow-sm shadow-sky-200/30' : 'bg-white border-slate-100 hover:border-sky-200 hover:bg-sky-50/30'}`}>
+                            <div className="flex items-center gap-2 text-right">
+                                <span className={`text-lg transition-transform ${wantsCode ? 'scale-110' : 'grayscale opacity-60'}`}>💻</span>
+                                <div>
+                                    <p className={`text-[11px] font-black ${wantsCode ? 'text-sky-700' : 'text-slate-600'}`}>وضع الأكواد البرمجية</p>
+                                    <p className="text-[8.5px] text-slate-400 font-bold mt-0.5">جهز لي الأكواد في صندوق احترافي</p>
+                                </div>
+                            </div>
+                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${wantsCode ? 'bg-sky-500' : 'bg-slate-200'}`}>
+                                <div className={`bg-white w-3 h-3 rounded-full shadow-sm transition-transform ${wantsCode ? 'translate-x-[-16px]' : 'translate-x-0'}`} />
                             </div>
                         </button>
 

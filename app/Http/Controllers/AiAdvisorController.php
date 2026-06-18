@@ -218,7 +218,7 @@ class AiAdvisorController extends Controller
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
                 $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
-                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
+                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? false);
                 $contents = $this->buildConversationContext($chat, $systemPrompt);
 
                 $rawText = $this->callGeminiAPI($contents, $apiKeys);
@@ -392,6 +392,10 @@ class AiAdvisorController extends Controller
         return $this->chat(new Request([
             'message' => $lastUserMessage->content,
             'chat_id' => $chat->id,
+            'filters' => $request->input('filters', []),
+            'difficulty' => $request->input('difficulty'),
+            'critical_path' => $request->input('critical_path'),
+            'wants_code' => $request->input('wants_code'),
         ]));
     }
 
@@ -900,9 +904,13 @@ class AiAdvisorController extends Controller
         return "\n🎯 [RAG الإرشاد الطلابي]:\n- نية_السؤال: {$intent}\n- ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "\n- ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "\n- حالة_الساعات: {$hoursState}\n- عدد_مواد_التسجيل_التجريبي: " . count($cartData['ids'] ?? []) . "\n- مواد_استراتيجية_مرشحة:\n" . ($strategic ? implode("\n", $strategic) : '- لا توجد مواد مرشحة حالياً') . "\n- عينات_حسب_تصنيف_الصعوبة_الاداري:\n  - خفيف: " . ($easy ? implode(' | ', array_slice($easy, 0, 4)) : 'لا يوجد') . "\n  - متوازن: " . ($balanced ? implode(' | ', array_slice($balanced, 0, 4)) : 'لا يوجد') . "\n  - مكثف: " . ($heavy ? implode(' | ', array_slice($heavy, 0, 4)) : 'لا يوجد');
     }
 
-    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = [], $difficulty = null, $criticalPath = null): string
+    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = [], $difficulty = null, $criticalPath = null, $wantsCode = false): string
     {
         $filterInstructions = "";
+        
+        if ($wantsCode) {
+            $filterInstructions .= "- 💻 **وضع الأكواد البرمجية مُفعل**: الطالب يطلب منك كتابة كود برمجي كجزء من إجابتك. **يجب** أن توفر الكود المطلوب كاملاً داخل صندوق أكواد Markdown مع تحديد لغة البرمجة بدقة (مثال: ```java). لا تكتب الكود كنص عادي أبداً، ولا تختصره.\n";
+        }
         if (!empty($filters)) {
             $filterLabels = [
                 'compulsory' => 'إجباري',
