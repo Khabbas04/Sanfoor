@@ -452,6 +452,10 @@ class AiAdvisorController extends Controller
             while (ob_get_level()) ob_end_flush();
             ob_implicit_flush(true);
 
+            // Force Nginx/Cloudflare to flush buffers by sending 2KB of padding
+            echo ":" . str_repeat(" ", 2048) . "\n\n";
+            flush();
+
             // === CACHED RESPONSE — send instantly ===
             if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
                 $chat->messages()->create(['role' => 'ai', 'content' => json_encode($cachedAiResponse, JSON_UNESCAPED_UNICODE)]);
@@ -1204,6 +1208,7 @@ class AiAdvisorController extends Controller
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_courses\":[],\"courses_to_remove\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
             "هام جداً: يجب أن يكون نص الـ reply سطراً واحداً برمجياً، استخدم الحرفين \\n للنزول سطر جديد ولا تضغط Enter (Literal newlines) داخل النص لتجنب كسر الـ JSON.\n" .
+            "🚨 تأكيد: يجب أن يكون مفتاح \"reply\" هو المفتاح الأول (First Key) في كائن الـ JSON دائماً لضمان سرعة الاستجابة.\n" .
             "🚨 تحذير شديد: إياك أن تقترح أو تدخل أي مادة في الـ JSON (سواء في suggested_courses أو interactive_widget) غير موجودة حرفياً في قائمة (المواد المتاحة للتسجيل للطالب). اختراع أسماء مواد، أو تأليف عدد ساعات للمواد من عندك سيسبب خطأ فادح بالنظام.";
     }
 
