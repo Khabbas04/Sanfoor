@@ -4438,9 +4438,9 @@ export default function Tree({
                             </div>
 
                             <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 text-right space-y-2">
-                                <p className="text-[13px] font-[900] text-rose-800 flex items-center justify-end gap-1.5">🔄 نظام الإعادة (للمواد المرسوبة)</p>
+                                <p className="text-[13px] font-[900] text-rose-800 flex items-center justify-end gap-1.5">🔄 نظام الإعادة (لرفع المعدل أو النجاح)</p>
                                 <p className="text-[11px] font-bold text-rose-600/90 leading-relaxed">
-                                    إذا رسبت في مادة (أقل من 50%) أو حصلت على صفر جامعي (أقل من 35%)، ستظهر المادة باللون الأحمر (حالة "راسب"). من تفاصيل المادة، ستتمكن من الضغط على زر <b>"إعادة المادة"</b> لفتح محاولة جديدة وإعادة دراستها ليتم حسابها كإعادة لرفع المعدل.
+                                    إذا رسبت في مادة أو رغبت برفع معدلك في مادة اجتزتها، ستتمكن من تفاصيل المادة من الضغط على زر <b>"إعادة المادة"</b> لفتح محاولة جديدة وإعادة دراستها ليتم حسابها كإعادة لرفع المعدل.
                                 </p>
                             </div>
 

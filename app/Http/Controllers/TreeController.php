@@ -756,13 +756,8 @@ class TreeController extends Controller
 
             $latestGrade = $latestAttempt->grade !== null ? (float) $latestAttempt->grade : null;
 
-            // التحقق: فقط المواد المرسوب فيها (أقل من 50) أو بدون علامة
-            if ($latestGrade !== null && $latestGrade >= 50) {
-                return response()->json([
-                    'status' => 'error',
-                    'msg' => 'هذه المادة ناجح فيها ولا تحتاج إعادة. يمكنك الإعادة فقط إذا كانت العلامة أقل من 50.',
-                ], 422);
-            }
+            // تم إزالة شرط منع إعادة المادة إذا كانت العلامة أكبر من 50
+            // لتمكين الطالب من رفع معدله
 
             $newAttemptNumber = (int) ($latestAttempt->attempt_number ?? 1) + 1;
 
