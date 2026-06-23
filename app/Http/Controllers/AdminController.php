@@ -51,10 +51,10 @@ class AdminController extends Controller
     public function dashboard()
     {
         $today = now()->toDateString();
-        $notesEnabled = Schema::hasTable('admin_notes');
+        $notesEnabled = true;
 
         $currentPeriod = AcademicPeriod::current();
-        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
+        $hasPeriodColumns = true;
 
         $demandReport = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_demand_report', 300, function () use ($currentPeriod, $hasPeriodColumns) {
             return Course::whereHas('cartUsers', function ($query) use ($currentPeriod, $hasPeriodColumns) {
@@ -195,12 +195,6 @@ class AdminController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
 
-        if (!Schema::hasTable('admin_notes')) {
-            return redirect()->back()->with([
-                'message' => 'جدول الملاحظات غير موجود. شغّل migrate لتفعيل الملاحظات.',
-                'type' => 'error',
-            ]);
-        }
 
         $data = $request->validate([
             'note' => ['required', 'string', 'max:1500'],
@@ -402,12 +396,6 @@ class AdminController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
 
-        if (!Schema::hasTable('academic_periods')) {
-            return redirect()->back()->with([
-                'message' => 'جدول الفصول الأكاديمية غير موجود. شغّل migrate أولاً.',
-                'type' => 'error',
-            ]);
-        }
 
         $validated = $request->validate([
             'academic_year' => ['required', 'string', 'max:20'],
@@ -478,12 +466,6 @@ class AdminController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
 
-        if (!Schema::hasTable('site_maintenance')) {
-            return redirect()->back()->with([
-                'message' => 'جدول الصيانة غير موجود. شغّل migrate أولاً.',
-                'type' => 'error',
-            ]);
-        }
 
         $validated = $request->validate([
             'is_enabled' => ['required', 'boolean'],
@@ -1568,8 +1550,7 @@ class AdminController extends Controller
         $currentPeriod = AcademicPeriod::current();
         $periodYear = $currentPeriod?->academic_year;
         $periodTerm = $currentPeriod?->academic_term;
-        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year')
-            && Schema::hasColumn('user_carts', 'academic_term');
+        $hasPeriodColumns = true;
 
         $courseDemand = Course::whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
             if ($periodYear && $periodTerm && $hasPeriodColumns) {

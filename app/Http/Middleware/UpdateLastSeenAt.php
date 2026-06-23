@@ -23,9 +23,8 @@ class UpdateLastSeenAt
 
             // Only update the database once every 5 minutes per user
             // This prevents a heavy database write on every single page navigation
-            if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            if (\Illuminate\Support\Facades\Cache::add($cacheKey, true, now()->addMinutes(5))) {
                 User::where('id', $userId)->update(['last_seen_at' => now()]);
-                \Illuminate\Support\Facades\Cache::put($cacheKey, true, now()->addMinutes(5));
             }
         }
 

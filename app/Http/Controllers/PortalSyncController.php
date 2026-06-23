@@ -150,7 +150,6 @@ class PortalSyncController extends Controller
 
         if (
             isset($columns['major_id'])
-            && Schema::hasTable('majors')
             && filled($studentData['major'] ?? null)
         ) {
             $majorName = trim((string) $studentData['major']);
@@ -185,9 +184,6 @@ class PortalSyncController extends Controller
      */
     private function syncPassedCourses(User $user, array $courses): array
     {
-        if (!Schema::hasTable('courses') || !Schema::hasTable('course_user')) {
-            return ['matched' => 0, 'skipped' => count($courses)];
-        }
 
         $pivotColumns = array_flip(Schema::getColumnListing('course_user'));
 

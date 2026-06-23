@@ -414,9 +414,7 @@ class AiAdvisorController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if (!Schema::hasTable('ai_feedbacks')) {
-            return response()->json(['status' => 'saved']);
-        }
+
 
         DB::table('ai_feedbacks')->updateOrInsert(
             ['message_id' => $message->id, 'user_id' => Auth::id()],
@@ -481,13 +479,11 @@ class AiAdvisorController extends Controller
             $topDemandedCourses = collect();
         }
 
-        $feedbackStats = Schema::hasTable('ai_feedbacks')
-            ? DB::table('ai_feedbacks')
+        $feedbackStats = DB::table('ai_feedbacks')
                 ->selectRaw("count(case when rating = 'up' then 1 end) as positive")
                 ->selectRaw("count(case when rating = 'down' then 1 end) as negative")
                 ->selectRaw('count(*) as total')
-                ->first()
-            : (object) ['positive' => 0, 'negative' => 0, 'total' => 0];
+                ->first();
 
         return response()->json([
             'demanded_courses' => $topDemandedCourses,

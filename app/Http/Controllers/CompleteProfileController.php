@@ -33,12 +33,8 @@ class CompleteProfileController extends Controller
         $majors = collect();
 
         try {
-            if (Schema::hasTable('colleges')) {
-                $colleges = College::withoutGlobalScopes()->select('id', 'name')->orderBy('name')->get();
-            }
-            if (Schema::hasTable('majors')) {
-                $majors = Major::withoutGlobalScopes()->select('id', 'college_id', 'name')->orderBy('name')->get();
-            }
+            $colleges = College::withoutGlobalScopes()->select('id', 'name')->orderBy('name')->get();
+            $majors = Major::withoutGlobalScopes()->select('id', 'college_id', 'name')->orderBy('name')->get();
         } catch (Throwable $e) {
             Log::warning('Failed loading academic lists for complete-profile', [
                 'message' => $e->getMessage(),

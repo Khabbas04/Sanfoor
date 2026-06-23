@@ -28,13 +28,8 @@ class ProfileController extends Controller
         $majors = collect();
 
         try {
-            if (Schema::hasTable('colleges')) {
-                $colleges = College::withoutGlobalScopes()->select('id', 'name')->orderBy('name')->get();
-            }
-
-            if (Schema::hasTable('majors')) {
-                $majors = Major::withoutGlobalScopes()->select('id', 'college_id', 'name')->orderBy('name')->get();
-            }
+            $colleges = College::withoutGlobalScopes()->select('id', 'name')->orderBy('name')->get();
+            $majors = Major::withoutGlobalScopes()->select('id', 'college_id', 'name')->orderBy('name')->get();
         } catch (Throwable $exception) {
             Log::warning('Failed loading profile academic lists', [
                 'message' => $exception->getMessage(),
@@ -106,7 +101,6 @@ class ProfileController extends Controller
 
         if (
             $hasMajorColumn
-            && Schema::hasTable('majors')
             && filled($updatePayload['major_id'] ?? null)
             && filled($validated['college_id'] ?? null)
         ) {

@@ -116,11 +116,11 @@ Route::get('/dashboard', function () {
         return redirect()->route('instructor.dashboard');
     }
 
-    $hasCourseUser = Schema::hasTable('course_user');
-    $hasUserCarts = Schema::hasTable('user_carts');
-    $hasGraduationPlans = Schema::hasTable('graduation_plans');
-    $hasUserChapters = Schema::hasTable('user_chapters');
-    $hasChapters = Schema::hasTable('chapters');
+    $hasCourseUser = true;
+    $hasUserCarts = true;
+    $hasGraduationPlans = true;
+    $hasUserChapters = true;
+    $hasChapters = true;
 
     // Load the academic relations needed by the dashboard cards and widgets.
     $relations = ['major'];

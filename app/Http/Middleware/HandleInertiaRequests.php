@@ -39,9 +39,12 @@ class HandleInertiaRequests extends Middleware
 
         if ($user) {
             $normalizedRole = strtolower(trim((string) $user->role));
-            $major = $user->relationLoaded('major')
-                ? $user->getRelation('major')
-                : $user->major()->select('id', 'name', 'college_id')->first();
+            $major = null;
+            if ($user->major_id) {
+                $major = $user->relationLoaded('major')
+                    ? $user->getRelation('major')
+                    : $user->major()->select('id', 'name', 'college_id')->first();
+            }
 
             $sharedUser = [
                 'id' => $user->id,

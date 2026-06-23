@@ -28,8 +28,8 @@ class InstructorController extends Controller
 
         $totalStudents = User::where('role', 'student')->count();
         $totalCourses = Course::count();
-        $totalChapters = Schema::hasTable('chapters') ? Chapter::withoutGlobalScopes()->count() : 0;
-        $totalQuestions = Schema::hasTable('questions') ? Question::count() : 0;
+        $totalChapters = Chapter::withoutGlobalScopes()->count();
+        $totalQuestions = Question::count();
 
         $taughtCourses = $user->taughtCourses()
             ->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours')
@@ -228,8 +228,7 @@ class InstructorController extends Controller
         $currentPeriod = AcademicPeriod::current();
         $periodYear = $currentPeriod?->academic_year;
         $periodTerm = $currentPeriod?->academic_term;
-        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year')
-            && Schema::hasColumn('user_carts', 'academic_term');
+        $hasPeriodColumns = true;
 
         $courseDemand = Course::whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
             if ($periodYear && $periodTerm && $hasPeriodColumns) {
