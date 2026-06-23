@@ -942,7 +942,6 @@ class AiAdvisorController extends Controller
         $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
         $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
         $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? min($currentTermLimit, $academicLimit));
-        $isSummer = !empty($academicData['current_period_is_summer']);
         $probationStatus = $academicData['is_probation']
             ? "🚨 نعم — إنذار أكاديمي! (الحد الأقصى {$academicData['max_allowed_hours']} ساعة فقط)"
             : "لا (الحد الأقصى {$academicData['max_allowed_hours']} ساعة)";
@@ -953,8 +952,10 @@ class AiAdvisorController extends Controller
             $progressText = "\n- التقدم نحو التخرج: {$academicData['total_passed_hours']}/{$academicData['total_plan_hours']} ساعة ({$percent}%)";
         }
 
+        $isSummer = !empty($academicData['current_period_is_summer']);
+
         $itFreshmanRule = '';
-        if (($academicData['college_id'] ?? null) == 1 && $totalPassedHours == 0) {
+        if (($academicData['college_id'] ?? null) == 1 && $totalPassedHours == 0 && !$isSummer) {
             $itFreshmanRule = "- 🚨 **قاعدة التوجيه لطلاب كلية الـ IT الجدد**: بما أن هذا الطالب في كلية تكنولوجيا المعلومات وهذا فصله الأول (أنجز 0 ساعة)، **يجب عليك وبشكل إلزامي** أن تقترح عليه تسجيل 12 ساعة فقط (4 مواد) تتكون مما يلي بالتحديد: 1- مادة 'أساسيات تكنولوجيا المعلومات'، 2- مادة 'تصميم المنطق الرقمي'، 3- مادة من متطلبات الجامعة الإجبارية (مثال: التربية الوطنية أو غيرها)، 4- مادة من متطلبات الجامعة الاختيارية. أخبر الطالب صراحة أن هذا هو الجدول المثالي والمتبع لطلاب الـ IT في فصلهم الأول.\n";
         }
 
