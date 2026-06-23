@@ -572,6 +572,7 @@ class AiAdvisorController extends Controller
 
             return [
                 'major_name' => $user->major?->name ?? 'تخصص عام',
+                'college_id' => $user->major?->college_id,
                 'gpa_data' => $gpaData,
                 'is_probation' => $isProbation,
                 'has_academic_records' => $hasAcademicRecords,
@@ -952,6 +953,11 @@ class AiAdvisorController extends Controller
             $progressText = "\n- التقدم نحو التخرج: {$academicData['total_passed_hours']}/{$academicData['total_plan_hours']} ساعة ({$percent}%)";
         }
 
+        $itFreshmanRule = '';
+        if (($academicData['college_id'] ?? null) == 1 && $totalPassedHours == 0) {
+            $itFreshmanRule = "- 🚨 **قاعدة التوجيه لطلاب كلية الـ IT الجدد**: بما أن هذا الطالب في كلية تكنولوجيا المعلومات وهذا فصله الأول (أنجز 0 ساعة)، **يجب عليك وبشكل إلزامي** أن تقترح عليه تسجيل 12 ساعة فقط (4 مواد) تتكون مما يلي بالتحديد: 1- مادة 'أساسيات تكنولوجيا المعلومات'، 2- مادة 'تصميم المنطق الرقمي'، 3- مادة من متطلبات الجامعة الإجبارية (مثال: التربية الوطنية أو غيرها)، 4- مادة من متطلبات الجامعة الاختيارية. أخبر الطالب صراحة أن هذا هو الجدول المثالي والمتبع لطلاب الـ IT في فصلهم الأول.\n";
+        }
+
         $cartWarning = '';
         if (($cartData['hours'] ?? 0) > $effectiveLimit) {
             $excess = $cartData['hours'] - $effectiveLimit;
@@ -989,6 +995,7 @@ class AiAdvisorController extends Controller
             ($isSummer ? "- (الفصل صيفي). ركز على المواد المطروحة في الصيفي إن وجدت.\n" : "- (ليس صيفياً).\n") .
             "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني/الصيفي'.\n" .
             $filterInstructions .
+            $itFreshmanRule .
             "- الحساب الدقيق (صارم): لأسئلة حساب المعدل، **اكتب العملية الحسابية الدقيقة** خطوة بخطوة بشكل عمودي (باستخدام الرمز \\n لإنشاء أسطر جديدة داخل الـ JSON)، ولا تدمج الحسابات بفقرة واحدة. ولا تستخدم علامات التنصيص المزدوجة داخل نص الـ reply. القانون: (المعدل الحالي×الساعات المقطوعة + العلامة المتوقعة×الساعات المتوقعة)/إجمالي الساعات.\n" .
             "- الأكواد البرمجية: إذا طلب الطالب كوداً برمجياً أو قمت بشرح أي مفهوم برمجي، **يجب** أن تضع الكود بداخل كتلة أكواد Markdown (Triple backticks) مع تحديد لغة البرمجة (مثال: ```java). إياك كتابة الكود كنص عادي.\n" .
             "- كن جدياً وعملياً، استخدم ايموجيات خفيفة وميّز الكلمات بـ **bold**.\n" .
