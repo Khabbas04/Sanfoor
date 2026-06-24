@@ -2460,10 +2460,11 @@ export default function Tree({
                 setLocalPassedCourses(prev => prev.filter(c => c.id !== courseId));
             }
         } catch (error) {
+            const errorMsg = error.response?.data?.msg || error.response?.data?.message || 'حدث خطأ بالاتصال';
             Swal.fire({
                 icon: 'error',
-                title: 'خطأ!',
-                text: error.response?.data?.msg || error.response?.data?.message || 'حدث خطأ بالاتصال',
+                title: 'تنبيه!',
+                html: `<div style="text-align: right; line-height: 1.6; font-size: 14px;">${errorMsg}</div>`,
                 ...swalTheme
             });
         }

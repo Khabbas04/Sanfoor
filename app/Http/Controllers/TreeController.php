@@ -333,25 +333,6 @@ class TreeController extends Controller
                 ], 422);
             }
 
-            $passedIds = DB::table('course_user')
-                ->where('user_id', $userId)
-                ->pluck('course_id')
-                ->toArray();
-
-            $missingPrereqs = [];
-            foreach ($course->prerequisites as $prereq) {
-                if (!in_array($prereq->id, $passedIds, true)) {
-                    $missingPrereqs[] = $prereq->name;
-                }
-            }
-
-            if (!empty($missingPrereqs)) {
-                return response()->json([
-                    'status' => 'error',
-                    'msg' => 'عذراً، يجب إنهاء المتطلبات السابقة: ' . implode(' ، ', $missingPrereqs),
-                ], 422);
-            }
-
             $studiedYear = $request->input('studied_year');
             $studiedTerm = $request->input('studied_term');
 
@@ -370,6 +351,48 @@ class TreeController extends Controller
             $targetSemester = max(1, min(18, (int) $targetSemester));
             $studiedYear = max(1, min(6, (int) $studiedYear));
             $studiedTerm = in_array((int) $studiedTerm, [1, 2, 3], true) ? (int) $studiedTerm : 1;
+
+            // حساب الوزن الزمني للفصل الحالي المطلوب إنجاز المادة فيه للمقارنة
+            $currentCourseChronology = (($studiedYear - 1) * 3) + $studiedTerm;
+
+            $passedPrereqsRecords = DB::table('course_user')
+                ->where('user_id', $userId)
+                ->whereIn('course_id', $course->prerequisites->pluck('id'))
+                ->orderByDesc('attempt_number')
+                ->get()
+                ->keyBy('course_id');
+
+            $missingPrereqs = [];
+            $invalidChronologyPrereqs = [];
+
+            foreach ($course->prerequisites as $prereq) {
+                if (!$passedPrereqsRecords->has($prereq->id)) {
+                    $missingPrereqs[] = $prereq->name;
+                } else {
+                    $prereqRecord = $passedPrereqsRecords->get($prereq->id);
+                    $prereqYear = max(1, min(6, (int) $prereqRecord->studied_year));
+                    $prereqTerm = in_array((int) $prereqRecord->studied_term, [1, 2, 3], true) ? (int) $prereqRecord->studied_term : 1;
+                    $prereqChronology = (($prereqYear - 1) * 3) + $prereqTerm;
+
+                    if ($currentCourseChronology < $prereqChronology) {
+                        $invalidChronologyPrereqs[] = $prereq->name;
+                    }
+                }
+            }
+
+            if (!empty($missingPrereqs)) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'عذراً، يجب إنهاء المتطلبات السابقة: ' . implode(' ، ', $missingPrereqs),
+                ], 422);
+            }
+
+            if (!empty($invalidChronologyPrereqs)) {
+                return response()->json([
+                    'status' => 'error',
+                    'msg' => 'غير منطقي! لا يمكنك إنجاز هذه المادة في فصل يسبق فصل إنجاز المتطلب السابق: ' . implode(' ، ', $invalidChronologyPrereqs),
+                ], 422);
+            }
 
             // التحقق من حد المواد الاختيارية (9 ساعات كحد أقصى)
             if ($course->type === 'elective') {
