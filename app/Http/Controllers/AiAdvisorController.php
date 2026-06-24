@@ -1242,9 +1242,8 @@ class AiAdvisorController extends Controller
                             }
 
                             if ($status === 400) {
-                                $this->setCooldown($apiKey, 120, 'bad_request_400');
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request, cooldown 2min)";
-                                continue 3; // Next key
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request). Prompt may be too large. Stopping retries.";
+                                break 3; // Break out of all loops (retry, pass, and foreach) to save keys!
                             }
 
                             if ($status === 503) {
