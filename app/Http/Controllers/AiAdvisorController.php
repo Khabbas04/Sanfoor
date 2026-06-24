@@ -18,7 +18,7 @@ use Inertia\Inertia;
 
 class AiAdvisorController extends Controller
 {
-    private const MAX_CONTEXT_MESSAGES = 8;
+    private const MAX_CONTEXT_MESSAGES = 4;
     private const RATE_LIMIT_PER_HOUR = 40;
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
     private const MAX_WIDGET_ITEMS = 8;
@@ -756,9 +756,9 @@ class AiAdvisorController extends Controller
                     if ($matchedKey && !empty($summerScheduleData[$matchedKey])) {
                         $sections = [];
                         foreach ($summerScheduleData[$matchedKey] as $sec) {
-                            $sections[] = "[مدرس: {$sec['instructor']}, أيام: {$sec['days']}, وقت: {$sec['time']}, قاعة: {$sec['hall']}]";
+                            $sections[] = "[{$sec['instructor']}|{$sec['days']}|{$sec['time']}|{$sec['hall']}]";
                         }
-                        $scheduleString = " | شعب مطروحة: " . implode("، ", $sections);
+                        $scheduleString = implode(",", $sections);
                     }
                 }
 
@@ -854,9 +854,9 @@ class AiAdvisorController extends Controller
                 return $diffA <=> $diffB;
             });
 
-            $topEligible = array_slice($allEligible, 0, 50);
+            $topEligible = array_slice($allEligible, 0, 30);
 
-            $availableText = ["Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched,Desc"];
+            $availableText = ["Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched"];
             $lockedText = ["Name,Status,Reason"];
             
             foreach ($topEligible as $course) {
@@ -864,7 +864,7 @@ class AiAdvisorController extends Controller
                 $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
                 
                 if ($course['status'] === 'Available' || $course['in_cart']) {
-                    $availableText[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched},{$course['desc']}";
+                    $availableText[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
                 } else {
                     $lockedText[] = "{$course['name']},{$course['status']},مغلقة بسبب المتطلبات أو الساعات";
                 }
