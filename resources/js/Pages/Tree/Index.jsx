@@ -1461,10 +1461,7 @@ export default function Tree({
         if (cartIds.includes(course.id)) return 'cart';
         if (isLockedByHours(course)) return 'locked';
         if (!course.prerequisites || course.prerequisites.length === 0) return 'available';
-        return course.prerequisites.every(p => {
-            const pCourse = courses.find(c => c.id === p.id);
-            return pCourse && getStatus(pCourse) === 'passed';
-        }) ? 'available' : 'locked';
+        return course.prerequisites.every(p => passedIds.includes(p.id)) ? 'available' : 'locked';
     }, [passedIds, cartIds, isLockedByHours, localPassedCourses, courses]);
 
     const getUnlocksDetailed = useCallback((courseId) => {
@@ -3461,7 +3458,7 @@ export default function Tree({
                                                                     <span className="text-[11px] font-[800] text-emerald-200">{step.name}</span>
                                                                     <div className="flex items-center gap-1.5">
                                                                         <span className="text-[9px] font-mono text-white/30">{step.code}</span>
-                                                                        <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالتسجيل التجريبي' : '🔓 متاح'}</span>
+                                                                        <span className="text-[9px] font-[800] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">{step.status === 'cart' ? '🛒 بالتسجيل التجريبي' : step.status === 'failed' ? '🔄 بحاجة لإعادة' : '🔓 متاح'}</span>
                                                                     </div>
                                                                 </div>
                                                                 {!is_instructor && step.status === 'available' && (
