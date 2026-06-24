@@ -4528,8 +4528,8 @@ export default function Tree({
                         <div className="overflow-y-auto flex-1 p-3 sm:p-5 md:p-6 hide-scrollbar bg-slate-950/50 space-y-4">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                 {[
-                                    { course: compareFirstCourse, label: 'المادة الأولى', tone: 'indigo' },
-                                    { course: compareCourse, label: 'المادة الثانية', tone: 'violet' },
+                                    { course: compareFirstCourse, label: 'المادة الأولى', tone: 'sky' },
+                                    { course: compareCourse, label: 'المادة الثانية', tone: 'amber' },
                                 ].map((entry, index) => {
 
                                     const { course, label, tone } = entry;
@@ -4542,11 +4542,11 @@ export default function Tree({
                                     return (
                                         <div
                                             key={course.id}
-                                            className={`text-right rounded-2xl border p-4 sm:p-5 ${tone === 'indigo' ? 'bg-indigo-500/8 border-indigo-400/20' : 'bg-violet-500/8 border-violet-400/20'}`}
+                                            className={`text-right rounded-2xl border p-4 sm:p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${tone === 'sky' ? 'bg-sky-500/10 border-sky-400/30 hover:shadow-sky-500/10' : 'bg-amber-500/10 border-amber-400/30 hover:shadow-amber-500/10'}`}
                                         >
                                             <div className="flex items-start justify-between gap-3 mb-4">
                                                 <div className="min-w-0 flex-1">
-                                                    <p className={`text-[9px] font-[900] uppercase tracking-wider mb-2 ${tone === 'indigo' ? 'text-indigo-300' : 'text-violet-300'}`}>{label}</p>
+                                                    <p className={`text-[10px] font-[900] uppercase tracking-wider mb-2 ${tone === 'sky' ? 'text-sky-300' : 'text-amber-300'}`}>{label}</p>
                                                     <p className="text-[16px] sm:text-[18px] font-[900] text-white leading-snug">{course.name}</p>
                                                     <p className="mt-1 text-[10px] text-white/45 font-bold">{course.code} • {course.credit_hours} ساعات • {course.type === 'compulsory' ? 'إجباري' : course.type === 'elective' ? 'اختياري' : course.type === 'supporting' ? 'مساندة' : 'جامعة'}</p>
                                                 </div>
@@ -4559,26 +4559,33 @@ export default function Tree({
                                                 )}
                                             </div>
 
-                                            <div className="grid grid-cols-3 gap-2.5">
-                                                <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                    <p className="text-[8px] font-[900] text-white/45 mb-0.5">الصعوبة</p>
-                                                    <p className="text-[18px] font-[900] text-white leading-none">{courseDifficulty}</p>
-                                                    <p className={`text-[9px] font-[800] mt-1 ${courseDifficulty >= 4 ? 'text-rose-200' : courseDifficulty === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>{difficultyLabel}</p>
+                                            <div className="grid grid-cols-3 gap-2.5 mb-4">
+                                                <div className="rounded-2xl bg-slate-900/50 border border-white/5 p-3 text-center relative overflow-hidden flex flex-col justify-center">
+                                                    <p className="text-[9px] font-[900] text-white/45 mb-1.5">مستوى الصعوبة</p>
+                                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                                        <span className={`text-[20px] font-[900] leading-none ${courseDifficulty >= 4 ? 'text-rose-400' : courseDifficulty === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{courseDifficulty}</span>
+                                                        <span className="text-[11px] font-bold text-white/20">/ 5</span>
+                                                    </div>
+                                                    <p className={`text-[10px] font-[800] ${courseDifficulty >= 4 ? 'text-rose-200' : courseDifficulty === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>{difficultyLabel}</p>
+                                                    <div className={`absolute bottom-0 left-0 h-0.5 w-full ${courseDifficulty >= 4 ? 'bg-rose-500' : courseDifficulty === 3 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
                                                 </div>
-                                                <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                    <p className="text-[8px] font-[900] text-white/45 mb-0.5">التأثير</p>
-                                                    <p className="text-[18px] font-[900] text-white leading-none">{courseImpact}</p>
-                                                    <p className="text-[9px] font-[800] mt-1 text-white/45">مادة تتأثر</p>
+                                                <div className="rounded-2xl bg-slate-900/50 border border-white/5 p-3 text-center relative overflow-hidden flex flex-col justify-center">
+                                                    <p className="text-[9px] font-[900] text-white/45 mb-1.5">التأثير المستقبلي</p>
+                                                    <p className="text-[20px] font-[900] text-white leading-none mb-1">{courseImpact}</p>
+                                                    <p className="text-[10px] font-[800] text-sky-200/80">{courseImpact === 0 ? 'لا تفتح مواد' : `تفتح ${courseImpact} مواد`}</p>
                                                 </div>
-                                                <div className="rounded-2xl bg-white/5 border border-white/10 p-3 text-center">
-                                                    <p className="text-[8px] font-[900] text-white/45 mb-0.5">الأولوية</p>
-                                                    <p className="text-[18px] font-[900] text-white leading-none">{coursePriority}%</p>
-                                                    <p className="text-[9px] font-[800] mt-1 text-white/45">ترتيبك</p>
+                                                <div className="rounded-2xl bg-slate-900/50 border border-white/5 p-3 text-center relative overflow-hidden flex flex-col justify-center">
+                                                    <p className="text-[9px] font-[900] text-white/45 mb-1.5">أولوية التسجيل</p>
+                                                    <p className="text-[20px] font-[900] text-white leading-none mb-1">{coursePriority}%</p>
+                                                    <p className="text-[10px] font-[800] text-emerald-300/80">نصيحة النظام</p>
+                                                    <div className="absolute bottom-0 left-0 h-1 bg-emerald-500/30 w-full">
+                                                        <div className="h-full bg-emerald-400" style={{width: `${coursePriority}%`}}></div>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                                <div className={`h-full rounded-full ${tone === 'indigo' ? 'bg-indigo-400' : 'bg-violet-400'}`} style={{ width: `${Math.min(100, Math.max(5, coursePriority))}%` }} />
+                                            <div className="mt-2 h-2 bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                                                <div className={`h-full rounded-full ${tone === 'sky' ? 'bg-gradient-to-l from-sky-400 to-sky-600' : 'bg-gradient-to-l from-amber-400 to-amber-600'}`} style={{ width: `${Math.min(100, Math.max(5, coursePriority))}%`, transition: 'width 1s cubic-bezier(0.16,1,0.3,1)' }} />
                                             </div>
                                         </div>
                                     );
@@ -4609,26 +4616,28 @@ export default function Tree({
                                             <>
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                                     <div className="rounded-xl bg-rose-500/8 border border-rose-400/15 p-3.5">
-                                                        <p className="text-[9px] font-[900] text-rose-300/70 mb-1">🔥 الأثقل</p>
-                                                        <p className="text-[12px] sm:text-[13px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{harderCourse.name}</p>
+                                                        <p className="text-[10px] font-[900] text-rose-300/80 mb-1">🔥 الأكثر دسامة</p>
+                                                        <p className="text-[13px] sm:text-[14px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{harderCourse.name}</p>
                                                         <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {difficultyGap} {difficultyGap === 1 ? 'نقطة' : 'نقاط'}</p>
                                                     </div>
-                                                    <div className="rounded-xl bg-violet-500/8 border border-violet-400/15 p-3.5">
-                                                        <p className="text-[9px] font-[900] text-violet-300/70 mb-1">🔗 الأكثر تأثيراً</p>
-                                                        <p className="text-[12px] sm:text-[13px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{moreImpactCourse.name}</p>
+                                                    <div className="rounded-xl bg-sky-500/8 border border-sky-400/15 p-3.5">
+                                                        <p className="text-[10px] font-[900] text-sky-300/80 mb-1">🔗 تفتح مواد أكثر</p>
+                                                        <p className="text-[13px] sm:text-[14px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{moreImpactCourse.name}</p>
                                                         <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {impactGap} {impactGap === 1 ? 'مادة' : 'مواد'}</p>
                                                     </div>
-                                                    <div className="rounded-xl bg-indigo-500/8 border border-indigo-400/15 p-3.5">
-                                                        <p className="text-[9px] font-[900] text-indigo-300/70 mb-1">⭐ الأعلى أولوية</p>
-                                                        <p className="text-[12px] sm:text-[13px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{higherPriorityCourse.name}</p>
+                                                    <div className="rounded-xl bg-emerald-500/8 border border-emerald-400/15 p-3.5">
+                                                        <p className="text-[10px] font-[900] text-emerald-300/80 mb-1">⭐ الأهم للتسجيل</p>
+                                                        <p className="text-[13px] sm:text-[14px] font-[900] text-white whitespace-normal leading-snug break-words min-h-[2.5rem] flex items-center">{higherPriorityCourse.name}</p>
                                                         <p className="text-[10px] text-white/40 font-bold mt-0.5">فارق: {priorityGap}%</p>
                                                     </div>
                                                 </div>
-                                                <div className="rounded-xl bg-emerald-500/8 border border-emerald-400/15 p-3.5 flex items-start gap-3">
-                                                    <span className="text-lg mt-0.5 shrink-0">💡</span>
+                                                <div className="rounded-2xl bg-gradient-to-l from-emerald-500/20 to-teal-500/10 border border-emerald-400/30 p-4 flex items-center gap-4 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+                                                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 border border-emerald-400/40 shadow-inner">
+                                                        <span className="text-xl animate-pulse">🤖</span>
+                                                    </div>
                                                     <div>
-                                                        <p className="text-[12px] font-[900] text-emerald-200">التوصية</p>
-                                                        <p className="text-[11px] font-bold text-emerald-100/70 leading-relaxed mt-0.5">
+                                                        <p className="text-[13px] font-[900] text-emerald-300 mb-0.5">القرار النهائي</p>
+                                                        <p className="text-[12px] font-bold text-emerald-100/90 leading-relaxed">
                                                             {firstPriority > secondPriority
                                                                 ? `ابدأ بـ "${compareFirstCourse.name}" لأن أولويتها أعلى (${firstPriority}%) وتأثيرها على مسارك أكبر.`
                                                                 : secondPriority > firstPriority
@@ -4645,8 +4654,8 @@ export default function Tree({
 
                                 {/* Action buttons */}
                                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                                    <button onClick={() => { setSelectedCourse(compareFirstCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-indigo-500/15 text-indigo-300 border border-indigo-400/20 hover:bg-indigo-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareFirstCourse.code}</button>
-                                    <button onClick={() => { setSelectedCourse(compareCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[140px] max-w-[200px] px-5 py-3 rounded-xl text-[11px] font-[900] bg-violet-500/15 text-violet-300 border border-violet-400/20 hover:bg-violet-500/25 transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareCourse.code}</button>
+                                    <button onClick={() => { setSelectedCourse(compareFirstCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[160px] max-w-[220px] px-5 py-3 rounded-xl text-[12px] font-[900] bg-sky-500/15 text-sky-300 border border-sky-400/30 hover:bg-sky-500/30 hover:shadow-[0_0_15px_rgba(14,165,233,0.3)] transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareFirstCourse.name}</button>
+                                    <button onClick={() => { setSelectedCourse(compareCourse); setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="flex-1 min-w-[160px] max-w-[220px] px-5 py-3 rounded-xl text-[12px] font-[900] bg-amber-500/15 text-amber-300 border border-amber-400/30 hover:bg-amber-500/30 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all active:scale-95 shadow-sm">📖 تفاصيل {compareCourse.name}</button>
                                     <button onClick={() => { setCompareMode(false); setCompareFirstCourse(null); setCompareCourse(null); }} className="px-5 py-3 rounded-xl text-[11px] font-[800] bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 transition-all active:scale-95">إغلاق</button>
                                 </div>
                             </div>
