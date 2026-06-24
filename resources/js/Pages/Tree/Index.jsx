@@ -1461,8 +1461,11 @@ export default function Tree({
         if (cartIds.includes(course.id)) return 'cart';
         if (isLockedByHours(course)) return 'locked';
         if (!course.prerequisites || course.prerequisites.length === 0) return 'available';
-        return course.prerequisites.every(p => passedIds.includes(p.id)) ? 'available' : 'locked';
-    }, [passedIds, cartIds, isLockedByHours, localPassedCourses]);
+        return course.prerequisites.every(p => {
+            const pCourse = courses.find(c => c.id === p.id);
+            return pCourse && getStatus(pCourse) === 'passed';
+        }) ? 'available' : 'locked';
+    }, [passedIds, cartIds, isLockedByHours, localPassedCourses, courses]);
 
     const getUnlocksDetailed = useCallback((courseId) => {
         return courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
@@ -1479,18 +1482,17 @@ export default function Tree({
     const getForwardPath = useCallback((courseId, visited = new Set()) => {
         if (visited.has(courseId)) return visited;
         visited.add(courseId);
-        courses.filter(c => c.prerequisites?.some(p => p.id === courseId))
-            .forEach(u => getForwardPath(u.id, visited));
+        const dependents = courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
+        dependents.forEach(d => getForwardPath(d.id, visited));
         return visited;
     }, [courses]);
 
-    const getCourseDepth = useCallback((courseId, visited = new Set()) => {
-        if (visited.has(courseId)) return 0;
-        visited.add(courseId);
-        const unlocks = courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
-        if (unlocks.length === 0) return 0;
-        let maxDepth = 0;
-        for (const u of unlocks) maxDepth = Math.max(maxDepth, 1 + getCourseDepth(u.id, new Set(visited)));
+    const getCourseDepth = useCallback((courseId, depth = 0, memo = new Map()) => {
+        if (memo.has(courseId)) return memo.get(courseId);
+        const course = courses.find(c => c.id === courseId);
+        if (!course || !course.prerequisites || course.prerequisites.length === 0) return depth;
+        const maxDepth = Math.max(...course.prerequisites.map(p => getCourseDepth(p.id, depth + 1, memo)));
+        memo.set(courseId, maxDepth);
         return maxDepth;
     }, [courses]);
 
@@ -1558,7 +1560,7 @@ export default function Tree({
                         code: prereqCourse.code,
                         credit_hours: prereqCourse.credit_hours,
                         status: status,
-                        isAvailableNow: status === 'available' || status === 'cart',
+                        isAvailableNow: status === 'available' || status === 'cart' || status === 'failed',
                         depth: depth,
                     });
                 }
