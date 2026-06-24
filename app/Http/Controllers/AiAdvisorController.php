@@ -154,7 +154,7 @@ class AiAdvisorController extends Controller
 
         $academicData = $this->getStudentAcademicData($user);
         $cartData = $this->getCartData($user);
-        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartData['ids'], $user);
+        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartData['ids'], $user, $academicData['failed_course_ids'] ?? []);
         $registrationLimits = $this->getRegistrationLimits($currentPeriod, (bool) ($academicData['is_probation'] ?? false));
         $academicData = array_merge($academicData, [
             'current_period_label' => $currentPeriod?->displayLabel() ?? 'الفصل الحالي غير محدد',
@@ -569,6 +569,11 @@ class AiAdvisorController extends Controller
                 return $grade === null || (float) $grade >= 50;
             });
 
+            $failedCourses = $user->passedCourses->filter(function($course) {
+                $grade = $course->pivot->grade;
+                return $grade !== null && (float) $grade < 50;
+            });
+
             $gpaData = $user->calculateGPA();
             $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
             $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
@@ -580,6 +585,7 @@ class AiAdvisorController extends Controller
                 'is_probation' => $isProbation,
                 'has_academic_records' => $hasAcademicRecords,
                 'passed_course_ids' => $actuallyPassedCourses->pluck('id')->toArray(),
+                'failed_course_ids' => $failedCourses->pluck('id')->toArray(),
                 'passed_courses_names' => $actuallyPassedCourses->pluck('name')->implode('، '),
                 'total_passed_hours' => $actuallyPassedCourses->sum('credit_hours'),
                 'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : 132,
@@ -622,15 +628,16 @@ class AiAdvisorController extends Controller
         return true;
     }
 
-    private function getAvailableCourses(array $passedCourseIds, array $cartCourseIds, $user): array
+    private function getAvailableCourses(array $passedCourseIds, array $cartCourseIds, $user, array $failedCourseIds = []): array
     {
         $currentPeriod = \App\Models\AcademicPeriod::current();
 
         $passedHash = md5(implode(',', $passedCourseIds));
         $cartHash = md5(implode(',', $cartCourseIds));
-        $cacheKey = "avail_courses_{$user->id}_{$passedHash}_{$cartHash}_{$currentPeriod?->id}";
+        $failedHash = md5(implode(',', $failedCourseIds));
+        $cacheKey = "avail_courses_{$user->id}_{$passedHash}_{$cartHash}_{$failedHash}_{$currentPeriod?->id}";
 
-        return Cache::remember($cacheKey, 600, function () use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod) {
+        return Cache::remember($cacheKey, 600, function () use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod, $failedCourseIds) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
 
             $courses = Course::with(['prerequisites', 'children'])
@@ -863,10 +870,12 @@ class AiAdvisorController extends Controller
                 $cCart = $course['in_cart'] ? 1 : 0;
                 $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
                 
+                $nameSuffix = in_array($course['id'], $failedCourseIds) ? ' (إعادة بسبب الرسوب)' : '';
+                
                 if ($course['status'] === 'Available' || $course['in_cart']) {
-                    $availableText[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
+                    $availableText[] = "{$course['code']},{$course['name']}{$nameSuffix},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
                 } else {
-                    $lockedText[] = "{$course['name']},{$course['status']},مغلقة بسبب المتطلبات أو الساعات";
+                    $lockedText[] = "{$course['name']}{$nameSuffix},{$course['status']},مغلقة بسبب المتطلبات أو الساعات";
                 }
             }
 
@@ -1007,7 +1016,8 @@ class AiAdvisorController extends Controller
 
         return "أنت مرشد أكاديمي ذكي لتطبيق 'سنفور' الخاص بطلاب جامعة الزرقاء. دورك: إجابة أسئلة الطلاب عن الإرشاد الأكاديمي والجامعة وكل ما يحتاجه الطالب في مسيرته الدراسية باحتراف وذكاء.\nالقواعد:\n" .
             "- هويتك: أنت صُنعت وبُرمجت بواسطة المهندس عاصم الخباص (Asem Alkhabbas). إياك أن تذكر جوجل (Google) أو أي شركة أخرى. إذا سألك الطالب من صنعك أو من أنت، أجب باختصار: 'أنا مرشدك الأكاديمي الذكي من تطوير المهندس عاصم الخباص'.\n" .
-            "- الإجابة: سياق الإرشاد الأكاديمي، أجب ببساطة وود، وكن منظماً ومباشراً. استخدم النقاط لترتيب الأفكار.\n" .
+            "- الإجابة: يجب أن تكون إجاباتك **مختصرة جداً ومباشرة** (Short and concise) لتوفير الـ Tokens. استخدم النقاط لترتيب الأفكار وتجنب الشروحات الطويلة المملة. بيّن الفكرة الأساسية فقط.\n" .
+            "- 🔄 مواد الإعادة: أي مادة مكتوب بجانبها '(إعادة بسبب الرسوب)' في قائمة المواد المتاحة، تعني أن الطالب رسب بها سابقاً. يجب عليك تنبيهه بلطف أنه بحاجة لإعادتها.\n" .
             "- لا تقل 'لا أعرف'، قدم نصيحة عامة أو وجه للقسم المختص بثقة.\n" .
             "- للتسجيل واقتراح المواد: **اقرأ خطة الطالب بدقة واستعرض مواده المنجزة والمواد في التسجيل التجريبي**. عند الاقتراح، اختر من قائمة (المواد المتاحة للتسجيل) بشكل منطقي: أعطِ الأولوية لمواد التخصص الإجبارية (compulsory) والمواد التي تفتح مواد أخرى (Unlocks)، مع مراعاة الساعات المسموحة وتوازن الصعوبة.\n" .
             "- إذا سأل الطالب عن مادة وحالتها (Status) تبدأ بـ Locked، اشرح له السبب بذكاء (إما لنقص الساعات MinHrs أو بسبب متطلب سابق Locked_Prereqs). استفد من وصف المادة (Desc) وصعوبتها (Diff من 1 لـ 5) في إعطاء نصائح حقيقية.\n" .
@@ -1242,8 +1252,9 @@ class AiAdvisorController extends Controller
                             }
 
                             if ($status === 400) {
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request). Prompt may be too large. Stopping retries.";
-                                break 3; // Break out of all loops (retry, pass, and foreach) to save keys!
+                                $this->setCooldown($apiKey, 120, 'bad_request_400');
+                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request, cooldown 2min)";
+                                continue 3; // Next key
                             }
 
                             if ($status === 503) {
