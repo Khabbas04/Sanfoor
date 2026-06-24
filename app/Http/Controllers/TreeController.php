@@ -422,6 +422,10 @@ class TreeController extends Controller
             $totalPassedHoursForGraduation = (int) DB::table('course_user')
                 ->join('courses', 'courses.id', '=', 'course_user.course_id')
                 ->where('course_user.user_id', $userId)
+                ->where(function($query) {
+                    $query->whereNull('course_user.grade')
+                          ->orWhere('course_user.grade', '>=', 50);
+                })
                 ->sum('courses.credit_hours');
                 
             $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
@@ -658,7 +662,12 @@ class TreeController extends Controller
             $currentAcademic = \App\Models\AcademicPeriod::current();
             $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
 
-            $totalPassedHoursForGraduation = (int) $user->passedCourses()->sum('courses.credit_hours');
+            $totalPassedHoursForGraduation = (int) clone $user->passedCourses()
+                ->where(function($query) {
+                    $query->whereNull('course_user.grade')
+                          ->orWhere('course_user.grade', '>=', 50);
+                })
+                ->sum('courses.credit_hours');
             $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
 
             $currentCartCourses = $user->cartCourses()->select('courses.id', 'courses.credit_hours')->get();

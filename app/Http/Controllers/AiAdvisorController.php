@@ -566,6 +566,12 @@ class AiAdvisorController extends Controller
         $cacheKey = "student_academic_data_{$user->id}";
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing(['major', 'passedCourses', 'cartCourses']);
+            
+            $actuallyPassedCourses = $user->passedCourses->filter(function($course) {
+                $grade = $course->pivot->grade;
+                return $grade === null || (float) $grade >= 50;
+            });
+
             $gpaData = $user->calculateGPA();
             $hasAcademicRecords = (int) ($gpaData['completed_hours'] ?? 0) > 0;
             $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
@@ -576,15 +582,15 @@ class AiAdvisorController extends Controller
                 'gpa_data' => $gpaData,
                 'is_probation' => $isProbation,
                 'has_academic_records' => $hasAcademicRecords,
-                'passed_course_ids' => $user->passedCourses->pluck('id')->toArray(),
-                'passed_courses_names' => $user->passedCourses->pluck('name')->implode('، '),
-                'total_passed_hours' => $user->passedCourses->sum('credit_hours'),
+                'passed_course_ids' => $actuallyPassedCourses->pluck('id')->toArray(),
+                'passed_courses_names' => $actuallyPassedCourses->pluck('name')->implode('، '),
+                'total_passed_hours' => $actuallyPassedCourses->sum('credit_hours'),
                 'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : 132,
                 'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
-                'passed_university_req' => $user->passedCourses->where('type', 'university_req')->sum('credit_hours'),
-                'passed_compulsory' => $user->passedCourses->where('type', 'compulsory')->sum('credit_hours'),
-                'passed_elective' => $user->passedCourses->where('type', 'elective')->sum('credit_hours'),
-                'passed_supporting' => $user->passedCourses->where('type', 'supporting')->sum('credit_hours'),
+                'passed_university_req' => $actuallyPassedCourses->where('type', 'university_req')->sum('credit_hours'),
+                'passed_compulsory' => $actuallyPassedCourses->where('type', 'compulsory')->sum('credit_hours'),
+                'passed_elective' => $actuallyPassedCourses->where('type', 'elective')->sum('credit_hours'),
+                'passed_supporting' => $actuallyPassedCourses->where('type', 'supporting')->sum('credit_hours'),
             ];
         });
     }
@@ -668,6 +674,17 @@ class AiAdvisorController extends Controller
             // Deduplicate by normalized name to prevent overlap
             $uniqueCourses = collect();
             $seenNames = [];
+
+            // Pre-fill seenNames with the names of all ACTUALLY PASSED courses to prevent suggesting them if they have a new ID
+            $user->passedCourses->each(function($course) use (&$seenNames) {
+                $grade = $course->pivot->grade;
+                if ($grade === null || (float) $grade >= 50) {
+                    $normName = $this->normalizeArabic($course->name);
+                    $strictName = str_replace('ال', '', $normName);
+                    $seenNames[$strictName] = true;
+                }
+            });
+
             foreach ($courses as $c) {
                 $normName = $this->normalizeArabic($c->name);
                 // Also remove 'ال' for stricter deduplication
@@ -813,7 +830,11 @@ class AiAdvisorController extends Controller
                 }
             }
 
-            $totalPassedHours = $user->passedCourses->sum('credit_hours');
+            $actuallyPassedCourses = $user->passedCourses->filter(function($course) {
+                $grade = $course->pivot->grade;
+                return $grade === null || (float) $grade >= 50;
+            });
+            $totalPassedHours = $actuallyPassedCourses->sum('credit_hours');
             $studentYear = max(1, min(5, (int) ceil($totalPassedHours / 33)));
 
             usort($allEligible, function ($a, $b) use ($studentYear) {
