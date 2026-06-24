@@ -1487,11 +1487,16 @@ export default function Tree({
         return visited;
     }, [courses]);
 
-    const getCourseDepth = useCallback((courseId, depth = 0, memo = new Map()) => {
+    const getCourseDepth = useCallback((courseId, visited = new Set(), memo = new Map()) => {
         if (memo.has(courseId)) return memo.get(courseId);
-        const course = courses.find(c => c.id === courseId);
-        if (!course || !course.prerequisites || course.prerequisites.length === 0) return depth;
-        const maxDepth = Math.max(...course.prerequisites.map(p => getCourseDepth(p.id, depth + 1, memo)));
+        if (visited.has(courseId)) return 0;
+        visited.add(courseId);
+        const unlocks = courses.filter(c => c.prerequisites?.some(p => p.id === courseId));
+        if (unlocks.length === 0) return 0;
+        let maxDepth = 0;
+        for (const u of unlocks) {
+            maxDepth = Math.max(maxDepth, 1 + getCourseDepth(u.id, new Set(visited), memo));
+        }
         memo.set(courseId, maxDepth);
         return maxDepth;
     }, [courses]);
