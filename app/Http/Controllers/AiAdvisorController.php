@@ -1046,25 +1046,38 @@ class AiAdvisorController extends Controller
 
     private function buildConversationContext($chat, string $systemPrompt): array
     {
-        $messages = $chat->messages()->orderBy('created_at')->get();
-        $messagesToSend = $messages->values();
-        $summaryPrefix = '';
-
-        // We must keep an ODD number of messages so the sequence always starts and ends with 'user'.
+        $messages = $chat->messages()->orderBy('created_at', 'desc')->get(); // Reverse chronological
+        
         $maxKeep = self::MAX_CONTEXT_MESSAGES;
         if ($maxKeep % 2 === 0) {
             $maxKeep--; 
         }
 
-        if ($messages->count() > $maxKeep) {
-            $messagesToSend = $messages->slice(-$maxKeep)->values();
-            $summaryPrefix = "\n[ملاحظة: تم اختصار " . ($messages->count() - $maxKeep) . " رسالة سابقة]\n";
+        $validMessages = [];
+        $expectedRole = 'user';
+
+        foreach ($messages as $message) {
+            $role = $message->role === 'ai' ? 'model' : 'user';
+
+            if ($role === $expectedRole) {
+                array_unshift($validMessages, $message); // Add to beginning to restore chronological order
+                $expectedRole = ($expectedRole === 'user') ? 'model' : 'user';
+                
+                if (count($validMessages) >= $maxKeep) {
+                    break;
+                }
+            }
+        }
+
+        $summaryPrefix = '';
+        if ($chat->messages()->count() > count($validMessages)) {
+            $summaryPrefix = "\n[ملاحظة: تم اختصار المحادثة السابقة]\n";
         }
 
         $contents = [];
         $isFirst = true;
 
-        foreach ($messagesToSend as $message) {
+        foreach ($validMessages as $message) {
             $text = (string) $message->content;
 
             if ($message->role === 'ai') {
