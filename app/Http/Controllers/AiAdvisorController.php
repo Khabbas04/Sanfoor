@@ -1047,18 +1047,24 @@ class AiAdvisorController extends Controller
     private function buildConversationContext($chat, string $systemPrompt): array
     {
         $messages = $chat->messages()->orderBy('created_at')->get();
-        $messagesToSend = $messages;
+        $messagesToSend = $messages->values();
         $summaryPrefix = '';
 
-        if ($messages->count() > self::MAX_CONTEXT_MESSAGES) {
-            $firstTwo = $messages->take(2);
-            $lastN = $messages->slice(-1 * (self::MAX_CONTEXT_MESSAGES - 2));
-            $summaryPrefix = "\n[ملاحظة: تم اختصار " . ($messages->count() - self::MAX_CONTEXT_MESSAGES) . " رسالة سابقة]\n";
-            $messagesToSend = $firstTwo->merge($lastN);
+        // We must keep an ODD number of messages so the sequence always starts and ends with 'user'.
+        $maxKeep = self::MAX_CONTEXT_MESSAGES;
+        if ($maxKeep % 2 === 0) {
+            $maxKeep--; 
+        }
+
+        if ($messages->count() > $maxKeep) {
+            $messagesToSend = $messages->slice(-$maxKeep)->values();
+            $summaryPrefix = "\n[ملاحظة: تم اختصار " . ($messages->count() - $maxKeep) . " رسالة سابقة]\n";
         }
 
         $contents = [];
-        foreach ($messagesToSend as $index => $message) {
+        $isFirst = true;
+
+        foreach ($messagesToSend as $message) {
             $text = (string) $message->content;
 
             if ($message->role === 'ai') {
@@ -1068,12 +1074,15 @@ class AiAdvisorController extends Controller
                 }
             }
 
-            if ($index === 0 && $message->role === 'user') {
+            $role = $message->role === 'ai' ? 'model' : 'user';
+
+            if ($isFirst && $role === 'user') {
                 $text = "تعليمات النظام (لا تظهر للطالب):\n{$systemPrompt}{$summaryPrefix}\n\nسؤال الطالب:\n{$text}";
+                $isFirst = false;
             }
 
             $contents[] = [
-                'role' => $message->role === 'ai' ? 'model' : 'user',
+                'role' => $role,
                 'parts' => [['text' => $text]],
             ];
         }
