@@ -127,9 +127,6 @@ class AiAdvisorController extends Controller
             ], 429);
         }
 
-        // Clear academic data cache to ensure fresh analysis
-        $this->clearStudentCache($user->id);
-
         $currentPeriod = AcademicPeriod::current();
 
         if (!$this->checkRateLimit($user->id)) {
@@ -629,8 +626,11 @@ class AiAdvisorController extends Controller
     {
         $currentPeriod = \App\Models\AcademicPeriod::current();
 
-        // لا نستخدم كاش هنا لضمان بيانات دقيقة ومحدثة دائماً
-        {
+        $passedHash = md5(implode(',', $passedCourseIds));
+        $cartHash = md5(implode(',', $cartCourseIds));
+        $cacheKey = "avail_courses_{$user->id}_{$passedHash}_{$cartHash}_{$currentPeriod?->id}";
+
+        return Cache::remember($cacheKey, 600, function () use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
 
             $courses = Course::with(['prerequisites', 'children'])
@@ -877,7 +877,7 @@ class AiAdvisorController extends Controller
                 'locked_text' => count($lockedText) > 1 ? implode("\n", $lockedText) : 'لا يوجد مواد مغلقة حالياً.',
                 'details' => $details,
             ];
-        }
+        });
     }
 
     private function buildStudentAdvisingRagContext(array $academicData, array $cartData, array $availableCourses, string $userMessage): string
@@ -1223,6 +1223,7 @@ class AiAdvisorController extends Controller
                                     'generationConfig' => [
                                         'responseMimeType' => 'application/json',
                                         'temperature' => 0.3,
+                                        'maxOutputTokens' => 8192,
                                     ],
                                 ]);
 
