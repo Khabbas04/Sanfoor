@@ -1205,7 +1205,7 @@ class AiAdvisorController extends Controller
             throw new \Exception('No Gemini API keys configured');
         }
 
-        $model = 'gemini-2.5-flash';
+        $model = config('services.gemini.model', 'gemini-2.5-flash-lite');
         $sortedKeys = $this->sortKeysByAvailability($apiKeys);
         $lastError = 'Unknown Gemini error';
 
