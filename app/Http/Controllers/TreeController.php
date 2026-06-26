@@ -53,7 +53,7 @@ class TreeController extends Controller
         $majorName = $user->major ? $user->major->name : 'غير محدد';
 
         if ($isInstructor && $requestedMajorId) {
-            $selectedMajor = clone \App\Models\Major::find($requestedMajorId);
+            $selectedMajor = \App\Models\Major::find($requestedMajorId);
             if ($selectedMajor && $selectedMajor->college_id === $collegeId) {
                 $selectedMajorId = $requestedMajorId;
                 $majorName = $selectedMajor->name;
@@ -662,7 +662,7 @@ class TreeController extends Controller
             $currentAcademic = \App\Models\AcademicPeriod::current();
             $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
 
-            $totalPassedHoursForGraduation = (int) clone $user->passedCourses()
+            $totalPassedHoursForGraduation = (int) $user->passedCourses()
                 ->where(function($query) {
                     $query->whereNull('course_user.grade')
                           ->orWhere('course_user.grade', '>=', 50);
