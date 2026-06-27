@@ -4,6 +4,7 @@ import { Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import Swal from 'sweetalert2';
+import VideoPlayer from '@/Components/VideoPlayer';
 
 // Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -475,6 +476,7 @@ export default function Advisor() {
     const [sidebar, setSidebar] = useState(false);
     const [regenning, setRegenning] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+    const [showVideo, setShowVideo] = useState(false);
 
     // 🆕 State الساعات الديناميكية
     const [cartHours, setCartHours] = useState(st?.cart_hours || 0);
@@ -914,7 +916,16 @@ export default function Advisor() {
                         <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${(isFallback || !isAiActive) ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`}/>
                     </div>
                     <div>
-                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
+                            <button 
+                                onClick={() => setShowVideo(true)}
+                                className="w-7 h-7 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95"
+                                title="شرح مبسط للمرشد الذكي"
+                            >
+                                <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                            </button>
+                        </div>
                         {(isFallback || fallbackReason) && <p className="text-[8px] font-bold text-rose-500 mt-0.5">{fallbackReason === 'gemini_unavailable' ? 'المساعد السحابي غير متاح حالياً، لذلك نستخدم الوضع المحلي.' : fallbackReason === 'local_fallback_error' ? 'الفالباك المحلي احتاج معالجة إضافية.' : 'الوضع المحلي مفعل حالياً.'}</p>}
                         <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${typing||generating?'bg-amber-400':((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`}/>
@@ -1184,6 +1195,44 @@ export default function Advisor() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Video Modal */}
+        {showVideo && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 font-t" style={{ direction: 'rtl' }}>
+                <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowVideo(false)}></div>
+                <div className="relative z-10 w-full max-w-5xl bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900">
+                        <h3 className="text-lg font-black text-white">دليل المرشد الذكي</h3>
+                        <button onClick={() => setShowVideo(false)} className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div className="p-4 sm:p-6 bg-black" dir="ltr">
+                        <VideoPlayer 
+                            source={{
+                                type: 'video',
+                                title: 'AI Tutorial',
+                                sources: [
+                                    {
+                                        src: '/videos/ai-demo.mp4',
+                                        type: 'video/mp4',
+                                    }
+                                ],
+                                tracks: [
+                                    {
+                                        kind: 'chapters',
+                                        label: 'Chapters',
+                                        srclang: 'ar',
+                                        src: '/videos/ai-chapters.vtt',
+                                        default: true,
+                                    }
+                                ]
+                            }} 
+                        />
                     </div>
                 </div>
             </div>

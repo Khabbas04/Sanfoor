@@ -202,7 +202,7 @@ class QuizController extends Controller
                 'score_percentage' => $scorePct,
                 'results' => $results,
             ],
-            'questions' => $questions->values(), // Keep questions to allow review
+            // Remove questions to prevent Inertia from overwriting the full questions list on partial updates
             'course' => Course::select('id', 'name', 'code')->find($data['course_id']),
             'mode' => $data['mode'],
         ]);

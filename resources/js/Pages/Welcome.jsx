@@ -2,6 +2,7 @@ import { Link, Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
 import { useEffect, useRef, useState } from 'react';
 import { useLanguage } from '@/Contexts/LanguageContext';
+import VideoPlayer from '@/Components/VideoPlayer';
 import TourManager, { startWelcomeTour } from '@/Components/TourManager';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -553,6 +554,8 @@ export default function Welcome({ auth }) {
     const [aiRef, aiIn] = useInView(0.3);
     const [howRef, howIn] = useInView();
     const [ctaRef, ctaIn] = useInView();
+    const [videoRef, videoIn] = useInView();
+    const [activeVideo, setActiveVideo] = useState(null);
 
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -867,7 +870,66 @@ export default function Welcome({ auth }) {
                     </div>
                 </section>
 
+                {/* ════════════════════════════════════
+                    1.5. VIDEO TUTORIALS (شروحات المنصة)
+                ════════════════════════════════════ */}
+                <section ref={videoRef} className="py-16 sm:py-20 relative z-10 bg-slate-50 border-t border-slate-200/50 shadow-inner">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
+                    
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+                        <div className={`transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${videoIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
+                            
+                            <div className="mb-12">
+                                <PremiumBadge text="دليل الاستخدام الذكي" color="blue" className="mb-4" />
+                                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">كيف يعمل سنفور؟</h2>
+                                <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto">شروحات سريعة ومفصلة تأخذك في جولة داخل المنصة لتكتشف كيف يمكنك إدارة خطتك الأكاديمية بذكاء وسهولة.</p>
+                            </div>
 
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+                                <button onClick={() => setActiveVideo('tree')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(59,130,246,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#0f172a] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                                    <div className="p-8 sm:p-10 relative z-10 flex flex-col h-full justify-between">
+                                        <div>
+                                            <div className="w-16 h-16 rounded-2xl bg-slate-100 group-hover:bg-white/10 flex items-center justify-center text-3xl mb-6 shadow-inner transition-colors duration-500">
+                                                🌳
+                                            </div>
+                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-white mb-3 transition-colors duration-500">دليل الشجرة التفاعلية</h3>
+                                            <p className="text-slate-500 group-hover:text-slate-300 font-medium leading-relaxed transition-colors duration-500">تعرف على كيفية اجتياز المواد، فتح المتطلبات المغلقة، وإضافة المواد للسلة التجريبية لتبني خطتك بدقة.</p>
+                                        </div>
+                                        <div className="mt-8 flex items-center gap-3 text-blue-600 group-hover:text-blue-400 font-black text-sm">
+                                            <div className="w-10 h-10 rounded-full bg-blue-50 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                                                <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                                            </div>
+                                            شاهد الشرح الكامل
+                                        </div>
+                                    </div>
+                                </button>
+                                
+                                <button onClick={() => setActiveVideo('ai')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(16,185,129,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#022c22] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                                    <div className="p-8 sm:p-10 relative z-10 flex flex-col h-full justify-between">
+                                        <div>
+                                            <div className="w-16 h-16 rounded-2xl bg-slate-100 group-hover:bg-white/10 flex items-center justify-center text-3xl mb-6 shadow-inner transition-colors duration-500">
+                                                🤖
+                                            </div>
+                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-white mb-3 transition-colors duration-500">دليل المرشد الذكي</h3>
+                                            <p className="text-slate-500 group-hover:text-emerald-100/70 font-medium leading-relaxed transition-colors duration-500">كيف تستخدم الذكاء الاصطناعي لتقييم خطتك، بناء جدول دراسي مثالي، واختيار أفضل المواد لرفع معدلك.</p>
+                                        </div>
+                                        <div className="mt-8 flex items-center gap-3 text-emerald-600 group-hover:text-emerald-400 font-black text-sm">
+                                            <div className="w-10 h-10 rounded-full bg-emerald-50 group-hover:bg-white/10 flex items-center justify-center transition-colors">
+                                                <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                                            </div>
+                                            شاهد الشرح الكامل
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </section>
 
                 {/* ════════════════════════════════════
                     2. FEATURES (Stacked Cards)
@@ -1125,6 +1187,46 @@ export default function Welcome({ auth }) {
                 )}
 
             </div>
+
+            {/* Video Modal */}
+            {activeVideo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" style={{ direction: 'rtl' }}>
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setActiveVideo(null)}></div>
+                    <div className="relative z-10 w-full max-w-5xl bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900">
+                            <h3 className="text-lg font-black text-white">
+                                {activeVideo === 'tree' ? 'دليل الشجرة التفاعلية' : 'دليل المرشد الذكي'}
+                            </h3>
+                            <button onClick={() => setActiveVideo(null)} className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-4 sm:p-6 bg-black" dir="ltr">
+                            <VideoPlayer 
+                                source={{
+                                    type: 'video',
+                                    title: activeVideo === 'tree' ? 'Tree Tutorial' : 'AI Tutorial',
+                                    sources: [
+                                        {
+                                            src: activeVideo === 'tree' ? '/videos/tree-demo.mp4' : '/videos/ai-demo.mp4',
+                                            type: 'video/mp4',
+                                        }
+                                    ],
+                                    tracks: [
+                                        {
+                                            kind: 'chapters',
+                                            label: 'Chapters',
+                                            srclang: 'ar',
+                                            src: activeVideo === 'tree' ? '/videos/tree-chapters.vtt' : '/videos/ai-chapters.vtt',
+                                            default: true,
+                                        }
+                                    ]
+                                }} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     );
 }

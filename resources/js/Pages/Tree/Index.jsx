@@ -12,6 +12,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 import TourManager, { startTreeTour } from '@/Components/TourManager';
+import VideoPlayer from '@/Components/VideoPlayer';
 
 // Resolve the deployment URL once for canonical metadata on the tree page.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -292,6 +293,7 @@ export default function Tree({
     const authUser = props?.auth?.user;
     const canEditTreePositions = Boolean(authUser?.is_admin_or_owner);
     const [passedIds, setPassedIds] = useState(passed_course_ids || []);
+    const [showVideo, setShowVideo] = useState(false);
     const [cartIds, setCartIds] = useState(initial_cart_ids || []);
     const [localPassedCourses, setLocalPassedCourses] = useState(passed_courses || []);
     const [gradeInputs, setGradeInputs] = useState({});
@@ -3750,10 +3752,19 @@ export default function Tree({
                                     STUDY TREE
                                 </span>
                             </div>
-                            <div className="relative z-10">
-                                <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                    الخطة الشجرية
-                                </h1>
+                            <div className="relative z-10 flex flex-col items-center justify-center">
+                                <div className="flex items-center gap-3">
+                                    <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                        الخطة الشجرية
+                                    </h1>
+                                    <button 
+                                        onClick={() => setShowVideo(true)}
+                                        className="mb-2 w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95"
+                                        title="شرح مبسط للشجرة"
+                                    >
+                                        <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                                    </button>
+                                </div>
                                 <p className={`text-sm md:text-base font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                     استعرض متطلبات المواد وخطط تسجيل فصولك
                                 </p>
