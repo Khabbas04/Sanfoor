@@ -140,9 +140,20 @@ export default function CompleteProfile({ colleges, majors }) {
                                         <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-2xl relative z-10 transform transition-transform hover:scale-110" />
                                     </div>
                                 </div>
-                                <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 shadow-sm mb-4">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
-                                    <span className="text-xs sm:text-sm font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-700 to-slate-900">الشريك الأكاديمي لمسابقة NTP 2026</span>
+                                <div className="relative group inline-flex items-center justify-center mb-6 cursor-default">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
+                                    <div className="relative inline-flex items-center px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 transform group-hover:-translate-y-0.5">
+                                        <span className="relative flex h-3 w-3 ml-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                        </span>
+                                        <span className="text-sm sm:text-base font-extrabold bg-clip-text text-transparent bg-gradient-to-l from-slate-800 to-slate-600 tracking-wide">
+                                            الشريك الأكاديمي لمسابقة NTP 2026
+                                        </span>
+                                        <svg className="w-4 h-4 mr-3 text-blue-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
