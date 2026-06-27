@@ -3938,6 +3938,9 @@ export default function Tree({
 
                     {/* Legend Button & Reset Button */}
                     <div className="shrink-0 flex gap-2 w-full md:w-auto md:mr-3" dir="rtl">
+                        <button onClick={() => setShowVideo(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100`}>
+                            🎥 شرح النظام
+                        </button>
                         <button id="tour-tree-legend" onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
                             🌳 دليل الشجرة
                         </button>
@@ -4671,7 +4674,50 @@ export default function Tree({
                                 </div>
                             </div>
                         </div>
+                        {/* Video Modal */}
+            {showVideo && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 font-t" style={{ direction: 'rtl' }}>
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowVideo(false)}></div>
+                    <div className="relative z-10 w-full max-w-5xl bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900">
+                            <h3 className="text-lg font-black text-white">دليل الشجرة التفاعلية</h3>
+                            <button onClick={() => setShowVideo(false)} className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-4 sm:p-6 bg-black" dir="ltr">
+                            <VideoPlayer 
+                                source={{
+                                    type: 'video',
+                                    title: 'Tree Tutorial',
+                                    sources: [
+                                        {
+                                            src: '/videos/tree-demo.mp4',
+                                            type: 'video/mp4',
+                                        }
+                                    ],
+                                    tracks: [
+                                        {
+                                            kind: 'chapters',
+                                            label: 'Chapters',
+                                            srclang: 'ar',
+                                            src: '/videos/tree-chapters.vtt',
+                                            default: true,
+                                        }
+                                    ]
+                                }} 
+                                chapters={[
+                                    { title: 'اجتياز مادة', startTime: 0 },
+                                    { title: 'تسجيل تجريبي و مقارنة', startTime: 11 },
+                                    { title: 'تخطيط', startTime: 30 },
+                                    { title: 'مواد الاونلاين و دليل الشجرة', startTime: 35 }
+                                ]}
+                            />
+                        </div>
                     </div>
+                </div>
+            )}
+        </div>
                 </div>
             )}
         </div>

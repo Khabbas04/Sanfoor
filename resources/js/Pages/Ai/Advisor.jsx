@@ -1232,6 +1232,10 @@ export default function Advisor() {
                                     }
                                 ]
                             }} 
+                            chapters={[
+                                { title: 'يعمل جدول', startTime: 0 },
+                                { title: 'تقييم', startTime: 33 }
+                            ]}
                         />
                     </div>
                 </div>

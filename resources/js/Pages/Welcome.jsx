@@ -1222,6 +1222,17 @@ export default function Welcome({ auth }) {
                                         }
                                     ]
                                 }} 
+                                chapters={
+                                    activeVideo === 'tree' ? [
+                                        { title: 'اجتياز مادة', startTime: 0 },
+                                        { title: 'تسجيل تجريبي و مقارنة', startTime: 11 },
+                                        { title: 'تخطيط', startTime: 30 },
+                                        { title: 'مواد الاونلاين و دليل الشجرة', startTime: 35 }
+                                    ] : [
+                                        { title: 'يعمل جدول', startTime: 0 },
+                                        { title: 'تقييم', startTime: 33 }
+                                    ]
+                                }
                             />
                         </div>
                     </div>
