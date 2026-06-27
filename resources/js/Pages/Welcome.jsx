@@ -886,42 +886,46 @@ export default function Welcome({ auth }) {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
-                                <button onClick={() => setActiveVideo('tree')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(59,130,246,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#0f172a] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
-                                    <div className="p-8 sm:p-10 relative z-10 flex flex-col h-full justify-between">
-                                        <div>
-                                            <div className="w-16 h-16 rounded-2xl bg-slate-100 group-hover:bg-white/10 flex items-center justify-center text-3xl mb-6 shadow-inner transition-colors duration-500">
-                                                🌳
+                                <button onClick={() => setActiveVideo('tree')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(59,130,246,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200 flex flex-col">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#0f172a] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 z-0"></div>
+                                    
+                                    <div className="relative w-full h-48 sm:h-56 bg-slate-100 overflow-hidden shrink-0 border-b border-slate-200 group-hover:border-slate-700 transition-colors duration-500 z-10">
+                                        <img src="/images/tree-video-poster.jpg" alt="Tree Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                        <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/30 transition-colors duration-500"></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center text-blue-600 transition-transform duration-500 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white">
+                                                <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
                                             </div>
-                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-white mb-3 transition-colors duration-500">دليل الشجرة التفاعلية</h3>
-                                            <p className="text-slate-500 group-hover:text-slate-300 font-medium leading-relaxed transition-colors duration-500">تعرف على كيفية اجتياز المواد، فتح المتطلبات المغلقة، وإضافة المواد للسلة التجريبية لتبني خطتك بدقة.</p>
                                         </div>
-                                        <div className="mt-8 flex items-center gap-3 text-blue-600 group-hover:text-blue-400 font-black text-sm">
-                                            <div className="w-10 h-10 rounded-full bg-blue-50 group-hover:bg-white/10 flex items-center justify-center transition-colors">
-                                                <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
-                                            </div>
-                                            شاهد الشرح الكامل
+                                    </div>
+
+                                    <div className="p-6 sm:p-8 relative z-10 flex flex-col flex-1 justify-between bg-transparent">
+                                        <div>
+                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-white mb-3 transition-colors duration-500">دليل الشجرة التفاعلية</h3>
+                                            <p className="text-slate-500 group-hover:text-slate-300 font-medium leading-relaxed transition-colors duration-500 text-sm sm:text-base">تعرف على كيفية اجتياز المواد، فتح المتطلبات المغلقة، وإضافة المواد للسلة التجريبية لتبني خطتك بدقة.</p>
                                         </div>
                                     </div>
                                 </button>
 
-                                <button onClick={() => setActiveVideo('ai')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(16,185,129,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#022c22] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
-                                    <div className="p-8 sm:p-10 relative z-10 flex flex-col h-full justify-between">
-                                        <div>
-                                            <div className="w-16 h-16 rounded-2xl bg-slate-100 group-hover:bg-white/10 flex items-center justify-center text-3xl mb-6 shadow-inner transition-colors duration-500">
-                                                🤖
+                                <button onClick={() => setActiveVideo('ai')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(16,185,129,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200 flex flex-col">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#022c22] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
+                                    <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 z-0"></div>
+                                    
+                                    <div className="relative w-full h-48 sm:h-56 bg-slate-100 overflow-hidden shrink-0 border-b border-slate-200 group-hover:border-slate-700 transition-colors duration-500 z-10">
+                                        <img src="/images/ai-video-poster.jpg" alt="AI Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                        <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/30 transition-colors duration-500"></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center text-emerald-600 transition-transform duration-500 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white">
+                                                <svg className="w-6 h-6 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
                                             </div>
-                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-white mb-3 transition-colors duration-500">دليل المرشد الذكي</h3>
-                                            <p className="text-slate-500 group-hover:text-emerald-100/70 font-medium leading-relaxed transition-colors duration-500">كيف تستخدم الذكاء الاصطناعي لتقييم خطتك، بناء جدول دراسي مثالي، واختيار أفضل المواد لرفع معدلك.</p>
                                         </div>
-                                        <div className="mt-8 flex items-center gap-3 text-emerald-600 group-hover:text-emerald-400 font-black text-sm">
-                                            <div className="w-10 h-10 rounded-full bg-emerald-50 group-hover:bg-white/10 flex items-center justify-center transition-colors">
-                                                <svg className="w-4 h-4 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
-                                            </div>
-                                            شاهد الشرح الكامل
+                                    </div>
+
+                                    <div className="p-6 sm:p-8 relative z-10 flex flex-col flex-1 justify-between bg-transparent">
+                                        <div>
+                                            <h3 className="text-2xl font-black text-slate-900 group-hover:text-white mb-3 transition-colors duration-500">دليل المرشد الذكي</h3>
+                                            <p className="text-slate-500 group-hover:text-emerald-100/70 font-medium leading-relaxed transition-colors duration-500 text-sm sm:text-base">كيف تستخدم الذكاء الاصطناعي لتقييم خطتك، بناء جدول دراسي مثالي، واختيار أفضل المواد لرفع معدلك.</p>
                                         </div>
                                     </div>
                                 </button>

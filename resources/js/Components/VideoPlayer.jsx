@@ -8,6 +8,16 @@ export default function VideoPlayer({ source, title, chapters }) {
     const playerRef = useRef(null);
     const [currentTime, setCurrentTime] = useState(0);
 
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const player = playerRef.current?.plyr;
+            if (player && typeof player.currentTime === 'number') {
+                setCurrentTime(player.currentTime);
+            }
+        }, 250);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleSeek = (time) => {
         const player = playerRef.current?.plyr;
         if (player) {
