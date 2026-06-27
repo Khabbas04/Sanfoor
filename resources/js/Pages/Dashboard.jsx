@@ -1,6 +1,7 @@
 import MainLayout from '@/Layouts/MainLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import VideoPlayer from '@/Components/VideoPlayer';
 
 // Resolve the deployment URL once for page-level SEO metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -120,6 +121,7 @@ export default function Dashboard({
     const heroRef = useRef(null);
     const [mx, setMx] = useState(0);
     const [my, setMy] = useState(0);
+    const [activeVideo, setActiveVideo] = useState(null);
 
     const onHeroMouse = useCallback((e) => {
         if (!heroRef.current) return;
@@ -604,6 +606,37 @@ export default function Dashboard({
                         </div>
                     </div>
 
+                    {/* NEW: PLATFORM TUTORIALS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-7">
+                        <button onClick={() => setActiveVideo('tree')} className="group bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[1.6rem] p-6 sm:p-8 text-right overflow-hidden relative shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/40 transition-all duration-500"></div>
+                            <div className="relative z-10 flex items-start justify-between">
+                                <div>
+                                    <h3 className="text-xl font-black text-white mb-2">كيف تعمل الشجرة التفاعلية؟ 🌳</h3>
+                                    <p className="text-slate-300 text-sm font-bold leading-relaxed max-w-sm">شرح تفصيلي لكيفية قراءة الشجرة، فتح المواد المغلقة، ومعرفة متطلبات خطتك الأكاديمية بضغطة زر.</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur-md border border-white/20 group-hover:bg-blue-500 transition-colors">
+                                    <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                                </div>
+                            </div>
+                        </button>
+                        
+                        <button onClick={() => setActiveVideo('ai')} className="group bg-gradient-to-tr from-sky-600 to-blue-700 rounded-[1.6rem] p-6 sm:p-8 text-right overflow-hidden relative shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] opacity-10"></div>
+                            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-500"></div>
+                            <div className="relative z-10 flex items-start justify-between">
+                                <div>
+                                    <h3 className="text-xl font-black text-white mb-2">كيف يعمل المرشد الذكي؟ 🤖</h3>
+                                    <p className="text-sky-100 text-sm font-bold leading-relaxed max-w-sm">تعرف على كيفية استخدام الذكاء الاصطناعي لتحليل خطتك واقتراح أفضل المواد لفصلك القادم لتسريع تخرجك.</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white backdrop-blur-md border border-white/20 group-hover:bg-white group-hover:text-blue-600 transition-colors">
+                                    <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
                     {/* 3. AI INSIGHT BANNER */}
                     <div ref={aiRef} className="relative overflow-hidden rounded-[1.4rem] shadow-sm" style={{ opacity: aiVis ? 1 : 0, transform: aiVis ? 'translateY(0)' : 'translateY(14px)', transition: `all 700ms ${spring} 80ms` }}>
                         <div className="absolute inset-0 rounded-[1.4rem] p-[1.5px]" style={{ background: 'linear-gradient(135deg, #bae6fd, #a5f3fc, #bae6fd, #a5f3fc)', backgroundSize: '300% 300%', animation: 'sn-gradient-drift 6s ease infinite' }}>
@@ -1031,6 +1064,46 @@ export default function Dashboard({
                     </div>
                 )}
             </div>
+
+            {/* Video Modal */}
+            {activeVideo && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setActiveVideo(null)}></div>
+                    <div className="relative z-10 w-full max-w-5xl bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900">
+                            <h3 className="text-lg font-black text-white">
+                                {activeVideo === 'tree' ? 'شرح الشجرة التفاعلية' : 'شرح المرشد الذكي (AI)'}
+                            </h3>
+                            <button onClick={() => setActiveVideo(null)} className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-4 sm:p-6 bg-black">
+                            <VideoPlayer 
+                                source={{
+                                    type: 'video',
+                                    title: activeVideo === 'tree' ? 'Tree Tutorial' : 'AI Tutorial',
+                                    sources: [
+                                        {
+                                            src: activeVideo === 'tree' ? '/videos/tree-demo.mp4' : '/videos/ai-demo.mp4',
+                                            type: 'video/mp4',
+                                        }
+                                    ],
+                                    tracks: [
+                                        {
+                                            kind: 'chapters',
+                                            label: 'Chapters',
+                                            srclang: 'ar',
+                                            src: activeVideo === 'tree' ? '/videos/tree-chapters.vtt' : '/videos/ai-chapters.vtt',
+                                            default: true,
+                                        }
+                                    ]
+                                }} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     );
 }
