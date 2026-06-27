@@ -1,8 +1,171 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
 import AiWidget from '@/Pages/Ai/AiWidget';
+
+/**
+ * Premium Guest Demo Banner — shown on every page when a guest user is active.
+ * Features: animated gradient border, glassmorphism, live session timer, NTP branding.
+ */
+function GuestDemoBanner() {
+    const [elapsed, setElapsed] = useState(0);
+    const [dismissed, setDismissed] = useState(false);
+    const [expanded, setExpanded] = useState(true);
+
+    useEffect(() => {
+        const timer = setInterval(() => setElapsed(prev => prev + 1), 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    // Auto-collapse on mobile after 8 seconds to reduce visual noise.
+    useEffect(() => {
+        if (window.innerWidth < 640) {
+            const t = setTimeout(() => setExpanded(false), 8000);
+            return () => clearTimeout(t);
+        }
+    }, []);
+
+    const formatTime = useCallback((s) => {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    }, []);
+
+    if (dismissed) return null;
+
+    return (
+        <>
+            <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes demo-gradient-spin {
+                    0% { --demo-angle: 0deg; }
+                    100% { --demo-angle: 360deg; }
+                }
+                @keyframes demo-pulse-ring {
+                    0% { transform: scale(1); opacity: 0.6; }
+                    100% { transform: scale(2.2); opacity: 0; }
+                }
+                @keyframes demo-shimmer-slide {
+                    0% { transform: translateX(100%); }
+                    100% { transform: translateX(-100%); }
+                }
+                @keyframes demo-float-icon {
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    25% { transform: translateY(-3px) rotate(-2deg); }
+                    75% { transform: translateY(2px) rotate(2deg); }
+                }
+                @keyframes demo-border-flow {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
+                .demo-banner-border {
+                    background: linear-gradient(90deg, #f59e0b, #ef4444, #8b5cf6, #3b82f6, #06b6d4, #10b981, #f59e0b);
+                    background-size: 300% 100%;
+                    animation: demo-border-flow 4s linear infinite;
+                }
+            `}} />
+
+            <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 mb-6" dir="rtl">
+                {/* Animated gradient border wrapper */}
+                <div className="demo-banner-border rounded-[1.5rem] p-[2px] shadow-[0_8px_32px_rgba(245,158,11,0.15)]">
+                    <div className="relative overflow-hidden rounded-[calc(1.5rem-2px)] bg-gradient-to-br from-slate-900 via-[#0f172a] to-[#1a1033]">
+                        {/* Background effects */}
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3" />
+                            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3" />
+                            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, #fff 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
+                            {/* Shimmer effect */}
+                            <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+                                <div className="w-1/3 h-full bg-gradient-to-r from-transparent via-white/[0.04] to-transparent" style={{ animation: 'demo-shimmer-slide 5s ease-in-out infinite' }} />
+                            </div>
+                        </div>
+
+                        <div className="relative z-10 p-4 sm:p-5">
+                            {/* Main content row */}
+                            <div className="flex items-center justify-between gap-4">
+                                {/* Left: Icon + Text */}
+                                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                                    {/* Animated icon */}
+                                    <div className="relative shrink-0">
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-amber-500/30" style={{ animation: 'demo-float-icon 3s ease-in-out infinite' }}>
+                                            🎫
+                                        </div>
+                                        <div className="absolute -inset-1 rounded-xl sm:rounded-2xl border-2 border-amber-400/30" style={{ animation: 'demo-pulse-ring 2s ease-out infinite' }} />
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h3 className="text-white text-sm sm:text-base font-black tracking-tight whitespace-nowrap">
+                                                جرّب سنفور <span className="text-transparent bg-clip-text bg-gradient-to-l from-amber-300 to-orange-400">DEMO</span>
+                                            </h3>
+                                            <span className="bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full tracking-wider whitespace-nowrap">
+                                                NTP 2026
+                                            </span>
+                                        </div>
+                                        {expanded && (
+                                            <p className="text-slate-400 text-[11px] sm:text-xs font-bold mt-1 leading-relaxed max-w-lg">
+                                                أنت تتصفح نسخة تجريبية كاملة من منصة سنفور ببيانات أكاديمية واقعية — استكشف كل الميزات بحرية!
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Right: Timer + Actions */}
+                                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                                    {/* Live session timer */}
+                                    <div className="hidden sm:flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                                        </span>
+                                        <span className="text-emerald-300 text-xs font-mono font-black tracking-wider" dir="ltr">
+                                            {formatTime(elapsed)}
+                                        </span>
+                                    </div>
+
+                                    {/* Collapse toggle on mobile */}
+                                    <button
+                                        onClick={() => setExpanded(prev => !prev)}
+                                        className="sm:hidden w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                                    >
+                                        {expanded ? '▲' : '▼'}
+                                    </button>
+
+                                    {/* Dismiss button */}
+                                    <button
+                                        onClick={() => setDismissed(true)}
+                                        className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/10 transition-all text-sm"
+                                        title="إخفاء البانر"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Feature chips - shown when expanded */}
+                            {expanded && (
+                                <div className="flex items-center gap-2 mt-3 overflow-x-auto hide-scrollbar pb-1">
+                                    {[
+                                        { icon: '📊', label: 'لوحة الطالب' },
+                                        { icon: '🌳', label: 'الشجرة التفاعلية' },
+                                        { icon: '🤖', label: 'المرشد الذكي' },
+                                        { icon: '📈', label: 'حاسبة المعدل' },
+                                        { icon: '📚', label: 'بنك الأسئلة' },
+                                    ].map((chip, i) => (
+                                        <span key={i} className="inline-flex items-center gap-1.5 bg-white/[0.06] border border-white/[0.08] text-slate-300 text-[10px] sm:text-[11px] font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap hover:bg-white/10 transition-colors cursor-default" style={{ animationDelay: `${i * 80}ms` }}>
+                                            {chip.icon} {chip.label}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
 export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
@@ -334,8 +497,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                             <div className="flex flex-col items-end leading-none ml-2">
                                                 <div className="flex items-center gap-1.5">
                                                     <span className={`text-[13px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>{(safeUser.name ?? '').split(' ')[0] || '?'}</span>
-                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : isInstructor ? 'bg-teal-100 text-teal-800' : 'bg-sky-100 text-blue-800'}`}>
-                                                        {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : isInstructor ? 'INSTRUCTOR' : 'STUDENT'}
+                                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${isOwner ? 'bg-rose-100 text-rose-800' : isAdminOrOwner ? 'bg-amber-100 text-amber-800' : isInstructor ? 'bg-teal-100 text-teal-800' : safeUser.is_guest ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-orange-800 shadow-sm' : 'bg-sky-100 text-blue-800'}`}>
+                                                        {isOwner ? 'OWNER' : isAdminOrOwner ? 'ADMIN' : isInstructor ? 'INSTRUCTOR' : safeUser.is_guest ? 'DEMO' : 'STUDENT'}
                                                     </span>
                                                 </div>
                                                 {safeUser.major && <span className="text-[10px] font-bold text-slate-400 mt-1 max-w-[100px] truncate">{safeUser.major.name}</span>}
@@ -487,6 +650,8 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
             <main className={`flex-1 flex flex-col w-full relative ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}>
+                {/* ═══ NTP GUEST DEMO BANNER ═══ */}
+                {safeUser.is_guest && <GuestDemoBanner />}
                 {children}
             </main>
 

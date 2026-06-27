@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Guest Demo Mode (NTP Competition)
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, a /guest-demo route allows visitors to experience the
+    | full platform without a Microsoft login. Set GUEST_DEMO_ENABLED=true
+    | in .env to activate this feature during competitions or demos.
+    |
+    */
+
+    'guest_demo_enabled' => (bool) env('GUEST_DEMO_ENABLED', false),
+
 ];

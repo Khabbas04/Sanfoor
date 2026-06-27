@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\UpdateLastSeenAt::class,
             \App\Http\Middleware\EnsureMajorSelected::class,
+            \App\Http\Middleware\GuestDemoMiddleware::class,
         ]);
 
         // Register short aliases for role-based access control middleware.

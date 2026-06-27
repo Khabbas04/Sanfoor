@@ -62,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'is_instructor' => $normalizedRole === 'instructor',
                 'is_owner' => $normalizedRole === 'owner',
                 'is_admin_or_owner' => in_array($normalizedRole, ['admin', 'owner'], true),
+                'is_guest' => $normalizedRole === 'guest',
             ];
 
             if (in_array($normalizedRole, ['admin', 'owner'], true)) {

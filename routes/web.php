@@ -76,6 +76,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/auth/microsoft/callback', [MicrosoftAuthController::class, 'handleMicrosoftCallback'])->name('auth.microsoft.callback');
 });
 
+// Guest demo entry point for NTP competition visitors (QR code target).
+Route::get('/guest-demo', [\App\Http\Controllers\Auth\GuestDemoController::class, 'enter'])->name('guest.demo');
+
 // Public legal pages.
 Route::get('/terms-of-use', function () {
     return Inertia::render('Legal/Terms');
