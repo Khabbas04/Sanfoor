@@ -3757,13 +3757,6 @@ export default function Tree({
                                     <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                         الخطة الشجرية
                                     </h1>
-                                    <button 
-                                        onClick={() => setShowVideo(true)}
-                                        className="mb-2 w-8 h-8 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95"
-                                        title="شرح مبسط للشجرة"
-                                    >
-                                        <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
-                                    </button>
                                 </div>
                                 <p className={`text-sm md:text-base font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                     استعرض متطلبات المواد وخطط تسجيل فصولك
@@ -3938,9 +3931,6 @@ export default function Tree({
 
                     {/* Legend Button & Reset Button */}
                     <div className="shrink-0 flex gap-2 w-full md:w-auto md:mr-3" dir="rtl">
-                        <button onClick={() => setShowVideo(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100`}>
-                            🎥 شرح النظام
-                        </button>
                         <button id="tour-tree-legend" onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
                             🌳 دليل الشجرة
                         </button>

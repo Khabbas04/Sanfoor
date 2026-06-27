@@ -3,6 +3,19 @@ import { Plyr } from 'plyr-react';
 import 'plyr-react/plyr.css';
 import { useTheme } from '@/Contexts/ThemeContext';
 
+const plyrOptions = {
+    controls: [
+        'play-large', 'play', 'progress', 'current-time', 'duration',
+        'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen',
+    ],
+    settings: ['captions', 'quality', 'speed'],
+    invertTime: false,
+    toggleInvert: true,
+    tooltips: { controls: true, seek: true },
+    keyboard: { focused: true, global: false },
+    captions: { active: true, language: 'auto', update: true },
+};
+
 export default function VideoPlayer({ source, title, chapters }) {
     const { isDark } = useTheme();
     const playerRef = useRef(null);
@@ -30,19 +43,6 @@ export default function VideoPlayer({ source, title, chapters }) {
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
-    const plyrOptions = {
-        controls: [
-            'play-large', 'play', 'progress', 'current-time', 'duration',
-            'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen',
-        ],
-        settings: ['captions', 'quality', 'speed'],
-        invertTime: false,
-        toggleInvert: true,
-        tooltips: { controls: true, seek: true },
-        keyboard: { focused: true, global: false },
-        captions: { active: true, language: 'auto', update: true },
     };
 
     const playerContent = (

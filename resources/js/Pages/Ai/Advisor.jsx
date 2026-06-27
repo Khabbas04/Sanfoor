@@ -922,13 +922,6 @@ export default function Advisor() {
                                 <div>
                                     <div className="flex items-center gap-3">
                                         <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
-                                        <button
-                                            onClick={() => setShowVideo(true)}
-                                            className="w-7 h-7 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm transition-all hover:scale-105 active:scale-95"
-                                            title="شرح مبسط للمرشد الذكي"
-                                        >
-                                            <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
-                                        </button>
                                     </div>
                                     {(isFallback || fallbackReason) && <p className="text-[8px] font-bold text-rose-500 mt-0.5">{fallbackReason === 'gemini_unavailable' ? 'المساعد السحابي غير متاح حالياً، لذلك نستخدم الوضع المحلي.' : fallbackReason === 'local_fallback_error' ? 'الفالباك المحلي احتاج معالجة إضافية.' : 'الوضع المحلي مفعل حالياً.'}</p>}
                                     <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
@@ -1203,6 +1196,22 @@ export default function Advisor() {
                     </div>
                 </div>
             )}
+
+            {/* Floating Video Help Button */}
+            <button
+                onClick={() => setShowVideo(true)}
+                className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 group flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-emerald-600 text-white rounded-full shadow-[0_10px_25px_-5px_rgba(16,185,129,0.5)] hover:shadow-[0_15px_35px_-5px_rgba(16,185,129,0.6)] hover:scale-110 hover:-translate-y-1 transition-all duration-300"
+                style={{ direction: 'rtl' }}
+            >
+                <div className="absolute inset-0 rounded-full bg-emerald-400 blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 ml-1 relative z-10" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                
+                {/* Tooltip */}
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-4 py-2.5 bg-slate-900 text-white text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap translate-x-2 group-hover:translate-x-0 shadow-xl hidden sm:block">
+                    كيف تستخدم الذكاء الاصطناعي؟
+                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-3 h-3 bg-slate-900 rotate-45"></div>
+                </div>
+            </button>
 
             {/* Video Modal */}
             {showVideo && (
