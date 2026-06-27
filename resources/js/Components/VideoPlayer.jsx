@@ -8,20 +8,6 @@ export default function VideoPlayer({ source, title, chapters }) {
     const playerRef = useRef(null);
     const [currentTime, setCurrentTime] = useState(0);
 
-    useEffect(() => {
-        const player = playerRef.current?.plyr;
-        if (!player) return;
-
-        const handleTimeUpdate = (e) => {
-            setCurrentTime(e.detail.plyr.currentTime);
-        };
-
-        player.on('timeupdate', handleTimeUpdate);
-        return () => {
-            player.off('timeupdate', handleTimeUpdate);
-        };
-    }, []);
-
     const handleSeek = (time) => {
         const player = playerRef.current?.plyr;
         if (player) {
@@ -67,7 +53,12 @@ export default function VideoPlayer({ source, title, chapters }) {
                     border-radius: 4px;
                 }
             `}} />
-            <Plyr ref={playerRef} source={source} options={plyrOptions} />
+            <Plyr 
+                ref={playerRef} 
+                source={source} 
+                options={plyrOptions} 
+                onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+            />
         </div>
     );
 
