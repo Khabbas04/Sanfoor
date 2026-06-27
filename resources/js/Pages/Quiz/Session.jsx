@@ -112,6 +112,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                 }, {
                     preserveScroll: true,
                     preserveState: true,
+                    only: ['results'],
                     onSuccess: (page) => {
                         if (page.props.results?.results?.[currentQ.id]) {
                             setPracticeResult(page.props.results.results[currentQ.id]);
