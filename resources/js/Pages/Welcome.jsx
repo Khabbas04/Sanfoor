@@ -47,7 +47,7 @@ function TreeNode({ x, y, delay, color, size = 52, label, shape = 'mandatory', t
     const height = size * 0.58;
     const cx = parseFloat(x) + width / 2;
     const cy = parseFloat(y) + height / 2;
-    
+
     let shapeElement;
     if (shape === 'supporting') {
         shapeElement = <rect x={x} y={y} width={width} height={height} rx={height / 2} fill={color} className="tree-node-rect" style={{ animationDelay: `${delay}s` }} />;
@@ -68,27 +68,27 @@ function TreeNode({ x, y, delay, color, size = 52, label, shape = 'mandatory', t
 function TreeEdge({ x1, y1, x2, y2, delay, active = 'inactive' }) {
     const midY = (parseFloat(y1) + parseFloat(y2)) / 2;
     const d = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
-    
+
     // Determine color based on active state
     let strokeColor = "rgba(148, 163, 184, 0.4)";
     if (active === 'active') strokeColor = "#10b981";
     if (active === 'available') strokeColor = "#6366f1";
-    
+
     return (
-        <path 
-            d={d} 
-            fill="none" 
-            stroke={strokeColor} 
-            strokeWidth="3.5" 
-            strokeLinecap="round" 
-            className="tree-edge-path" 
+        <path
+            d={d}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+            className="tree-edge-path"
             markerEnd={`url(#arrow-${active})`}
-            style={{ 
+            style={{
                 animationDelay: `${delay}s`,
                 strokeDasharray: "300",
                 strokeDashoffset: 0,
                 transition: "stroke 0.8s ease"
-            }} 
+            }}
         />
     );
 }
@@ -105,19 +105,19 @@ function PremiumBadge({ text, color = 'sky', className = 'mb-6' }) {
         <div className={`relative inline-flex items-center justify-center ${className} group cursor-default`}>
             {/* Background glow */}
             <div className={`absolute inset-0 bg-gradient-to-r ${theme.from} ${theme.to} rounded-full blur-[12px] opacity-20 group-hover:opacity-40 transition-opacity duration-500`}></div>
-            
+
             {/* Pill Container */}
             <div className={`relative inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-[#050505]/90 backdrop-blur-xl border ${theme.border} shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] overflow-hidden`}>
-                
+
                 {/* Shimmer effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-1000 ease-in-out"></div>
-                
+
                 {/* Blinking dot */}
                 <span className="relative flex h-2 w-2">
                     <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-60 ${theme.text}`}></span>
                     <span className={`relative inline-flex rounded-full h-2 w-2 bg-current ${theme.text}`}></span>
                 </span>
-                
+
                 {/* Text */}
                 <span className={`text-xs sm:text-sm font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-l ${theme.from} ${theme.to}`}>
                     {text}
@@ -162,12 +162,12 @@ function StackedFeaturesSection() {
             {cards.map((card, index) => {
                 const isFront = index === cards.length - 1;
                 const reverseIndex = cards.length - 1 - index;
-                
+
                 // Stack DOWNWARDS to avoid huge margin-top.
                 // The back card is at y=0, the front card is pushed down, making tabs peek beautifully from above.
-                const yOffset = index * 36; 
+                const yOffset = index * 36;
                 const scale = 1 - reverseIndex * 0.04;
-                
+
                 const theme = themes[card.themeColor];
 
                 return (
@@ -190,11 +190,11 @@ function StackedFeaturesSection() {
                         }}
                         onClick={() => bringToFront(card.id)}
                         className={`absolute top-0 left-0 right-0 mx-auto w-full max-w-4xl rounded-[1.5rem] sm:rounded-[2rem] cursor-pointer overflow-hidden transition-colors duration-500
-                            ${isFront 
-                                ? `bg-gradient-to-br ${theme.gradient} border border-white/10 shadow-2xl ${theme.glow}` 
+                            ${isFront
+                                ? `bg-gradient-to-br ${theme.gradient} border border-white/10 shadow-2xl ${theme.glow}`
                                 : `bg-white border border-slate-200/80 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.08)] hover:bg-slate-50`}
                         `}
-                        style={{ 
+                        style={{
                             transformOrigin: "top center",
                             filter: isFront ? 'brightness(1)' : `brightness(${1 - reverseIndex * 0.04})`
                         }}
@@ -208,10 +208,10 @@ function StackedFeaturesSection() {
                         </div>
 
                         {/* Expandable Content for the Front Card */}
-                        <motion.div 
+                        <motion.div
                             initial={false}
-                            animate={{ 
-                                opacity: isFront ? 1 : 0, 
+                            animate={{
+                                opacity: isFront ? 1 : 0,
                                 height: isFront ? 'auto' : 0,
                             }}
                             className="overflow-hidden"
@@ -227,7 +227,7 @@ function StackedFeaturesSection() {
                                     <p className={`text-sm sm:text-base leading-[1.8] font-medium max-w-2xl transition-colors duration-300 ${isFront ? 'text-slate-300' : 'text-slate-500'}`}>
                                         {card.desc}
                                     </p>
-                                    
+
                                     {/* Call to action inside the active card */}
                                     <div className="mt-6 flex justify-end">
                                         <span className={`text-xs font-bold px-4 py-2 rounded-full border bg-white/5 transition-colors duration-300 ${isFront ? 'text-slate-300 border-white/10' : 'text-slate-500 border-slate-200'}`}>
@@ -236,7 +236,7 @@ function StackedFeaturesSection() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Inner ambient glow for the front card */}
                             {isFront && (
                                 <div className={`absolute -inset-[1px] rounded-[1.5rem] sm:rounded-[2rem] blur-3xl opacity-20 -z-0 bg-gradient-to-br ${theme.text.replace('text-', 'from-')} to-transparent pointer-events-none`} />
@@ -254,14 +254,14 @@ function TreePreviewAnimation({ start }) {
 
     useEffect(() => {
         if (!start) return;
-        
+
         let isMounted = true;
         let timeoutIds = [];
 
         const runSequence = () => {
             if (!isMounted) return;
             setStep(0);
-            
+
             timeoutIds.push(setTimeout(() => isMounted && setStep(1), 1500));
             timeoutIds.push(setTimeout(() => isMounted && setStep(2), 3500));
             timeoutIds.push(setTimeout(() => isMounted && setStep(3), 5500));
@@ -270,7 +270,7 @@ function TreePreviewAnimation({ start }) {
         };
 
         runSequence();
-        
+
         return () => {
             isMounted = false;
             timeoutIds.forEach(clearTimeout);
@@ -370,14 +370,14 @@ function AiChatAnimation({ start }) {
     useEffect(() => {
         if (!start) return;
         setStep(0);
-        
+
         const timers = [
             setTimeout(() => setStep(1), 500),   // User message appears
             setTimeout(() => setStep(2), 1500),  // AI starts typing/scanning
             setTimeout(() => setStep(3), 3000),  // AI shows processing progress bar
             setTimeout(() => setStep(4), 5000),  // AI shows the final answer
         ];
-        
+
         return () => timers.forEach(clearTimeout);
     }, [start]);
 
@@ -412,11 +412,11 @@ function AiChatAnimation({ start }) {
 
             {/* Chat Area */}
             <div className="flex-1 overflow-hidden p-5 flex flex-col gap-5 relative">
-                
+
                 {/* User Message */}
                 <AnimatePresence>
                     {step >= 1 && (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 15, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             className="flex gap-3 items-end justify-end mb-2"
@@ -434,7 +434,7 @@ function AiChatAnimation({ start }) {
                 {/* AI Typing / Response */}
                 <AnimatePresence>
                     {step >= 2 && (
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0, y: 15, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             className="flex gap-3 items-start"
@@ -446,7 +446,7 @@ function AiChatAnimation({ start }) {
                                     <img src="/images/sanfoor.png" alt="AI" className="w-4 h-4 object-contain filter brightness-0 invert opacity-90" />
                                 </div>
                             </div>
-                            
+
                             <div className="bg-slate-800/80 backdrop-blur-md border border-slate-700/50 text-slate-200 p-4 rounded-[1.5rem] rounded-tr-sm text-sm font-medium leading-loose shadow-xl max-w-[90%] w-full">
                                 {step === 2 && (
                                     <div className="flex gap-1.5 items-center h-6">
@@ -459,10 +459,10 @@ function AiChatAnimation({ start }) {
                                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                         <p className="mb-3 leading-relaxed">
                                             أهلاً بك! قمت بتحليل <span className="text-emerald-400 font-bold">سجلك الأكاديمي</span> 📊
-                                            <br/>
+                                            <br />
                                             بناءً على خطتك، هذه أفضل مواد لرفع المعدل:
                                         </p>
-                                        
+
                                         {step === 3 && (
                                             <div className="flex flex-col gap-2 mt-4 mb-2">
                                                 <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
@@ -470,9 +470,9 @@ function AiChatAnimation({ start }) {
                                                     <span className="text-cyan-400 font-mono">78%</span>
                                                 </div>
                                                 <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-700">
-                                                    <motion.div 
-                                                        initial={{ width: "20%" }} 
-                                                        animate={{ width: "78%" }} 
+                                                    <motion.div
+                                                        initial={{ width: "20%" }}
+                                                        animate={{ width: "78%" }}
                                                         transition={{ duration: 1.5, ease: "easeOut" }}
                                                         className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full relative"
                                                     >
@@ -499,7 +499,7 @@ function AiChatAnimation({ start }) {
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="relative group bg-slate-900/60 hover:bg-slate-900 border border-slate-700/60 p-3 rounded-2xl transition-all duration-300 shadow-inner">
                                                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
                                                     <div className="flex items-center gap-3 relative z-10">
@@ -525,7 +525,7 @@ function AiChatAnimation({ start }) {
                 </AnimatePresence>
 
             </div>
-            
+
             {/* Chat Input Mockup */}
             <div className="p-4 bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50 mt-auto relative z-10">
                 <div className="relative">
@@ -539,7 +539,7 @@ function AiChatAnimation({ start }) {
                     </div>
                 </div>
             </div>
-            
+
         </div>
     );
 }
@@ -875,10 +875,10 @@ export default function Welcome({ auth }) {
                 ════════════════════════════════════ */}
                 <section ref={videoRef} className="py-16 sm:py-20 relative z-10 bg-slate-50 border-t border-slate-200/50 shadow-inner">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[1px] bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
-                    
+
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
                         <div className={`transition-all duration-[1.2s] ease-[cubic-bezier(0.16,1,0.3,1)] ${videoIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20'}`}>
-                            
+
                             <div className="mb-12">
                                 <PremiumBadge text="دليل الاستخدام الذكي" color="blue" className="mb-4" />
                                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">كيف يعمل سنفور؟</h2>
@@ -905,7 +905,7 @@ export default function Welcome({ auth }) {
                                         </div>
                                     </div>
                                 </button>
-                                
+
                                 <button onClick={() => setActiveVideo('ai')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(16,185,129,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200">
                                     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#022c22] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                     <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
@@ -937,11 +937,11 @@ export default function Welcome({ auth }) {
                 <section id="features" ref={featRef} className="py-20 sm:py-32 relative z-10">
                     {/* Straight Background */}
                     <div className="absolute inset-0 bg-white -z-10 shadow-sm border-b border-slate-200/50"></div>
-                    
+
                     <div className="w-full text-center pointer-events-none select-none z-0 overflow-hidden mb-8 sm:mb-16">
                         <span className="block leading-none text-[6rem] sm:text-[10rem] md:text-[14rem] font-black text-slate-900/[0.03] whitespace-nowrap tracking-tighter">FEATURES</span>
                     </div>
-                    
+
                     {/* Dark aesthetic subtle glow */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-sky-400/10 rounded-full blur-[120px] pointer-events-none -z-10" />
 
@@ -984,7 +984,7 @@ export default function Welcome({ auth }) {
 
                                 {/* Legend below SVG */}
                                 <div className="relative z-10 mt-8 pt-8 border-t border-slate-200/80 flex flex-col sm:flex-row justify-between gap-8 sm:gap-12 w-full text-right" dir="rtl">
-                                    
+
                                     {/* حالة المادة */}
                                     <div className="flex-1">
                                         <h4 className="text-slate-400 font-bold text-xs sm:text-sm mb-4 tracking-wide">حالة المادة</h4>
@@ -1022,7 +1022,7 @@ export default function Welcome({ auth }) {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                 </div>
                             </div>
                         </div>
@@ -1103,7 +1103,7 @@ export default function Welcome({ auth }) {
                             {/* Perfectly Aligned Connecting Line (Passes exactly through the icons) */}
                             <div className="hidden md:block absolute top-[64px] left-[15%] right-[15%] h-[3px] z-0 bg-slate-200 rounded-full overflow-hidden">
                                 {howIn && (
-                                    <motion.div 
+                                    <motion.div
                                         initial={{ scaleX: 0 }}
                                         animate={{ scaleX: 1 }}
                                         transition={{ duration: 1.5, ease: "easeInOut", delay: 0.3 }}
@@ -1128,7 +1128,7 @@ export default function Welcome({ auth }) {
                                         <div className="absolute -top-6 -left-4 text-[10rem] font-black text-slate-900/[0.03] group-hover:text-slate-900/[0.06] transition-colors duration-500 pointer-events-none z-0 select-none leading-none">
                                             {s.step}
                                         </div>
-                                        
+
                                         {/* Top Gradient Glow inside the card */}
                                         <div className={`absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r ${s.gradient} opacity-80 group-hover:opacity-100 transition-opacity duration-500`}></div>
 
@@ -1137,7 +1137,7 @@ export default function Welcome({ auth }) {
                                             <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white text-3xl font-black shadow-xl ${s.glow} group-hover:-translate-y-2 group-hover:rotate-6 transition-transform duration-500 mb-8 border border-white/20`}>
                                                 {s.icon}
                                             </div>
-                                            
+
                                             <h3 className="text-2xl font-black text-slate-900 mb-4">{s.title}</h3>
                                             <p className="text-slate-500 font-medium leading-relaxed text-[15px]">{s.desc}</p>
                                         </div>
@@ -1202,7 +1202,7 @@ export default function Welcome({ auth }) {
                             </button>
                         </div>
                         <div className="p-4 sm:p-6 bg-black" dir="ltr">
-                            <VideoPlayer 
+                            <VideoPlayer
                                 source={{
                                     type: 'video',
                                     title: activeVideo === 'tree' ? 'Tree Tutorial' : 'AI Tutorial',
@@ -1221,7 +1221,7 @@ export default function Welcome({ auth }) {
                                             default: true,
                                         }
                                     ]
-                                }} 
+                                }}
                                 chapters={
                                     activeVideo === 'tree' ? [
                                         { title: 'اجتياز مادة', startTime: 0 },
@@ -1229,8 +1229,8 @@ export default function Welcome({ auth }) {
                                         { title: 'تخطيط', startTime: 30 },
                                         { title: 'مواد الاونلاين و دليل الشجرة', startTime: 35 }
                                     ] : [
-                                        { title: 'يعمل جدول', startTime: 0 },
-                                        { title: 'تقييم', startTime: 33 }
+                                        { title: 'كيف اعمل جدول؟', startTime: 0 },
+                                        { title: 'تقييم الجدول', startTime: 33 }
                                     ]
                                 }
                             />
