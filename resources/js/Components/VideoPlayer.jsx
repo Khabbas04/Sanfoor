@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import Plyr from 'plyr-react';
+import { Plyr } from 'plyr-react';
 import 'plyr-react/plyr.css';
 import { useTheme } from '@/Contexts/ThemeContext';
 
