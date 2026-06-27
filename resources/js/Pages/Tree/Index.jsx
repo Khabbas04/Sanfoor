@@ -4664,6 +4664,23 @@ export default function Tree({
                                 </div>
                             </div>
                         </div>
+            {/* Floating Video Help Button */}
+            {!isFullScreen && (
+                <button
+                    onClick={() => setShowVideo(true)}
+                    className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 group flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-blue-600 text-white rounded-full shadow-[0_10px_25px_-5px_rgba(37,99,235,0.5)] hover:shadow-[0_15px_35px_-5px_rgba(37,99,235,0.6)] hover:scale-110 hover:-translate-y-1 transition-all duration-300"
+                    style={{ direction: 'rtl' }}
+                >
+                    <div className="absolute inset-0 rounded-full bg-blue-400 blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5 relative z-10" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
+                    
+                    {/* Tooltip */}
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-900 text-white text-[11px] sm:text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap translate-x-2 group-hover:translate-x-0 shadow-xl hidden sm:block">
+                        كيف تعمل الخطة؟
+                        <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                    </div>
+                </button>
+            )}
                         {/* Video Modal */}
             {showVideo && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 font-t" style={{ direction: 'rtl' }}>
