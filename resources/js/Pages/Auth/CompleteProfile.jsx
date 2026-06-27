@@ -129,9 +129,10 @@ export default function CompleteProfile({ colleges, majors }) {
                                         <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all"></div>
                                         <img src="/images/sanfoor.png" alt="Sanfoor" className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-2xl relative z-10 transform transition-transform hover:scale-110" />
                                     </div>
-                                    <div className="relative flex items-center justify-center mx-4 sm:mx-8 transform hover:rotate-180 transition-transform duration-700">
-                                        <span className="text-3xl sm:text-4xl font-[200] text-slate-300 select-none drop-shadow-sm">
-                                            ✕
+                                    <div className="relative flex items-center justify-center mx-6 sm:mx-10 group">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-emerald-400/30 blur-xl rounded-full group-hover:blur-2xl transition-all duration-700 animate-pulse"></div>
+                                        <span className="relative z-10 text-4xl sm:text-5xl font-black italic font-serif select-none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-500 to-sky-500 animate-gradient drop-shadow-2xl transform group-hover:scale-125 transition-transform duration-500">
+                                            X
                                         </span>
                                     </div>
                                     <div className="relative group">
