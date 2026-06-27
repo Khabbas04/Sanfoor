@@ -1085,7 +1085,7 @@ export default function Dashboard({
                                     title: activeVideo === 'tree' ? 'Tree Tutorial' : 'AI Tutorial',
                                     sources: [
                                         {
-                                            src: activeVideo === 'tree' ? 'https://drive.google.com/uc?export=download&id=1Dv0IOfn_WONkqJqsNFOBUPsJhlVLy64m' : 'https://drive.google.com/uc?export=download&id=1G0psjx0nRi61mMaVCICCeUa8hG4pi-mY',
+                                            src: activeVideo === 'tree' ? '/videos/tree-demo.mp4' : '/videos/ai-demo.mp4',
                                             type: 'video/mp4',
                                         }
                                     ],
