@@ -119,7 +119,9 @@ class GuestDemoController extends Controller
      */
     public static function seedDemoCourses(User $user, ?int $majorId): void
     {
-        // Get compulsory courses strictly for the first year (Semester 1 & 2) according to their plan.
+        // Get compulsory courses for the first year.
+        // We order by tree_position_y ascending to guarantee we get the courses at the very top of the prerequisite tree,
+        // avoiding messy data where 4th-year courses might accidentally have semester=1.
         // We limit it to exactly 11 courses to ensure they have around 30-33 passed hours total (perfect for Demo).
         $courses = Course::query()
             ->where('study_plan_version', $user->study_plan_version ?? 12)
@@ -128,7 +130,8 @@ class GuestDemoController extends Controller
                   ->orWhereNull('major_id');
             })
             ->where('type', 'compulsory')
-            ->whereIn('semester', [1, 2])
+            ->orderBy('tree_position_y', 'asc')
+            ->orderBy('id', 'asc')
             ->take(11)
             ->get();
 
