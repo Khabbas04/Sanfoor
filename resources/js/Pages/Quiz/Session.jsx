@@ -245,7 +245,7 @@ export default function QuizSession({ questions: questionsProp = [], course: cou
                                 </div>
                                 <p className="text-[13px] leading-relaxed font-bold">{practiceResult.explanation || (practiceResult.is_correct ? 'أحسنت! إجابة صحيحة.' : `الإجابة الصحيحة هي: ${practiceResult.correct.toUpperCase()}`)}</p>
                                 
-                                <button onClick={goNext} className="mt-6 w-full py-4 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-2xl font-[900] text-sm shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                                <button onClick={currentIndex < total - 1 ? goNext : handleSubmit} className="mt-6 w-full py-4 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-2xl font-[900] text-sm shadow-xl shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
                                     {currentIndex < total - 1 ? t.nextQuestion : t.submit}
                                 </button>
                             </div>
