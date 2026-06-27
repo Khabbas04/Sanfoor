@@ -110,6 +110,12 @@ class CompleteProfileController extends Controller
             ]);
         }
 
+        // If this is a guest demo user, automatically seed their fake courses and AI chat
+        // for the newly selected major so they can experience the platform immediately.
+        if ($user->role === 'guest') {
+            \App\Http\Controllers\Auth\GuestDemoController::seedDemoCourses($user, (int) $validated['major_id']);
+        }
+
         return redirect()->route('home', ['tour' => 'start']);
     }
 }

@@ -11,6 +11,8 @@ export default function CompleteProfile({ colleges, majors }) {
         study_plan_version: '12',
     });
 
+    const isGuest = user.role === 'guest';
+
     const [mounted, setMounted] = useState(false);
     const [step, setStep] = useState(1); // 1=college, 2=major, 3=plan, 4=confirm
 
@@ -120,25 +122,56 @@ export default function CompleteProfile({ colleges, majors }) {
                 <div className="w-full max-w-2xl relative z-10">
                     {/* Logo + Welcome */}
                     <div className="text-center mb-8" style={stagger(0)}>
-                        <div className="inline-flex items-center justify-center gap-4 mb-5 group">
-                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3">
-                                <div className="absolute inset-0 bg-blue-500/15 rounded-full blur-2xl"></div>
-                                <img src="/images/sanfoor.png" alt="Sanfoor" className="w-full h-full object-contain drop-shadow-xl relative z-10" />
+                        {isGuest ? (
+                            <div className="flex flex-col items-center justify-center mb-6 animate-enter">
+                                <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4">
+                                    <div className="relative group">
+                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all"></div>
+                                        <img src="/images/sanfoor.png" alt="Sanfoor" className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-2xl relative z-10 transform transition-transform hover:scale-110" />
+                                    </div>
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/50 shadow-sm border border-slate-200">
+                                        <span className="text-sm font-black text-slate-400 leading-none">×</span>
+                                    </div>
+                                    <div className="relative group">
+                                        <div className="absolute inset-0 bg-green-500/15 rounded-full blur-xl group-hover:bg-green-500/30 transition-all"></div>
+                                        <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-2xl relative z-10 transform transition-transform hover:scale-110" />
+                                    </div>
+                                </div>
+                                <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 shadow-sm mb-4">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                                    <span className="text-xs sm:text-sm font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-700 to-slate-900">الشريك الأكاديمي لمسابقة NTP 2026</span>
+                                </div>
                             </div>
-                            <div className="flex flex-col text-right leading-none">
-                                <span className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-tight">سنفور</span>
-                                <span className="text-sm sm:text-base font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-[0.15em] uppercase">Sanfoor</span>
+                        ) : (
+                            <div className="inline-flex items-center justify-center gap-4 mb-5 group">
+                                <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center transition-transform duration-500 group-hover:scale-105 group-hover:-rotate-3">
+                                    <div className="absolute inset-0 bg-blue-500/15 rounded-full blur-2xl"></div>
+                                    <img src="/images/sanfoor.png" alt="Sanfoor" className="w-full h-full object-contain drop-shadow-xl relative z-10" />
+                                </div>
+                                <div className="flex flex-col text-right leading-none">
+                                    <span className="text-2xl sm:text-3xl font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-tight">سنفور</span>
+                                    <span className="text-sm sm:text-base font-black bg-clip-text text-transparent bg-gradient-to-l from-blue-600 from-[50%] to-slate-900 to-[50%] tracking-[0.15em] uppercase">Sanfoor</span>
+                                </div>
                             </div>
-                        </div>
-                        <h1 className="text-xl sm:text-2xl font-black text-slate-800 mb-2">
-                            مرحباً بك يا{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                                {(user.name || 'طالب').split(' ')[0]}
-                            </span>
-                            ! 👋
+                        )}
+
+                        <h1 className="text-xl sm:text-2xl font-black text-slate-800 mb-3">
+                            {isGuest ? (
+                                <span>أهلاً بك في منصة سنفور! <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">🎫</span></span>
+                            ) : (
+                                <>
+                                    مرحباً بك يا{' '}
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                                        {(user.name || 'طالب').split(' ')[0]}
+                                    </span>
+                                    ! 👋
+                                </>
+                            )}
                         </h1>
                         <p className="text-sm sm:text-base font-bold text-slate-500 max-w-md mx-auto leading-relaxed">
-                            قبل ما تبدأ رحلتك الأكاديمية، نحتاج تحدد كليتك وتخصصك عشان نخصص التجربة إلك.
+                            {isGuest 
+                                ? 'لتبدأ تجربتك المخصصة، يرجى تحديد كليتك وتخصصك الجامعي وسنقوم بتجهيز النظام لك.'
+                                : 'قبل ما تبدأ رحلتك الأكاديمية، نحتاج تحدد كليتك وتخصصك عشان نخصص التجربة إلك.'}
                         </p>
                     </div>
 

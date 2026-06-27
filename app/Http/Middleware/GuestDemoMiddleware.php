@@ -19,6 +19,12 @@ class GuestDemoMiddleware
         'browser_close',
         'admin.api.heartbeat',
         'admin.api.browser_close',
+        'profile.complete.update',
+        'ai.advisor.chat',
+        'ai.advisor.regenerate',
+        'ai.advisor.feedback',
+        'ai.advisor.delete',
+        'ai.advisor.delete.all',
     ];
 
     /**
@@ -28,6 +34,8 @@ class GuestDemoMiddleware
         'api/heartbeat',
         'api/browser-close',
         'logout',
+        'complete-profile',
+        'ai-advisor',
     ];
 
     /**
@@ -69,15 +77,18 @@ class GuestDemoMiddleware
             }
         }
 
-        // Block the write request with a user-friendly Inertia-compatible response.
-        if ($request->expectsJson() || $request->header('X-Inertia')) {
+        // Block the write request.
+        // For Inertia and normal web requests, we redirect back with a flash message 
+        // to show a beautiful toast instead of throwing a generic error.
+        // If it's a raw non-Inertia API call, return JSON.
+        if ($request->expectsJson() && !$request->header('X-Inertia')) {
             return response()->json([
-                'message' => 'هذه الميزة غير متاحة في الوضع التجريبي. سجّل بحسابك الجامعي للاستفادة الكاملة!',
+                'message' => 'هذه الميزة غير متاحة في الوضع التجريبي. سجل بحسابك للوصول الكامل!',
             ], 403);
         }
 
         return redirect()->back()->with([
-            'message' => '🎫 هذه الميزة غير متاحة في الوضع التجريبي — سجّل بحسابك الجامعي للاستفادة الكاملة!',
+            'message' => '🎫 هذه الميزة غير متاحة في الوضع التجريبي — استكشف المنصة أولاً!',
             'type'    => 'warning',
         ]);
     }

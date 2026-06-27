@@ -51,8 +51,8 @@ class EnsureMajorSelected
         $user = Auth::user();
         $role = strtolower(trim((string) ($user->role ?? '')));
 
-        // Only enforce for students – admins, owners, and instructors are exempt.
-        if ($role !== 'student') {
+        // Only enforce for students and guests – admins, owners, and instructors are exempt.
+        if (!in_array($role, ['student', 'guest'], true)) {
             return $next($request);
         }
 

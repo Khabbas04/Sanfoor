@@ -86,10 +86,10 @@ function GuestDemoBanner() {
                             <div className="flex items-center justify-between gap-4">
                                 {/* Left: Icon + Text */}
                                 <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                                    {/* Animated icon */}
+                                    {/* Animated logo */}
                                     <div className="relative shrink-0">
-                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-amber-500/30" style={{ animation: 'demo-float-icon 3s ease-in-out infinite' }}>
-                                            🎫
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-amber-500/30 p-1.5 sm:p-2" style={{ animation: 'demo-float-icon 3s ease-in-out infinite' }}>
+                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-full h-full object-contain drop-shadow-sm" />
                                         </div>
                                         <div className="absolute -inset-1 rounded-xl sm:rounded-2xl border-2 border-amber-400/30" style={{ animation: 'demo-pulse-ring 2s ease-out infinite' }} />
                                     </div>

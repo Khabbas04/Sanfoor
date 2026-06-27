@@ -60,8 +60,8 @@ class GuestDemoController extends Controller
                     'name'               => "ضيف NTP #{$guestNumber}",
                     'email'              => $email,
                     'password'           => Hash::make(Str::random(64)),
-                    'major_id'           => $majorId,
-                    'study_plan_version' => 12,
+                    // major_id and study_plan_version are left null intentionally
+                    // so the guest can choose them in the onboarding flow.
                     'ip_address'         => $request->ip(),
                     'last_login_at'      => now(),
                 ]);
@@ -70,9 +70,6 @@ class GuestDemoController extends Controller
                 $user->role = 'guest';
                 $user->email_verified_at = now();
                 $user->save();
-
-                // Seed realistic passed courses so the dashboard is not empty.
-                $this->seedDemoCourses($user, $majorId);
 
                 // Log into the guest account.
                 Auth::guard('web')->login($user, false);
@@ -117,16 +114,14 @@ class GuestDemoController extends Controller
     }
 
     /**
-     * Seed a realistic set of passed courses for the demo user.
-     *
-     * We pick courses from semesters 1-4 (first two years) and assign
-     * realistic grades that create an interesting dashboard experience.
+     * Seed a realistic set of passed courses for the demo user based on the selected major.
+     * Also seeds a welcome AI chat customized for the NTP competition.
      */
-    private function seedDemoCourses(User $user, ?int $majorId): void
+    public static function seedDemoCourses(User $user, ?int $majorId): void
     {
         // Get courses from the first few semesters.
         $courses = Course::query()
-            ->where('study_plan_version', 12)
+            ->where('study_plan_version', $user->study_plan_version ?? 12)
             ->where(function ($q) use ($majorId) {
                 $q->where('major_id', $majorId)
                   ->orWhereNull('major_id');
@@ -136,31 +131,50 @@ class GuestDemoController extends Controller
             ->take(14)
             ->get();
 
-        if ($courses->isEmpty()) {
-            return;
+        if ($courses->isNotEmpty()) {
+            // Realistic grade distribution
+            $gradePatterns = [92, 88, 78, 85, 71, 94, 66, 82, 90, 73, 87, 68, 91, 76];
+
+            $attachData = [];
+            foreach ($courses as $index => $course) {
+                $semester = (int) $course->semester;
+                $year = (int) ceil($semester / 2);
+                $term = $semester % 2 === 0 ? 2 : 1;
+
+                $attachData[$course->id] = [
+                    'grade'           => $gradePatterns[$index % count($gradePatterns)],
+                    'studied_semester' => $semester,
+                    'studied_year'    => $year,
+                    'studied_term'    => $term,
+                    'is_retake'       => false,
+                    'attempt_number'  => 1,
+                    'created_at'      => now(),
+                    'updated_at'      => now(),
+                ];
+            }
+
+            $user->passedCourses()->sync($attachData);
         }
 
-        // Realistic grade distribution – some excellent, some good, some average.
-        $gradePatterns = [92, 88, 78, 85, 71, 94, 66, 82, 90, 73, 87, 68, 91, 76];
+        // Seed an initial smart AI chat for the NTP demo
+        $majorName = $user->major?->name ?? 'تخصصك';
+        $chat = $user->chats()->create([
+            'title' => 'مرحباً بك في سنفور - مسابقة NTP',
+        ]);
 
-        $attachData = [];
-        foreach ($courses as $index => $course) {
-            $semester = (int) $course->semester;
-            $year = (int) ceil($semester / 2);
-            $term = $semester % 2 === 0 ? 2 : 1;
+        $aiWelcomeMessage = "أهلاً بك في منصة سنفور! يسعدني جداً وجودك معنا اليوم لتجربة المنصة كضيف في **مسابقة NTP بجامعة عمان الأهلية** 🎫.\n\n"
+                          . "لقد قمت بتحليل خطتك الدراسية لـ **{$majorName}**، ولاحظت أن أداءك ممتاز في المواد السابقة (هذه بيانات تجريبية تمت إضافتها لتجربتك!).\n\n"
+                          . "يمكنك الآن استكشاف الشجرة التفاعلية، لوحة التحكم، أو ببساطة سؤالي هنا عن أي شيء يخص موادك القادمة، وسأقوم بإرشادك بناءً على بياناتك الأكاديمية! كيف يمكنني مساعدتك؟ 🤖✨";
 
-            $attachData[$course->id] = [
-                'grade'           => $gradePatterns[$index % count($gradePatterns)],
-                'studied_semester' => $semester,
-                'studied_year'    => $year,
-                'studied_term'    => $term,
-                'is_retake'       => false,
-                'attempt_number'  => 1,
-                'created_at'      => now(),
-                'updated_at'      => now(),
-            ];
-        }
-
-        $user->passedCourses()->attach($attachData);
+        $chat->messages()->create([
+            'role' => 'ai',
+            'content' => json_encode([
+                'reply' => $aiWelcomeMessage,
+                'suggested_courses' => [],
+                'courses_to_remove' => [],
+                'follow_up_suggestions' => ['ما هي المواد التي تنصحني بها الفصل القادم؟', 'هل يمكنك حساب معدلي التراكمي؟', 'ما هي متطلبات التخرج المتبقية؟'],
+                'interactive_widget' => null,
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
     }
 }
