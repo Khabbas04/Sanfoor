@@ -119,14 +119,17 @@ class GuestDemoController extends Controller
      */
     public static function seedDemoCourses(User $user, ?int $majorId): void
     {
-        // Get all courses strictly for the first year (Semester 1 & 2) according to their plan.
+        // Get compulsory courses strictly for the first year (Semester 1 & 2) according to their plan.
+        // We limit it to exactly 11 courses to ensure they have around 30-33 passed hours total (perfect for Demo).
         $courses = Course::query()
             ->where('study_plan_version', $user->study_plan_version ?? 12)
             ->where(function ($q) use ($majorId) {
                 $q->where('major_id', $majorId)
                   ->orWhereNull('major_id');
             })
+            ->where('type', 'compulsory')
             ->whereIn('semester', [1, 2])
+            ->take(11)
             ->get();
 
         if ($courses->isNotEmpty()) {
