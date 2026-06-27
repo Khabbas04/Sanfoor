@@ -25,6 +25,13 @@ class GuestDemoMiddleware
         'ai.advisor.feedback',
         'ai.advisor.delete',
         'ai.advisor.delete.all',
+        'tree.store',
+        'tree.destroy',
+        'tree.toggle',
+        'cart.store',
+        'cart.destroy',
+        'cart.clear',
+        'quiz.submit',
     ];
 
     /**

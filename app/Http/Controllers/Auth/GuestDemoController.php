@@ -119,16 +119,14 @@ class GuestDemoController extends Controller
      */
     public static function seedDemoCourses(User $user, ?int $majorId): void
     {
-        // Get courses from the first few semesters.
+        // Get all courses strictly for the first year (Semester 1 & 2) according to their plan.
         $courses = Course::query()
             ->where('study_plan_version', $user->study_plan_version ?? 12)
             ->where(function ($q) use ($majorId) {
                 $q->where('major_id', $majorId)
                   ->orWhereNull('major_id');
             })
-            ->whereIn('semester', [1, 2, 3, 4])
-            ->orderBy('semester')
-            ->take(14)
+            ->whereIn('semester', [1, 2])
             ->get();
 
         if ($courses->isNotEmpty()) {

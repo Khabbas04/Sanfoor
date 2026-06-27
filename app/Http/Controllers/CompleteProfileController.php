@@ -116,6 +116,6 @@ class CompleteProfileController extends Controller
             \App\Http\Controllers\Auth\GuestDemoController::seedDemoCourses($user, (int) $validated['major_id']);
         }
 
-        return redirect()->route('home', ['tour' => 'start']);
+        return redirect()->route('dashboard');
     }
 }

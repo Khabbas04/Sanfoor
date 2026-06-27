@@ -91,11 +91,18 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         try {
+            $user = Auth::guard('web')->user();
+
             Auth::guard('web')->logout();
 
             if ($request->hasSession()) {
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
+            }
+
+            // Self-destruct guest accounts upon logout to prevent DB bloat.
+            if ($user && $user->role === 'guest') {
+                $user->delete();
             }
         } catch (Throwable $e) {
             report($e);
