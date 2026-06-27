@@ -67,17 +67,17 @@ export default function CompleteProfile({ colleges, majors }) {
         const isCompleted = step > stepNum;
         return (
             <div className="flex flex-col items-center gap-1.5 transition-all duration-500" key={stepNum}>
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-lg sm:text-xl transition-all duration-500 shadow-sm ${
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-lg sm:text-xl transition-all duration-500 shadow-sm backdrop-blur-md ${
                     isCompleted
                         ? 'bg-emerald-500 text-white shadow-emerald-500/30 scale-100'
                         : isActive
-                            ? 'bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-blue-500/40 scale-110'
-                            : 'bg-slate-100 text-slate-400 scale-95'
+                            ? 'bg-white text-blue-600 shadow-white/40 scale-110'
+                            : 'bg-white/20 text-white/70 scale-95 border border-white/10'
                 }`}>
                     {isCompleted ? '✓' : icon}
                 </div>
                 <span className={`text-[10px] sm:text-[11px] font-black tracking-tight transition-all duration-300 ${
-                    isActive ? 'text-blue-600' : isCompleted ? 'text-emerald-600' : 'text-slate-400'
+                    isActive ? 'text-white' : isCompleted ? 'text-emerald-300' : 'text-white/60'
                 }`}>{label}</span>
             </div>
         );
@@ -113,7 +113,7 @@ export default function CompleteProfile({ colleges, majors }) {
                 }
             ` }} />
 
-            <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+            <div dir="rtl" className="min-h-screen bg-gradient-to-r from-teal-400 via-blue-500 to-indigo-500 flex items-center justify-center px-4 py-8 relative overflow-hidden">
                 {/* Floating background particles */}
                 <div className="absolute top-20 right-20 w-32 h-32 rounded-full bg-blue-400/10 blur-3xl animate-float pointer-events-none"></div>
                 <div className="absolute bottom-32 left-16 w-40 h-40 rounded-full bg-indigo-400/10 blur-3xl animate-float pointer-events-none" style={{animationDelay: '2s'}}></div>
@@ -169,20 +169,20 @@ export default function CompleteProfile({ colleges, majors }) {
                             </div>
                         )}
 
-                        <h1 className="text-xl sm:text-2xl font-black text-slate-800 mb-3">
+                        <h1 className="text-xl sm:text-2xl font-black text-white mb-3">
                             {isGuest ? (
-                                <span>أهلاً بك في منصة سنفور! <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">🎫</span></span>
+                                <span>أهلاً بك في منصة سنفور! <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200">🎫</span></span>
                             ) : (
                                 <>
                                     مرحباً بك يا{' '}
-                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-200 to-indigo-100">
                                         {(user.name || 'طالب').split(' ')[0]}
                                     </span>
                                     ! 👋
                                 </>
                             )}
                         </h1>
-                        <p className="text-sm sm:text-base font-bold text-slate-500 max-w-md mx-auto leading-relaxed">
+                        <p className="text-sm sm:text-base font-bold text-white/80 max-w-md mx-auto leading-relaxed">
                             {isGuest 
                                 ? 'لتبدأ تجربتك المخصصة، يرجى تحديد كليتك وتخصصك الجامعي وسنقوم بتجهيز النظام لك.'
                                 : 'قبل ما تبدأ رحلتك الأكاديمية، نحتاج تحدد كليتك وتخصصك عشان نخصص التجربة إلك.'}
@@ -192,16 +192,16 @@ export default function CompleteProfile({ colleges, majors }) {
                     {/* Step Indicator */}
                     <div className="flex items-center justify-center gap-3 sm:gap-6 mb-8" style={stagger(1)}>
                         {stepIndicator(1, 'الكلية', '🏛️')}
-                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : 'bg-slate-200'}`}></div>
+                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                         {stepIndicator(2, 'التخصص', '📚')}
-                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : 'bg-slate-200'}`}></div>
+                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                         {stepIndicator(3, 'الخطة', '🧭')}
-                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : 'bg-slate-200'}`}></div>
+                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                         {stepIndicator(4, 'تأكيد', '🚀')}
                     </div>
 
                     {/* Main Card */}
-                    <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] border border-white/60 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] p-6 sm:p-8 animate-glow" style={stagger(2)}>
+                    <div className="bg-white/95 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] p-6 sm:p-8 animate-glow" style={stagger(2)}>
                         <form onSubmit={submit}>
                             {/* Step 1: College */}
                             {step === 1 && (
