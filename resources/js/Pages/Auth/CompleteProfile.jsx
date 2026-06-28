@@ -115,6 +115,11 @@ export default function CompleteProfile({ colleges, majors }) {
                     0% { transform: translateX(100%); }
                     100% { transform: translateX(-100%); }
                 }
+                @keyframes shimmerSweepVertical {
+                    0% { transform: translateY(-100%); opacity: 0; }
+                    50% { opacity: 1; }
+                    100% { transform: translateY(100%); opacity: 0; }
+                }
                 @keyframes pulseBorder {
                     0%, 100% { opacity: 0.3; transform: scale(1); }
                     50% { opacity: 0.6; transform: scale(1.02); }
@@ -123,22 +128,27 @@ export default function CompleteProfile({ colleges, majors }) {
                 .animate-pulse-border { animation: pulseBorder 4s infinite ease-in-out; }
             ` }} />
 
-            <div dir="rtl" className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#020617] to-blue-900/30 flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden">
+            <div dir="rtl" className="min-h-screen bg-[#060913] flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden">
                 
-                {/* Tech Dot Grid Overlay */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] opacity-60 pointer-events-none"></div>
+                {/* 🏆 Champion/Challenge Dynamic Mesh Gradient Background */}
+                <div className="absolute inset-0 z-0">
+                    <div className="absolute top-[-10%] right-[-10%] w-[70vw] h-[70vw] sm:w-[600px] sm:h-[600px] rounded-full bg-gradient-to-br from-indigo-600/20 to-violet-600/20 blur-[100px] mix-blend-screen animate-float pointer-events-none"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] sm:w-[700px] sm:h-[700px] rounded-full bg-gradient-to-tr from-emerald-600/15 to-cyan-600/15 blur-[120px] mix-blend-screen animate-float pointer-events-none" style={{animationDelay: '3s', animationDuration: '8s'}}></div>
+                    <div className="absolute top-[40%] left-[20%] w-[50vw] h-[50vw] sm:w-[400px] sm:h-[400px] rounded-full bg-blue-600/10 blur-[90px] mix-blend-screen animate-float pointer-events-none" style={{animationDelay: '1.5s', animationDuration: '7s'}}></div>
+                </div>
 
-                {/* Floating background particles */}
-                <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-500/15 blur-[120px] animate-float pointer-events-none"></div>
-                <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-blue-600/15 blur-[150px] animate-float pointer-events-none" style={{animationDelay: '3s'}}></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-indigo-500/10 blur-[150px] pointer-events-none"></div>
+                {/* 🕸️ Cyber Grid overlay */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none z-0"></div>
 
-                {/* Floating Tech/Code Symbols */}
-                <div className="absolute top-[15%] left-[15%] text-emerald-400/20 text-3xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '0s'}}>+</div>
-                <div className="absolute bottom-[25%] right-[10%] text-blue-400/20 text-4xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '1.5s'}}>+</div>
-                <div className="absolute top-[30%] right-[25%] text-indigo-400/10 text-2xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '3.5s'}}>{'{ }'}</div>
-                <div className="absolute bottom-[20%] left-[25%] text-white/10 text-2xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '2.2s'}}>&lt;/&gt;</div>
-                <div className="absolute top-[60%] left-[5%] text-sky-400/10 text-xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '4.1s'}}>#</div>
+                {/* ⚡ Challenge Side Effects (Laser beams / Light sweepers) */}
+                <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-500/50 to-transparent opacity-0 animate-[shimmerSweepVertical_4s_infinite_ease-in-out] z-0"></div>
+                <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent opacity-0 animate-[shimmerSweepVertical_5s_infinite_ease-in-out_2s] z-0"></div>
+
+                {/* Floating Tech/Code Symbols (Smart touches) */}
+                <div className="absolute top-[10%] right-[15%] text-emerald-400/20 text-4xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '0s'}}>⚡</div>
+                <div className="absolute bottom-[20%] left-[10%] text-cyan-400/20 text-3xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '1.5s'}}>&lt;/&gt;</div>
+                <div className="absolute top-[30%] left-[20%] text-indigo-400/20 text-2xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '3.5s'}}>{'{ }'}</div>
+                <div className="absolute bottom-[15%] right-[20%] text-white/10 text-xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '2.2s'}}>#</div>
 
                 <div className="w-full max-w-2xl relative z-10">
                     {/* Logo + Welcome */}

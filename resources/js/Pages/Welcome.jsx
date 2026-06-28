@@ -891,7 +891,7 @@ export default function Welcome({ auth }) {
                                     <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 z-0"></div>
                                     
                                     <div className="relative w-full h-48 sm:h-56 bg-slate-100 overflow-hidden shrink-0 border-b border-slate-200 group-hover:border-slate-700 transition-colors duration-500 z-10">
-                                        <img src="https://drive.google.com/uc?export=view&id=1Hd4SLpKSQaoj1QWMh0UsotQkQYj2-A_0" alt="Tree Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                        <img src="/images/tree-tutorial-thumb.jpg" alt="Tree Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                         <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/30 transition-colors duration-500"></div>
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center text-blue-600 transition-transform duration-500 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white">
@@ -913,7 +913,7 @@ export default function Welcome({ auth }) {
                                     <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 z-0"></div>
                                     
                                     <div className="relative w-full h-48 sm:h-56 bg-slate-100 overflow-hidden shrink-0 border-b border-slate-200 group-hover:border-slate-700 transition-colors duration-500 z-10">
-                                        <img src="https://drive.google.com/uc?export=view&id=14-KJOyD3K4izSJjvOcpgobgRzgefZ3Gy" alt="AI Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                        <img src="/images/ai-tutorial-thumb.jpg" alt="AI Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                         <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/30 transition-colors duration-500"></div>
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             <div className="w-16 h-16 rounded-full bg-white/90 backdrop-blur shadow-lg flex items-center justify-center text-emerald-600 transition-transform duration-500 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white">
