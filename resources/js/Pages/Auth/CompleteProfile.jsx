@@ -66,24 +66,24 @@ export default function CompleteProfile({ colleges, majors }) {
         const isActive = step === stepNum;
         const isCompleted = step > stepNum;
         return (
-            <div className="flex flex-col items-center gap-1.5 transition-all duration-500" key={stepNum}>
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center text-lg sm:text-xl transition-all duration-500 shadow-sm backdrop-blur-md ${
+            <div className="flex flex-col items-center gap-1 sm:gap-1.5 transition-all duration-500" key={stepNum}>
+                <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-sm sm:text-xl transition-all duration-500 shadow-sm backdrop-blur-md ${
                     isCompleted
-                        ? 'bg-emerald-500 text-white shadow-emerald-500/30 scale-100'
+                        ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-100'
                         : isActive
-                            ? 'bg-white text-blue-600 shadow-white/40 scale-110'
-                            : 'bg-white/20 text-white/70 scale-95 border border-white/10'
+                            ? 'bg-white text-blue-600 shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-110'
+                            : 'bg-white/10 text-white/50 scale-95 border border-white/10'
                 }`}>
                     {isCompleted ? '✓' : icon}
                 </div>
-                <span className={`text-[10px] sm:text-[11px] font-black tracking-tight transition-all duration-300 ${
-                    isActive ? 'text-white' : isCompleted ? 'text-emerald-300' : 'text-white/60'
+                <span className={`text-[9px] sm:text-[11px] font-black tracking-tight transition-all duration-300 ${
+                    isActive ? 'text-white' : isCompleted ? 'text-emerald-300' : 'text-white/40'
                 }`}>{label}</span>
             </div>
         );
     };
 
-    const cardBase = "p-5 sm:p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] group/item";
+    const cardBase = "p-4 sm:p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] group/item";
     const cardSelected = "border-emerald-500 bg-emerald-900/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30";
     const cardDefault = "border-slate-700/50 bg-slate-800/40 hover:border-emerald-500/40 hover:shadow-lg hover:bg-slate-800/70";
 
@@ -123,7 +123,7 @@ export default function CompleteProfile({ colleges, majors }) {
                 .animate-pulse-border { animation: pulseBorder 4s infinite ease-in-out; }
             ` }} />
 
-            <div dir="rtl" className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#020617] to-blue-900/30 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+            <div dir="rtl" className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#020617] to-blue-900/30 flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden">
                 
                 {/* Tech Dot Grid Overlay */}
                 <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] opacity-60 pointer-events-none"></div>
@@ -212,13 +212,13 @@ export default function CompleteProfile({ colleges, majors }) {
                     </div>
 
                     {/* Step Indicator */}
-                    <div className="flex items-center justify-center gap-3 sm:gap-6 mb-8" style={stagger(1)}>
+                    <div className="flex items-center justify-center gap-1.5 sm:gap-6 mb-6 sm:mb-8 w-full max-w-[280px] sm:max-w-none mx-auto" style={stagger(1)}>
                         {stepIndicator(1, 'الكلية', '🏛️')}
-                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
+                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : 'bg-white/10'}`}></div>
                         {stepIndicator(2, 'التخصص', '📚')}
-                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
+                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : 'bg-white/10'}`}></div>
                         {stepIndicator(3, 'الخطة', '🧭')}
-                        <div className={`h-0.5 w-8 sm:w-12 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
+                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : 'bg-white/10'}`}></div>
                         {stepIndicator(4, 'تأكيد', '🚀')}
                     </div>
 
@@ -226,7 +226,7 @@ export default function CompleteProfile({ colleges, majors }) {
                     <div className="relative group/card" style={stagger(2)}>
                         {/* Glowing Outer Border */}
                         <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500 via-sky-400 to-blue-600 opacity-0 group-hover/card:opacity-30 blur-lg transition-all duration-1000 animate-pulse-border pointer-events-none"></div>
-                        <div className="relative bg-[#060c18]/80 backdrop-blur-2xl rounded-[2rem] border border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 animate-glow">
+                        <div className="relative bg-[#060c18]/80 backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[2rem] border border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-5 sm:p-8 animate-glow">
                         <form onSubmit={submit}>
                             {/* Step 1: College */}
                             {step === 1 && (
