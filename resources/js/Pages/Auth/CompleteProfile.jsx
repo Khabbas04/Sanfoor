@@ -111,13 +111,34 @@ export default function CompleteProfile({ colleges, majors }) {
                     from { opacity: 0; transform: translateY(24px) scale(0.96); }
                     to { opacity: 1; transform: translateY(0) scale(1); }
                 }
+                @keyframes shimmerSweep {
+                    0% { transform: translateX(100%); }
+                    100% { transform: translateX(-100%); }
+                }
+                @keyframes pulseBorder {
+                    0%, 100% { opacity: 0.3; transform: scale(1); }
+                    50% { opacity: 0.6; transform: scale(1.02); }
+                }
+                .animate-shimmer { animation: shimmerSweep 3s infinite linear; }
+                .animate-pulse-border { animation: pulseBorder 4s infinite ease-in-out; }
             ` }} />
 
             <div dir="rtl" className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#020617] to-blue-900/30 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+                
+                {/* Tech Dot Grid Overlay */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:32px_32px] opacity-60 pointer-events-none"></div>
+
                 {/* Floating background particles */}
                 <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-500/15 blur-[120px] animate-float pointer-events-none"></div>
                 <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-blue-600/15 blur-[150px] animate-float pointer-events-none" style={{animationDelay: '3s'}}></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-indigo-500/10 blur-[150px] pointer-events-none"></div>
+
+                {/* Floating Tech/Code Symbols */}
+                <div className="absolute top-[15%] left-[15%] text-emerald-400/20 text-3xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '0s'}}>+</div>
+                <div className="absolute bottom-[25%] right-[10%] text-blue-400/20 text-4xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '1.5s'}}>+</div>
+                <div className="absolute top-[30%] right-[25%] text-indigo-400/10 text-2xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '3.5s'}}>{'{ }'}</div>
+                <div className="absolute bottom-[20%] left-[25%] text-white/10 text-2xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '2.2s'}}>&lt;/&gt;</div>
+                <div className="absolute top-[60%] left-[5%] text-sky-400/10 text-xl font-black font-mono animate-float pointer-events-none select-none" style={{animationDelay: '4.1s'}}>#</div>
 
                 <div className="w-full max-w-2xl relative z-10">
                     {/* Logo + Welcome */}
@@ -142,15 +163,16 @@ export default function CompleteProfile({ colleges, majors }) {
                                 </div>
                                 <div className="relative group inline-flex items-center justify-center mb-6 cursor-default">
                                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
-                                    <div className="relative inline-flex items-center px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 transform group-hover:-translate-y-0.5">
-                                        <span className="relative flex h-3 w-3 ml-3">
+                                    <div className="relative inline-flex items-center px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 transform group-hover:-translate-y-0.5 overflow-hidden">
+                                        <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/60 to-transparent -skew-x-12 animate-shimmer pointer-events-none z-10"></div>
+                                        <span className="relative flex h-3 w-3 ml-3 z-20">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                                         </span>
-                                        <span className="text-sm sm:text-base font-extrabold bg-clip-text text-transparent bg-gradient-to-l from-slate-800 to-slate-600 tracking-wide">
+                                        <span className="text-sm sm:text-base font-extrabold bg-clip-text text-transparent bg-gradient-to-l from-slate-800 to-slate-600 tracking-wide z-20 relative">
                                             الشريك الأكاديمي لمسابقة NTP 2026
                                         </span>
-                                        <svg className="w-4 h-4 mr-3 text-blue-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="w-4 h-4 mr-3 text-blue-500 animate-pulse z-20 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                                         </svg>
                                     </div>
@@ -201,7 +223,10 @@ export default function CompleteProfile({ colleges, majors }) {
                     </div>
 
                     {/* Main Card */}
-                    <div className="bg-white/95 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] p-6 sm:p-8 animate-glow" style={stagger(2)}>
+                    <div className="relative group/card" style={stagger(2)}>
+                        {/* Glowing Outer Border */}
+                        <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500 via-sky-400 to-blue-600 opacity-0 group-hover/card:opacity-30 blur-lg transition-all duration-1000 animate-pulse-border pointer-events-none"></div>
+                        <div className="relative bg-white/95 backdrop-blur-xl rounded-[2rem] border border-white/60 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] p-6 sm:p-8 animate-glow">
                         <form onSubmit={submit}>
                             {/* Step 1: College */}
                             {step === 1 && (
@@ -388,7 +413,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                                 </>
                                             ) : (
                                                 <>
-                                                    🚀 ابدأ رحلتك الأكاديمية
+                                                    إتمام وإعداد ملفي الأكاديمي 🚀
                                                 </>
                                             )}
                                         </span>
@@ -396,6 +421,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                 </div>
                             )}
                         </form>
+                    </div>
                     </div>
 
                     {/* Logout link */}
