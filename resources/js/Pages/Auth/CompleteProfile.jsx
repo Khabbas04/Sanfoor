@@ -83,9 +83,9 @@ export default function CompleteProfile({ colleges, majors }) {
         );
     };
 
-    const cardBase = "p-5 sm:p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]";
-    const cardSelected = "border-blue-400 bg-blue-50/80 shadow-lg shadow-blue-500/10 ring-2 ring-blue-400/20";
-    const cardDefault = "border-slate-200 bg-white hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30";
+    const cardBase = "p-5 sm:p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] group/item";
+    const cardSelected = "border-emerald-500 bg-emerald-900/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30";
+    const cardDefault = "border-slate-700/50 bg-slate-800/40 hover:border-emerald-500/40 hover:shadow-lg hover:bg-slate-800/70";
 
     return (
         <>
@@ -226,7 +226,7 @@ export default function CompleteProfile({ colleges, majors }) {
                     <div className="relative group/card" style={stagger(2)}>
                         {/* Glowing Outer Border */}
                         <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500 via-sky-400 to-blue-600 opacity-0 group-hover/card:opacity-30 blur-lg transition-all duration-1000 animate-pulse-border pointer-events-none"></div>
-                        <div className="relative bg-white/95 backdrop-blur-xl rounded-[2rem] border border-white/60 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] p-6 sm:p-8 animate-glow">
+                        <div className="relative bg-[#060c18]/80 backdrop-blur-2xl rounded-[2rem] border border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-6 sm:p-8 animate-glow">
                         <form onSubmit={submit}>
                             {/* Step 1: College */}
                             {step === 1 && (
@@ -234,8 +234,8 @@ export default function CompleteProfile({ colleges, majors }) {
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-500/20">🏛️</div>
                                         <div>
-                                            <h2 className="text-lg font-black text-slate-800">اختر كليتك</h2>
-                                            <p className="text-xs font-bold text-slate-500">حدد الكلية اللي إنت فيها</p>
+                                            <h2 className="text-lg font-black text-white">اختر كليتك</h2>
+                                            <p className="text-xs font-bold text-slate-400">حدد الكلية اللي إنت فيها</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -248,9 +248,9 @@ export default function CompleteProfile({ colleges, majors }) {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all ${
-                                                        String(data.college_id) === String(college.id) ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                        String(data.college_id) === String(college.id) ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400'
                                                     }`}>🏛️</div>
-                                                    <span className="text-sm font-black text-slate-700 leading-snug">{college.name}</span>
+                                                    <span className="text-sm font-black text-slate-200 group-hover/item:text-white leading-snug transition-colors">{college.name}</span>
                                                 </div>
                                             </button>
                                         ))}
@@ -266,9 +266,9 @@ export default function CompleteProfile({ colleges, majors }) {
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-purple-500/20">📚</div>
                                             <div>
-                                                <h2 className="text-lg font-black text-slate-800">اختر تخصصك</h2>
-                                                <p className="text-xs font-bold text-slate-500">
-                                                    في كلية <span className="text-blue-600">{selectedCollege?.name}</span>
+                                                <h2 className="text-lg font-black text-white">اختر تخصصك</h2>
+                                                <p className="text-xs font-bold text-slate-400">
+                                                    في كلية <span className="text-emerald-400">{selectedCollege?.name}</span>
                                                 </p>
                                             </div>
                                         </div>
@@ -286,9 +286,9 @@ export default function CompleteProfile({ colleges, majors }) {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all ${
-                                                        String(data.major_id) === String(major.id) ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                        String(data.major_id) === String(major.id) ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-purple-400'
                                                     }`}>📚</div>
-                                                    <span className="text-sm font-black text-slate-700 leading-snug">{major.name}</span>
+                                                    <span className="text-sm font-black text-slate-200 group-hover/item:text-white leading-snug transition-colors">{major.name}</span>
                                                 </div>
                                             </button>
                                         ))}
@@ -296,7 +296,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                     {filteredMajors.length === 0 && (
                                         <div className="text-center py-10">
                                             <span className="text-4xl mb-3 block">🤷‍♂️</span>
-                                            <p className="text-sm font-bold text-slate-500">لا توجد تخصصات مسجلة لهذه الكلية</p>
+                                            <p className="text-sm font-bold text-slate-400">لا توجد تخصصات مسجلة لهذه الكلية</p>
                                         </div>
                                     )}
                                     {errors.major_id && <p className="text-xs font-bold text-rose-500 mt-3">{errors.major_id}</p>}
@@ -310,8 +310,8 @@ export default function CompleteProfile({ colleges, majors }) {
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-lg shadow-lg shadow-emerald-500/20">🧭</div>
                                             <div>
-                                                <h2 className="text-lg font-black text-slate-800">اختر خطتك الدراسية</h2>
-                                                <p className="text-xs font-bold text-slate-500">حدد إصدار الخطة الشجرية</p>
+                                                <h2 className="text-lg font-black text-white">اختر خطتك الدراسية</h2>
+                                                <p className="text-xs font-bold text-slate-400">حدد إصدار الخطة الشجرية</p>
                                             </div>
                                         </div>
                                         <button type="button" onClick={() => setStep(2)} className="text-xs font-black text-slate-400 hover:text-blue-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50">
@@ -326,10 +326,10 @@ export default function CompleteProfile({ colleges, majors }) {
                                         >
                                             <div className="flex flex-col items-center gap-3 py-3">
                                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all ${
-                                                    data.study_plan_version === '11' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                    data.study_plan_version === '11' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400'
                                                 }`}>🌳</div>
                                                 <div>
-                                                    <h3 className="text-lg font-black text-slate-800">الخطة 11</h3>
+                                                    <h3 className="text-lg font-black text-slate-200 group-hover/item:text-white transition-colors">الخطة 11</h3>
                                                     <p className="text-xs font-bold text-slate-500 mt-1">الخطة الشجرية الإصدار 11</p>
                                                 </div>
                                             </div>
@@ -342,10 +342,10 @@ export default function CompleteProfile({ colleges, majors }) {
                                             <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-[9px] font-black rounded-full shadow-sm">الأحدث ✨</span>
                                             <div className="flex flex-col items-center gap-3 py-3">
                                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all ${
-                                                    data.study_plan_version === '12' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                    data.study_plan_version === '12' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400'
                                                 }`}>🌲</div>
                                                 <div>
-                                                    <h3 className="text-lg font-black text-slate-800">الخطة 12</h3>
+                                                    <h3 className="text-lg font-black text-slate-200 group-hover/item:text-white transition-colors">الخطة 12</h3>
                                                     <p className="text-xs font-bold text-slate-500 mt-1">الخطة الشجرية الإصدار 12</p>
                                                 </div>
                                             </div>
@@ -361,39 +361,39 @@ export default function CompleteProfile({ colleges, majors }) {
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg shadow-lg shadow-amber-500/20">🚀</div>
                                         <div>
-                                            <h2 className="text-lg font-black text-slate-800">تأكيد البيانات</h2>
-                                            <p className="text-xs font-bold text-slate-500">تأكد من صحة اختياراتك قبل البدء</p>
+                                            <h2 className="text-lg font-black text-white">تأكيد البيانات</h2>
+                                            <p className="text-xs font-bold text-slate-400">تأكد من صحة اختياراتك قبل البدء</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-3 mb-6">
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-blue-50/80 border border-blue-100">
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/50">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-lg">🏛️</span>
-                                                <span className="text-xs font-black text-slate-600">الكلية</span>
+                                                <span className="text-xs font-black text-slate-400">الكلية</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-blue-700">{selectedCollege?.name || '—'}</span>
+                                                <span className="text-sm font-black text-blue-400">{selectedCollege?.name || '—'}</span>
                                                 <button type="button" onClick={() => setStep(1)} className="text-[10px] font-black text-blue-400 hover:text-blue-600 underline">تعديل</button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-purple-50/80 border border-purple-100">
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/50">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-lg">📚</span>
-                                                <span className="text-xs font-black text-slate-600">التخصص</span>
+                                                <span className="text-xs font-black text-slate-400">التخصص</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-purple-700">{selectedMajor?.name || '—'}</span>
+                                                <span className="text-sm font-black text-purple-400">{selectedMajor?.name || '—'}</span>
                                                 <button type="button" onClick={() => setStep(2)} className="text-[10px] font-black text-purple-400 hover:text-purple-600 underline">تعديل</button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-emerald-50/80 border border-emerald-100">
+                                        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/50">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-lg">🧭</span>
-                                                <span className="text-xs font-black text-slate-600">الخطة الدراسية</span>
+                                                <span className="text-xs font-black text-slate-400">الخطة الدراسية</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-emerald-700">الإصدار {data.study_plan_version}</span>
+                                                <span className="text-sm font-black text-emerald-400">الإصدار {data.study_plan_version}</span>
                                                 <button type="button" onClick={() => setStep(3)} className="text-[10px] font-black text-emerald-400 hover:text-emerald-600 underline">تعديل</button>
                                             </div>
                                         </div>
