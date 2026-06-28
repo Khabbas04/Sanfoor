@@ -113,11 +113,11 @@ export default function CompleteProfile({ colleges, majors }) {
                 }
             ` }} />
 
-            <div dir="rtl" className="min-h-screen bg-gradient-to-r from-teal-400 via-blue-500 to-indigo-500 flex items-center justify-center px-4 py-8 relative overflow-hidden">
+            <div dir="rtl" className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/30 via-[#020617] to-blue-900/30 flex items-center justify-center px-4 py-8 relative overflow-hidden">
                 {/* Floating background particles */}
-                <div className="absolute top-20 right-20 w-32 h-32 rounded-full bg-blue-400/10 blur-3xl animate-float pointer-events-none"></div>
-                <div className="absolute bottom-32 left-16 w-40 h-40 rounded-full bg-indigo-400/10 blur-3xl animate-float pointer-events-none" style={{animationDelay: '2s'}}></div>
-                <div className="absolute top-1/2 left-1/2 w-64 h-64 rounded-full bg-sky-300/5 blur-3xl pointer-events-none"></div>
+                <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-emerald-500/15 blur-[120px] animate-float pointer-events-none"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-blue-600/15 blur-[150px] animate-float pointer-events-none" style={{animationDelay: '3s'}}></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-indigo-500/10 blur-[150px] pointer-events-none"></div>
 
                 <div className="w-full max-w-2xl relative z-10">
                     {/* Logo + Welcome */}
