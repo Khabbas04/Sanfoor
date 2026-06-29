@@ -130,6 +130,12 @@ export default function CompleteProfile({ colleges, majors }) {
                 }
                 .animate-shimmer { animation: shimmerSweep 3s infinite linear; }
                 .animate-pulse-border { animation: pulseBorder 4s infinite ease-in-out; }
+                @keyframes floatSoft {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-8px); }
+                }
+                .animate-float-soft { animation: floatSoft 4s ease-in-out infinite; }
+                .animate-float-soft-delayed { animation: floatSoft 4.5s ease-in-out infinite 2s; }
             ` }} />
 
             <div dir="rtl" className={`min-h-screen ${isGuest ? 'bg-slate-50' : 'bg-[#060913]'} flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden transition-colors duration-1000`}>
@@ -159,36 +165,48 @@ export default function CompleteProfile({ colleges, majors }) {
                     <div className="text-center mb-8" style={stagger(0)}>
                         {isGuest ? (
                             <div className="flex flex-col items-center justify-center mb-6 animate-enter">
-                                <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4">
-                                    <div className="relative group">
-                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all"></div>
-                                        <img src="/images/sanfoor.png" alt="Sanfoor" className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-2xl relative z-10 transform transition-transform hover:scale-110" />
+                                <div className="flex items-center justify-center gap-4 sm:gap-8 mb-6 mt-2 relative">
+                                    {/* Smart animated connection line */}
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-green-400 blur-[2px] opacity-50 animate-pulse"></div>
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-0.5 bg-gradient-to-r from-blue-500 via-emerald-500 to-green-500"></div>
+
+                                    {/* Sanfoor Logo */}
+                                    <div className="relative group z-10 hover:z-20">
+                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/40 transition-all duration-500"></div>
+                                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/0 via-blue-400/20 to-blue-400/0 rounded-full blur-xl rotate-45 group-hover:rotate-90 transition-all duration-700"></div>
+                                        <img src="/images/sanfoor.png" alt="Sanfoor" className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-2xl relative z-10 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 group-hover:rotate-6 animate-float-soft" />
                                     </div>
-                                    <div className="relative flex items-center justify-center mx-6 sm:mx-10 group">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/30 to-emerald-400/30 blur-xl rounded-full group-hover:blur-2xl transition-all duration-700 animate-pulse"></div>
-                                        <span className="relative z-10 text-4xl sm:text-5xl font-black italic font-serif select-none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-500 to-sky-500 animate-gradient drop-shadow-2xl transform group-hover:scale-125 transition-transform duration-500">
-                                            X
+                                    
+                                    {/* X symbol */}
+                                    <div className="relative flex items-center justify-center mx-2 sm:mx-6 group z-10">
+                                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/40 to-emerald-400/40 blur-xl rounded-full group-hover:blur-2xl transition-all duration-700 animate-pulse-border"></div>
+                                        <span className="relative z-10 text-3xl sm:text-4xl font-black italic font-serif select-none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-500 to-green-500 animate-gradient drop-shadow-lg transform group-hover:scale-125 transition-transform duration-500 hover:rotate-180">
+                                            ×
                                         </span>
                                     </div>
-                                    <div className="relative group">
-                                        <div className="absolute inset-0 bg-green-500/15 rounded-full blur-xl group-hover:bg-green-500/30 transition-all"></div>
-                                        <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-2xl relative z-10 transform transition-transform hover:scale-110" />
+
+                                    {/* NTP Logo */}
+                                    <div className="relative group z-10 hover:z-20">
+                                        <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl group-hover:bg-green-500/40 transition-all duration-500"></div>
+                                        <div className="absolute -inset-4 bg-gradient-to-r from-green-400/0 via-green-400/20 to-green-400/0 rounded-full blur-xl -rotate-45 group-hover:-rotate-90 transition-all duration-700"></div>
+                                        <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-2xl relative z-10 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 group-hover:-rotate-6 animate-float-soft-delayed" />
                                     </div>
                                 </div>
+
                                 <div className="relative group inline-flex items-center justify-center mb-6 cursor-default">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full blur opacity-25 group-hover:opacity-40 transition duration-500"></div>
-                                    <div className="relative inline-flex items-center px-5 py-2.5 rounded-full bg-white/90 backdrop-blur-md border border-white/50 shadow-[0_8px_30px_rgb(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 transform group-hover:-translate-y-0.5 overflow-hidden">
-                                        <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/60 to-transparent -skew-x-12 animate-shimmer pointer-events-none z-10"></div>
-                                        <span className="relative flex h-3 w-3 ml-3 z-20">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full blur-md opacity-30 group-hover:opacity-50 transition duration-500 animate-pulse-border"></div>
+                                    <div className="relative inline-flex items-center px-6 py-3 rounded-full bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.08)] group-hover:shadow-[0_15px_35px_rgb(0,0,0,0.12)] transition-all duration-500 transform group-hover:-translate-y-1 overflow-hidden">
+                                        {/* Sparkle sweeps */}
+                                        <div className="absolute inset-0 w-[250%] h-full bg-gradient-to-r from-transparent via-white/80 to-transparent -skew-x-12 animate-shimmer pointer-events-none z-10"></div>
+                                        
+                                        <span className="relative flex h-3.5 w-3.5 ml-3 z-20">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75 duration-700"></span>
+                                            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-gradient-to-tr from-pink-600 to-purple-500"></span>
                                         </span>
-                                        <span className="text-sm sm:text-base font-extrabold bg-clip-text text-transparent bg-gradient-to-l from-slate-800 to-slate-600 tracking-wide z-20 relative">
-                                            الشريك الأكاديمي لمسابقة NTP 2026
+                                        
+                                        <span className="text-sm sm:text-base font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-600 tracking-wide z-20 relative px-1">
+                                            هذه النسخة مخصصة حصرياً لضيوف مهرجان NTP ✨
                                         </span>
-                                        <svg className="w-4 h-4 mr-3 text-blue-500 animate-pulse z-20 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                                        </svg>
                                     </div>
                                 </div>
                             </div>
