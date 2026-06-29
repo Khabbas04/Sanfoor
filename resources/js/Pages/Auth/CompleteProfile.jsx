@@ -165,31 +165,36 @@ export default function CompleteProfile({ colleges, majors }) {
                     <div className="text-center mb-8" style={stagger(0)}>
                         {isGuest ? (
                             <div className="flex flex-col items-center justify-center mb-6 animate-enter">
-                                <div className="flex items-center justify-center gap-4 sm:gap-8 mb-6 mt-2 relative">
-                                    {/* Smart animated connection line */}
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-green-400 blur-[2px] opacity-50 animate-pulse"></div>
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-0.5 bg-gradient-to-r from-blue-500 via-emerald-500 to-green-500"></div>
+                                <div className="flex items-center justify-center w-full max-w-[320px] sm:max-w-md mx-auto mb-8 mt-4 relative z-10">
+                                    
+                                    {/* Background glowing connection */}
+                                    <div className="absolute top-1/2 left-[15%] right-[15%] h-[2px] -translate-y-1/2 bg-gradient-to-r from-transparent via-slate-300 to-transparent opacity-60 z-0"></div>
+                                    <div className="absolute top-1/2 left-[25%] right-[25%] h-[1px] -translate-y-1/2 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-80 shadow-[0_0_8px_rgba(52,211,153,0.5)] z-0"></div>
 
                                     {/* Sanfoor Logo */}
-                                    <div className="relative group z-10 hover:z-20">
-                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/40 transition-all duration-500"></div>
-                                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-400/0 via-blue-400/20 to-blue-400/0 rounded-full blur-xl rotate-45 group-hover:rotate-90 transition-all duration-700"></div>
-                                        <img src="/images/sanfoor.png" alt="Sanfoor" className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-2xl relative z-10 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 group-hover:rotate-6 animate-float-soft" />
+                                    <div className="relative group z-10 hover:z-20 flex-shrink-0 animate-float-soft">
+                                        <div className="absolute -inset-3 bg-blue-500/15 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all duration-500"></div>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/60 backdrop-blur-md rounded-full p-1 shadow-[0_8px_20px_rgba(0,0,0,0.05)] ring-1 ring-white/80 transform transition-all duration-500 group-hover:scale-105 group-hover:-translate-y-1 relative z-10 flex items-center justify-center overflow-visible">
+                                            <img src="/images/sanfoor.png" alt="Sanfoor" className="w-[90%] h-[90%] object-contain drop-shadow-md" />
+                                        </div>
                                     </div>
                                     
-                                    {/* X symbol */}
-                                    <div className="relative flex items-center justify-center mx-2 sm:mx-6 group z-10">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/40 to-emerald-400/40 blur-xl rounded-full group-hover:blur-2xl transition-all duration-700 animate-pulse-border"></div>
-                                        <span className="relative z-10 text-3xl sm:text-4xl font-black italic font-serif select-none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-emerald-500 to-green-500 animate-gradient drop-shadow-lg transform group-hover:scale-125 transition-transform duration-500 hover:rotate-180">
-                                            ×
-                                        </span>
+                                    {/* X symbol badge */}
+                                    <div className="relative flex items-center justify-center mx-3 sm:mx-6 group z-20 flex-shrink-0">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-400 to-blue-400 blur-md rounded-full opacity-40 group-hover:opacity-70 transition-all duration-500"></div>
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white shadow-lg border border-slate-100 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-90 transition-all duration-500 relative z-10 text-slate-400 group-hover:text-emerald-500">
+                                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </div>
                                     </div>
 
                                     {/* NTP Logo */}
-                                    <div className="relative group z-10 hover:z-20">
-                                        <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl group-hover:bg-green-500/40 transition-all duration-500"></div>
-                                        <div className="absolute -inset-4 bg-gradient-to-r from-green-400/0 via-green-400/20 to-green-400/0 rounded-full blur-xl -rotate-45 group-hover:-rotate-90 transition-all duration-700"></div>
-                                        <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-2xl relative z-10 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-2 group-hover:-rotate-6 animate-float-soft-delayed" />
+                                    <div className="relative group z-10 hover:z-20 flex-shrink-0 animate-float-soft-delayed">
+                                        <div className="absolute -inset-3 bg-green-500/15 rounded-full blur-xl group-hover:bg-green-500/30 transition-all duration-500"></div>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/60 backdrop-blur-md rounded-full p-2.5 sm:p-3 shadow-[0_8px_20px_rgba(0,0,0,0.05)] ring-1 ring-white/80 transform transition-all duration-500 group-hover:scale-105 group-hover:-translate-y-1 relative z-10 flex items-center justify-center overflow-visible">
+                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-[90%] h-[90%] object-contain drop-shadow-md" />
+                                        </div>
                                     </div>
                                 </div>
 
