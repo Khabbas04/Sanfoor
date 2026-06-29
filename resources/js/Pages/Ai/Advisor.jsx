@@ -472,6 +472,27 @@ export default function Advisor() {
     const [input, setInput] = useState('');
     const [typing, setTyping] = useState(false);
     const [generating, setGenerating] = useState(false);
+    
+    const [thinkingIndex, setThinkingIndex] = useState(0);
+    const thinkingPhrases = [
+        "بقرأ استفسارك 🔍...",
+        "بحوس بقاعدة البيانات 🧠...",
+        "بدور على أفضل الخيارات إلك 📚...",
+        "بحلل الخطة الدراسية ⏳...",
+        "بجهزلك الرد 💡...",
+        "لحظة صغيرة وبكون الرد جاهز 🚀..."
+    ];
+    
+    useEffect(() => {
+        let interval;
+        if (typing) {
+            setThinkingIndex(0);
+            interval = setInterval(() => {
+                setThinkingIndex((prev) => (prev + 1) % thinkingPhrases.length);
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [typing]);
     const [loadingChat, setLoadingChat] = useState(false);
     const [sidebar, setSidebar] = useState(false);
     const [regenning, setRegenning] = useState(false);
@@ -954,7 +975,7 @@ export default function Advisor() {
                             {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-blue-400"><div className="w-7 h-7 border-[3px] border-blue-100 border-t-blue-600 rounded-full animate-spin mb-2" /><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                                 <div className="space-y-3">
                                     {msgs.map(m => <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} />)}
-                                    {typing && <div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" /></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot" />{regenning && <span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}</div></div>}
+                                    {typing && <div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png" alt="AI Widget" className="w-full h-full object-cover" /></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot" />{regenning && <span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}<span className="text-[12px] font-bold text-slate-500 animate-pulse transition-opacity duration-500 mr-2">{thinkingPhrases[thinkingIndex]}</span></div></div>}
                                 </div>)}<div className="h-2" />
                         </div>
 

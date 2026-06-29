@@ -14,6 +14,16 @@ export default function AiWidget({ user }) {
     const [isTyping, setIsTyping] = useState(false);
     const [chatId, setChatId] = useState(null);
     const [selectedFilters, setSelectedFilters] = useState([]);
+    
+    const [thinkingIndex, setThinkingIndex] = useState(0);
+    const thinkingPhrases = [
+        "بقرأ استفسارك 🔍...",
+        "بحوس بقاعدة البيانات 🧠...",
+        "بدور على أفضل الخيارات إلك 📚...",
+        "بحلل الخطة الدراسية ⏳...",
+        "بجهزلك الرد 💡...",
+        "لحظة صغيرة وبكون الرد جاهز 🚀..."
+    ];
 
     const filterOptions = [
         { id: 'compulsory', label: 'إجباري' },
@@ -35,6 +45,18 @@ export default function AiWidget({ user }) {
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [messages, isTyping]);
+
+    // تبديل جمل التفكير أثناء الانتظار
+    useEffect(() => {
+        let interval;
+        if (isTyping) {
+            setThinkingIndex(0);
+            interval = setInterval(() => {
+                setThinkingIndex((prev) => (prev + 1) % thinkingPhrases.length);
+            }, 3000);
+        }
+        return () => clearInterval(interval);
+    }, [isTyping]);
 
     // 🆕 إيقاف أنيميشن الدخول بعد 3 ثوانٍ
     useEffect(() => {
@@ -161,10 +183,17 @@ export default function AiWidget({ user }) {
                                 </div>
                             ))}
                             {isTyping && (
-                                <div className="flex gap-1.5 p-2 items-center">
-                                    <div className="w-2 h-2 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '75ms' }}></div>
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="flex justify-start">
+                                    <div className="bg-white dark:bg-slate-800 dark:text-slate-200 border dark:border-white/5 max-w-[85%] p-3 rounded-2xl text-[12px] sm:text-[13px] font-bold shadow-sm flex items-center gap-3">
+                                        <div className="flex gap-1.5 items-center shrink-0">
+                                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-sky-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                        </div>
+                                        <span className="text-slate-500 dark:text-slate-400 animate-pulse transition-opacity duration-500">
+                                            {thinkingPhrases[thinkingIndex]}
+                                        </span>
+                                    </div>
                                 </div>
                             )}
                         </div>
