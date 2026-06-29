@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import Lightfall from '@/Components/Lightfall';
 
 export default function CompleteProfile({ colleges, majors }) {
     const { auth } = usePage().props;
@@ -232,21 +233,28 @@ export default function CompleteProfile({ colleges, majors }) {
                 }
             ` }} />
 
-            <div dir="rtl" className={`min-h-screen ${isGuest ? 'bg-slate-50' : 'bg-[#060913]'} flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden transition-colors duration-1000`}>
+            <div dir="rtl" className={`min-h-screen ${isGuest ? 'bg-slate-50' : 'bg-[#000000]'} flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden transition-colors duration-1000`}>
                 
-                {/* 🏆 Champion/Challenge Dynamic Mesh Gradient Background */}
+                {/* 🏆 Lightfall Warp Background */}
                 <div className="absolute inset-0 z-0">
-                    <div className={`absolute top-[-10%] right-[-10%] w-[70vw] h-[70vw] sm:w-[600px] sm:h-[600px] rounded-full ${isGuest ? 'bg-gradient-to-br from-indigo-300/40 to-violet-300/40 mix-blend-multiply' : 'bg-gradient-to-br from-indigo-600/20 to-violet-600/20 mix-blend-screen'} blur-[100px] animate-float pointer-events-none`}></div>
-                    <div className={`absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] sm:w-[700px] sm:h-[700px] rounded-full ${isGuest ? 'bg-gradient-to-tr from-emerald-300/40 to-cyan-300/40 mix-blend-multiply' : 'bg-gradient-to-tr from-emerald-600/15 to-cyan-600/15 mix-blend-screen'} blur-[120px] animate-float pointer-events-none`} style={{animationDelay: '3s', animationDuration: '8s'}}></div>
-                    <div className={`absolute top-[40%] left-[20%] w-[50vw] h-[50vw] sm:w-[400px] sm:h-[400px] rounded-full ${isGuest ? 'bg-blue-300/30 mix-blend-multiply' : 'bg-blue-600/10 mix-blend-screen'} blur-[90px] animate-float pointer-events-none`} style={{animationDelay: '1.5s', animationDuration: '7s'}}></div>
+                    <Lightfall
+                        colors={isGuest ? ['#A6C8FF', '#5227FF', '#FF9FFC'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
+                        backgroundColor={isGuest ? '#ffffff' : '#000000'}
+                        speed={0.5}
+                        streakCount={3}
+                        streakWidth={1}
+                        streakLength={1}
+                        glow={1}
+                        density={0.6}
+                        twinkle={1}
+                        zoom={3}
+                        backgroundGlow={isGuest ? 0.2 : 0.5}
+                        mouseInteraction={true}
+                    />
                 </div>
 
                 {/* 🕸️ Cyber Grid overlay */}
                 <div className={`absolute inset-0 bg-[linear-gradient(${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px),linear-gradient(90deg,${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none z-0`}></div>
-
-                {/* ⚡ Challenge Side Effects (Laser beams / Light sweepers) */}
-                <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-500/50 to-transparent opacity-0 animate-[shimmerSweepVertical_4s_infinite_ease-in-out] z-0"></div>
-                <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent opacity-0 animate-[shimmerSweepVertical_5s_infinite_ease-in-out_2s] z-0"></div>
 
                 {/* Floating Tech/Code Symbols (Smart touches) */}
                 <div className={`absolute top-[10%] right-[15%] ${isGuest ? 'text-emerald-500/20' : 'text-emerald-400/20'} text-4xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '0s'}}>⚡</div>
