@@ -25,7 +25,7 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
             if (done.current) return;
             const i = idx.current;
             if (i < safeContent.length) {
-                const speed = safeContent.length > 700 ? 28 : safeContent.length > 350 ? 20 : 12;
+                const speed = safeContent.length > 700 ? 4 : safeContent.length > 350 ? 3 : 2;
                 const n = Math.min(i + speed, safeContent.length);
                 setTxt(safeContent.slice(0, n));
                 idx.current = n;
