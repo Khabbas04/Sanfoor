@@ -165,35 +165,49 @@ export default function CompleteProfile({ colleges, majors }) {
                     <div className="text-center mb-8" style={stagger(0)}>
                         {isGuest ? (
                             <div className="flex flex-col items-center justify-center mb-6 animate-enter">
-                                <div className="flex items-center justify-center w-full max-w-[320px] sm:max-w-md mx-auto mb-8 mt-4 relative z-10">
+                                <div className="flex items-center justify-center w-full max-w-[320px] sm:max-w-md mx-auto mb-8 mt-4 relative z-10 gap-2 sm:gap-4">
                                     
-                                    {/* Background glowing connection */}
-                                    <div className="absolute top-1/2 left-[15%] right-[15%] h-[2px] -translate-y-1/2 bg-gradient-to-r from-transparent via-slate-300 to-transparent opacity-60 z-0"></div>
-                                    <div className="absolute top-1/2 left-[25%] right-[25%] h-[1px] -translate-y-1/2 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-80 shadow-[0_0_8px_rgba(52,211,153,0.5)] z-0"></div>
-
                                     {/* Sanfoor Logo */}
                                     <div className="relative group z-10 hover:z-20 flex-shrink-0 animate-float-soft">
-                                        <div className="absolute -inset-3 bg-blue-500/15 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all duration-500"></div>
-                                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/60 backdrop-blur-md rounded-full p-1 shadow-[0_8px_20px_rgba(0,0,0,0.05)] ring-1 ring-white/80 transform transition-all duration-500 group-hover:scale-105 group-hover:-translate-y-1 relative z-10 flex items-center justify-center overflow-visible">
-                                            <img src="/images/sanfoor.png" alt="Sanfoor" className="w-[90%] h-[90%] object-contain drop-shadow-md" />
+                                        <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-2xl group-hover:bg-blue-500/40 transition-all duration-500"></div>
+                                        <div className="w-16 h-16 sm:w-20 sm:h-20 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 relative z-10 flex items-center justify-center">
+                                            <img src="/images/sanfoor.png" alt="Sanfoor" className="w-full h-full object-contain drop-shadow-2xl" />
                                         </div>
                                     </div>
                                     
-                                    {/* X symbol badge */}
-                                    <div className="relative flex items-center justify-center mx-3 sm:mx-6 group z-20 flex-shrink-0">
-                                        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-400 to-blue-400 blur-md rounded-full opacity-40 group-hover:opacity-70 transition-all duration-500"></div>
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white shadow-lg border border-slate-100 rounded-full flex items-center justify-center transform group-hover:scale-110 group-hover:rotate-90 transition-all duration-500 relative z-10 text-slate-400 group-hover:text-emerald-500">
-                                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                        </div>
+                                    {/* Champion Collab X ICON */}
+                                    <div className="relative flex items-center justify-center mx-1 sm:mx-3 group z-20 flex-shrink-0">
+                                        <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 blur-2xl rounded-full opacity-30 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
+                                        <svg className="w-14 h-14 sm:w-20 sm:h-20 drop-shadow-[0_10px_20px_rgba(245,158,11,0.2)] transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 relative z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            {/* Glow */}
+                                            <circle cx="50" cy="50" r="25" fill="url(#centerGlow)" opacity="0.8" className="animate-pulse" />
+                                            {/* Dynamic X Lines */}
+                                            <path d="M30 30L70 70" stroke="url(#xGrad1)" strokeWidth="12" strokeLinecap="round" />
+                                            <path d="M70 30L30 70" stroke="url(#xGrad2)" strokeWidth="12" strokeLinecap="round" />
+                                            {/* Center diamond/sparkle */}
+                                            <path d="M50 38L53 47L62 50L53 53L50 62L47 53L38 50L47 47L50 38Z" fill="white" className="animate-[spin_4s_linear_infinite]" />
+                                            <defs>
+                                                <radialGradient id="centerGlow" cx="50" cy="50" r="25" gradientUnits="userSpaceOnUse">
+                                                    <stop stopColor="#fbbf24" stopOpacity="1" />
+                                                    <stop offset="1" stopColor="#f59e0b" stopOpacity="0" />
+                                                </radialGradient>
+                                                <linearGradient id="xGrad1" x1="30" y1="30" x2="70" y2="70" gradientUnits="userSpaceOnUse">
+                                                    <stop stopColor="#3b82f6" />
+                                                    <stop offset="1" stopColor="#10b981" />
+                                                </linearGradient>
+                                                <linearGradient id="xGrad2" x1="70" y1="30" x2="30" y2="70" gradientUnits="userSpaceOnUse">
+                                                    <stop stopColor="#8b5cf6" />
+                                                    <stop offset="1" stopColor="#ec4899" />
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
                                     </div>
 
                                     {/* NTP Logo */}
                                     <div className="relative group z-10 hover:z-20 flex-shrink-0 animate-float-soft-delayed">
-                                        <div className="absolute -inset-3 bg-green-500/15 rounded-full blur-xl group-hover:bg-green-500/30 transition-all duration-500"></div>
-                                        <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/60 backdrop-blur-md rounded-full p-2.5 sm:p-3 shadow-[0_8px_20px_rgba(0,0,0,0.05)] ring-1 ring-white/80 transform transition-all duration-500 group-hover:scale-105 group-hover:-translate-y-1 relative z-10 flex items-center justify-center overflow-visible">
-                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-[90%] h-[90%] object-contain drop-shadow-md" />
+                                        <div className="absolute inset-0 bg-green-500/20 rounded-full blur-2xl group-hover:bg-green-500/40 transition-all duration-500"></div>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 relative z-10 flex items-center justify-center">
+                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-full h-full object-contain drop-shadow-2xl" />
                                         </div>
                                     </div>
                                 </div>
