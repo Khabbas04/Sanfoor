@@ -71,21 +71,25 @@ export default function CompleteProfile({ colleges, majors }) {
                     isCompleted
                         ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-100'
                         : isActive
-                            ? 'bg-white text-blue-600 shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-110'
-                            : 'bg-white/10 text-white/50 scale-95 border border-white/10'
+                            ? (isGuest ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)] scale-110' : 'bg-white text-blue-600 shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-110')
+                            : (isGuest ? 'bg-white text-slate-400 scale-95 border border-slate-200' : 'bg-white/10 text-white/50 scale-95 border border-white/10')
                 }`}>
                     {isCompleted ? '✓' : icon}
                 </div>
                 <span className={`text-[9px] sm:text-[11px] font-black tracking-tight transition-all duration-300 ${
-                    isActive ? 'text-white' : isCompleted ? 'text-emerald-300' : 'text-white/40'
+                    isActive ? (isGuest ? 'text-slate-800' : 'text-white') : isCompleted ? (isGuest ? 'text-emerald-600' : 'text-emerald-300') : (isGuest ? 'text-slate-400' : 'text-white/40')
                 }`}>{label}</span>
             </div>
         );
     };
 
     const cardBase = "p-4 sm:p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] group/item";
-    const cardSelected = "border-emerald-500 bg-emerald-900/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30";
-    const cardDefault = "border-slate-700/50 bg-slate-800/40 hover:border-emerald-500/40 hover:shadow-lg hover:bg-slate-800/70";
+    const cardSelected = isGuest 
+        ? "border-emerald-500 bg-emerald-50 shadow-[0_0_20px_rgba(16,185,129,0.1)] ring-1 ring-emerald-500/30" 
+        : "border-emerald-500 bg-emerald-900/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30";
+    const cardDefault = isGuest
+        ? "border-slate-200 bg-white hover:border-emerald-500/40 hover:shadow-lg hover:bg-slate-50"
+        : "border-slate-700/50 bg-slate-800/40 hover:border-emerald-500/40 hover:shadow-lg hover:bg-slate-800/70";
 
     return (
         <>
@@ -128,27 +132,27 @@ export default function CompleteProfile({ colleges, majors }) {
                 .animate-pulse-border { animation: pulseBorder 4s infinite ease-in-out; }
             ` }} />
 
-            <div dir="rtl" className="min-h-screen bg-[#060913] flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden">
+            <div dir="rtl" className={`min-h-screen ${isGuest ? 'bg-slate-50' : 'bg-[#060913]'} flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden transition-colors duration-1000`}>
                 
                 {/* 🏆 Champion/Challenge Dynamic Mesh Gradient Background */}
                 <div className="absolute inset-0 z-0">
-                    <div className="absolute top-[-10%] right-[-10%] w-[70vw] h-[70vw] sm:w-[600px] sm:h-[600px] rounded-full bg-gradient-to-br from-indigo-600/20 to-violet-600/20 blur-[100px] mix-blend-screen animate-float pointer-events-none"></div>
-                    <div className="absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] sm:w-[700px] sm:h-[700px] rounded-full bg-gradient-to-tr from-emerald-600/15 to-cyan-600/15 blur-[120px] mix-blend-screen animate-float pointer-events-none" style={{animationDelay: '3s', animationDuration: '8s'}}></div>
-                    <div className="absolute top-[40%] left-[20%] w-[50vw] h-[50vw] sm:w-[400px] sm:h-[400px] rounded-full bg-blue-600/10 blur-[90px] mix-blend-screen animate-float pointer-events-none" style={{animationDelay: '1.5s', animationDuration: '7s'}}></div>
+                    <div className={`absolute top-[-10%] right-[-10%] w-[70vw] h-[70vw] sm:w-[600px] sm:h-[600px] rounded-full ${isGuest ? 'bg-gradient-to-br from-indigo-300/40 to-violet-300/40 mix-blend-multiply' : 'bg-gradient-to-br from-indigo-600/20 to-violet-600/20 mix-blend-screen'} blur-[100px] animate-float pointer-events-none`}></div>
+                    <div className={`absolute bottom-[-10%] left-[-10%] w-[80vw] h-[80vw] sm:w-[700px] sm:h-[700px] rounded-full ${isGuest ? 'bg-gradient-to-tr from-emerald-300/40 to-cyan-300/40 mix-blend-multiply' : 'bg-gradient-to-tr from-emerald-600/15 to-cyan-600/15 mix-blend-screen'} blur-[120px] animate-float pointer-events-none`} style={{animationDelay: '3s', animationDuration: '8s'}}></div>
+                    <div className={`absolute top-[40%] left-[20%] w-[50vw] h-[50vw] sm:w-[400px] sm:h-[400px] rounded-full ${isGuest ? 'bg-blue-300/30 mix-blend-multiply' : 'bg-blue-600/10 mix-blend-screen'} blur-[90px] animate-float pointer-events-none`} style={{animationDelay: '1.5s', animationDuration: '7s'}}></div>
                 </div>
 
                 {/* 🕸️ Cyber Grid overlay */}
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none z-0"></div>
+                <div className={`absolute inset-0 bg-[linear-gradient(${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px),linear-gradient(90deg,${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none z-0`}></div>
 
                 {/* ⚡ Challenge Side Effects (Laser beams / Light sweepers) */}
                 <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-emerald-500/50 to-transparent opacity-0 animate-[shimmerSweepVertical_4s_infinite_ease-in-out] z-0"></div>
                 <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-cyan-500/50 to-transparent opacity-0 animate-[shimmerSweepVertical_5s_infinite_ease-in-out_2s] z-0"></div>
 
                 {/* Floating Tech/Code Symbols (Smart touches) */}
-                <div className="absolute top-[10%] right-[15%] text-emerald-400/20 text-4xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '0s'}}>⚡</div>
-                <div className="absolute bottom-[20%] left-[10%] text-cyan-400/20 text-3xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '1.5s'}}>&lt;/&gt;</div>
-                <div className="absolute top-[30%] left-[20%] text-indigo-400/20 text-2xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '3.5s'}}>{'{ }'}</div>
-                <div className="absolute bottom-[15%] right-[20%] text-white/10 text-xl font-black font-mono animate-float pointer-events-none select-none z-0" style={{animationDelay: '2.2s'}}>#</div>
+                <div className={`absolute top-[10%] right-[15%] ${isGuest ? 'text-emerald-500/20' : 'text-emerald-400/20'} text-4xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '0s'}}>⚡</div>
+                <div className={`absolute bottom-[20%] left-[10%] ${isGuest ? 'text-cyan-500/20' : 'text-cyan-400/20'} text-3xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '1.5s'}}>&lt;/&gt;</div>
+                <div className={`absolute top-[30%] left-[20%] ${isGuest ? 'text-indigo-500/20' : 'text-indigo-400/20'} text-2xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '3.5s'}}>{'{ }'}</div>
+                <div className={`absolute bottom-[15%] right-[20%] ${isGuest ? 'text-slate-400/30' : 'text-white/10'} text-xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '2.2s'}}>#</div>
 
                 <div className="w-full max-w-2xl relative z-10">
                     {/* Logo + Welcome */}
@@ -201,9 +205,9 @@ export default function CompleteProfile({ colleges, majors }) {
                             </div>
                         )}
 
-                        <h1 className="text-xl sm:text-2xl font-black text-white mb-3">
+                        <h1 className={`text-xl sm:text-2xl font-black ${isGuest ? 'text-slate-800' : 'text-white'} mb-3`}>
                             {isGuest ? (
-                                <span>أهلاً بك في منصة سنفور! <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200">🎫</span></span>
+                                <span>أهلاً بك في منصة سنفور! <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">🎫</span></span>
                             ) : (
                                 <>
                                     مرحباً بك يا{' '}
@@ -214,7 +218,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                 </>
                             )}
                         </h1>
-                        <p className="text-sm sm:text-base font-bold text-white/80 max-w-md mx-auto leading-relaxed">
+                        <p className={`text-sm sm:text-base font-bold ${isGuest ? 'text-slate-600' : 'text-white/80'} max-w-md mx-auto leading-relaxed`}>
                             {isGuest 
                                 ? 'لتبدأ تجربتك المخصصة، يرجى تحديد كليتك وتخصصك الجامعي وسنقوم بتجهيز النظام لك.'
                                 : 'قبل ما تبدأ رحلتك الأكاديمية، نحتاج تحدد كليتك وتخصصك عشان نخصص التجربة إلك.'}
@@ -224,19 +228,19 @@ export default function CompleteProfile({ colleges, majors }) {
                     {/* Step Indicator */}
                     <div className="flex items-center justify-center gap-1.5 sm:gap-6 mb-6 sm:mb-8 w-full max-w-[280px] sm:max-w-none mx-auto" style={stagger(1)}>
                         {stepIndicator(1, 'الكلية', '🏛️')}
-                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : 'bg-white/10'}`}></div>
+                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : (isGuest ? 'bg-slate-200' : 'bg-white/10')}`}></div>
                         {stepIndicator(2, 'التخصص', '📚')}
-                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : 'bg-white/10'}`}></div>
+                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : (isGuest ? 'bg-slate-200' : 'bg-white/10')}`}></div>
                         {stepIndicator(3, 'الخطة', '🧭')}
-                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : 'bg-white/10'}`}></div>
+                        <div className={`h-0.5 w-4 sm:w-12 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : (isGuest ? 'bg-slate-200' : 'bg-white/10')}`}></div>
                         {stepIndicator(4, 'تأكيد', '🚀')}
                     </div>
 
                     {/* Main Card */}
                     <div className="relative group/card" style={stagger(2)}>
                         {/* Glowing Outer Border */}
-                        <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500 via-sky-400 to-blue-600 opacity-0 group-hover/card:opacity-30 blur-lg transition-all duration-1000 animate-pulse-border pointer-events-none"></div>
-                        <div className="relative bg-[#060c18]/80 backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[2rem] border border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] p-5 sm:p-8 animate-glow">
+                        <div className={`absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500 via-sky-400 to-blue-600 opacity-0 group-hover/card:opacity-30 blur-lg transition-all duration-1000 animate-pulse-border pointer-events-none`}></div>
+                        <div className={`relative ${isGuest ? 'bg-white/90 border-slate-200/60 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)]' : 'bg-[#060c18]/80 border-slate-700/50 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)]'} backdrop-blur-2xl rounded-[1.5rem] sm:rounded-[2rem] border p-5 sm:p-8 animate-glow`}>
                         <form onSubmit={submit}>
                             {/* Step 1: College */}
                             {step === 1 && (
@@ -244,8 +248,8 @@ export default function CompleteProfile({ colleges, majors }) {
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white text-lg shadow-lg shadow-blue-500/20">🏛️</div>
                                         <div>
-                                            <h2 className="text-lg font-black text-white">اختر كليتك</h2>
-                                            <p className="text-xs font-bold text-slate-400">حدد الكلية اللي إنت فيها</p>
+                                            <h2 className={`text-lg font-black ${isGuest ? 'text-slate-800' : 'text-white'}`}>اختر كليتك</h2>
+                                            <p className={`text-xs font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>حدد الكلية اللي إنت فيها</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -258,9 +262,9 @@ export default function CompleteProfile({ colleges, majors }) {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all ${
-                                                        String(data.college_id) === String(college.id) ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400'
+                                                        String(data.college_id) === String(college.id) ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : (isGuest ? 'bg-slate-100 text-slate-500 group-hover/item:text-emerald-600 group-hover/item:bg-emerald-50' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400')
                                                     }`}>🏛️</div>
-                                                    <span className="text-sm font-black text-slate-200 group-hover/item:text-white leading-snug transition-colors">{college.name}</span>
+                                                    <span className={`text-sm font-black leading-snug transition-colors ${String(data.college_id) === String(college.id) ? (isGuest ? 'text-emerald-800' : 'text-white') : (isGuest ? 'text-slate-700 group-hover/item:text-emerald-700' : 'text-slate-200 group-hover/item:text-white')}`}>{college.name}</span>
                                                 </div>
                                             </button>
                                         ))}
@@ -276,13 +280,13 @@ export default function CompleteProfile({ colleges, majors }) {
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-lg shadow-lg shadow-purple-500/20">📚</div>
                                             <div>
-                                                <h2 className="text-lg font-black text-white">اختر تخصصك</h2>
-                                                <p className="text-xs font-bold text-slate-400">
-                                                    في كلية <span className="text-emerald-400">{selectedCollege?.name}</span>
+                                                <h2 className={`text-lg font-black ${isGuest ? 'text-slate-800' : 'text-white'}`}>اختر تخصصك</h2>
+                                                <p className={`text-xs font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    في كلية <span className={isGuest ? "text-emerald-600" : "text-emerald-400"}>{selectedCollege?.name}</span>
                                                 </p>
                                             </div>
                                         </div>
-                                        <button type="button" onClick={() => setStep(1)} className="text-xs font-black text-slate-400 hover:text-blue-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50">
+                                        <button type="button" onClick={() => setStep(1)} className={`text-xs font-black transition-colors px-3 py-1.5 rounded-lg ${isGuest ? 'text-slate-500 hover:text-blue-600 hover:bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}>
                                             ← تغيير الكلية
                                         </button>
                                     </div>
@@ -296,9 +300,9 @@ export default function CompleteProfile({ colleges, majors }) {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 transition-all ${
-                                                        String(data.major_id) === String(major.id) ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-purple-400'
+                                                        String(data.major_id) === String(major.id) ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]' : (isGuest ? 'bg-slate-100 text-slate-500 group-hover/item:text-purple-600 group-hover/item:bg-purple-50' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-purple-400')
                                                     }`}>📚</div>
-                                                    <span className="text-sm font-black text-slate-200 group-hover/item:text-white leading-snug transition-colors">{major.name}</span>
+                                                    <span className={`text-sm font-black leading-snug transition-colors ${String(data.major_id) === String(major.id) ? (isGuest ? 'text-purple-800' : 'text-white') : (isGuest ? 'text-slate-700 group-hover/item:text-purple-700' : 'text-slate-200 group-hover/item:text-white')}`}>{major.name}</span>
                                                 </div>
                                             </button>
                                         ))}
@@ -306,7 +310,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                     {filteredMajors.length === 0 && (
                                         <div className="text-center py-10">
                                             <span className="text-4xl mb-3 block">🤷‍♂️</span>
-                                            <p className="text-sm font-bold text-slate-400">لا توجد تخصصات مسجلة لهذه الكلية</p>
+                                            <p className={`text-sm font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>لا توجد تخصصات مسجلة لهذه الكلية</p>
                                         </div>
                                     )}
                                     {errors.major_id && <p className="text-xs font-bold text-rose-500 mt-3">{errors.major_id}</p>}
@@ -320,11 +324,11 @@ export default function CompleteProfile({ colleges, majors }) {
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-lg shadow-lg shadow-emerald-500/20">🧭</div>
                                             <div>
-                                                <h2 className="text-lg font-black text-white">اختر خطتك الدراسية</h2>
-                                                <p className="text-xs font-bold text-slate-400">حدد إصدار الخطة الشجرية</p>
+                                                <h2 className={`text-lg font-black ${isGuest ? 'text-slate-800' : 'text-white'}`}>اختر خطتك الدراسية</h2>
+                                                <p className={`text-xs font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>حدد إصدار الخطة الشجرية</p>
                                             </div>
                                         </div>
-                                        <button type="button" onClick={() => setStep(2)} className="text-xs font-black text-slate-400 hover:text-blue-600 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50">
+                                        <button type="button" onClick={() => setStep(2)} className={`text-xs font-black transition-colors px-3 py-1.5 rounded-lg ${isGuest ? 'text-slate-500 hover:text-blue-600 hover:bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}>
                                             ← تغيير التخصص
                                         </button>
                                     </div>
@@ -336,11 +340,11 @@ export default function CompleteProfile({ colleges, majors }) {
                                         >
                                             <div className="flex flex-col items-center gap-3 py-3">
                                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all ${
-                                                    data.study_plan_version === '11' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400'
+                                                    data.study_plan_version === '11' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : (isGuest ? 'bg-slate-100 text-slate-500 group-hover/item:text-emerald-600 group-hover/item:bg-emerald-50' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400')
                                                 }`}>🌳</div>
                                                 <div>
-                                                    <h3 className="text-lg font-black text-slate-200 group-hover/item:text-white transition-colors">الخطة 11</h3>
-                                                    <p className="text-xs font-bold text-slate-500 mt-1">الخطة الشجرية الإصدار 11</p>
+                                                    <h3 className={`text-lg font-black transition-colors ${data.study_plan_version === '11' ? (isGuest ? 'text-emerald-800' : 'text-white') : (isGuest ? 'text-slate-700 group-hover/item:text-emerald-700' : 'text-slate-200 group-hover/item:text-white')}`}>الخطة 11</h3>
+                                                    <p className={`text-xs font-bold mt-1 ${isGuest ? 'text-slate-500' : 'text-slate-500'}`}>الخطة الشجرية الإصدار 11</p>
                                                 </div>
                                             </div>
                                         </button>
@@ -352,11 +356,11 @@ export default function CompleteProfile({ colleges, majors }) {
                                             <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-[9px] font-black rounded-full shadow-sm">الأحدث ✨</span>
                                             <div className="flex flex-col items-center gap-3 py-3">
                                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all ${
-                                                    data.study_plan_version === '12' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400'
+                                                    data.study_plan_version === '12' ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : (isGuest ? 'bg-slate-100 text-slate-500 group-hover/item:text-emerald-600 group-hover/item:bg-emerald-50' : 'bg-slate-800/80 text-slate-400 group-hover/item:text-emerald-400')
                                                 }`}>🌲</div>
                                                 <div>
-                                                    <h3 className="text-lg font-black text-slate-200 group-hover/item:text-white transition-colors">الخطة 12</h3>
-                                                    <p className="text-xs font-bold text-slate-500 mt-1">الخطة الشجرية الإصدار 12</p>
+                                                    <h3 className={`text-lg font-black transition-colors ${data.study_plan_version === '12' ? (isGuest ? 'text-emerald-800' : 'text-white') : (isGuest ? 'text-slate-700 group-hover/item:text-emerald-700' : 'text-slate-200 group-hover/item:text-white')}`}>الخطة 12</h3>
+                                                    <p className={`text-xs font-bold mt-1 ${isGuest ? 'text-slate-500' : 'text-slate-500'}`}>الخطة الشجرية الإصدار 12</p>
                                                 </div>
                                             </div>
                                         </button>
@@ -371,40 +375,40 @@ export default function CompleteProfile({ colleges, majors }) {
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg shadow-lg shadow-amber-500/20">🚀</div>
                                         <div>
-                                            <h2 className="text-lg font-black text-white">تأكيد البيانات</h2>
-                                            <p className="text-xs font-bold text-slate-400">تأكد من صحة اختياراتك قبل البدء</p>
+                                            <h2 className={`text-lg font-black ${isGuest ? 'text-slate-800' : 'text-white'}`}>تأكيد البيانات</h2>
+                                            <p className={`text-xs font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>تأكد من صحة اختياراتك قبل البدء</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-3 mb-6">
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                                        <div className={`flex items-center justify-between p-4 rounded-xl border ${isGuest ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/60 border-slate-700/50'}`}>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-lg">🏛️</span>
-                                                <span className="text-xs font-black text-slate-400">الكلية</span>
+                                                <span className={`text-xs font-black ${isGuest ? 'text-slate-600' : 'text-slate-400'}`}>الكلية</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-blue-400">{selectedCollege?.name || '—'}</span>
-                                                <button type="button" onClick={() => setStep(1)} className="text-[10px] font-black text-blue-400 hover:text-blue-600 underline">تعديل</button>
+                                                <span className={`text-sm font-black ${isGuest ? 'text-blue-600' : 'text-blue-400'}`}>{selectedCollege?.name || '—'}</span>
+                                                <button type="button" onClick={() => setStep(1)} className={`text-[10px] font-black underline ${isGuest ? 'text-blue-500 hover:text-blue-700' : 'text-blue-400 hover:text-blue-600'}`}>تعديل</button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                                        <div className={`flex items-center justify-between p-4 rounded-xl border ${isGuest ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/60 border-slate-700/50'}`}>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-lg">📚</span>
-                                                <span className="text-xs font-black text-slate-400">التخصص</span>
+                                                <span className={`text-xs font-black ${isGuest ? 'text-slate-600' : 'text-slate-400'}`}>التخصص</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-purple-400">{selectedMajor?.name || '—'}</span>
-                                                <button type="button" onClick={() => setStep(2)} className="text-[10px] font-black text-purple-400 hover:text-purple-600 underline">تعديل</button>
+                                                <span className={`text-sm font-black ${isGuest ? 'text-purple-600' : 'text-purple-400'}`}>{selectedMajor?.name || '—'}</span>
+                                                <button type="button" onClick={() => setStep(2)} className={`text-[10px] font-black underline ${isGuest ? 'text-purple-500 hover:text-purple-700' : 'text-purple-400 hover:text-purple-600'}`}>تعديل</button>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between p-4 rounded-xl bg-slate-800/60 border border-slate-700/50">
+                                        <div className={`flex items-center justify-between p-4 rounded-xl border ${isGuest ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/60 border-slate-700/50'}`}>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-lg">🧭</span>
-                                                <span className="text-xs font-black text-slate-400">الخطة الدراسية</span>
+                                                <span className={`text-xs font-black ${isGuest ? 'text-slate-600' : 'text-slate-400'}`}>الخطة الدراسية</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-black text-emerald-400">الإصدار {data.study_plan_version}</span>
-                                                <button type="button" onClick={() => setStep(3)} className="text-[10px] font-black text-emerald-400 hover:text-emerald-600 underline">تعديل</button>
+                                                <span className={`text-sm font-black ${isGuest ? 'text-emerald-600' : 'text-emerald-400'}`}>الإصدار {data.study_plan_version}</span>
+                                                <button type="button" onClick={() => setStep(3)} className={`text-[10px] font-black underline ${isGuest ? 'text-emerald-500 hover:text-emerald-700' : 'text-emerald-400 hover:text-emerald-600'}`}>تعديل</button>
                                             </div>
                                         </div>
                                     </div>
@@ -436,7 +440,7 @@ export default function CompleteProfile({ colleges, majors }) {
 
                     {/* Logout link */}
                     <div className="text-center mt-6" style={stagger(3)}>
-                        <a href={route('logout')} onClick={(e) => { e.preventDefault(); document.getElementById('logout-form').submit(); }} className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors">
+                        <a href={route('logout')} onClick={(e) => { e.preventDefault(); document.getElementById('logout-form').submit(); }} className={`text-xs font-bold transition-colors ${isGuest ? 'text-slate-500 hover:text-rose-600' : 'text-slate-400 hover:text-rose-500'}`}>
                             تسجيل الخروج
                         </a>
                         <form id="logout-form" action={route('logout')} method="POST" className="hidden">
@@ -446,7 +450,7 @@ export default function CompleteProfile({ colleges, majors }) {
 
                     {/* Bottom branding */}
                     <div className="text-center mt-4" style={stagger(4)}>
-                        <p className="text-[10px] font-bold text-slate-400">
+                        <p className={`text-[10px] font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>
                             © {new Date().getFullYear()} سنفور • Sanfoor
                         </p>
                     </div>
