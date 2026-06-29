@@ -262,7 +262,7 @@ export default function CompleteProfile({ colleges, majors }) {
                 <div className={`absolute top-[30%] left-[20%] ${isGuest ? 'text-indigo-500/20' : 'text-indigo-400/20'} text-2xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '3.5s'}}>{'{ }'}</div>
                 <div className={`absolute bottom-[15%] right-[20%] ${isGuest ? 'text-slate-400/30' : 'text-white/10'} text-xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '2.2s'}}>#</div>
 
-                <div className="w-full max-w-2xl relative z-10">
+                <div className={`w-full max-w-2xl relative z-10 ${isGuest ? 'bg-[#020617]/70 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-[0_0_80px_rgba(0,0,0,0.8)]' : ''}`}>
                     {/* Logo + Welcome */}
                     <div className="text-center mb-8" style={stagger(0)}>
                         {isGuest ? (
