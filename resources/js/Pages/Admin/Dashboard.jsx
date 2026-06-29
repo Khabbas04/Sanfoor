@@ -91,7 +91,7 @@ const translations = {
     },
 };
 
-export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true, ntpGuests = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -527,6 +527,48 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                 <p className={`text-sm font-bold py-6 text-center ${subtext}`}>{t.noNotesYet}</p>
                             )}
                         </div>
+                    </div>
+                </div>
+
+                {/* NTP Festival Guests */}
+                <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+                        <h3 className={`text-lg font-black ${heading} flex items-center gap-2`}>
+                            <span className="text-amber-500 text-2xl">🎪</span> ضيوف مهرجان NTP
+                        </h3>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-lg ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+                            إجمالي المسجلين: {ntpGuests.length}
+                        </span>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-right">
+                            <thead>
+                                <tr className={`text-[11px] font-black uppercase tracking-widest ${subtext} border-b ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
+                                    <th className="py-4 px-4 font-black">الاسم</th>
+                                    <th className="py-4 px-4 font-black">الكلية</th>
+                                    <th className="py-4 px-4 font-black">التخصص</th>
+                                    <th className="py-4 px-4 font-black">الخطة</th>
+                                    <th className="py-4 px-4 font-black">وقت التسجيل</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {ntpGuests.map((guest) => (
+                                    <tr key={guest.id} className={`border-b last:border-0 transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                        <td className={`py-4 px-4 font-bold text-sm ${heading}`}>{guest.name}</td>
+                                        <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{guest.college?.name || '—'}</td>
+                                        <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{guest.major?.name || '—'}</td>
+                                        <td className={`py-4 px-4 font-black text-xs ${subtext}`}>الإصدار {guest.study_plan_version}</td>
+                                        <td className={`py-4 px-4 font-bold text-[11px] ${subtext}`}>{new Date(guest.created_at).toLocaleString('ar-JO')}</td>
+                                    </tr>
+                                ))}
+                                {ntpGuests.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className={`py-8 text-center text-sm font-bold ${subtext}`}>لا يوجد ضيوف مسجلين حتى الآن.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

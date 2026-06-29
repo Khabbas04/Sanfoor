@@ -52,13 +52,20 @@ class CompleteProfileController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $user = Auth::user();
+        $isGuest = $user && $user->role === 'guest';
+
+        $rules = [
             'college_id' => 'required|exists:colleges,id',
             'major_id' => 'required|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
-        ]);
+        ];
 
-        $user = Auth::user();
+        if ($isGuest) {
+            $rules['name'] = 'required|string|max:255';
+        }
+
+        $validated = $request->validate($rules);
 
         // Ensure the selected major belongs to the selected college.
         $majorBelongsToCollege = Major::withoutGlobalScopes()
@@ -72,10 +79,17 @@ class CompleteProfileController extends Controller
         }
 
         try {
-            $user->newQuery()->whereKey($user->id)->update([
+            // Update user's name if they are a guest
+            $updateData = [
                 'major_id' => (int) $validated['major_id'],
                 'study_plan_version' => (int) $validated['study_plan_version'],
-            ]);
+            ];
+            
+            if ($isGuest && !empty($validated['name'])) {
+                $updateData['name'] = trim($validated['name']);
+            }
+
+            $user->newQuery()->whereKey($user->id)->update($updateData);
 
             // Log the profile completion event.
             try {
@@ -95,8 +109,19 @@ class CompleteProfileController extends Controller
                     ),
                     'ip_address' => $request->ip(),
                 ]);
+
+                // Track NTP Guest Registration
+                if ($isGuest) {
+                    \App\Models\NtpGuest::create([
+                        'name' => trim($validated['name']),
+                        'college_id' => (int) $validated['college_id'],
+                        'major_id' => (int) $validated['major_id'],
+                        'study_plan_version' => (string) $validated['study_plan_version'],
+                        'user_id' => $user->id,
+                    ]);
+                }
             } catch (Throwable $logError) {
-                Log::warning('Failed to log profile completion', ['error' => $logError->getMessage()]);
+                Log::warning('Failed to log profile completion or NTP tracking', ['error' => $logError->getMessage()]);
             }
         } catch (Throwable $e) {
             Log::error('Profile completion update failed', [
@@ -112,7 +137,7 @@ class CompleteProfileController extends Controller
 
         // If this is a guest demo user, automatically seed their fake courses and AI chat
         // for the newly selected major so they can experience the platform immediately.
-        if ($user->role === 'guest') {
+        if ($isGuest) {
             \App\Http\Controllers\Auth\GuestDemoController::seedDemoCourses($user, (int) $validated['major_id']);
         }
 
