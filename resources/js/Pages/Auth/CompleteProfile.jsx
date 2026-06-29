@@ -238,7 +238,7 @@ export default function CompleteProfile({ colleges, majors }) {
                 {/* 🏆 Lightfall Warp Background */}
                 <div className="absolute inset-0 z-0">
                     <Lightfall
-                        colors={isGuest ? ['#F97316', '#3B82F6', '#FDBA74'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
+                        colors={isGuest ? ['#16A34A', '#DC2626', '#38BDF8', '#F97316'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
                         backgroundColor={isGuest ? '#020617' : '#000000'}
                         speed={isGuest ? 0.8 : 0.5}
                         streakCount={isGuest ? 5 : 3}
