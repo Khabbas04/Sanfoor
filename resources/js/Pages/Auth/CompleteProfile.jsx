@@ -293,9 +293,9 @@ export default function CompleteProfile({ colleges, majors }) {
 
                                     {/* NTP Logo */}
                                     <div className="relative group z-10 hover:z-20 flex-shrink-0 animate-float-soft-delayed">
-                                        <div className="absolute inset-0 bg-green-500/20 rounded-full blur-2xl group-hover:bg-green-500/40 transition-all duration-500"></div>
-                                        <div className="w-20 h-20 sm:w-24 sm:h-24 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 relative z-10 flex items-center justify-center">
-                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-full h-full object-contain drop-shadow-2xl" />
+                                        <div className="absolute inset-0 bg-white/40 rounded-[1.5rem] blur-xl group-hover:bg-white/60 transition-all duration-500"></div>
+                                        <div className="w-20 h-20 sm:w-24 sm:h-24 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 relative z-10 flex items-center justify-center bg-white/95 rounded-[1.5rem] p-2 sm:p-3 shadow-[0_8px_16px_rgba(0,0,0,0.5)] border border-white/50">
+                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-full h-full object-contain" />
                                         </div>
                                     </div>
                                 </div>
