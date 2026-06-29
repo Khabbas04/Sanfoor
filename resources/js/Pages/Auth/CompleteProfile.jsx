@@ -99,13 +99,13 @@ export default function CompleteProfile({ colleges, majors }) {
                     isCompleted
                         ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] scale-100'
                         : isActive
-                            ? (isGuest ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)] scale-110' : 'bg-white text-blue-600 shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-110')
-                            : (isGuest ? 'bg-white text-slate-400 scale-95 border border-slate-200' : 'bg-white/10 text-white/50 scale-95 border border-white/10')
+                            ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)] scale-110'
+                            : 'bg-white/10 text-white/50 border border-white/10 scale-90'
                 }`}>
                     {isCompleted ? '✓' : icon}
                 </div>
-                <span className={`text-[9px] sm:text-[11px] font-black tracking-tight transition-all duration-300 ${
-                    isActive ? (isGuest ? 'text-slate-800' : 'text-white') : isCompleted ? (isGuest ? 'text-emerald-600' : 'text-emerald-300') : (isGuest ? 'text-slate-400' : 'text-white/40')
+                <span className={`text-[10px] sm:text-xs font-black transition-colors duration-500 mt-1 sm:mt-2 ${
+                    isCompleted ? 'text-emerald-400' : isActive ? 'text-blue-400' : 'text-white/40'
                 }`}>{label}</span>
             </div>
         );
@@ -238,17 +238,17 @@ export default function CompleteProfile({ colleges, majors }) {
                 {/* 🏆 Lightfall Warp Background */}
                 <div className="absolute inset-0 z-0">
                     <Lightfall
-                        colors={isGuest ? ['#A6C8FF', '#5227FF', '#FF9FFC'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
-                        backgroundColor={isGuest ? '#ffffff' : '#000000'}
-                        speed={0.5}
-                        streakCount={3}
+                        colors={isGuest ? ['#F97316', '#3B82F6', '#FDBA74'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
+                        backgroundColor={isGuest ? '#020617' : '#000000'}
+                        speed={isGuest ? 0.8 : 0.5}
+                        streakCount={isGuest ? 5 : 3}
                         streakWidth={1}
-                        streakLength={1}
-                        glow={1}
-                        density={0.6}
-                        twinkle={1}
+                        streakLength={isGuest ? 1.5 : 1}
+                        glow={1.2}
+                        density={isGuest ? 0.8 : 0.6}
+                        twinkle={1.5}
                         zoom={3}
-                        backgroundGlow={isGuest ? 0.2 : 0.5}
+                        backgroundGlow={isGuest ? 0.3 : 0.5}
                         mouseInteraction={true}
                     />
                 </div>
@@ -279,13 +279,13 @@ export default function CompleteProfile({ colleges, majors }) {
                                     
                                     {/* Sharp Champion Collab X ICON */}
                                     <div className="relative flex items-center justify-center mx-2 sm:mx-4 z-20 flex-shrink-0">
-                                        <svg className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-[0_8px_16px_rgba(245,158,11,0.5)] relative z-10 transition-transform duration-300 hover:scale-105" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <svg className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-[0_8px_16px_rgba(249,115,22,0.5)] relative z-10 transition-transform duration-300 hover:scale-105" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M 15 15 L 35 15 L 50 36 L 65 15 L 85 15 L 60 50 L 85 85 L 65 85 L 50 64 L 35 85 L 15 85 L 40 50 Z" fill="url(#champGrad)" />
                                             <defs>
                                                 <linearGradient id="champGrad" x1="15" y1="15" x2="85" y2="85" gradientUnits="userSpaceOnUse">
-                                                    <stop stopColor="#f59e0b" />
-                                                    <stop offset="0.5" stopColor="#fbbf24" />
-                                                    <stop offset="1" stopColor="#d97706" />
+                                                    <stop stopColor="#f97316" />
+                                                    <stop offset="0.5" stopColor="#fb923c" />
+                                                    <stop offset="1" stopColor="#ea580c" />
                                                 </linearGradient>
                                             </defs>
                                         </svg>
@@ -330,7 +330,7 @@ export default function CompleteProfile({ colleges, majors }) {
                             </div>
                         )}
 
-                        <h1 className={`text-xl sm:text-2xl font-black ${isGuest ? 'text-slate-800' : 'text-white'} mb-3`}>
+                        <h1 className={`text-xl sm:text-2xl font-black text-white mb-3`}>
                             {isGuest ? (
                                 <span>أهلاً بك في منصة سنفور! <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">🎫</span></span>
                             ) : (
@@ -343,7 +343,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                 </>
                             )}
                         </h1>
-                        <p className={`text-sm sm:text-base font-bold ${isGuest ? 'text-slate-600' : 'text-white/80'} max-w-md mx-auto leading-relaxed`}>
+                        <p className={`text-sm sm:text-base font-bold text-slate-300 max-w-md mx-auto leading-relaxed`}>
                             {isGuest 
                                 ? 'لتبدأ تجربتك المخصصة، يرجى تحديد كليتك وتخصصك الجامعي وسنقوم بتجهيز النظام لك.'
                                 : 'قبل ما تبدأ رحلتك الأكاديمية، نحتاج تحدد كليتك وتخصصك عشان نخصص التجربة إلك.'}
@@ -355,15 +355,15 @@ export default function CompleteProfile({ colleges, majors }) {
                         {isGuest && (
                             <>
                                 {stepIndicator(0, 'الاسم', '👋')}
-                                <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 0 ? 'bg-emerald-400' : 'bg-slate-200'}`}></div>
+                                <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 0 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                             </>
                         )}
                         {stepIndicator(1, 'الكلية', '🏛️')}
-                        <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : (isGuest ? 'bg-slate-200' : 'bg-white/10')}`}></div>
+                        <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 1 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                         {stepIndicator(2, 'التخصص', '📚')}
-                        <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : (isGuest ? 'bg-slate-200' : 'bg-white/10')}`}></div>
+                        <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 2 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                         {stepIndicator(3, 'الخطة', '🧭')}
-                        <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : (isGuest ? 'bg-slate-200' : 'bg-white/10')}`}></div>
+                        <div className={`h-0.5 w-3 sm:w-8 rounded-full transition-all duration-500 ${step > 3 ? 'bg-emerald-400' : 'bg-white/20'}`}></div>
                         {stepIndicator(4, 'تأكيد', '🚀')}
                     </div>
 
@@ -779,17 +779,17 @@ export default function CompleteProfile({ colleges, majors }) {
                         {isGuest && (
                             <div className="flex flex-col items-center justify-center gap-1 mb-4 opacity-80 hover:opacity-100 transition-opacity">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Powered by</span>
-                                <div className="flex items-center gap-2 font-black text-slate-800">
+                                <div className="flex items-center gap-2 font-black text-white drop-shadow-md">
                                     <img src="/images/sanfoor.png" alt="Sanfoor" className="w-5 h-5 object-contain" />
                                     <span>Sanfoor</span>
-                                    <svg className="w-3.5 h-3.5 text-slate-400 mx-1 drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square">
+                                    <svg className="w-3.5 h-3.5 text-orange-400 mx-1 drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square">
                                         <path d="M18 6L6 18M6 6l12 12" />
                                     </svg>
-                                    <span className="text-emerald-600 tracking-tight">NTP</span>
+                                    <span className="text-emerald-400 tracking-tight">NTP</span>
                                 </div>
                             </div>
                         )}
-                        <a href={route('logout')} onClick={(e) => { e.preventDefault(); document.getElementById('logout-form').submit(); }} className={`text-xs font-bold transition-colors ${isGuest ? 'text-slate-500 hover:text-rose-600' : 'text-slate-400 hover:text-rose-500'}`}>
+                        <a href={route('logout')} onClick={(e) => { e.preventDefault(); document.getElementById('logout-form').submit(); }} className={`text-xs font-bold transition-colors text-slate-400 hover:text-rose-400`}>
                             تسجيل الخروج
                         </a>
                         <form id="logout-form" action={route('logout')} method="POST" className="hidden">
@@ -799,7 +799,7 @@ export default function CompleteProfile({ colleges, majors }) {
 
                     {/* Bottom branding */}
                     <div className="text-center mt-4" style={stagger(4)}>
-                        <p className={`text-[10px] font-bold ${isGuest ? 'text-slate-500' : 'text-slate-400'}`}>
+                        <p className={`text-[10px] font-bold text-slate-500`}>
                             © {new Date().getFullYear()} سنفور • Sanfoor
                         </p>
                     </div>
