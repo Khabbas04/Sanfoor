@@ -175,29 +175,15 @@ export default function CompleteProfile({ colleges, majors }) {
                                         </div>
                                     </div>
                                     
-                                    {/* Champion Collab X ICON */}
-                                    <div className="relative flex items-center justify-center mx-1 sm:mx-3 group z-20 flex-shrink-0">
-                                        <div className="absolute inset-0 bg-gradient-to-tr from-amber-400 to-orange-500 blur-2xl rounded-full opacity-30 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
-                                        <svg className="w-14 h-14 sm:w-20 sm:h-20 drop-shadow-[0_10px_20px_rgba(245,158,11,0.2)] transform group-hover:scale-125 group-hover:rotate-12 transition-all duration-500 relative z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            {/* Glow */}
-                                            <circle cx="50" cy="50" r="25" fill="url(#centerGlow)" opacity="0.8" className="animate-pulse" />
-                                            {/* Dynamic X Lines */}
-                                            <path d="M30 30L70 70" stroke="url(#xGrad1)" strokeWidth="12" strokeLinecap="round" />
-                                            <path d="M70 30L30 70" stroke="url(#xGrad2)" strokeWidth="12" strokeLinecap="round" />
-                                            {/* Center diamond/sparkle */}
-                                            <path d="M50 38L53 47L62 50L53 53L50 62L47 53L38 50L47 47L50 38Z" fill="white" className="animate-[spin_4s_linear_infinite]" />
+                                    {/* Sharp Champion Collab X ICON */}
+                                    <div className="relative flex items-center justify-center mx-2 sm:mx-4 z-20 flex-shrink-0">
+                                        <svg className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-[0_8px_16px_rgba(245,158,11,0.5)] relative z-10 transition-transform duration-300 hover:scale-105" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M 15 15 L 35 15 L 50 36 L 65 15 L 85 15 L 60 50 L 85 85 L 65 85 L 50 64 L 35 85 L 15 85 L 40 50 Z" fill="url(#champGrad)" />
                                             <defs>
-                                                <radialGradient id="centerGlow" cx="50" cy="50" r="25" gradientUnits="userSpaceOnUse">
-                                                    <stop stopColor="#fbbf24" stopOpacity="1" />
-                                                    <stop offset="1" stopColor="#f59e0b" stopOpacity="0" />
-                                                </radialGradient>
-                                                <linearGradient id="xGrad1" x1="30" y1="30" x2="70" y2="70" gradientUnits="userSpaceOnUse">
-                                                    <stop stopColor="#3b82f6" />
-                                                    <stop offset="1" stopColor="#10b981" />
-                                                </linearGradient>
-                                                <linearGradient id="xGrad2" x1="70" y1="30" x2="30" y2="70" gradientUnits="userSpaceOnUse">
-                                                    <stop stopColor="#8b5cf6" />
-                                                    <stop offset="1" stopColor="#ec4899" />
+                                                <linearGradient id="champGrad" x1="15" y1="15" x2="85" y2="85" gradientUnits="userSpaceOnUse">
+                                                    <stop stopColor="#f59e0b" />
+                                                    <stop offset="0.5" stopColor="#fbbf24" />
+                                                    <stop offset="1" stopColor="#d97706" />
                                                 </linearGradient>
                                             </defs>
                                         </svg>
