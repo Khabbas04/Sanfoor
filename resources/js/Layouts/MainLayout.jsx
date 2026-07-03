@@ -511,6 +511,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                                     </>
                                                 )}
                                                 <div className="space-y-1">
+                                                    <div className={`px-4 pt-1 pb-2 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                        {lang === 'ar' ? 'عام' : 'General'}
+                                                    </div>
                                                     <Link href={safeRoute('dashboard')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                                                         <span>📊</span> {t.dashboard}
                                                     </Link>
@@ -519,6 +522,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                                     </Link>
                                                     {!isInstructor && (
                                                         <>
+                                                            <div className={`px-4 pt-3 pb-2 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                                {lang === 'ar' ? 'أكاديمي' : 'Academic'}
+                                                            </div>
                                                             <Link href="/chapters" className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                                                                 <span>📖</span> {t.chapters}
                                                             </Link>
@@ -527,6 +533,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                                             </Link>
                                                         </>
                                                     )}
+                                                    <div className={`px-4 pt-3 pb-2 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                        {lang === 'ar' ? 'الحساب' : 'Account'}
+                                                    </div>
                                                     <Link href={safeRoute('profile.edit')} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-bold ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}>
                                                         <span>⚙️</span> {t.profile}
                                                     </Link>
@@ -593,11 +602,16 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
                             <Link onClick={() => setMobileOpen(false)} href="/" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏠 {t.home}</Link>
 
+                            <div className={`px-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {lang === 'ar' ? 'أكاديمي' : 'Academic'}
+                            </div>
+                            
                             {!isInstructor ? (
                                 <>
                                     <Link onClick={() => setMobileOpen(false)} href={safeRoute('tree.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🌳 {t.tree}</Link>
                                     <Link onClick={() => setMobileOpen(false)} href={safeRoute('calculator.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📈 {t.calc}</Link>
-                                    <Link onClick={() => setMobileOpen(false)} href={safeRoute('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
+                                    <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
                                 </>
                             ) : (
                                 <>
@@ -607,20 +621,26 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 </>
                             )}
 
+                            <div className={`px-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {lang === 'ar' ? 'عام' : 'General'}
+                            </div>
                             {!isInstructor && (
-                                <>
-                                    <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
-                                    <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
-                                </>
+                                <Link onClick={() => setMobileOpen(false)} href={safeRoute('campus.directory')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">🏢 {t.directory}</Link>
                             )}
                             <Link onClick={() => setMobileOpen(false)} href={safeRoute('public.announcements')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📢 {t.announcements}</Link>
                             
-                            <Link onClick={() => setMobileOpen(false)} href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}</Link>
+                            <div className={`px-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {lang === 'ar' ? 'الذكاء الاصطناعي' : 'AI'}
+                            </div>
+                            <Link onClick={() => setMobileOpen(false)} href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className="px-4 py-4 mt-1 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}</Link>
 
                             {safeUser.id && (
                                 <>
+                                    <div className={`px-4 pt-4 pb-1 text-[10px] font-black uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                        {lang === 'ar' ? 'حسابي' : 'My Account'}
+                                    </div>
                                     {isAdminOrOwner && (
-                                        <Link onClick={() => setMobileOpen(false)} href={safeRoute('admin.dashboard')} className="px-4 py-3.5 rounded-2xl font-black text-sm bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-2 mt-2 transition-colors">🛡️ {t.admin}</Link>
+                                        <Link onClick={() => setMobileOpen(false)} href={safeRoute('admin.dashboard')} className="px-4 py-3.5 rounded-2xl font-black text-sm bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 mb-2 transition-colors">🛡️ {t.admin}</Link>
                                     )}
                                     <Link onClick={() => setMobileOpen(false)} href={safeRoute('dashboard')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📊 {t.dashboard}</Link>
                                     <Link onClick={() => setMobileOpen(false)} href={safeRoute('profile.edit')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">⚙️ {t.profile}</Link>
