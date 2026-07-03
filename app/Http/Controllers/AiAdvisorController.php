@@ -228,9 +228,15 @@ class AiAdvisorController extends Controller
                 $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
                 $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
                 $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
-                $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableCourses['map'], $cartData['map']);
+                
+                $availableDetailsMap = [];
+                foreach (($availableCourses['details'] ?? []) as $cid => $cdata) {
+                    $availableDetailsMap[$cid] = $cdata['name'];
+                }
 
-                $matched = $this->matchCoursesInReply($replyText, $availableCourses['map'], $cartData['map']);
+                $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableDetailsMap, $cartData['map']);
+
+                $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
                 $suggestedDetails = !empty($matched['suggested'])
                     ? Course::whereIn('id', $matched['suggested'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
                     : [];
