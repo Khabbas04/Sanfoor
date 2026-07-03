@@ -606,12 +606,15 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     <Link onClick={() => setMobileOpen(false)} href={safeRoute('schedule_reviews.index')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📑 {lang === 'ar' ? 'مراجعة الخطط' : 'Plan Reviews'}</Link>
                                 </>
                             )}
+
                             {!isInstructor && (
                                 <>
                                     <Link onClick={() => setMobileOpen(false)} href="/chapters" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📖 {t.chapters}</Link>
                                     <Link onClick={() => setMobileOpen(false)} href="/quiz" className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">❓ {t.quiz}</Link>
                                 </>
                             )}
+                            <Link onClick={() => setMobileOpen(false)} href={safeRoute('public.announcements')} className="px-4 py-3.5 rounded-2xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">📢 {t.announcements}</Link>
+                            
                             <Link onClick={() => setMobileOpen(false)} href={isInstructor ? safeRoute('instructor.ai.scheduler') : safeRoute('ai.advisor')} className="px-4 py-4 mt-2 rounded-2xl font-black text-sm bg-gradient-to-r from-sky-400 to-blue-500 text-white text-center shadow-lg shadow-blue-500/30 hover:opacity-90 transition-opacity">🤖 {isInstructor ? (lang === 'ar' ? 'المساعد للجدول' : 'AI Scheduler') : t.ai}</Link>
 
                             {safeUser.id && (
@@ -645,7 +648,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             )}
 
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
-            <main className={`flex-1 flex flex-col w-full relative ${shouldHideNav ? 'pt-0' : 'pt-20 sm:pt-28'}`}>
+            <main className={`flex-1 flex flex-col w-full relative ${shouldHideNav ? 'pt-0' : 'pt-4 md:pt-28'}`}>
                 {/* ═══ NTP GUEST DEMO BANNER ═══ */}
                 {safeUser.is_guest && <GuestDemoBanner />}
                 {children}
