@@ -51,10 +51,17 @@ class GuestDemoController extends Controller
                 $major = Major::first();
                 $majorId = $major?->id;
 
-                // Generate a unique guest identity.
-                $guestNumber = mt_rand(1000, 9999);
-                $uniqueSlug = Str::lower(Str::random(8));
-                $email = "guest-{$uniqueSlug}@demo.sanfoor.me";
+                // Generate a sequential, human-readable guest identity
+                // (e.g. name "ضيف NTP #12", email "ntp-guest-12@demo.sanfoor.me")
+                // instead of random slugs, so admins can read the log at a glance.
+                $guestNumber = User::where('role', 'guest')->count() + 1;
+                $email = "ntp-guest-{$guestNumber}@demo.sanfoor.me";
+
+                // Guarantee uniqueness even if an earlier guest with this number was deleted.
+                while (User::where('email', $email)->exists()) {
+                    $guestNumber++;
+                    $email = "ntp-guest-{$guestNumber}@demo.sanfoor.me";
+                }
 
                 $user = User::create([
                     'name'               => "ضيف NTP #{$guestNumber}",
@@ -84,13 +91,14 @@ class GuestDemoController extends Controller
                     AdminLog::create([
                         'user_id'    => $user->id,
                         'action'     => 'GUEST_DEMO_LOGIN',
-                        'details'    => sprintf(
-                            'Guest demo session started: %s | ip: %s | ua: %s',
-                            $email,
-                            $request->ip(),
-                            Str::limit($request->header('User-Agent'), 100)
-                        ),
+                        // Keep `details` clean & human-readable; device info is parsed from
+                        // meta.user_agent on the admin logs page (same as all other logs).
+                        'details'    => "دخول ضيف تجريبي جديد ({$user->name}) لتجربة المنصة",
                         'ip_address' => $request->ip(),
+                        'meta'       => [
+                            'user_agent' => $request->header('User-Agent'),
+                            'email'      => $email,
+                        ],
                     ]);
                 } catch (Throwable $logError) {
                     Log::warning('Failed to log guest demo login', [
