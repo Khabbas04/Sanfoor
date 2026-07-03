@@ -236,12 +236,28 @@ class AiAdvisorController extends Controller
 
                 $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableDetailsMap, $cartData['map']);
 
-                $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
-                $suggestedDetails = !empty($matched['suggested'])
-                    ? Course::whereIn('id', $matched['suggested'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                // Trust the course IDs the AI explicitly returned, but validate them strictly:
+                // suggestions must exist in the eligible list, removals must exist in the student's cart.
+                // This keeps the course cards perfectly aligned with what the AI actually recommended,
+                // and prevents negation/substring collisions from the old text-scan approach.
+                $eligibleIds = array_map('intval', array_keys($availableDetailsMap));
+                $cartIds = array_map('intval', array_keys($cartData['map']));
+
+                $suggestedIds = array_values(array_intersect($parsed['suggested_course_ids'] ?? [], $eligibleIds));
+                $removeIds = array_values(array_intersect($parsed['remove_course_ids'] ?? [], $cartIds));
+
+                // Fallback to text matching only when the AI returned no structured IDs at all.
+                if (empty($suggestedIds) && empty($removeIds)) {
+                    $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
+                    $suggestedIds = $matched['suggested'];
+                    $removeIds = $matched['remove'];
+                }
+
+                $suggestedDetails = !empty($suggestedIds)
+                    ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
                     : [];
-                $removeDetails = !empty($matched['remove'])
-                    ? Course::whereIn('id', $matched['remove'])->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                $removeDetails = !empty($removeIds)
+                    ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
                     : [];
             }
 
@@ -872,15 +888,15 @@ class AiAdvisorController extends Controller
 
             $topEligible = array_slice($allEligible, 0, 30);
 
-            $availableText = ["Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched"];
+            $availableText = ["ID,Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched"];
             $lockedText = ["Name,Status,Reason"];
-            
+
             foreach ($topEligible as $course) {
                 $cCart = $course['in_cart'] ? 1 : 0;
                 $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
-                
+
                 if ($course['status'] === 'Available' || $course['in_cart']) {
-                    $availableText[] = "{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
+                    $availableText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
                 } else {
                     $lockedText[] = "{$course['name']},{$course['status']},مغلقة بسبب المتطلبات أو الساعات";
                 }
@@ -1002,6 +1018,16 @@ class AiAdvisorController extends Controller
             $cartWarning = "\n⚠️ تنبيه: التسجيل التجريبي يحتوي {$cartData['hours']} ساعة ويتجاوز الحد الفعلي المسموح بـ {$excess} ساعة!";
         }
 
+        // Show cart courses with their IDs so the AI can reference them precisely in remove_course_ids.
+        $cartListWithIds = '';
+        if (!empty($cartData['map'])) {
+            $cartPairs = [];
+            foreach ($cartData['map'] as $cid => $cname) {
+                $cartPairs[] = "(ID:{$cid}) {$cname}";
+            }
+            $cartListWithIds = implode(' | ', $cartPairs);
+        }
+
         $studentYearLabel = $studentYearLabels[$studentYear] ?? 'أولى';
 
         $calendarText = '';
@@ -1052,13 +1078,18 @@ class AiAdvisorController extends Controller
             "- تخصص اختياري: أنجز {$academicData['passed_elective']} / 9 ساعات\n" .
             "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
             "المواد التي أتمها الطالب (ناجح فيها): " . ($academicData['passed_courses_names'] ?: 'لم ينجز أي مواد بعد') . "\n" .
-            "التسجيل التجريبي الحالي: " . ($cartData['list'] ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
-            "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد):\n{$availableCourses['available_text']}\n\n" .
+            "التسجيل التجريبي الحالي: " . ($cartListWithIds ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
+            "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد). العمود الأول (ID) هو الرقم التعريفي للمادة:\n{$availableCourses['available_text']}\n\n" .
             "❌ المواد المغلقة حالياً (لا تقترحها أبداً للتسجيل، فقط اشرح سبب إغلاقها إذا سألك الطالب):\n{$availableCourses['locked_text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
-            "{\"reply\":\"...\",\"suggested_courses\":[],\"courses_to_remove\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
+            "{\"reply\":\"...\",\"suggested_course_ids\":[],\"remove_course_ids\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
+            "🚨 قاعدة المواد الحاسمة (لضمان تطابق الكروت مع كلامك):\n" .
+            "- إذا اقترحت للطالب مواد **للتسجيل**، ضع أرقامها (ID) فقط في المصفوفة suggested_course_ids — وحصراً أرقاماً موجودة في عمود ID بقائمة (المواد المتاحة للتسجيل).\n" .
+            "- إذا نصحت الطالب **بحذف/تخفيف** مواد من تسجيله التجريبي، ضع أرقامها (ID) في remove_course_ids — وحصراً من أرقام مواد (التسجيل التجريبي الحالي).\n" .
+            "- ⛔ لا تضع رقم مادة في suggested_course_ids إلا إذا كنت فعلاً تنصح بتسجيلها. إذا ذكرت مادة لتقول 'لا تسجّلها بعد' أو 'مغلقة'، **لا تضع رقمها** إطلاقاً.\n" .
+            "- إذا كان ردك مجرد شرح أو حساب معدل ولا يتضمن اقتراح مواد، اترك المصفوفتين فارغتين [].\n" .
             "هام جداً: يجب أن يكون نص الـ reply سطراً واحداً برمجياً، استخدم الحرفين \\n للنزول سطر جديد ولا تضغط Enter (Literal newlines) داخل النص لتجنب كسر الـ JSON.\n" .
-            "🚨 تحذير شديد: إياك أن تقترح أو تدخل أي مادة في الـ JSON (سواء في suggested_courses أو interactive_widget) غير موجودة حرفياً في قائمة (المواد المتاحة للتسجيل للطالب). اختراع أسماء مواد، أو تأليف عدد ساعات للمواد من عندك سيسبب خطأ فادح بالنظام.";
+            "🚨 تحذير شديد: إياك أن تخترع أسماء مواد أو أرقام مواد أو عدد ساعات غير موجودة في القوائم أعلاه، سواء في النص أو في interactive_widget أو في مصفوفات الأرقام. أي رقم أو مادة من خارج القوائم سيسبب خطأ فادح بالنظام.";
     }
 
     private function buildConversationContext($chat, string $systemPrompt): array
@@ -1222,7 +1253,7 @@ class AiAdvisorController extends Controller
             throw new \Exception('No Gemini API keys configured');
         }
 
-        $model = 'gemini-2.5-flash-lite';
+        $model = trim((string) config('services.gemini.model')) ?: 'gemini-2.5-flash-lite';
         $sortedKeys = $this->sortKeysByAvailability($apiKeys);
         $lastError = 'Unknown Gemini error';
 
@@ -1363,6 +1394,8 @@ class AiAdvisorController extends Controller
                 'reply' => (string) $decoded['reply'],
                 'follow_up_suggestions' => $decoded['follow_up_suggestions'] ?? [],
                 'interactive_widget' => $decoded['interactive_widget'] ?? null,
+                'suggested_course_ids' => $this->extractCourseIds($decoded['suggested_course_ids'] ?? null),
+                'remove_course_ids' => $this->extractCourseIds($decoded['remove_course_ids'] ?? null),
             ];
         }
 
@@ -1374,6 +1407,8 @@ class AiAdvisorController extends Controller
                     'reply' => (string) $decodedFragment['reply'],
                     'follow_up_suggestions' => $decodedFragment['follow_up_suggestions'] ?? [],
                     'interactive_widget' => $decodedFragment['interactive_widget'] ?? null,
+                    'suggested_course_ids' => $this->extractCourseIds($decodedFragment['suggested_course_ids'] ?? null),
+                    'remove_course_ids' => $this->extractCourseIds($decodedFragment['remove_course_ids'] ?? null),
                 ];
             }
         }
@@ -1383,7 +1418,35 @@ class AiAdvisorController extends Controller
             'reply' => $this->stripReplyEnvelope($clean) ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.',
             'follow_up_suggestions' => [],
             'interactive_widget' => null,
+            'suggested_course_ids' => [],
+            'remove_course_ids' => [],
         ];
+    }
+
+    /**
+     * Normalize an AI-provided list of course IDs into a clean array of positive integers.
+     * Accepts arrays of ints/strings, or objects like [{"id":123}, ...].
+     */
+    private function extractCourseIds($raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($raw as $item) {
+            if (is_array($item)) {
+                $item = $item['id'] ?? null;
+            }
+            if (is_numeric($item)) {
+                $id = (int) $item;
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function extractJsonObject(string $text): ?string
