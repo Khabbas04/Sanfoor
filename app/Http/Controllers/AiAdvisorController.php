@@ -127,8 +127,9 @@ class AiAdvisorController extends Controller
             ], 429);
         }
 
-        // Clear academic data cache to ensure fresh analysis
-        $this->clearStudentCache($user->id);
+        // Academic data cache is refreshed when the AI advisor page loads (index()).
+        // Skipping clearStudentCache() here avoids rebuilding the cache on every message,
+        // saving 3-4 DB queries per chat request without affecting data freshness.
 
         $currentPeriod = AcademicPeriod::current();
 
@@ -458,9 +459,16 @@ class AiAdvisorController extends Controller
 
     public function getAdminReports()
     {
+        return Cache::remember('admin_ai_reports', 600, function () {
+            return $this->buildAdminReports();
+        });
+    }
+
+    private function buildAdminReports()
+    {
         try {
             $currentPeriod = \App\Models\AcademicPeriod::current();
-            $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
+            $hasPeriodColumns = true; // Columns confirmed in migrations
 
             $query = DB::table('user_carts')
                 ->join('courses', 'user_carts.course_id', '=', 'courses.id')
@@ -629,8 +637,10 @@ class AiAdvisorController extends Controller
     {
         $currentPeriod = \App\Models\AcademicPeriod::current();
 
-        // لا نستخدم كاش هنا لضمان بيانات دقيقة ومحدثة دائماً
-        {
+        $passedHash = md5(implode(',', $passedCourseIds) . '|' . implode(',', $cartCourseIds));
+        $cacheKey = "ai_available_courses:{$user->id}:{$user->major_id}:{$user->study_plan_version}:{$passedHash}";
+
+        return Cache::remember($cacheKey, 300, function () use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
 
             $courses = Course::with(['prerequisites', 'children'])
@@ -872,12 +882,12 @@ class AiAdvisorController extends Controller
 
             return [
                 'map' => $map,
-                'text' => count($availableText) > 1 ? implode("\n", $availableText) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
+                'text' => count($availableText) > 1 ? implode("\n", $availableText) : 'لا يوجد مواد متاحة للتسجيل حالياً!',    
                 'available_text' => count($availableText) > 1 ? implode("\n", $availableText) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
                 'locked_text' => count($lockedText) > 1 ? implode("\n", $lockedText) : 'لا يوجد مواد مغلقة حالياً.',
                 'details' => $details,
             ];
-        }
+        });
     }
 
     private function buildStudentAdvisingRagContext(array $academicData, array $cartData, array $availableCourses, string $userMessage): string
@@ -1232,14 +1242,14 @@ class AiAdvisorController extends Controller
             try {
                 $requestContents = $contents;
                 $fullText = '';
-                $backoffMs = 150;
+                $backoffMs = 100;
 
                 for ($pass = 0; $pass <= 2; $pass++) {
                     for ($retryCount = 0; $retryCount < 2; $retryCount++) {
                         try {
                             $response = Http::withoutVerifying()
-                                ->connectTimeout(8)
-                                ->timeout(50)
+                                ->connectTimeout(5)
+                                ->timeout(35)
                                 ->withHeaders(['Content-Type' => 'application/json'])
                                 ->post($url, [
                                     'contents' => $requestContents,

@@ -74,9 +74,10 @@ class ProfileController extends Controller
         $isAcademicLockedForStudent = $isStudent && filled($user->major_id);
         $wasMajorEmpty = empty($user->major_id);
 
-        $hasMajorColumn = Schema::hasColumn('users', 'major_id');
-        $hasPlanColumn = Schema::hasColumn('users', 'study_plan_version');
-        $hasEmailVerifiedAt = Schema::hasColumn('users', 'email_verified_at');
+        // Columns confirmed in migrations — no need for runtime Schema checks
+        $hasMajorColumn = true;
+        $hasPlanColumn = true;
+        $hasEmailVerifiedAt = true;
 
         $updatePayload = [
             'name' => $isLockedProfile ? $user->name : trim((string) ($validated['name'] ?? $user->name)),

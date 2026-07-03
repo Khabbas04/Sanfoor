@@ -23,32 +23,36 @@ class QuizController extends Controller
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
         $search = $request->query('search');
 
-        $courses = Course::query()
-            ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id', 'study_plan_version')
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($sq) use ($search) {
-                    $sq->where('name', 'like', "%{$search}%")
-                       ->orWhere('code', 'like', "%{$search}%");
-                });
-            })
-            ->where('is_quiz_only', 1)
-            ->whereHas('questions', function ($q) {
-                $q->where('is_active', true);
-            })
-            ->withCount(['questions' => function ($q) {
-                $q->where('is_active', true);
-            }])
-            ->with(['chapters' => function ($q) {
-                $q->where('is_active', true)
-                  ->withCount(['questions' => function ($qq) {
-                      $qq->where('is_active', true);
-                  }])
-                  ->orderBy('order');
-            }])
-            ->orderByRaw("CASE WHEN code = 'NTP2026' THEN 0 ELSE 1 END")
-            ->orderBy('semester')
-            ->orderBy('name')
-            ->get();
+        $cacheKey = "student_quiz_courses_{$user->major_id}_" . md5($search);
+        
+        $courses = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($search) {
+            return Course::query()
+                ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id', 'study_plan_version')
+                ->when($search, function ($q) use ($search) {
+                    $q->where(function ($sq) use ($search) {
+                        $sq->where('name', 'like', "%{$search}%")
+                           ->orWhere('code', 'like', "%{$search}%");
+                    });
+                })
+                ->where('is_quiz_only', 1)
+                ->whereHas('questions', function ($q) {
+                    $q->where('is_active', true);
+                })
+                ->withCount(['questions' => function ($q) {
+                    $q->where('is_active', true);
+                }])
+                ->with(['chapters' => function ($q) {
+                    $q->where('is_active', true)
+                      ->withCount(['questions' => function ($qq) {
+                          $qq->where('is_active', true);
+                      }])
+                      ->orderBy('order');
+                }])
+                ->orderByRaw("CASE WHEN code = 'NTP2026' THEN 0 ELSE 1 END")
+                ->orderBy('semester')
+                ->orderBy('name')
+                ->get();
+        });
 
         // Get the student's recent attempts for stats.
         $recentAttempts = QuizAttempt::where('user_id', $user->id)

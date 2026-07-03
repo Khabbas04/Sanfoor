@@ -26,10 +26,14 @@ class InstructorController extends Controller
         $user = $request->user();
         $user->load('taughtCourses');
 
-        $totalStudents = User::where('role', 'student')->count();
-        $totalCourses = Course::count();
-        $totalChapters = Chapter::withoutGlobalScopes()->count();
-        $totalQuestions = Question::count();
+        $stats = \Illuminate\Support\Facades\Cache::remember('instructor_dashboard_stats', 300, function () {
+            return [
+                'total_students' => User::where('role', 'student')->count(),
+                'total_courses' => Course::count(),
+                'total_chapters' => Chapter::withoutGlobalScopes()->count(),
+                'total_questions' => Question::count(),
+            ];
+        });
 
         $taughtCourses = $user->taughtCourses()
             ->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours')
@@ -47,10 +51,10 @@ class InstructorController extends Controller
 
         return Inertia::render('Instructor/Dashboard', [
             'stats' => [
-                'total_students' => $totalStudents,
-                'total_courses' => $totalCourses,
-                'total_chapters' => $totalChapters,
-                'total_questions' => $totalQuestions,
+                'total_students' => $stats['total_students'],
+                'total_courses' => $stats['total_courses'],
+                'total_chapters' => $stats['total_chapters'],
+                'total_questions' => $stats['total_questions'],
                 'taught_courses_count' => $taughtCourses->count(),
                 'announcements_count' => $user->announcements()->count(),
             ],
@@ -270,8 +274,8 @@ class InstructorController extends Controller
             ->take(15) 
             ->values();
 
-        $colleges = College::select('id', 'name')->get();
-        $majors = Major::select('id', 'name', 'college_id')->get();
+        $colleges = \Illuminate\Support\Facades\Cache::remember('admin_colleges', 1800, fn() => College::select('id', 'name')->orderBy('name')->get());
+        $majors = \Illuminate\Support\Facades\Cache::remember('admin_majors', 1800, fn() => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get());
 
         $totalStudents = User::whereHas('cartCourses', function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
             if ($periodYear && $periodTerm && $hasPeriodColumns) {

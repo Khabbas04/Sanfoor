@@ -168,24 +168,26 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getSkillsFromPassedCourses()
     {
-        return $this->passedCourses()
-            // Qualify the column name to avoid ambiguous SQL in joined queries.
-            ->whereNotNull('courses.skills')
-            ->where('courses.skills', '!=', '')
-            ->get()
-            ->flatMap(function ($course) {
-                // Convert the comma-separated skill string into normalized objects.
-                $skillsArray = explode(',', $course->skills);
+        return \Illuminate\Support\Facades\Cache::remember("user_skills_{$this->id}", 600, function () {
+            return $this->passedCourses()
+                // Qualify the column name to avoid ambiguous SQL in joined queries.
+                ->whereNotNull('courses.skills')
+                ->where('courses.skills', '!=', '')
+                ->get()
+                ->flatMap(function ($course) {
+                    // Convert the comma-separated skill string into normalized objects.
+                    $skillsArray = explode(',', $course->skills);
 
-                return array_map(fn($skill) => [
-                    'name' => trim($skill),
-                    'course_source' => $course->name,
-                    'course_code' => $course->code,
-                ], $skillsArray);
-            })
-            ->filter(fn($skill) => !empty($skill['name']))
-            ->unique('name')
-            ->values();
+                    return array_map(fn($skill) => [
+                        'name' => trim($skill),
+                        'course_source' => $course->name,
+                        'course_code' => $course->code,
+                    ], $skillsArray);
+                })
+                ->filter(fn($skill) => !empty($skill['name']))
+                ->unique('name')
+                ->values();
+        });
     }
 
     /**

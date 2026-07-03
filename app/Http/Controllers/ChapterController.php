@@ -21,32 +21,36 @@ class ChapterController extends Controller
         $studyPlanVersion = (int) ($user->study_plan_version ?? 12);
         $search = $request->query('search');
 
-        $courses = Course::query()
-            ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
-            ->where('is_quiz_only', 1)
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($sq) use ($search) {
-                    $sq->where('name', 'like', "%{$search}%")
-                       ->orWhere('code', 'like', "%{$search}%")
-                       ->orWhereHas('chapters', fn($chq) => $chq->where('title', 'like', "%{$search}%"));
-                });
-            })
-            ->whereHas('chapters', function ($q) {
-                $q->where('is_active', true);
-            })
-            ->withCount(['chapters' => function ($q) {
-                $q->where('is_active', true);
-            }, 'questions' => function ($q) {
-                $q->where('is_active', true);
-            }])
-            ->with(['chapters' => function ($q) {
-                $q->select('id', 'course_id', 'title', 'description', 'google_drive_link', 'order', 'is_active')
-                  ->where('is_active', true)
-                  ->orderBy('order');
-            }])
-            ->orderBy('semester')
-            ->orderBy('name')
-            ->get();
+        $cacheKey = "student_chapters_{$user->major_id}_" . md5($search);
+        
+        $courses = \Illuminate\Support\Facades\Cache::remember($cacheKey, 300, function () use ($search) {
+            return Course::query()
+                ->select('id', 'name', 'code', 'credit_hours', 'type', 'semester', 'major_id')
+                ->where('is_quiz_only', 1)
+                ->when($search, function ($q) use ($search) {
+                    $q->where(function ($sq) use ($search) {
+                        $sq->where('name', 'like', "%{$search}%")
+                           ->orWhere('code', 'like', "%{$search}%")
+                           ->orWhereHas('chapters', fn($chq) => $chq->where('title', 'like', "%{$search}%"));
+                    });
+                })
+                ->whereHas('chapters', function ($q) {
+                    $q->where('is_active', true);
+                })
+                ->withCount(['chapters' => function ($q) {
+                    $q->where('is_active', true);
+                }, 'questions' => function ($q) {
+                    $q->where('is_active', true);
+                }])
+                ->with(['chapters' => function ($q) {
+                    $q->select('id', 'course_id', 'title', 'description', 'google_drive_link', 'order', 'is_active')
+                      ->where('is_active', true)
+                      ->orderBy('order');
+                }])
+                ->orderBy('semester')
+                ->orderBy('name')
+                ->get();
+        });
 
         // Provide the user's pinned chapter ids so the UI can reflect pinned state.
         $pinnedIds = [];

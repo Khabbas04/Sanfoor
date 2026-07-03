@@ -43,7 +43,7 @@ class HandleInertiaRequests extends Middleware
             if ($user->major_id) {
                 $major = $user->relationLoaded('major')
                     ? $user->getRelation('major')
-                    : $user->major()->select('id', 'name', 'college_id')->first();
+                    : Cache::remember("major_data:{$user->major_id}", 1800, fn() => $user->major()->select('id', 'name', 'college_id')->first());
             }
 
             $sharedUser = [
@@ -70,17 +70,17 @@ class HandleInertiaRequests extends Middleware
                 $adminNotifications = [
                     'open_issues_count' => Cache::remember(
                         'admin:open_issues_count',
-                        now()->addSeconds(60),
+                        now()->addSeconds(120),
                         fn () => IssueReport::where('status', 'open')->count()
                     ),
                     'unread_messages_count' => Cache::remember(
                         'admin:unread_messages_count',
-                        now()->addSeconds(60),
+                        now()->addSeconds(120),
                         fn () => \App\Models\ContactMessage::where('status', 'new')->count()
                     ),
                     'active_ai_chats_count' => Cache::remember(
                         'admin:active_ai_chats_count',
-                        now()->addSeconds(60),
+                        now()->addSeconds(120),
                         fn () => \App\Models\Chat::whereDate('updated_at', today())->count()
                     ),
                 ];

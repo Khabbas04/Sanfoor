@@ -313,7 +313,7 @@ class InstructorAiAdvisorController extends Controller
         // Demand Data
         $periodYear = $currentPeriod?->academic_year;
         $periodTerm = $currentPeriod?->academic_term;
-        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year');
+        $hasPeriodColumns = true; // Column confirmed in migrations
         $courseDemand = Course::where('major_id', $majorId)
             ->withCount(['cartUsers as demand' => function ($query) use ($periodYear, $periodTerm, $hasPeriodColumns) {
                 if ($periodYear && $periodTerm && $hasPeriodColumns) {

@@ -727,7 +727,7 @@ class TreeController extends Controller
                 'updated_at' => now(),
             ];
 
-            if (Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term')) {
+            if (true) { // Columns confirmed in migrations — no need for runtime Schema check
                 $insert['academic_year'] = $currentPeriod?->academic_year;
                 $insert['academic_term'] = $currentPeriod?->academic_term;
             }

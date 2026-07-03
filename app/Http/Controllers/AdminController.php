@@ -90,12 +90,14 @@ class AdminController extends Controller
                 ->values();
         });
 
-        $issueSummary = [
-            'open' => IssueReport::where('status', 'open')->count(),
-            'in_progress' => IssueReport::where('status', 'in_progress')->count(),
-            'resolved' => IssueReport::where('status', 'resolved')->count(),
-            'total' => IssueReport::count(),
-        ];
+        $issueSummary = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_issue_summary', 180, function () {
+            return [
+                'open' => IssueReport::where('status', 'open')->count(),
+                'in_progress' => IssueReport::where('status', 'in_progress')->count(),
+                'resolved' => IssueReport::where('status', 'resolved')->count(),
+                'total' => IssueReport::count(),
+            ];
+        });
 
         // 🔥 حساب النشطين حالياً (آخر 30 دقيقة)
         $thirtyMinutesAgoStr = now()->subMinutes(30)->toDateTimeString();
@@ -110,20 +112,22 @@ class AdminController extends Controller
             ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
             ->pluck('id');
 
-        // 🔥 الحصول على قائمة المستخدمين النشطين مع تفاصيلهم
-        $onlineUsers = User::whereNotNull('last_seen_at')
-            ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
-            ->orderByDesc('last_seen_at')
-            ->get(['id', 'name', 'email', 'role', 'last_seen_at'])
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'last_activity_ago' => \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans(),
-                ];
-            });
+        // 🔥 الحصول على قائمة المستخدمين النشطين مع تفاصيلهم (مكاش لـ 30 ثانية لتخفيف الضغط)
+        $onlineUsers = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_online_users', 30, function () use ($thirtyMinutesAgoStr) {
+            return User::whereNotNull('last_seen_at')
+                ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
+                ->orderByDesc('last_seen_at')
+                ->get(['id', 'name', 'email', 'role', 'last_seen_at'])
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'last_activity_ago' => \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans(),
+                    ];
+                });
+        });
 
         $adminNotes = $notesEnabled
             ? AdminNote::with('user:id,name,email')
@@ -174,8 +178,8 @@ class AdminController extends Controller
             'stats' => $stats,
             'onlineUsers' => $onlineUsers,
             'platform' => $platform,
-            'colleges' => College::select('id', 'name')->orderBy('name')->get(),
-            'majors' => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get(),
+            'colleges' => \Illuminate\Support\Facades\Cache::remember('admin_colleges', 1800, fn() => College::select('id', 'name')->orderBy('name')->get()),
+            'majors' => \Illuminate\Support\Facades\Cache::remember('admin_majors', 1800, fn() => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get()),
             'demandReport' => $demandReport,
             'issueSummary' => $issueSummary,
             'recentIssues' => IssueReport::with('user:id,name,email')->latest()->take(6)->get(),
@@ -233,27 +237,39 @@ class AdminController extends Controller
     public function settings()
     {
         $currentAcademicPeriod = AcademicPeriod::current();
-        $thirtyMinutesAgo = now()->subMinutes(30)->timestamp;
-
-        $onlineUsers = User::whereNotNull('last_seen_at')
-            ->where('last_seen_at', '>=', now()->subMinutes(30)->toDateTimeString())
-            ->orderByDesc('last_seen_at')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'last_activity' => $user->last_seen_at ? strtotime($user->last_seen_at) : null,
-                    'last_activity_ago' => $user->last_seen_at ? \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans() : null,
-                ];
-            });
+        $thirtyMinutesAgoStr = now()->subMinutes(30)->toDateTimeString();
+        
+        $onlineUsers = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_online_users', 30, function () use ($thirtyMinutesAgoStr) {
+            return User::whereNotNull('last_seen_at')
+                ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
+                ->orderByDesc('last_seen_at')
+                ->get(['id', 'name', 'email', 'role', 'last_seen_at'])
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'role' => $user->role,
+                        'last_activity' => $user->last_seen_at ? strtotime($user->last_seen_at) : null,
+                        'last_activity_ago' => $user->last_seen_at ? \Carbon\Carbon::parse($user->last_seen_at)->diffForHumans() : null,
+                    ];
+                });
+        });
 
         $activeStudentsNow = $onlineUsers->where('role', 'student')->count();
         $activeAdminsNow = $onlineUsers->filter(function ($u) {
             return strtolower((string) $u['role']) === 'admin';
         })->count();
+
+        $stats = \Illuminate\Support\Facades\Cache::remember('admin_settings_stats', 300, function () use ($activeStudentsNow, $activeAdminsNow) {
+            return [
+                'students_count' => User::where('role', 'student')->count(),
+                'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
+                'instructors_count' => User::whereRaw('LOWER(role) = ?', ['instructor'])->count(),
+                'active_students_now' => $activeStudentsNow,
+                'active_admins_now' => $activeAdminsNow,
+            ];
+        });
 
         return Inertia::render('Admin/Settings', [
             'currentAcademicPeriod' => $currentAcademicPeriod ? [
@@ -265,13 +281,7 @@ class AdminController extends Controller
                 'is_current' => (bool) $currentAcademicPeriod->is_current,
             ] : null,
             'siteMaintenance' => $this->formatMaintenancePayload(SiteMaintenance::current()),
-            'stats' => [
-                'students_count' => User::where('role', 'student')->count(),
-                'admins_count' => User::whereRaw('LOWER(role) = ?', ['admin'])->count(),
-                'instructors_count' => User::whereRaw('LOWER(role) = ?', ['instructor'])->count(),
-                'active_students_now' => $activeStudentsNow,
-                'active_admins_now' => $activeAdminsNow,
-            ],
+            'stats' => $stats,
             'onlineUsers' => $onlineUsers,
         ]);
     }
@@ -605,13 +615,19 @@ class AdminController extends Controller
         // eager load course relations to compute hours without N+1 queries
         $users->loadMissing(['cartCourses:id,credit_hours', 'passedCourses:id,credit_hours']);
 
-        $payload = $users->map(function (User $u) {
+        // Fix N+1: fetch approved plans for these users in bulk
+        $approvedPlansUserIds = DB::table('graduation_plans')
+            ->whereIn('user_id', $userIds)
+            ->pluck('user_id')
+            ->toArray();
+
+        $payload = $users->map(function (User $u) use ($approvedPlansUserIds) {
             $lastActivityStr = $u->last_seen_at;
 
             $cartHours = (int) $u->cartCourses->sum('credit_hours');
             $cartCount = (int) $u->cartCourses->count();
             $passedHours = (int) $u->passedCourses->sum('credit_hours');
-            $approvedPlan = DB::table('graduation_plans')->where('user_id', $u->id)->exists();
+            $approvedPlan = in_array($u->id, $approvedPlansUserIds, true);
 
             return [
                 'id' => $u->id,

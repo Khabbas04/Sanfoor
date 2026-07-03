@@ -336,15 +336,19 @@ Route::middleware('auth')->group(function () {
 
     // Public-style utility page that is still available only for logged-in users.
     Route::get('/campus-directory', function () {
-        $colleges = \App\Models\College::with('university')
-            ->orderBy('name')
-            ->get();
+        $colleges = \Illuminate\Support\Facades\Cache::remember('campus_directory_colleges', 1800, function () {
+            return \App\Models\College::with('university')
+                ->orderBy('name')
+                ->get();
+        });
 
-        $landmarks = \App\Models\Landmark::query()
-            ->where('is_active', true)
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get();
+        $landmarks = \Illuminate\Support\Facades\Cache::remember('campus_directory_landmarks', 1800, function () {
+            return \App\Models\Landmark::query()
+                ->where('is_active', true)
+                ->orderBy('type')
+                ->orderBy('name')
+                ->get();
+        });
 
         return Inertia::render('Campus/Directory', [
             'colleges' => $colleges,

@@ -123,7 +123,7 @@ class CartController extends Controller
          * 2. المزامنة (Sync)
          * تحديث جدول user_carts فوراً لضمان ظهور البيانات في لوحة الأدمن.
          */
-        $hasPeriodColumns = Schema::hasColumn('user_carts', 'academic_year') && Schema::hasColumn('user_carts', 'academic_term');
+        $hasPeriodColumns = true; // Columns confirmed in migrations — no need for runtime Schema check
 
         $syncPayload = [];
         foreach ($allowedIds as $courseId) {

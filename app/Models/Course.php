@@ -24,7 +24,11 @@ class Course extends Model
                     return;
                 }
                 if ($user->major_id) {
-                    $collegeId = \App\Models\Major::withoutGlobalScopes()->where('id', $user->major_id)->value('college_id');
+                    $collegeId = \Illuminate\Support\Facades\Cache::remember(
+                        "major_college_id:{$user->major_id}",
+                        3600,
+                        fn () => \App\Models\Major::withoutGlobalScopes()->where('id', $user->major_id)->value('college_id')
+                    );
                     $builder->where(function ($query) use ($collegeId) {
                         $query->where('courses.college_id', $collegeId)
                               ->orWhereHas('major', function ($q) use ($collegeId) {
