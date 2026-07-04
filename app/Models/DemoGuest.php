@@ -4,14 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class NtpGuest extends Model
+class DemoGuest extends Model
 {
     protected $fillable = [
         'name',
+        'email',
         'college_id',
         'major_id',
-        'study_plan_version',
-        'user_id'
     ];
 
     public function college()
@@ -22,10 +21,5 @@ class NtpGuest extends Model
     public function major()
     {
         return $this->belongsTo(Major::class);
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
     }
 }

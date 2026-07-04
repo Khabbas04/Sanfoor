@@ -48,7 +48,7 @@ class QuizController extends Controller
                       }])
                       ->orderBy('order');
                 }])
-                ->orderByRaw("CASE WHEN code = 'NTP2026' THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE WHEN code = 'DEMO2026' THEN 0 ELSE 1 END")
                 ->orderBy('semester')
                 ->orderBy('name')
                 ->get();

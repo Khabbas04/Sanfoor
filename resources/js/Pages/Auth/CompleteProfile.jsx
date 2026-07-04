@@ -276,28 +276,6 @@ export default function CompleteProfile({ colleges, majors }) {
                                             <img src="/images/sanfoor.png" alt="Sanfoor" className="w-full h-full object-contain drop-shadow-2xl" />
                                         </div>
                                     </div>
-                                    
-                                    {/* Sharp Champion Collab X ICON */}
-                                    <div className="relative flex items-center justify-center mx-2 sm:mx-4 z-20 flex-shrink-0">
-                                        <svg className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-[0_8px_16px_rgba(249,115,22,0.5)] relative z-10 transition-transform duration-300 hover:scale-105" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M 15 15 L 35 15 L 50 36 L 65 15 L 85 15 L 60 50 L 85 85 L 65 85 L 50 64 L 35 85 L 15 85 L 40 50 Z" fill="url(#champGrad)" />
-                                            <defs>
-                                                <linearGradient id="champGrad" x1="15" y1="15" x2="85" y2="85" gradientUnits="userSpaceOnUse">
-                                                    <stop stopColor="#f97316" />
-                                                    <stop offset="0.5" stopColor="#fb923c" />
-                                                    <stop offset="1" stopColor="#ea580c" />
-                                                </linearGradient>
-                                            </defs>
-                                        </svg>
-                                    </div>
-
-                                    {/* NTP Logo */}
-                                    <div className="relative group z-10 hover:z-20 flex-shrink-0 animate-float-soft-delayed">
-                                        <div className="absolute inset-0 bg-white/40 rounded-[1.5rem] blur-xl group-hover:bg-white/60 transition-all duration-500"></div>
-                                        <div className="w-20 h-20 sm:w-24 sm:h-24 transform transition-all duration-500 group-hover:scale-110 group-hover:-translate-y-1 relative z-10 flex items-center justify-center bg-white/95 rounded-[1.5rem] p-2 sm:p-3 shadow-[0_8px_16px_rgba(0,0,0,0.5)] border border-white/50">
-                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-full h-full object-contain" />
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <div className="relative group inline-flex items-center justify-center mb-6 cursor-default">
@@ -312,7 +290,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                         </span>
                                         
                                         <span className="text-sm sm:text-base font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 via-purple-600 to-pink-600 tracking-wide z-20 relative px-1">
-                                            هذه النسخة مخصصة حصرياً لضيوف مهرجان NTP ✨
+                                            أهلاً بك في النسخة التجريبية لضيوف سنفور ✨
                                         </span>
                                     </div>
                                 </div>

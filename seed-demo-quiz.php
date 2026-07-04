@@ -4,10 +4,15 @@ use App\Models\Course;
 use App\Models\Question;
 use App\Models\Chapter;
 
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+
 $course = Course::firstOrCreate(
-    ['code' => 'NTP2026'],
+    ['code' => 'DEMO2026'],
     [
-        'name' => 'تحدي مسابقة NTP التجريبي 🏆',
+        'name' => 'تحدي سنفور التجريبي 🏆',
         'credit_hours' => 0,
         'type' => 'university_elective',
         'semester' => 1,
@@ -19,7 +24,7 @@ $course = Course::firstOrCreate(
 
 // Create a chapter for it
 $chapter = Chapter::firstOrCreate(
-    ['course_id' => $course->id, 'title' => 'أسئلة المسابقة الذكية'],
+    ['course_id' => $course->id, 'title' => 'أسئلة التجربة الذكية'],
     ['order' => 1, 'is_active' => true]
 );
 
@@ -83,4 +88,4 @@ foreach ($questions as $q) {
     );
 }
 
-echo "Seeded NTP Demo Quiz Challenge successfully!\n";
+echo "Seeded Demo Quiz Challenge successfully!\n";

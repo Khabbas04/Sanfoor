@@ -21,8 +21,8 @@ class GuestDemoController extends Controller
      * Create a temporary guest account with realistic academic data
      * and log the visitor in automatically.
      *
-     * This endpoint is designed for the NTP competition at Amman Al-Ahliyyah
-     * University so that judges and visitors can experience the full Sanfoor
+     * This endpoint is designed for demo purposes
+     * so that visitors can experience the full Sanfoor
      * platform without a Microsoft / Zarqa University email.
      */
     public function enter(Request $request)
@@ -52,19 +52,19 @@ class GuestDemoController extends Controller
                 $majorId = $major?->id;
 
                 // Generate a sequential, human-readable guest identity
-                // (e.g. name "ضيف NTP #12", email "ntp-guest-12@demo.sanfoor.me")
+                // (e.g. name "ضيف تجريبي #12", email "demo-guest-12@demo.sanfoor.me")
                 // instead of random slugs, so admins can read the log at a glance.
                 $guestNumber = User::where('role', 'guest')->count() + 1;
-                $email = "ntp-guest-{$guestNumber}@demo.sanfoor.me";
+                $email = "demo-guest-{$guestNumber}@demo.sanfoor.me";
 
                 // Guarantee uniqueness even if an earlier guest with this number was deleted.
                 while (User::where('email', $email)->exists()) {
                     $guestNumber++;
-                    $email = "ntp-guest-{$guestNumber}@demo.sanfoor.me";
+                    $email = "demo-guest-{$guestNumber}@demo.sanfoor.me";
                 }
 
                 $user = User::create([
-                    'name'               => "ضيف NTP #{$guestNumber}",
+                    'name'               => "ضيف تجريبي #{$guestNumber}",
                     'email'              => $email,
                     'password'           => Hash::make(Str::random(64)),
                     // major_id and study_plan_version are left null intentionally
@@ -123,7 +123,7 @@ class GuestDemoController extends Controller
 
     /**
      * Seed a realistic set of passed courses for the demo user based on the selected major.
-     * Also seeds a welcome AI chat customized for the NTP competition.
+     * Also seeds a welcome AI chat customized for the demo.
      */
     public static function seedDemoCourses(User $user, ?int $majorId): void
     {
@@ -168,13 +168,13 @@ class GuestDemoController extends Controller
             $user->passedCourses()->sync($attachData);
         }
 
-        // Seed an initial smart AI chat for the NTP demo
+        // Seed an initial smart AI chat for the demo
         $majorName = $user->major?->name ?? 'تخصصك';
         $chat = $user->chats()->create([
-            'title' => 'مرحباً بك في سنفور - مسابقة NTP',
+            'title' => 'مرحباً بك في المنصة التجريبية',
         ]);
 
-        $aiWelcomeMessage = "أهلاً بك في منصة سنفور! يسعدني جداً وجودك معنا اليوم لتجربة المنصة كضيف في **مسابقة NTP بجامعة عمان الأهلية** 🎫.\n\n"
+        $aiWelcomeMessage = "أهلاً بك في منصة سنفور! يسعدني جداً وجودك معنا اليوم لتجربة المنصة 🎫.\n\n"
                           . "لقد قمت بتحليل خطتك الدراسية لـ **{$majorName}**، ولاحظت أن أداءك ممتاز في المواد السابقة (هذه بيانات تجريبية تمت إضافتها لتجربتك!).\n\n"
                           . "يمكنك الآن استكشاف الشجرة التفاعلية، لوحة التحكم، أو ببساطة سؤالي هنا عن أي شيء يخص موادك القادمة، وسأقوم بإرشادك بناءً على بياناتك الأكاديمية! كيف يمكنني مساعدتك؟ 🤖✨";
 

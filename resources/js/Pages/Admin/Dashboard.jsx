@@ -91,7 +91,7 @@ const translations = {
     },
 };
 
-export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true, ntpGuests = [] }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true, demoGuests = [] }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -530,14 +530,14 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                     </div>
                 </div>
 
-                {/* NTP Festival Guests */}
+                {/* Demo Guests */}
                 <div className={`${card} rounded-[2.5rem] p-8 shadow-sm`}>
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
                         <h3 className={`text-lg font-black ${heading} flex items-center gap-2`}>
-                            <span className="text-amber-500 text-2xl">🎪</span> ضيوف مهرجان NTP
+                            <span className="text-amber-500 text-2xl">🎪</span> ضيوف النسخة التجريبية
                         </h3>
                         <span className={`text-xs font-bold px-3 py-1 rounded-lg ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
-                            إجمالي المسجلين: {ntpGuests.length}
+                            إجمالي المسجلين: {demoGuests.length}
                         </span>
                     </div>
                     
@@ -553,7 +553,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                 </tr>
                             </thead>
                             <tbody>
-                                {ntpGuests.map((guest) => (
+                                {demoGuests.map((guest) => (
                                     <tr key={guest.id} className={`border-b last:border-0 transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}>
                                         <td className={`py-4 px-4 font-bold text-sm ${heading}`}>{guest.name}</td>
                                         <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{guest.college?.name || '—'}</td>
@@ -562,7 +562,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                         <td className={`py-4 px-4 font-bold text-[11px] ${subtext}`}>{new Date(guest.created_at).toLocaleString('ar-JO')}</td>
                                     </tr>
                                 ))}
-                                {ntpGuests.length === 0 && (
+                                {demoGuests.length === 0 && (
                                     <tr>
                                         <td colSpan="5" className={`py-8 text-center text-sm font-bold ${subtext}`}>لا يوجد ضيوف مسجلين حتى الآن.</td>
                                     </tr>

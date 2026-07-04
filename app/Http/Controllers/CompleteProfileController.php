@@ -110,9 +110,9 @@ class CompleteProfileController extends Controller
                     'ip_address' => $request->ip(),
                 ]);
 
-                // Track NTP Guest Registration
+                // Track Demo Guest Registration
                 if ($isGuest) {
-                    \App\Models\NtpGuest::create([
+                    \App\Models\DemoGuest::create([
                         'name' => trim($validated['name']),
                         'college_id' => (int) $validated['college_id'],
                         'major_id' => (int) $validated['major_id'],
@@ -121,7 +121,7 @@ class CompleteProfileController extends Controller
                     ]);
                 }
             } catch (Throwable $logError) {
-                Log::warning('Failed to log profile completion or NTP tracking', ['error' => $logError->getMessage()]);
+                Log::warning('Failed to log profile completion or demo guest tracking', ['error' => $logError->getMessage()]);
             }
         } catch (Throwable $e) {
             Log::error('Profile completion update failed', [

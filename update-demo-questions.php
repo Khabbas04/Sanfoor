@@ -4,7 +4,7 @@ $app = require_once __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-$course = \App\Models\Course::where('code', 'NTP2026')->first();
+$course = \App\Models\Course::where('code', 'DEMO2026')->first();
 if (!$course) {
     echo "Course not found.\n";
     exit;
