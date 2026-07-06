@@ -886,19 +886,36 @@ class AiAdvisorController extends Controller
                 return $diffA <=> $diffB;
             });
 
-            $topEligible = array_slice($allEligible, 0, 30);
-
+            // Bucket courses into available vs locked with INDEPENDENT caps.
+            // A single array_slice($allEligible, 0, N) truncated the list AFTER sorting
+            // Available-courses-first, so locked courses got pushed past the cutoff and
+            // vanished from both lists. That made the AI treat a course that genuinely
+            // exists in the plan (but is locked) as if it "doesn't exist" and reply
+            // "المادة غير موجودة". We now cap the two buckets separately so every locked
+            // course stays visible and the AI can explain its real status.
             $availableText = ["ID,Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched"];
-            $lockedText = ["Name,Status,Reason"];
+            $lockedText = ["ID,Code,Name,Hrs,Status,Reason,Desc"];
+            $availableCount = 0;
+            $lockedCount = 0;
 
-            foreach ($topEligible as $course) {
-                $cCart = $course['in_cart'] ? 1 : 0;
-                $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
+            foreach ($allEligible as $course) {
+                $desc = empty($course['desc']) ? 'لا يوجد وصف' : $course['desc'];
 
                 if ($course['status'] === 'Available' || $course['in_cart']) {
+                    if ($availableCount >= 40) {
+                        continue;
+                    }
+                    $availableCount++;
+                    $cCart = $course['in_cart'] ? 1 : 0;
+                    $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
                     $availableText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
                 } else {
-                    $lockedText[] = "{$course['name']},{$course['status']},مغلقة بسبب المتطلبات أو الساعات";
+                    if ($lockedCount >= 120) {
+                        continue;
+                    }
+                    $lockedCount++;
+                    $reason = $this->describeLockReason($course['status']);
+                    $lockedText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['status']},{$reason},{$desc}";
                 }
             }
 
@@ -1053,7 +1070,10 @@ class AiAdvisorController extends Controller
             "- الإجابة: سياق الإرشاد الأكاديمي، أجب ببساطة وود، وكن منظماً ومباشراً. استخدم النقاط لترتيب الأفكار.\n" .
             "- لا تقل 'لا أعرف'، قدم نصيحة عامة أو وجه للقسم المختص بثقة.\n" .
             "- للتسجيل واقتراح المواد: **اقرأ خطة الطالب بدقة واستعرض مواده المنجزة والمواد في التسجيل التجريبي**. عند الاقتراح، اختر من قائمة (المواد المتاحة للتسجيل) بشكل منطقي: أعطِ الأولوية لمواد التخصص الإجبارية (compulsory) والمواد التي تفتح مواد أخرى (Unlocks)، مع مراعاة الساعات المسموحة وتوازن الصعوبة.\n" .
-            "- إذا سأل الطالب عن مادة وحالتها (Status) تبدأ بـ Locked، اشرح له السبب بذكاء (إما لنقص الساعات MinHrs أو بسبب متطلب سابق Locked_Prereqs). استفد من وصف المادة (Desc) وصعوبتها (Diff من 1 لـ 5) في إعطاء نصائح حقيقية.\n" .
+            "- 🔎 الاستفسار عن مادة معينة: قبل أن تجيب، **ابحث عن اسم المادة في القائمتين معاً: (المواد المتاحة) و(المواد المغلقة)**. وحدة القائمتين تمثّلان خطة الطالب كاملة (المتاحة + المغلقة).\n" .
+            "- 🚫 قاعدة صارمة: **إياك أن تقول إن مادة 'غير موجودة' أو 'غير متاحة' أو 'ليست ضمن المواد' إذا كانت مذكورة في أي من القائمتين** — فهي موجودة في خطة الطالب فعلاً، إما متاحة الآن أو مغلقة مؤقتاً. لا تقل إنها ليست ضمن خطته إلا إذا لم تظهر إطلاقاً في القائمتين، وعندها وجّهه للقسم/المرشد للتأكد بلطف.\n" .
+            "- إذا وجدت المادة **مغلقة** (Status تبدأ بـ Locked): أخبره أولاً بأنها موجودة في خطته لكنها مقفلة حالياً، ثم اذكر السبب الدقيق من عمود (Reason)، ومتى يقدر يأخذها (بعد إتمام المتطلب السابق أو بلوغ عدد الساعات المطلوب)، وأعطه نبذة قصيرة من (Desc) وصعوبتها (Diff من 1 لـ 5).\n" .
+            "- 📝 تنسيق الرد عن مادة محددة (اجعله واضحاً واحترافياً ومختصراً): سطر باسم المادة ورمزها وساعاتها، ثم سطر بحالتها (✅ متاحة / 🔒 مقفلة + السبب)، ثم نصيحة قصيرة أو نبذة. تجنّب الردود المبهمة أو الطويلة بلا فائدة.\n" .
             "- عامود (Sched) يحتوي على أوقات وأيام وقاعات الشُعب المطروحة واسم **المحاضر/المدرس**، اقرأه جيداً واستخدم هذه المعلومات إذا سألك الطالب عن المدرسين أو تفاصيل المحاضرات.\n" .
             "- اذكر الفصل، الحد الفعلي، ثم قيّم الحالة. الفصل الحالي: {$currentPeriodLabel}. حد الترم: {$currentTermLimit}س. الحد الأكاديمي: {$academicLimit}س. الحد المطبق: {$effectiveLimit}س.\n" .
             "- 🚨 قيود الساعات الذكية (هام جداً): الحد الطبيعي للفصل العادي 18 وللصيفي 9. الاستثناءات: (1) الخريج بالفصل العادي (باقي 21 ساعة أو أقل) مسموح له 21 ساعة. (2) الخريج بالصيفي (باقي 12 ساعة أو أقل) مسموح له 12 ساعة. (3) الصيفي في حال احتوى على مادة مختبر (ساعة واحدة) مسموح له 10 ساعات.\n" .
@@ -1080,7 +1100,7 @@ class AiAdvisorController extends Controller
             "المواد التي أتمها الطالب (ناجح فيها): " . ($academicData['passed_courses_names'] ?: 'لم ينجز أي مواد بعد') . "\n" .
             "التسجيل التجريبي الحالي: " . ($cartListWithIds ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
             "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد). العمود الأول (ID) هو الرقم التعريفي للمادة:\n{$availableCourses['available_text']}\n\n" .
-            "❌ المواد المغلقة حالياً (لا تقترحها أبداً للتسجيل، فقط اشرح سبب إغلاقها إذا سألك الطالب):\n{$availableCourses['locked_text']}\n\n" .
+            "🔒 المواد المغلقة حالياً — **هذه مواد موجودة في خطة الطالب لكنها مقفلة مؤقتاً** (لا تقترحها للتسجيل، لكن إذا سأل عنها الطالب فأكّد أنها موجودة واشرح سبب إغلاقها من عمود Reason ومتى يقدر يأخذها). الأعمدة: ID,Code,Name,Hrs,Status,Reason,Desc:\n{$availableCourses['locked_text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_course_ids\":[],\"remove_course_ids\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
             "🚨 قاعدة المواد الحاسمة (لضمان تطابق الكروت مع كلامك):\n" .
@@ -1088,6 +1108,8 @@ class AiAdvisorController extends Controller
             "- إذا نصحت الطالب **بحذف/تخفيف** مواد من تسجيله التجريبي، ضع أرقامها (ID) في remove_course_ids — وحصراً من أرقام مواد (التسجيل التجريبي الحالي).\n" .
             "- ⛔ لا تضع رقم مادة في suggested_course_ids إلا إذا كنت فعلاً تنصح بتسجيلها. إذا ذكرت مادة لتقول 'لا تسجّلها بعد' أو 'مغلقة'، **لا تضع رقمها** إطلاقاً.\n" .
             "- إذا كان ردك مجرد شرح أو حساب معدل ولا يتضمن اقتراح مواد، اترك المصفوفتين فارغتين [].\n" .
+            "- 🚫🔢 **ممنوع منعاً باتاً كتابة رقم الـ ID داخل نص reply** (لا تكتب 'ID: 83' ولا '(ID:100)' ولا أي رقم تعريفي). الـ ID رقم داخلي للنظام يوضع فقط في مصفوفة suggested_course_ids/remove_course_ids ولا يعني شيئاً للطالب.\n" .
+            "- 💡 بدل رقم الـ ID، اذكر للطالب **معلومات مفيدة فعلاً** عن كل مادة تقترحها: اسم المادة، عدد ساعاتها، مستوى صعوبتها (Diff من 1=سهلة إلى 5=صعبة بصياغة ودّية مثل 'صعوبتها متوسطة')، كم مادة تفتح (Unlocks)، ونبذة قصيرة من وصفها (Desc). اجعل الوصف عملياً يساعده على القرار، لا مجرد أرقام.\n" .
             "هام جداً: يجب أن يكون نص الـ reply سطراً واحداً برمجياً، استخدم الحرفين \\n للنزول سطر جديد ولا تضغط Enter (Literal newlines) داخل النص لتجنب كسر الـ JSON.\n" .
             "🚨 تحذير شديد: إياك أن تخترع أسماء مواد أو أرقام مواد أو عدد ساعات غير موجودة في القوائم أعلاه، سواء في النص أو في interactive_widget أو في مصفوفات الأرقام. أي رقم أو مادة من خارج القوائم سيسبب خطأ فادح بالنظام.";
     }
@@ -1494,6 +1516,12 @@ class AiAdvisorController extends Controller
         // DO NOT strip multiple spaces as it ruins code indentation
         
         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Safety net: the internal course ID is meaningless to the student and must never
+        // surface in the reply text. Even with prompt instructions the model occasionally
+        // leaks "(ID: 83)" into prose, so strip that token (with any leading space) here.
+        $clean = preg_replace('/\x{00A0}?\s*[\(\[]\s*ID\s*[:：]?\s*\d+\s*[\)\]]/iu', '', $clean);
+
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
 
         return trim($this->stripReplyEnvelope($clean)) ?: 'ما وصلني رد واضح هذه المرة. اكتب سؤالك بصيغة أقصر وأنا أجاوبك فوراً.';
@@ -1687,6 +1715,23 @@ class AiAdvisorController extends Controller
             'suggested' => array_values(array_unique(array_filter(array_map('intval', $suggestedIds)))),
             'remove' => array_values(array_unique(array_filter(array_map('intval', $removeIds)))),
         ];
+    }
+
+    /**
+     * Turn a machine status string (Locked_Prereqs(...) / Locked_Hrs(N)) into a short
+     * human-readable Arabic reason the AI can quote directly to the student.
+     */
+    private function describeLockReason(string $status): string
+    {
+        if (preg_match('/^Locked_Prereqs\((.+)\)$/u', $status, $m)) {
+            return 'مقفلة - يلزم إتمام المتطلب السابق: ' . str_replace('+', ' و ', $m[1]);
+        }
+
+        if (preg_match('/^Locked_Hrs\((\d+)\)$/u', $status, $m)) {
+            return "مقفلة - يلزم إتمام {$m[1]} ساعة معتمدة على الأقل قبل أخذها";
+        }
+
+        return 'مقفلة حالياً';
     }
 
     private function normalizeArabic($text): string
