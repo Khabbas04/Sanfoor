@@ -219,12 +219,10 @@ class AiAdvisorController extends Controller
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
                 $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
-                $mentionedCoursesContext = $this->buildMentionedCoursesContext($data['message'], $availableCourses, $user);
-                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? false, $mentionedCoursesContext);
+                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? false);
                 $contents = $this->buildConversationContext($chat, $systemPrompt);
 
-                $wantsCode = (bool) ($data['wants_code'] ?? false);
-                $rawText = $this->callGeminiAPI($contents, $apiKeys, $wantsCode ? 4096 : 2048);
+                $rawText = $this->callGeminiAPI($contents, $apiKeys);
                 $parsed = $this->parseAIResponse($rawText);
 
                 $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
@@ -895,16 +893,14 @@ class AiAdvisorController extends Controller
             // exists in the plan (but is locked) as if it "doesn't exist" and reply
             // "المادة غير موجودة". We now cap the two buckets separately so every locked
             // course stays visible and the AI can explain its real status.
-            // The locked list intentionally carries NO Desc column: sending a description for
-            // every one of up to 120 locked courses dominated the prompt (~60% of tokens) and
-            // slowed the model down badly. Descriptions are injected on demand only for the
-            // specific course a student asks about (see buildMentionedCoursesContext()).
             $availableText = ["ID,Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched"];
-            $lockedText = ["ID,Code,Name,Hrs,Status,Reason"];
+            $lockedText = ["ID,Code,Name,Hrs,Status,Reason,Desc"];
             $availableCount = 0;
             $lockedCount = 0;
 
             foreach ($allEligible as $course) {
+                $desc = empty($course['desc']) ? 'لا يوجد وصف' : $course['desc'];
+
                 if ($course['status'] === 'Available' || $course['in_cart']) {
                     if ($availableCount >= 40) {
                         continue;
@@ -919,7 +915,7 @@ class AiAdvisorController extends Controller
                     }
                     $lockedCount++;
                     $reason = $this->describeLockReason($course['status']);
-                    $lockedText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['status']},{$reason}";
+                    $lockedText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['status']},{$reason},{$desc}";
                 }
             }
 
@@ -929,10 +925,6 @@ class AiAdvisorController extends Controller
                 'available_text' => count($availableText) > 1 ? implode("\n", $availableText) : 'لا يوجد مواد متاحة للتسجيل حالياً!',
                 'locked_text' => count($lockedText) > 1 ? implode("\n", $lockedText) : 'لا يوجد مواد مغلقة حالياً.',
                 'details' => $details,
-                // Full per-course records (name/code/hrs/difficulty/unlocks/status/desc) for the
-                // whole plan, used by buildMentionedCoursesContext() to answer questions about a
-                // specific course without shipping every description in the prompt.
-                'all' => $allEligible,
             ];
         });
     }
@@ -979,103 +971,7 @@ class AiAdvisorController extends Controller
         return "\n🎯 [RAG الإرشاد الطلابي]:\n- نية_السؤال: {$intent}\n- ساعات_الطالب_المنجزة: " . ($academicData['total_passed_hours'] ?? 0) . "\n- ساعات_التسجيل_التجريبي_الحالية: " . ($cartData['hours'] ?? 0) . "\n- حالة_الساعات: {$hoursState}\n- عدد_مواد_التسجيل_التجريبي: " . count($cartData['ids'] ?? []) . "\n- مواد_استراتيجية_مرشحة:\n" . ($strategic ? implode("\n", $strategic) : '- لا توجد مواد مرشحة حالياً') . "\n- عينات_حسب_تصنيف_الصعوبة_الاداري:\n  - خفيف: " . ($easy ? implode(' | ', array_slice($easy, 0, 4)) : 'لا يوجد') . "\n  - متوازن: " . ($balanced ? implode(' | ', array_slice($balanced, 0, 4)) : 'لا يوجد') . "\n  - مكثف: " . ($heavy ? implode(' | ', array_slice($heavy, 0, 4)) : 'لا يوجد');
     }
 
-    /**
-     * When the student names a specific course in their message, return a small, high-priority
-     * block with that course's full details (difficulty, unlocks, status, and the FULL description).
-     * This lets the AI answer richly about the asked course WITHOUT shipping a description for every
-     * course in the plan. Returns '' when no course is mentioned (so nothing is added to the prompt).
-     */
-    private function buildMentionedCoursesContext(string $message, array $availableCourses, $user): string
-    {
-        $normalizedMsg = $this->normalizeArabic($message);
-        if (mb_strlen($normalizedMsg, 'UTF-8') < 4) {
-            return '';
-        }
-
-        // Strip the leading article "ال" from the message too, so it aligns with the
-        // article-stripped course names below (e.g. "انترنت الاشياء" ⇄ "انترنت اشياء").
-        $strictMsg = str_replace('ال', '', $normalizedMsg);
-
-        // Candidate pool: every plan course (available + locked) plus the student's passed courses,
-        // so "احكيلي عن مادة X" works even if X is locked or already completed.
-        $candidates = [];
-        foreach (($availableCourses['all'] ?? []) as $course) {
-            if (!empty($course['name'])) {
-                $candidates[(int) $course['id']] = $course['name'];
-            }
-        }
-        foreach ($user->passedCourses as $course) {
-            $candidates[(int) $course->id] = $course->name;
-        }
-
-        // Match a course when its normalized name (with the leading "ال" stripped, length >= 4)
-        // appears as a substring of the normalized message. Prefer longer names first so a
-        // specific title wins over a short generic fragment.
-        uasort($candidates, fn ($a, $b) => mb_strlen($b, 'UTF-8') <=> mb_strlen($a, 'UTF-8'));
-
-        $matchedIds = [];
-        foreach ($candidates as $id => $name) {
-            $normName = trim(str_replace('ال', '', $this->normalizeArabic($name)));
-            if (mb_strlen($normName, 'UTF-8') >= 4 && mb_strpos($strictMsg, $normName) !== false) {
-                $matchedIds[] = $id;
-            }
-            if (count($matchedIds) >= 3) {
-                break;
-            }
-        }
-
-        if (empty($matchedIds)) {
-            return '';
-        }
-
-        // One targeted query (only when a course was actually named) to get the full descriptions.
-        $courses = Course::whereIn('id', $matchedIds)
-            ->select('id', 'name', 'code', 'credit_hours', 'description')
-            ->get()
-            ->keyBy('id');
-
-        $metaById = [];
-        foreach (($availableCourses['all'] ?? []) as $course) {
-            $metaById[(int) $course['id']] = $course;
-        }
-
-        $lines = [];
-        foreach ($matchedIds as $id) {
-            $course = $courses->get($id);
-            if (!$course) {
-                continue;
-            }
-
-            $meta = $metaById[$id] ?? null;
-            $parts = ["- {$course->name} ({$course->code}) | {$course->credit_hours}س"];
-
-            if ($meta) {
-                $parts[] = "صعوبة {$meta['difficulty_level']}/5";
-                $parts[] = "تفتح {$meta['unlocks']} مادة";
-                $statusLabel = $meta['status'] === 'Available'
-                    ? 'متاحة للتسجيل الآن'
-                    : $this->describeLockReason($meta['status']);
-                $parts[] = "الحالة: {$statusLabel}";
-            } else {
-                $parts[] = 'الحالة: أنجزها الطالب مسبقاً';
-            }
-
-            $desc = trim(str_replace(["\r", "\n"], ' ', (string) $course->description));
-            if ($desc !== '') {
-                $parts[] = 'نبذة: ' . mb_substr($desc, 0, 250, 'UTF-8');
-            }
-
-            $lines[] = implode(' | ', $parts);
-        }
-
-        if (empty($lines)) {
-            return '';
-        }
-
-        return "\n📌 تفاصيل المواد التي سأل عنها الطالب (استعملها للإجابة بدقة وثقة):\n" . implode("\n", $lines) . "\n";
-    }
-
-    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = [], $difficulty = null, $criticalPath = null, $wantsCode = false, string $mentionedCoursesContext = ''): string
+    private function buildSystemPrompt($user, array $academicData, array $cartData, array $availableCourses, string $ragContext = '', array $filters = [], $difficulty = null, $criticalPath = null, $wantsCode = false): string
     {
         $filterInstructions = "";
         
@@ -1203,7 +1099,6 @@ class AiAdvisorController extends Controller
             "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
             "المواد التي أتمها الطالب (ناجح فيها): " . ($academicData['passed_courses_names'] ?: 'لم ينجز أي مواد بعد') . "\n" .
             "التسجيل التجريبي الحالي: " . ($cartListWithIds ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
-            ($mentionedCoursesContext !== '' ? $mentionedCoursesContext . "\n" : '') .
             "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد). العمود الأول (ID) هو الرقم التعريفي للمادة:\n{$availableCourses['available_text']}\n\n" .
             "🔒 المواد المغلقة حالياً — **هذه مواد موجودة في خطة الطالب لكنها مقفلة مؤقتاً** (لا تقترحها للتسجيل، لكن إذا سأل عنها الطالب فأكّد أنها موجودة واشرح سبب إغلاقها من عمود Reason ومتى يقدر يأخذها). الأعمدة: ID,Code,Name,Hrs,Status,Reason,Desc:\n{$availableCourses['locked_text']}\n\n" .
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
@@ -1374,7 +1269,7 @@ class AiAdvisorController extends Controller
         return array_column($scored, 'key');
     }
 
-    private function callGeminiAPI(array $contents, array $apiKeys, int $maxOutputTokens = 2048): string
+    private function callGeminiAPI(array $contents, array $apiKeys): string
     {
         if (empty($apiKeys)) {
             throw new \Exception('No Gemini API keys configured');
@@ -1420,10 +1315,6 @@ class AiAdvisorController extends Controller
                                     'generationConfig' => [
                                         'responseMimeType' => 'application/json',
                                         'temperature' => 0.3,
-                                        // Bound the output so normal advising replies finish in a
-                                        // single pass instead of hitting MAX_TOKENS and triggering the
-                                        // continuation loop (which re-sends the whole prompt each pass).
-                                        'maxOutputTokens' => $maxOutputTokens,
                                     ],
                                 ]);
 
