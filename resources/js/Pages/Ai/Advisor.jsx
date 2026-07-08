@@ -4,7 +4,7 @@ import { Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import Swal from 'sweetalert2';
-import VideoPlayer from '@/Components/VideoPlayer';
+const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 
 // Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -1246,31 +1246,33 @@ export default function Advisor() {
                             </button>
                         </div>
                         <div className="p-4 sm:p-6 bg-black" dir="ltr">
-                            <VideoPlayer
-                                source={{
-                                    type: 'video',
-                                    title: 'AI Tutorial',
-                                    sources: [
-                                        {
-                                            src: '/videos/ai-demo.mp4',
-                                            type: 'video/mp4',
-                                        }
-                                    ],
-                                    tracks: [
-                                        {
-                                            kind: 'chapters',
-                                            label: 'Chapters',
-                                            srclang: 'ar',
-                                            src: '/videos/ai-chapters.vtt',
-                                            default: true,
-                                        }
-                                    ]
-                                }}
-                                chapters={[
-                                    { title: 'كيف اعمل جدول ؟', startTime: 0 },
-                                    { title: 'تقييم الجدول', startTime: 33 }
-                                ]}
-                            />
+                            <React.Suspense fallback={<div className="h-64 flex items-center justify-center bg-slate-900"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                                <VideoPlayer
+                                    source={{
+                                        type: 'video',
+                                        title: 'AI Tutorial',
+                                        sources: [
+                                            {
+                                                src: '/videos/ai-demo.mp4',
+                                                type: 'video/mp4',
+                                            }
+                                        ],
+                                        tracks: [
+                                            {
+                                                kind: 'chapters',
+                                                label: 'Chapters',
+                                                srclang: 'ar',
+                                                src: '/videos/ai-chapters.vtt',
+                                                default: true,
+                                            }
+                                        ]
+                                    }}
+                                    chapters={[
+                                        { title: 'كيف اعمل جدول ؟', startTime: 0 },
+                                        { title: 'تقييم الجدول', startTime: 33 }
+                                    ]}
+                                />
+                            </React.Suspense>
                         </div>
                     </div>
                 </div>

@@ -366,10 +366,14 @@ Route::middleware('auth')->group(function () {
 
     // AI advisor routes, including chat lifecycle operations.
     Route::get('/ai-advisor', [AiAdvisorController::class, 'index'])->name('ai.advisor');
-    Route::post('/ai-advisor/chat', [AiAdvisorController::class, 'chat'])->name('ai.advisor.chat');
+    Route::post('/ai-advisor/chat', [AiAdvisorController::class, 'chat'])
+        ->middleware('throttle:15,1')
+        ->name('ai.advisor.chat');
 
     Route::get('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class, 'getMessages'])->name('ai.advisor.messages');
-    Route::post('/ai-advisor/regenerate', [AiAdvisorController::class, 'regenerate'])->name('ai.advisor.regenerate');
+    Route::post('/ai-advisor/regenerate', [AiAdvisorController::class, 'regenerate'])
+        ->middleware('throttle:15,1')
+        ->name('ai.advisor.regenerate');
     Route::post('/ai-advisor/feedback', [AiAdvisorController::class, 'feedback'])->name('ai.advisor.feedback');
 
     // Keep the bulk-delete route before the single chat route to avoid parameter collisions.
@@ -397,7 +401,9 @@ Route::middleware('auth')->group(function () {
         // Instructor AI Scheduler
         Route::get('/ai-scheduler', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'index'])->name('ai.scheduler');
         Route::post('/ai-scheduler/preferences', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'savePreferences'])->name('ai.scheduler.preferences');
-        Route::post('/ai-scheduler/chat', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'chat'])->name('ai.scheduler.chat');
+        Route::post('/ai-scheduler/chat', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'chat'])
+            ->middleware('throttle:15,1')
+            ->name('ai.scheduler.chat');
         Route::get('/ai-scheduler/chat/{chat_id}', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'getMessages'])->name('ai.scheduler.messages');
         Route::delete('/ai-scheduler/chat/{chat_id}', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'destroy'])->name('ai.scheduler.destroy');
         Route::post('/ai-scheduler/commit', [\App\Http\Controllers\InstructorAiAdvisorController::class, 'commitSchedule'])->name('ai.scheduler.commit');

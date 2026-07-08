@@ -12,7 +12,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 import TourManager, { startTreeTour } from '@/Components/TourManager';
-import VideoPlayer from '@/Components/VideoPlayer';
+const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 
 // Resolve the deployment URL once for canonical metadata on the tree page.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');

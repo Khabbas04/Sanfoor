@@ -56,7 +56,8 @@ class AiAdvisorController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $apiKeys = $this->getGeminiApiKeys();
+        $geminiService = app(\App\Services\GeminiService::class);
+        $apiKeys = $geminiService->getApiKeys();
         $dailyLimit = $this->getDailyMessageLimitForUser($user);
 
         $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
@@ -114,7 +115,6 @@ class AiAdvisorController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
         }
 
-        // Check daily message limits only for non-admin users.
         $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
         $usage = (int) Cache::get($usageKey, 0);
         $dailyLimit = $this->getDailyMessageLimitForUser($user);
@@ -126,10 +126,6 @@ class AiAdvisorController extends Controller
                 'has_daily_limit' => true,
             ], 429);
         }
-
-        // Academic data cache is refreshed when the AI advisor page loads (index()).
-        // Skipping clearStudentCache() here avoids rebuilding the cache on every message,
-        // saving 3-4 DB queries per chat request without affecting data freshness.
 
         $currentPeriod = AcademicPeriod::current();
 
@@ -170,7 +166,8 @@ class AiAdvisorController extends Controller
             'effective_registration_limit' => $registrationLimits['effective_limit'],
         ]);
 
-        $apiKeys = $this->getGeminiApiKeys();
+        $geminiService = app(\App\Services\GeminiService::class);
+        $apiKeys = $geminiService->getApiKeys();
         $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
         $cachedAiResponse = Cache::get($responseCacheKey);
         if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
@@ -222,7 +219,7 @@ class AiAdvisorController extends Controller
                 $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? false);
                 $contents = $this->buildConversationContext($chat, $systemPrompt);
 
-                $rawText = $this->callGeminiAPI($contents, $apiKeys);
+                $rawText = $geminiService->callGeminiAPI($contents);
                 $parsed = $this->parseAIResponse($rawText);
 
                 $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
@@ -236,17 +233,12 @@ class AiAdvisorController extends Controller
 
                 $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableDetailsMap, $cartData['map']);
 
-                // Trust the course IDs the AI explicitly returned, but validate them strictly:
-                // suggestions must exist in the eligible list, removals must exist in the student's cart.
-                // This keeps the course cards perfectly aligned with what the AI actually recommended,
-                // and prevents negation/substring collisions from the old text-scan approach.
                 $eligibleIds = array_map('intval', array_keys($availableDetailsMap));
                 $cartIds = array_map('intval', array_keys($cartData['map']));
 
                 $suggestedIds = array_values(array_intersect($parsed['suggested_course_ids'] ?? [], $eligibleIds));
                 $removeIds = array_values(array_intersect($parsed['remove_course_ids'] ?? [], $cartIds));
 
-                // Fallback to text matching only when the AI returned no structured IDs at all.
                 if (empty($suggestedIds) && empty($removeIds)) {
                     $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
                     $suggestedIds = $matched['suggested'];
@@ -274,13 +266,12 @@ class AiAdvisorController extends Controller
 
             if ($isNewChat) {
                 $title = !$useFallback && self::ENABLE_SMART_TITLE
-                    ? $this->generateSmartTitle($data['message'], $replyText, $this->workingApiKey ?? $apiKeys[0])
+                    ? $this->generateSmartTitle($data['message'], $replyText)
                     : $this->makeFallbackTitle($data['message']);
 
                 $chat->update(['title' => $title]);
             }
 
-            // Increment daily message usage only for users with a daily cap.
             $newRemaining = null;
             if ($dailyLimit !== null) {
                 Cache::put($usageKey, $usage + 1, now()->endOfDay());
@@ -321,7 +312,6 @@ class AiAdvisorController extends Controller
                 'file' => $e->getFile(),
             ]);
 
-            // Attempt dynamic fallback if API fails
             try {
                 $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
                 
@@ -342,7 +332,6 @@ class AiAdvisorController extends Controller
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
 
-                // Increment daily message usage only for users with a daily cap.
                 $newRemaining = null;
                 if ($dailyLimit !== null) {
                     Cache::put($usageKey, $usage + 1, now()->endOfDay());
@@ -436,8 +425,6 @@ class AiAdvisorController extends Controller
         if (!$chat || $chat->user_id !== Auth::id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-
-
 
         DB::table('ai_feedbacks')->updateOrInsert(
             ['message_id' => $message->id, 'user_id' => Auth::id()],
@@ -886,13 +873,6 @@ class AiAdvisorController extends Controller
                 return $diffA <=> $diffB;
             });
 
-            // Bucket courses into available vs locked with INDEPENDENT caps.
-            // A single array_slice($allEligible, 0, N) truncated the list AFTER sorting
-            // Available-courses-first, so locked courses got pushed past the cutoff and
-            // vanished from both lists. That made the AI treat a course that genuinely
-            // exists in the plan (but is locked) as if it "doesn't exist" and reply
-            // "المادة غير موجودة". We now cap the two buckets separately so every locked
-            // course stays visible and the AI can explain its real status.
             $availableText = ["ID,Code,Name,Hrs,Yr,Type,Unlocks,Diff,Cart,Sched"];
             $lockedText = ["ID,Code,Name,Hrs,Status,Reason,Desc"];
             $availableCount = 0;
@@ -1007,7 +987,6 @@ class AiAdvisorController extends Controller
         $studentYearLabels = [1 => 'أولى', 2 => 'ثانية', 3 => 'ثالثة', 4 => 'رابعة', 5 => 'خامسة'];
 
         $gpa = $academicData['gpa_data']['percentage'] ?? 0;
-        $gpa4 = $academicData['gpa_data']['gpa4'] ?? 0;
         $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي غير محدد');
         $currentTermLimit = (int) ($academicData['current_term_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
         $academicLimit = (int) ($academicData['academic_limit'] ?? ($academicData['max_allowed_hours'] ?? self::MAX_HOURS_NORMAL));
@@ -1035,7 +1014,6 @@ class AiAdvisorController extends Controller
             $cartWarning = "\n⚠️ تنبيه: التسجيل التجريبي يحتوي {$cartData['hours']} ساعة ويتجاوز الحد الفعلي المسموح بـ {$excess} ساعة!";
         }
 
-        // Show cart courses with their IDs so the AI can reference them precisely in remove_course_ids.
         $cartListWithIds = '';
         if (!empty($cartData['map'])) {
             $cartPairs = [];
@@ -1174,237 +1152,6 @@ class AiAdvisorController extends Controller
         return $contents;
     }
 
-    private function getGeminiApiKeys(): array
-    {
-        $keys = [];
-        $csv = (string) config('services.gemini.keys', '');
-
-        foreach (explode(',', $csv) as $key) {
-            $value = trim($key);
-            if ($value !== '') {
-                $keys[] = $value;
-            }
-        }
-
-        $single = trim((string) config('services.gemini.key', ''));
-        if ($single !== '') {
-            $keys[] = $single;
-        }
-
-        return array_values(array_unique($keys));
-    }
-
-    /**
-     * Get RPM (requests per minute) usage for a given API key.
-     */
-    private function getKeyRpm(string $apiKey): int
-    {
-        $minute = date('Y-m-d_H-i');
-        return (int) Cache::get('gemini_rpm_' . md5($apiKey) . '_' . $minute, 0);
-    }
-
-    /**
-     * Increment RPM counter for a given API key.
-     */
-    private function incrementKeyRpm(string $apiKey): void
-    {
-        $minute = date('Y-m-d_H-i');
-        $cacheKey = 'gemini_rpm_' . md5($apiKey) . '_' . $minute;
-        $current = (int) Cache::get($cacheKey, 0);
-        Cache::put($cacheKey, $current + 1, now()->addSeconds(90));
-    }
-
-    /**
-     * Check if a key is in cooldown. Returns remaining seconds or 0.
-     */
-    private function getKeyCooldownRemaining(string $apiKey): int
-    {
-        $until = Cache::get('gemini_cooldown_' . md5($apiKey));
-        if (!$until) return 0;
-        $remaining = $until - time();
-        return max(0, $remaining);
-    }
-
-    /**
-     * Put a key into cooldown for N seconds.
-     */
-    private function setCooldown(string $apiKey, int $seconds, string $reason = ''): void
-    {
-        $until = time() + $seconds;
-        Cache::put('gemini_cooldown_' . md5($apiKey), $until, now()->addSeconds($seconds + 5));
-        Cache::put('gemini_cooldown_reason_' . md5($apiKey), $reason, now()->addSeconds($seconds + 5));
-        Log::debug("Gemini key cooldown set: " . substr($apiKey, 0, 8) . "... for {$seconds}s reason: {$reason}");
-    }
-
-    private const RPM_LIMIT = 14; // Safe limit (actual is 15, keep 1 buffer)
-
-    /**
-     * Select the best available API key: not in cooldown, lowest RPM usage.
-     * Returns sorted array of keys (best first).
-     */
-    private function sortKeysByAvailability(array $apiKeys): array
-    {
-        $scored = [];
-        foreach ($apiKeys as $key) {
-            $cooldown = $this->getKeyCooldownRemaining($key);
-            $rpm = $this->getKeyRpm($key);
-            $scored[] = [
-                'key' => $key,
-                'cooldown' => $cooldown,
-                'rpm' => $rpm,
-                'available' => $cooldown === 0 && $rpm < self::RPM_LIMIT,
-            ];
-        }
-
-        // Sort: available first, then by lowest RPM
-        usort($scored, function ($a, $b) {
-            if ($a['available'] !== $b['available']) {
-                return $b['available'] <=> $a['available'];
-            }
-            if ($a['cooldown'] !== $b['cooldown']) {
-                return $a['cooldown'] <=> $b['cooldown'];
-            }
-            return $a['rpm'] <=> $b['rpm'];
-        });
-
-        return array_column($scored, 'key');
-    }
-
-    private function callGeminiAPI(array $contents, array $apiKeys): string
-    {
-        if (empty($apiKeys)) {
-            throw new \Exception('No Gemini API keys configured');
-        }
-
-        $model = trim((string) config('services.gemini.model')) ?: 'gemini-2.5-flash-lite';
-        $sortedKeys = $this->sortKeysByAvailability($apiKeys);
-        $lastError = 'Unknown Gemini error';
-
-        foreach ($sortedKeys as $apiKey) {
-            $keyIndex = array_search($apiKey, $apiKeys, true);
-
-            // Skip keys in cooldown
-            $cooldown = $this->getKeyCooldownRemaining($apiKey);
-            if ($cooldown > 0) {
-                $lastError = "key#" . ($keyIndex + 1) . ": in cooldown ({$cooldown}s remaining)";
-                continue;
-            }
-
-            // Skip keys at RPM limit
-            $rpm = $this->getKeyRpm($apiKey);
-            if ($rpm >= self::RPM_LIMIT) {
-                $lastError = "key#" . ($keyIndex + 1) . ": RPM limit reached ({$rpm}/" . self::RPM_LIMIT . ")";
-                continue;
-            }
-
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
-
-            try {
-                $requestContents = $contents;
-                $fullText = '';
-                $backoffMs = 100;
-
-                for ($pass = 0; $pass <= 2; $pass++) {
-                    for ($retryCount = 0; $retryCount < 2; $retryCount++) {
-                        try {
-                            $response = Http::withoutVerifying()
-                                ->connectTimeout(5)
-                                ->timeout(35)
-                                ->withHeaders(['Content-Type' => 'application/json'])
-                                ->post($url, [
-                                    'contents' => $requestContents,
-                                    'generationConfig' => [
-                                        'responseMimeType' => 'application/json',
-                                        'temperature' => 0.3,
-                                    ],
-                                ]);
-
-                            $status = $response->status();
-
-                            if ($status === 429) {
-                                $this->setCooldown($apiKey, 60, 'rate_limited_429');
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 429 (rate limited, cooldown 60s)";
-                                continue 3; // Next key
-                            }
-
-                            if (in_array($status, [401, 403])) {
-                                $this->setCooldown($apiKey, 600, 'invalid_key_' . $status);
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP {$status} (invalid/blocked, cooldown 10min)";
-                                continue 3; // Next key
-                            }
-
-                            if ($status === 400) {
-                                $this->setCooldown($apiKey, 120, 'bad_request_400');
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request, cooldown 2min)";
-                                continue 3; // Next key
-                            }
-
-                            if ($status === 503) {
-                                if ($retryCount < 1) {
-                                    usleep($backoffMs * 1000);
-                                    $backoffMs *= 2;
-                                    continue; // Retry
-                                }
-                                $this->setCooldown($apiKey, 30, 'server_overloaded_503');
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP 503 (overloaded, cooldown 30s)";
-                                continue 3; // Next key
-                            }
-
-                            if (!$response->successful()) {
-                                $lastError = "key#" . ($keyIndex + 1) . ": HTTP {$status}";
-                                continue 3;
-                            }
-
-                            break; // Success
-                        } catch (\Exception $e) {
-                            if ($retryCount < 1) {
-                                usleep($backoffMs * 1000);
-                                $backoffMs *= 2;
-                                continue;
-                            }
-                            throw $e;
-                        }
-                    }
-
-                    // Track RPM + daily usage on success
-                    $this->incrementKeyRpm($apiKey);
-
-                    $candidate = $response->json('candidates.0');
-                    $chunk = $candidate['content']['parts'][0]['text'] ?? null;
-
-                    if (!is_string($chunk) || trim($chunk) === '') {
-                        $lastError = "key#" . ($keyIndex + 1) . ": empty candidate text";
-                        continue 2; // Next key
-                    }
-
-                    $fullText .= $chunk;
-
-                    $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
-                    $stopped = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
-                    if (!$stopped || $pass >= 2) {
-                        $this->workingApiKey = $apiKey;
-                        $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
-                        Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
-                        return $fullText;
-                    }
-
-                    $requestContents[] = ['role' => 'model', 'parts' => [['text' => $chunk]]];
-                    $requestContents[] = ['role' => 'user', 'parts' => [['text' => 'أكمل من آخر نقطة بدون تكرار.']]];
-                }
-
-                if ($fullText !== '') {
-                    $this->workingApiKey = $apiKey;
-                    $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
-                    Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
-                    return $fullText;
-                }
-            } catch (\Throwable $e) {
-                $lastError = "key#" . ($keyIndex + 1) . ": {$e->getMessage()}";
-            }
-        }
-
-        throw new \Exception("Gemini API failed across all keys. Last error: {$lastError}");
-    }
 
     private function parseAIResponse(string $rawText): array
     {
@@ -1446,10 +1193,6 @@ class AiAdvisorController extends Controller
         ];
     }
 
-    /**
-     * Normalize an AI-provided list of course IDs into a clean array of positive integers.
-     * Accepts arrays of ints/strings, or objects like [{"id":123}, ...].
-     */
     private function extractCourseIds($raw): array
     {
         if (!is_array($raw)) {
@@ -1508,19 +1251,11 @@ class AiAdvisorController extends Controller
     {
         $clean = str_replace(['\\n', '\n'], "\n", $text);
         
-        // Remove style and script tags for safety
         $clean = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $clean);
         $clean = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $clean);
         
-        // DO NOT use strip_tags as it ruins code containing < or > (like List<String>)
-        // DO NOT strip triple backticks as it ruins markdown code blocks
-        // DO NOT strip multiple spaces as it ruins code indentation
-        
         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        // Safety net: the internal course ID is meaningless to the student and must never
-        // surface in the reply text. Even with prompt instructions the model occasionally
-        // leaks "(ID: 83)" into prose, so strip that token (with any leading space) here.
         $clean = preg_replace('/\x{00A0}?\s*[\(\[]\s*ID\s*[:：]?\s*\d+\s*[\)\]]/iu', '', $clean);
 
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
@@ -1617,8 +1352,6 @@ class AiAdvisorController extends Controller
             default => null,
         };
     }
-
-
 
     private function enrichWidgetWithCourseIds(?array $widget, array $availableCoursesMap, array $cartCoursesMap): ?array
     {
@@ -1718,10 +1451,6 @@ class AiAdvisorController extends Controller
         ];
     }
 
-    /**
-     * Turn a machine status string (Locked_Prereqs(...) / Locked_Hrs(N)) into a short
-     * human-readable Arabic reason the AI can quote directly to the student.
-     */
     private function describeLockReason(string $status): string
     {
         if (preg_match('/^Locked_Prereqs\((.+)\)$/u', $status, $m)) {
@@ -1745,10 +1474,8 @@ class AiAdvisorController extends Controller
         $text = preg_replace('/[ةه]/u', 'ه', $text);
         $text = preg_replace('/ى/u', 'ي', $text);
         
-        // إزالة التشكيل
         $text = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $text);
         
-        // استبدال الأقواس والرموز بمسافة لتسهيل المطابقة (مثل: برمجة الحاسوب 1 مقابل برمجة الحاسوب (1))
         $text = preg_replace('/[()\[\]{}\-_\/\\\\.,،؛]/u', ' ', $text);
         
         $text = preg_replace('/\s+/u', ' ', $text);
@@ -1778,21 +1505,16 @@ class AiAdvisorController extends Controller
         return 'ai_response_' . $userId . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
-    private function generateSmartTitle(string $userMessage, string $aiReply, string $apiKey): string
+    private function generateSmartTitle(string $userMessage, string $aiReply): string
     {
         try {
             $prompt = "بناءً على هذا السؤال: \"{$userMessage}\"\nوهذا الجواب المختصر: \"" . mb_substr($aiReply, 0, 200) . "\"\n\nاكتب عنوان قصير جداً (3-6 كلمات عربية) يلخص الموضوع. أرجع النص فقط.";
-
-            $response = Http::withoutVerifying()
-                ->timeout(15)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={$apiKey}", [
-                    'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
-                ]);
-
-            if ($response->successful()) {
-                $title = trim((string) $response->json('candidates.0.content.parts.0.text'));
-                $title = trim(str_replace(['"', "'", '`', "\n"], '', $title));
+            
+            $geminiService = app(\App\Services\GeminiService::class);
+            $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => $prompt]]]]);
+            
+            if ($rawText) {
+                $title = trim(str_replace(['"', "'", '`', "\n"], '', $rawText));
                 if (mb_strlen($title) > 2 && mb_strlen($title) < 60) {
                     return $title;
                 }
@@ -1854,11 +1576,6 @@ class AiAdvisorController extends Controller
         ];
     }
 
-
-    /**
-     * Admin endpoint: returns health status and usage stats for all configured Gemini API keys.
-     * Now includes RPM data, cooldown status, and doesn't waste API requests on health checks.
-     */
     public function getApiKeyStatus()
     {
         $user = Auth::user();
@@ -1866,7 +1583,8 @@ class AiAdvisorController extends Controller
             abort(403);
         }
 
-        $apiKeys = $this->getGeminiApiKeys();
+        $geminiService = app(\App\Services\GeminiService::class);
+        $apiKeys = $geminiService->getApiKeys();
         $results = [];
         $today = date('Y-m-d');
 
@@ -1875,12 +1593,10 @@ class AiAdvisorController extends Controller
             $cacheKey = 'gemini_key_usage_' . md5($key) . '_' . $today;
             $todayUsage = (int) Cache::get($cacheKey, 0);
 
-            // RPM data
-            $currentRpm = $this->getKeyRpm($key);
-            $cooldownRemaining = $this->getKeyCooldownRemaining($key);
+            $currentRpm = $geminiService->getKeyRpm($key);
+            $cooldownRemaining = $geminiService->getKeyCooldownRemaining($key);
             $cooldownReason = (string) Cache::get('gemini_cooldown_reason_' . md5($key), '');
 
-            // Weekly usage
             $weeklyUsage = 0;
             for ($d = 0; $d < 7; $d++) {
                 $dateKey = 'gemini_key_usage_' . md5($key) . '_' . date('Y-m-d', strtotime("-{$d} days"));

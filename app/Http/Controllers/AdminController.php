@@ -1294,10 +1294,6 @@ class AdminController extends Controller
             $rowsPayload = $request->input('rows_payload', []);
             $selectedMajorId = $request->input('major_id');
             $selectedPlanVersion = (int) $request->input('study_plan_version');
-            $count = 0;
-            $importedCourseIds = [];
-            $prerequisitesMap = [];
-            $skippedRows = [];
 
             $hasRowsPayload = is_array($rowsPayload) && count($rowsPayload) > 0;
             if (!$file && !$hasRowsPayload) {
@@ -1307,255 +1303,35 @@ class AdminController extends Controller
                 ]);
             }
 
-            $normalizedRows = [];
-
-            if ($hasRowsPayload) {
-                foreach ($rowsPayload as $idx => $row) {
-                    if (!is_array($row)) {
-                        continue;
-                    }
-
-                    $normalizedRows[] = [
-                        'line' => (int) ($idx + 1),
-                        'code' => $this->cleanCourseCode($this->normalizeCsvText((string) ($row['code'] ?? ''))),
-                        'name' => $this->normalizeCsvText((string) ($row['name'] ?? '')),
-                        'credit_hours' => $this->parseCsvInteger((string) ($row['credit_hours'] ?? ''), 3, 0, 12) ?? 3,
-                        'raw_type' => $this->normalizeCsvText((string) ($row['type'] ?? '')),
-                        'raw_category' => $this->normalizeCsvText((string) ($row['category'] ?? '')),
-                        'raw_delivery_mode' => $this->normalizeCsvText((string) ($row['delivery_mode'] ?? '')),
-                        'mapped_type' => $this->normalizeCsvText((string) ($row['mappedType'] ?? '')),
-                        'prerequisites' => $this->normalizeCsvText((string) ($row['prerequisites'] ?? '')),
-                        'semester' => $this->parseCsvInteger((string) ($row['semester'] ?? ''), 1, 1, 12) ?? 1,
-                        'description' => $this->normalizeCsvText((string) ($row['description'] ?? '')),
-                        'minimum_passed_hours' => $this->parseCsvInteger((string) ($row['minimum_passed_hours'] ?? ''), null, 1, 200),
-                    ];
-                }
-            } else {
-                if (($handle = fopen($file->getPathname(), 'r')) === false) {
-                    return redirect()->back()->with([
-                        'type' => 'error',
-                        'message' => 'تعذر قراءة ملف CSV. تأكد من إعادة التصدير بصيغة CSV UTF-8.',
-                    ]);
-                }
-
-                $headers = fgetcsv($handle);
-                if ($headers === false || count($headers) === 0) {
-                    fclose($handle);
-                    return redirect()->back()->with([
-                        'type' => 'error',
-                        'message' => 'الملف لا يحتوي على ترويسة أعمدة صالحة.',
-                    ]);
-                }
-
-                $columnIndexes = $this->detectCsvColumns($headers);
-                if ($columnIndexes['code'] === -1 || $columnIndexes['name'] === -1) {
-                    fclose($handle);
-                    return redirect()->back()->with([
-                        'type' => 'error',
-                        'message' => 'خطأ: لم يتم العثور على أعمدة رمز المادة واسمها في الترويسة!',
-                    ]);
-                }
-
-                while (($row = fgetcsv($handle)) !== false) {
-                    $normalizedRows[] = [
-                        'line' => (int) ($count + 2),
-                        'code' => $this->cleanCourseCode($this->getCsvCell($row, $columnIndexes['code'])),
-                        'name' => $this->getCsvCell($row, $columnIndexes['name']),
-                        'credit_hours' => $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['credit_hours']), 3, 0, 12) ?? 3,
-                        'raw_type' => $this->getCsvCell($row, $columnIndexes['type']),
-                        'raw_category' => $this->getCsvCell($row, $columnIndexes['category']),
-                        'raw_delivery_mode' => $this->getCsvCell($row, $columnIndexes['delivery_mode']),
-                        'mapped_type' => '',
-                        'prerequisites' => $this->getCsvCell($row, $columnIndexes['prerequisites']),
-                        'semester' => $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['semester']), 1, 1, 12) ?? 1,
-                        'description' => $this->getCsvCell($row, $columnIndexes['description']),
-                        'minimum_passed_hours' => $this->parseCsvInteger($this->getCsvCell($row, $columnIndexes['minimum_passed_hours']), null, 1, 200),
-                    ];
-                    $count++;
-                }
-                fclose($handle);
-                $count = 0;
+            $filePath = null;
+            if ($file) {
+                $filePath = $file->store('imports');
             }
 
-            foreach ($normalizedRows as $rowData) {
-                try {
-                    $code = $rowData['code'];
-                    $name = $rowData['name'];
+            \App\Jobs\ProcessCourseImport::dispatch(
+                $filePath,
+                $hasRowsPayload ? $rowsPayload : null,
+                $selectedMajorId,
+                $selectedPlanVersion,
+                auth()->id()
+            );
 
-                    if ($code === '' && $name === '') {
-                        continue;
-                    }
-
-                    if ($code === '' || $name === '') {
-                        $skippedRows[] = [
-                            'line' => $rowData['line'] ?? null,
-                            'reason' => 'رمز المادة أو اسم المادة مفقود.',
-                        ];
-                        continue;
-                    }
-
-                    $credits = $rowData['credit_hours'];
-                    $rawType = $rowData['raw_type'];
-                    $rawCategory = $rowData['raw_category'];
-                    $rawDeliveryMode = $rowData['raw_delivery_mode'];
-
-                    $mappedType = $rowData['mapped_type'];
-                    $type = in_array($mappedType, ['compulsory', 'elective', 'supporting', 'university_req'], true)
-                        ? $mappedType
-                        : $this->mapImportedCourseType($rawType, $rawCategory, $rawDeliveryMode);
-
-                    $semester = $rowData['semester'];
-                    $description = $rowData['description'];
-                    $minimumPassedHours = $rowData['minimum_passed_hours'];
-
-                    $updatePayload = [
-                        'name' => $name,
-                        'credit_hours' => $credits,
-                        'semester' => $semester,
-                        'type' => $type,
-                        'major_id' => $selectedMajorId,
-                        'study_plan_version' => $selectedPlanVersion,
-                    ];
-
-                    $updatePayload['description'] = $description !== '' ? $description : null;
-                    $updatePayload['minimum_passed_hours'] = $minimumPassedHours;
-
-                    $course = Course::updateOrCreate(
-                        [
-                            'code' => $code,
-                            'major_id' => $selectedMajorId,
-                            'study_plan_version' => $selectedPlanVersion,
-                        ],
-                        $updatePayload
-                    );
-
-                    $importedCourseIds[] = $course->id;
-
-                    $prereqRaw = $rowData['prerequisites'];
-                    if ($prereqRaw !== '') {
-                        $prereqUpper = strtoupper($prereqRaw);
-                        if ($prereqUpper !== 'NULL' && $prereqRaw !== '0' && $prereqRaw !== '-' && $prereqRaw !== '—') {
-                            $prerequisitesMap[$course->id] = $prereqRaw;
-                        }
-                    }
-
-                    $count++;
-                } catch (\Throwable $rowError) {
-                    $skippedRows[] = [
-                        'line' => $rowData['line'] ?? null,
-                        'reason' => $rowError->getMessage(),
-                    ];
-
-                    Log::warning('CSV row skipped during import', [
-                        'line' => $rowData['line'] ?? null,
-                        'code' => $rowData['code'] ?? null,
-                        'reason' => $rowError->getMessage(),
-                    ]);
-                }
-            }
-
-            foreach ($prerequisitesMap as $courseId => $prereqString) {
-                $course = Course::find($courseId);
-                if (!$course) {
-                    continue;
-                }
-
-                $pIds = [];
-                $cleanPrereq = str_replace(['"', "'", '[', ']', '(', ')', '،', ';', '|', '/'], ',', $prereqString);
-                $pCodes = preg_split('/[\s,]+/', $cleanPrereq, -1, PREG_SPLIT_NO_EMPTY);
-
-                foreach ($pCodes as $pCode) {
-                    $cleanCode = $this->cleanCourseCode(trim($pCode));
-                    if ($cleanCode === '') {
-                        continue;
-                    }
-
-                    $pCourse = Course::where('code', $cleanCode)
-                        ->where('major_id', $selectedMajorId)
-                        ->where('study_plan_version', $selectedPlanVersion)
-                        ->first();
-
-                    if ($pCourse) {
-                        $pIds[] = $pCourse->id;
-                    }
-                }
-
-                if (!empty($pIds)) {
-                    $course->prerequisites()->sync($pIds);
-                }
-            }
-
-            if (!empty($importedCourseIds)) {
-                $allCourses = Course::whereIn('id', $importedCourseIds)->with('prerequisites')->get();
-                $changed = true;
-
-                while ($changed) {
-                    $changed = false;
-                    foreach ($allCourses as $c) {
-                        $maxPrereqLvl = 0;
-                        foreach ($c->prerequisites as $p) {
-                            if ($p->semester > $maxPrereqLvl) {
-                                $maxPrereqLvl = $p->semester;
-                            }
-                        }
-
-                        if ($maxPrereqLvl > 0 && $maxPrereqLvl + 1 > $c->semester) {
-                            $c->semester = $maxPrereqLvl + 1;
-                            $c->save();
-                            $changed = true;
-                        }
-                    }
-                }
-            }
-
-            if ($count === 0) {
-                $firstErrors = array_slice($skippedRows, 0, 3);
-                $details = collect($firstErrors)
-                    ->map(fn ($e) => 'سطر ' . ($e['line'] ?? '?') . ': ' . ($e['reason'] ?? 'خطأ غير معروف'))
-                    ->implode(' | ');
-
-                return redirect()->back()->with([
-                    'type' => 'error',
-                    'message' => $details !== ''
-                        ? 'تعذر استيراد أي صف. ' . $details
-                        : 'لم يتم العثور على صفوف قابلة للاستيراد (تأكد من وجود code و name بكل صف).',
-                ]);
-            }
-
-            $this->logAction('IMPORT_PLAN', "تم استيراد $count مادة للتخصص {$selectedMajorId} بالخطة {$selectedPlanVersion} مع إعادة بناء العلاقات والمستويات الشجرية تلقائياً.");
-
-            $skippedCount = count($skippedRows);
-            $successMessage = "تم الاستيراد بنجاح! 🚀 تم حفظ/تحديث {$count} مادة.";
-            if ($skippedCount > 0) {
-                $successMessage .= " وتم تخطي {$skippedCount} صف بسبب بيانات غير صالحة.";
-            }
+            $this->logAction('IMPORT_COURSES_QUEUED', "Queued course import for major ID {$selectedMajorId}, plan {$selectedPlanVersion}");
 
             return redirect()->back()->with([
                 'type' => 'success',
-                'message' => $successMessage,
+                'message' => 'تم وضع عملية استيراد الكورسات في طابور المعالجة (Background Job). سيتم تنفيذها قريباً لتجنب استهلاك موارد الخادم. يمكنك التحقق من سجل النظام لاحقاً.',
             ]);
-        } catch (\Throwable $e) {
-            $errorRef = 'IMP-' . now()->format('YmdHis') . '-' . substr(md5((string) microtime(true)), 0, 6);
 
-            Log::error('CSV import failed in AdminController@import', [
-                'error_ref' => $errorRef,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Course import completely failed', [
+                'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'user_id' => Auth::id(),
-                'major_id' => $request->input('major_id'),
-                'study_plan_version' => $request->input('study_plan_version'),
             ]);
-
-            $baseMessage = 'فشل استيراد الملف بسبب تنسيق أو ترميز غير متوافق. حاول حفظ الملف بصيغة CSV UTF-8 ثم أعد المحاولة.';
-            if (config('app.debug')) {
-                $baseMessage = 'فشل الاستيراد: ' . $e->getMessage() . ' (ref: ' . $errorRef . ')';
-            }
 
             return redirect()->back()->with([
                 'type' => 'error',
-                'message' => $baseMessage,
+                'message' => 'حدث خطأ قاتل أثناء محاولة إرسال الاستيراد للطابور: ' . $e->getMessage(),
             ]);
         }
     }

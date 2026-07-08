@@ -63,35 +63,6 @@ class InstructorAiAdvisorController extends Controller
         return back()->with('success', 'تم حفظ التفضيلات بنجاح.');
     }
 
-    private function getGeminiApiKeys(): array
-    {
-        $keys = [];
-        $csv = (string) config('services.gemini.keys', '');
-
-        foreach (explode(',', $csv) as $key) {
-            $value = trim($key);
-            if ($value !== '') {
-                $keys[] = $value;
-            }
-        }
-
-        $single = trim((string) config('services.gemini.key', ''));
-        if ($single !== '') {
-            $keys[] = $single;
-        }
-
-        // Fallback to env if config isn't populated
-        if (empty($keys)) {
-            $envKey = env('GEMINI_API_KEY');
-            if ($envKey) $keys[] = $envKey;
-            $envKey2 = env('GEMINI_API_KEY_2');
-            if ($envKey2) $keys[] = $envKey2;
-            $envKey3 = env('GEMINI_API_KEY_3');
-            if ($envKey3) $keys[] = $envKey3;
-        }
-
-        return array_unique($keys);
-    }
 
     public function chat(Request $request)
     {
@@ -132,16 +103,11 @@ class InstructorAiAdvisorController extends Controller
         })->toArray();
 
         try {
-            $apiKeys = $this->getGeminiApiKeys();
-            if (empty($apiKeys)) {
-                throw new \Exception('Gemini API key is not configured.');
-            }
-
-            $payload = [
+            $geminiService = app(\App\Services\GeminiService::class);
+            $options = [
                 'systemInstruction' => [
                     'parts' => [['text' => $systemPrompt]],
                 ],
-                'contents' => $history,
                 'generationConfig' => [
                     'temperature' => 0.7,
                     'maxOutputTokens' => 4000,
@@ -149,35 +115,8 @@ class InstructorAiAdvisorController extends Controller
                 ],
             ];
 
-            $aiText = null;
-            $lastException = null;
-
-            foreach ($apiKeys as $apiKey) {
-                try {
-                    $modelName = config('services.gemini.model', 'gemini-1.5-flash');
-                    $response = Http::withHeaders(['Content-Type' => 'application/json'])
-                        ->timeout(60)
-                        ->post("https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key={$apiKey}", $payload);
-
-                    if ($response->successful()) {
-                        $data = $response->json();
-                        $aiText = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-                        if ($aiText) {
-                            break; // Success, stop trying keys
-                        }
-                    } else {
-                        throw new \Exception('API Error: ' . $response->body());
-                    }
-                } catch (\Exception $e) {
-                    $lastException = $e;
-                    Log::warning('Instructor AI Chat Key Failed', ['key' => substr($apiKey, 0, 5) . '...', 'error' => $e->getMessage()]);
-                    continue; // Try next key
-                }
-            }
-
-            if (!$aiText) {
-                throw $lastException ?? new \Exception('All Gemini API keys failed.');
-            }
+            // Use the service to call Gemini (includes robust retry/fallback logic)
+            $aiText = $geminiService->callGeminiAPI($history, $options);
 
             $aiText = $aiText ?? '{"reply":"حدث خطأ في فهم الرد."}';
 
