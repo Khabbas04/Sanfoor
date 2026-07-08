@@ -18,20 +18,12 @@ export default {
             fontFamily: {
                 sans: ['Cairo', ...defaultTheme.fontFamily.sans],
             },
-            // 1. تعريف ألوان الهوية الخاصة بـ سنفور (Sanfoor Soft Brand)
+            // 1. تعريف ألوان الهوية الخاصة بـ سنفور (لسهولة التعديل لاحقاً)
             colors: {
                 brand: {
-                    DEFAULT: '#2F80ED',
-                    hover: '#2563EB',
-                    secondary: '#60A5FA',
-                    background: '#F7FAFC',
-                    card: '#FFFFFF',
-                    text: '#0F172A',
-                    muted: '#64748B',
-                    border: '#E2E8F0',
-                    success: '#22C55E',
-                    warning: '#F59E0B',
-                    danger: '#EF4444',
+                    DEFAULT: '#1d6ef2', // لون أزرق زاهٍ واحترافي
+                    light: '#f0f7ff',   // خلفية زرقاء فاتحة
+                    dark: '#0f3a80',    // نص أزرق غامق
                 }
             },
             // 2. حركات (Animations) احترافية جاهزة للاستخدام
@@ -63,14 +55,10 @@ export default {
                     'to': { opacity: '1', transform: 'translateY(0)' },
                 },
             },
-            // 4. ظلال (Shadows) ناعمة لهوية سنفور
+            // 4. ظلال (Shadows) زجاجية ناعمة ومشعة
             boxShadow: {
-                'soft': '0 4px 20px -2px rgba(15, 23, 42, 0.05)', // ظل خفيف للبطاقات
-                'soft-hover': '0 10px 25px -5px rgba(47, 128, 237, 0.15)', // ظل أزرق عند الـ Hover
-            },
-            // 5. حواف دائرية خاصة
-            borderRadius: {
-                'brand': '14px',
+                'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)', // ظل زجاجي
+                'glow': '0 0 20px rgba(29, 110, 242, 0.4)', // ظل مشع بلون الهوية الأزرق
             }
         },
     },

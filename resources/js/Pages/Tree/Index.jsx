@@ -1985,11 +1985,11 @@ export default function Tree({
             const difficultyInfo = getDifficultyColor(course.difficulty_level);
 
             const themes = {
-                passed: { bg: 'background:#FFFFFF', border: 'border:1px solid #E2E8F0', indicator: '#22C55E', badgeBg: 'rgba(34,197,94,0.1)', textColor: '#0F172A', badgeColor: '#16A34A', statusLabel: 'منجز', statusIcon: '✅' },
-                failed: { bg: 'background:#FFFFFF', border: 'border:1px solid #E2E8F0', indicator: '#EF4444', badgeBg: 'rgba(239,68,68,0.1)', textColor: '#0F172A', badgeColor: '#DC2626', statusLabel: 'راسب', statusIcon: '❌' },
-                cart: { bg: 'background:#FFFFFF', border: 'border:1px solid #E2E8F0', indicator: '#F59E0B', badgeBg: 'rgba(245,158,11,0.1)', textColor: '#0F172A', badgeColor: '#D97706', statusLabel: 'تجريبي', statusIcon: '🛒' },
-                available: { bg: 'background:#FFFFFF', border: 'border:1px solid #E2E8F0', indicator: '#2F80ED', badgeBg: 'rgba(47,128,237,0.1)', textColor: '#0F172A', badgeColor: '#2563EB', statusLabel: 'متاح', statusIcon: '🔓' },
-                locked: { bg: 'background:#F8FAFC', border: 'border:1px solid #E2E8F0', indicator: '#94A3B8', badgeBg: 'rgba(148,163,184,0.1)', textColor: '#64748B', badgeColor: '#64748B', statusLabel: 'مغلق', statusIcon: '🔒' },
+                passed: { bg: 'background:linear-gradient(135deg,#059669,#10b981)', border: 'border:1.5px solid rgba(16,185,129,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'منجز', statusIcon: '✅' },
+                failed: { bg: 'background:linear-gradient(135deg,#dc2626,#ef4444)', border: 'border:1.5px solid rgba(239,68,68,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'راسب', statusIcon: '❌' },
+                cart: { bg: 'background:linear-gradient(135deg,#d97706,#f59e0b)', border: 'border:1.5px solid rgba(245,158,11,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'تجريبي', statusIcon: '🛒' },
+                available: { bg: 'background:linear-gradient(135deg,#4338ca,#6366f1)', border: 'border:1.5px solid rgba(99,102,241,0.8)', badgeBg: 'rgba(255,255,255,0.2)', textColor: '#fff', statusLabel: 'متاح', statusIcon: '🔓' },
+                locked: { bg: 'background:#f8fafc', border: 'border:1.5px solid #cbd5e1', badgeBg: 'rgba(148,163,184,0.15)', textColor: '#64748b', statusLabel: 'مغلق', statusIcon: '🔒' },
             };
             const t = themes[status];
             const statusIcon = isHourLocked ? '⏳' : t.statusIcon;
@@ -2022,41 +2022,43 @@ export default function Tree({
             const isForward = forwardIds.includes(course.id) && !isSelected;
 
             let ringStyle = '';
-            if (isSelected) ringStyle = 'box-shadow:0 0 0 2px #2F80ED, 0 10px 25px -5px rgba(47, 128, 237, 0.15);transform:scale(1.02);z-index:50;';
-            else if (isBackward) ringStyle = 'box-shadow:0 0 0 2px #F59E0B;';
-            else if (isForward) ringStyle = 'box-shadow:0 0 0 2px #A855F7;';
-            else if (!isDimmed) ringStyle = '';
+            if (isSelected) ringStyle = 'box-shadow:0 0 0 3px #fff,0 0 0 6px #4f46e5,0 12px 40px rgba(79,70,229,0.35);transform:scale(1.08);z-index:50;';
+            else if (isBackward) ringStyle = 'box-shadow:0 0 0 2.5px #fbbf24,0 8px 24px rgba(245,158,11,0.25);';
+            else if (isForward) ringStyle = 'box-shadow:0 0 0 2.5px #c084fc,0 8px 24px rgba(192,132,252,0.25);';
+            else if (!isDimmed) ringStyle = 'box-shadow:0 4px 16px rgba(0,0,0,0.08);';
 
             const dimStyle = isDimmed ? 'opacity:0.25;filter:grayscale(1);' : '';
 
             let typeLabelHtml = '';
-            if (isElective) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:800;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.05);color:#475569;">اختياري</span>`;
-            if (isSupporting) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:800;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.05);color:#475569;">مساندة</span>`;
-            if (isUniversityReq) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:800;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.05);color:#475569;">جامعة</span>`;
+            if (isElective) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">اختياري</span>`;
+            if (isSupporting) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">مساندة</span>`;
+            if (isUniversityReq) typeLabelHtml = `<span style="font-size:${typeLabelFontSize};font-weight:900;padding:${typeLabelPadding};border-radius:4px;background:rgba(0,0,0,0.15);color:${t.textColor};">جامعة</span>`;
 
             const nodeHtml = `
-                <div class="sn-node-hover" style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.3s ease-out;${t.bg};${finalBorder};border-right: 4px solid ${t.indicator};${ringStyle}${dimStyle}cursor:pointer;box-shadow:${!isDimmed && !ringStyle.includes('box-shadow') ? '0 4px 20px -2px rgba(15, 23, 42, 0.05)' : ''};">
+                <div class="sn-node-hover" style="width:100%;height:100%;${shapeStyle}display:flex;flex-direction:column;position:relative;overflow:hidden;transition:all 0.3s ease-out;${t.bg};${finalBorder};${ringStyle}${dimStyle}cursor:pointer;box-shadow:${!isDimmed && !ringStyle.includes('box-shadow') ? '0 4px 12px rgba(0,0,0,0.06)' : ''};">
+                    <div style="position:absolute;top:-12px;right:-12px;width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:50%;filter:blur(12px);"></div>
                     
                     <div style="padding:8px 10px;display:flex;flex-direction:column;height:100%;justify-content:space-between;position:relative;z-index:1;">
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.badgeColor};display:flex;align-items:center;gap:3px;letter-spacing:0.3px;">
+                            <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};backdrop-filter:blur(4px);display:flex;align-items:center;gap:3px;letter-spacing:0.3px;">
                                 ${statusIcon} ${statusLabel}
                                 ${hasDescription ? '<span style="margin-right:3px; font-size:10px; animation: pulse 2s infinite;" title="يوجد لمحة عن المادة">📝</span>' : ''}
                             </span>
                             <div style="display:flex; gap:3px;">
                                 ${typeLabelHtml}
-                                <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:#F1F5F9;color:#475569;">${course.credit_hours} س</span>
+                                <span style="font-size:${badgeFontSize};font-weight:800;padding:${chipPadding};border-radius:6px;background:${t.badgeBg};color:${t.textColor};">${course.credit_hours} س</span>
                             </div>
                         </div>
                         <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2px 4px;">
-                            <h3 style="font-weight:900;font-size:${titleFontSize};color:${t.textColor};line-height:${titleLineHeight};text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${course.name}</h3>
+                            <h3 style="font-weight:900;font-size:${titleFontSize};color:${t.textColor};line-height:${titleLineHeight};text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-shadow:${status !== 'locked' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none'};">${course.name}</h3>
                         </div>
                         <div style="display:flex;justify-content:space-between;align-items:center;">
-                            <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:#F1F5F9;color:#64748B;">${course.code}</span>
+                            <span style="font-size:${metaFontSize};font-weight:800;font-family:monospace;text-transform:uppercase;padding:${metaPadding};border-radius:5px;background:${t.badgeBg};color:${t.textColor};">${course.code}</span>
                             ${difficultyInfo ? `<span style="font-size:${metaFontSize};font-weight:800;padding:${metaPadding};border-radius:5px;background:${difficultyInfo.bg};color:${difficultyInfo.color};" title="${difficultyInfo.label}">${difficultyInfo.icon} ${course.difficulty_level}</span>` : ''}
                         </div>
                     </div>
-                    ${isCriticalPath ? `<div style="position:absolute;top:0;left:0;right:0;height:4px;background:#EF4444;z-index:20;pointer-events:none;" title="مسار حرج"></div>` : ''}
+                    ${isCriticalPath ? `<div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ef4444 0%,#fb7185 50%,#f43f5e 100%);box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset,0 2px 10px rgba(239,68,68,0.25);z-index:20;pointer-events:none;" title="هذه مادة على المسار الحرج"></div>` : ''}
+                    ${status === 'failed' ? `<div style="position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#dc2626 0%,#ef4444 50%,#f87171 100%);z-index:20;pointer-events:none;"></div>` : ''}
                 </div>
             `;
 
@@ -3224,21 +3226,22 @@ export default function Tree({
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
                 {/* Course Header */}
-                <div className="bg-[#F8FAFC] p-5 rounded-brand border border-[#E2E8F0] relative overflow-hidden">
+                <div className="bg-white/10 backdrop-blur-md p-5 rounded-[1.25rem] border border-white/15 shadow-lg relative overflow-hidden">
+                    <div className="absolute -top-8 -right-8 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
                     <div className="relative z-10">
                         <div className="flex justify-between items-start mb-3.5 gap-2">
                             <div className="flex gap-2">
-                                <span className="bg-white text-[#0F172A] px-2.5 py-1 rounded-lg font-mono text-[11px] font-[800] border border-[#E2E8F0] shadow-sm">{selectedCourse.code}</span>
-                                <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border ${selectedCourse.type === 'compulsory' ? 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]' : selectedCourse.type === 'elective' ? 'bg-[#FEF3C7] text-[#D97706] border-[#FDE68A]' : selectedCourse.type === 'supporting' ? 'bg-[#FDF4FF] text-[#C026D3] border-[#FBCFE8]' : 'bg-[#ECFEFF] text-[#0891B2] border-[#CFFAFE]'}`}>
+                                <span className="bg-white/15 text-white/90 px-2.5 py-1 rounded-lg font-mono text-[11px] font-[800] border border-white/10 shadow-sm backdrop-blur-sm">{selectedCourse.code}</span>
+                                <span className={`px-2.5 py-1 rounded-lg text-[11px] font-[800] border backdrop-blur-sm ${selectedCourse.type === 'compulsory' ? 'bg-indigo-500/20 text-indigo-200 border-indigo-400/20' : selectedCourse.type === 'elective' ? 'bg-amber-500/20 text-amber-200 border-amber-400/20' : selectedCourse.type === 'supporting' ? 'bg-fuchsia-500/20 text-fuchsia-200 border-fuchsia-400/20' : 'bg-cyan-500/20 text-cyan-200 border-cyan-400/20'}`}>
                                     {selectedCourse.type === 'compulsory' ? 'إجباري' : selectedCourse.type === 'elective' ? 'اختياري' : selectedCourse.type === 'supporting' ? 'مساندة' : 'متطلب جامعة'}
                                 </span>
                             </div>
                             <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="text-[#64748B] font-[800] text-[11px] bg-white px-2.5 py-1 rounded-lg border border-[#E2E8F0]">{selectedCourse.credit_hours} ساعات</span>
+                                <span className="text-white/60 font-[800] text-[11px] bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">{selectedCourse.credit_hours} ساعات</span>
                                 {showCloseButton && (
                                     <button
                                         onClick={() => setSelectedCourse(null)}
-                                        className="w-7 h-7 bg-white hover:bg-[#F1F5F9] rounded-lg flex items-center justify-center text-[#64748B] hover:text-[#0F172A] text-xs transition-all border border-[#E2E8F0]"
+                                        className="w-7 h-7 bg-white/10 hover:bg-white/20 rounded-lg flex items-center justify-center text-white/60 hover:text-white text-xs transition-all backdrop-blur-sm border border-white/10"
                                         title="إغلاق"
                                     >
                                         ✕
@@ -3246,7 +3249,7 @@ export default function Tree({
                                 )}
                             </div>
                         </div>
-                        <h2 className="text-xl font-[900] text-[#0F172A] leading-tight">{selectedCourse.name}</h2>
+                        <h2 className="text-xl font-[900] text-white leading-tight">{selectedCourse.name}</h2>
                     </div>
                 </div>
 
@@ -4371,15 +4374,18 @@ export default function Tree({
 
                         {isFullScreen && selectedCourse && (
                             <div
-                                className="absolute inset-y-0 right-0 z-40 w-full sm:w-[26rem] lg:w-[30rem] xl:w-[32rem] bg-white border-l border-[#E2E8F0] shadow-soft flex flex-col"
+                                className="absolute inset-y-0 right-0 z-40 w-full sm:w-[26rem] lg:w-[30rem] xl:w-[32rem] bg-slate-900/95 border-l border-white/10 backdrop-blur-xl flex flex-col shadow-2xl"
                                 style={{ width: isMobile ? '100%' : 'clamp(20rem, 30vw, 32rem)' }}
                             >
-                                <div className="flex items-center justify-between px-6 py-5 border-b border-[#E2E8F0] bg-white">
-                                    <h3 className="font-bold text-[#0F172A] text-sm">تفاصيل المادة</h3>
-                                    <div className="flex gap-2 items-center">
-                                        <button className="text-[#64748B] hover:text-[#0F172A] text-xs font-bold" onClick={handlePrint}>🖨️ طباعة الشجرة</button>
-                                        <button onClick={() => setSelectedCourse(null)} className="w-8 h-8 flex items-center justify-center text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg transition-colors">✕</button>
-                                    </div>
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                                    <span className="text-white font-[900] text-[12px]">تفاصيل المادة</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedCourse(null)}
+                                        className="w-8 h-8 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto overscroll-contain p-4 hide-scrollbar">
                                     {renderDetailsPanel({ showCloseButton: false })}

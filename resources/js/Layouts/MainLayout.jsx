@@ -341,7 +341,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     // academicOpen state removed
 
     return (
-        <div className={`min-h-screen flex flex-col font-sans bg-[#F7FAFC] text-[#0F172A]`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <Head>
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -415,36 +415,36 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                             </Link>
 
                             {/* Central Links with Icons */}
-                            <div className="hidden lg:flex items-center gap-1.5 p-1.5 rounded-brand border border-[#E2E8F0] bg-white shadow-soft transition-all duration-300 hover:shadow-soft-hover">
-                                <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('welcome', '/') && window.location.pathname === '/' ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                            <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-[1.25rem] border transition-all duration-500 hover:shadow-lg ${isDark ? 'bg-slate-900/50 border-white/5 hover:border-white/10' : 'bg-slate-100/60 border-white/60 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] hover:bg-slate-100/80'}`}>
+                                <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('welcome', '/') && window.location.pathname === '/' ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span className="transition-transform group-hover:scale-110">🏠</span> {t.home}
                                 </Link>
 
                                 {!isInstructor ? (
                                     <>
-                                        <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('tree.index', '/tree') ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                                        <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">🌳</span> {t.tree}
                                         </Link>
 
-                                        <Link href={safeRoute('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('calculator.index', '/calculator') ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                                        <Link href={safeRoute('calculator.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('calculator.index', '/calculator') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">📈</span> {t.calc}
                                         </Link>
 
-                                        <Link href={safeRoute('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('campus.directory', '/campus-directory') ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                                        <Link href={safeRoute('campus.directory')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('campus.directory', '/campus-directory') ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">🏢</span> {t.directory}
                                         </Link>
                                     </>
                                 ) : (
                                     <>
-                                        <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('tree.index', '/tree') ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                                        <Link href={safeRoute('tree.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('tree.index', '/tree') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">🌳</span> {lang === 'ar' ? 'خطط الكلية' : 'College Plans'}
                                         </Link>
 
-                                        <Link href={route('instructor.students')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('instructor.students') ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                                        <Link href={route('instructor.students')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('instructor.students') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">👥</span> {t.students}
                                         </Link>
 
-                                        <Link href={safeRoute('schedule_reviews.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-brand group ${safeRouteCurrent('schedule_reviews.index', '/schedule-reviews') ? 'bg-[#F7FAFC] text-[#2F80ED] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A] hover:bg-[#F7FAFC]'}`}>
+                                        <Link href={safeRoute('schedule_reviews.index')} className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('schedule_reviews.index', '/schedule-reviews') ? (isDark ? 'bg-teal-600 text-white' : 'bg-white text-teal-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                             <span className="transition-transform group-hover:scale-110">📑</span> {lang === 'ar' ? 'مراجعة الخطط' : 'Plan Reviews'}
                                         </Link>
                                     </>
@@ -582,7 +582,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             {!shouldHideNav && (
                 <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ease-in-out ${mobileOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)}></div>
-                    <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 bg-white text-[#0F172A] ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
+                    <div className={`absolute top-0 ${lang === 'ar' ? 'right-0' : 'left-0'} w-[85%] max-w-sm h-full shadow-2xl flex flex-col transition-transform duration-500 ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900'} ${mobileOpen ? 'translate-x-0' : (lang === 'ar' ? 'translate-x-full' : '-translate-x-full')}`}>
                         <div className="h-32 border-b border-white/10 flex items-center justify-between px-6 bg-gradient-to-r from-sky-400 to-blue-600 text-white">
                             <div className="flex items-center gap-4">
                                 <img src="/images/sanfoor.png" alt="Logo" className="w-14 h-14 object-contain drop-shadow-md" />
