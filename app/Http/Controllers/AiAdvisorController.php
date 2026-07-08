@@ -1236,13 +1236,25 @@ class AiAdvisorController extends Controller
             return trim((string) $decoded['reply']);
         }
 
-        $value = preg_replace('/,\s*["\']?(suggested_courses|courses_to_remove|follow_up_suggestions|interactive_widget)["\']?\s*:.*/isu', '', $value);
-        if (preg_match('/^\s*["\']?reply["\']?\s*:\s*(.+)$/isu', $value, $matches)) {
+        // Strip markdown code blocks formatting
+        $value = preg_replace('/```(?:json)?/is', '', $value);
+
+        // Strip leading braces
+        $value = preg_replace('/^\s*[\{\[]+\s*/u', '', $value);
+        
+        // Remove ALL json keys that might follow the reply to the end of the string
+        $value = preg_replace('/[,\[\]{}]?\s*["\']?(suggested_courses|suggested_course_ids|courses_to_remove|remove_course_ids|follow_up_suggestions|interactive_widget)["\']?\s*[:=].*/isu', '', $value);
+
+        // If it starts with "reply": extract just the value
+        if (preg_match('/^\s*["\']?reply["\']?\s*:\s*["\']?(.*)$/isu', $value, $matches)) {
             $value = $matches[1];
         }
 
-        $value = preg_replace('/^\s*\{+\s*/u', '', $value);
-        $value = preg_replace('/\s*\}+\s*$/u', '', $value);
+        // Remove trailing braces/brackets
+        $value = preg_replace('/\s*[\}\]]+\s*$/u', '', $value);
+        
+        // Remove stray quotes and json delimiters at the end
+        $value = preg_replace('/[,\[\]{}"\':\s]+$/u', '', $value);
 
         return trim($value, " \t\n\r\0\x0B\"'");
     }
@@ -1258,9 +1270,18 @@ class AiAdvisorController extends Controller
 
         $clean = preg_replace('/\x{00A0}?\s*[\(\[]\s*ID\s*[:：]?\s*\d+\s*[\)\]]/iu', '', $clean);
 
+        $clean = trim($this->stripReplyEnvelope($clean));
+
+        // Aggressive catch-all for any JSON property formatting left in the string 
+        // Example: "some_key": [...]
+        $clean = preg_replace('/["\']?[a-zA-Z_]+["\']?\s*:\s*[\[\{].*?[\]\}]/isu', '', $clean);
+        
+        // Remove markdown json wrappers if still present
+        $clean = preg_replace('/```(?:json)?(.*?)```/is', '$1', $clean);
+        
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
 
-        return trim($this->stripReplyEnvelope($clean)) ?: 'ما وصلني رد واضح هذه المرة. اكتب سؤالك بصيغة أقصر وأنا أجاوبك فوراً.';
+        return trim($clean) ?: 'ما وصلني رد واضح هذه المرة. اكتب سؤالك بصيغة أقصر وأنا أجاوبك فوراً.';
     }
 
     private function sanitizeFollowUpSuggestions($suggestions): array
