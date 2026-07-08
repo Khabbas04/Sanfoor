@@ -93,13 +93,8 @@ textarea {
     stroke-linecap: round;
 }
 
-/* Glass Navigation */
-.glass-nav {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-}
+/* Glass Navigation is removed for Sanfoor Soft Brand */
+/* Cleaned up heavy animations */
 
 .nav-link-active {
     color: #4f46e5;
