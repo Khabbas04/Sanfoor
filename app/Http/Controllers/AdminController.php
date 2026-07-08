@@ -298,7 +298,7 @@ class AdminController extends Controller
         $selectedChatId = $request->integer('chat_id');
 
         $chatsQuery = Chat::query()
-            ->with('user:id,name,email')
+            ->with(['user:id,name,email', 'latestMessage'])
             ->withCount('messages')
             ->orderByDesc('updated_at')
             ->orderByDesc('id');
@@ -321,7 +321,7 @@ class AdminController extends Controller
             ->take(60)
             ->get()
             ->map(function (Chat $chat) {
-                $lastMessage = $chat->messages()->orderByDesc('created_at')->first();
+                $lastMessage = $chat->latestMessage;
 
                 return [
                     'id' => $chat->id,
@@ -718,8 +718,8 @@ class AdminController extends Controller
         return Inertia::render('Admin/Index', [
             'courses' => Course::where('is_quiz_only', false)->with(['major', 'prerequisites'])->latest()->get(),
             // 🔥 تم إزالة universities بناءً على طلبك 🔥
-            'colleges' => College::all(),
-            'majors' => Major::all(),
+            'colleges' => College::select('id', 'name')->orderBy('name')->get(),
+            'majors' => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get(),
             'logs' => AdminLog::with('user')->latest()->take(50)->get()
         ]);
     }
@@ -756,6 +756,7 @@ class AdminController extends Controller
 
     /**
      * API endpoint for polling owner-only logs (JSON).
+     */
 
     /**
      * تنفيذ تفريغ كاش النظام بأوامر Artisan بشكل آمن.

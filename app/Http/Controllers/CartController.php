@@ -7,7 +7,6 @@ use App\Models\Course;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 
 class CartController extends Controller
 {
@@ -36,17 +35,17 @@ class CartController extends Controller
         $periodYear = $currentPeriod?->academic_year;
         $periodTerm = $currentPeriod?->academic_term;
 
-        $passedCourseIds = $user->passedCourses()->pluck('courses.id')->toArray();
-        $passedHours = (int) $user->passedCourses()->sum('courses.credit_hours');
+        $user->loadMissing('passedCourses:id,credit_hours');
+        $passedCourseIds = $user->passedCourses->pluck('id')->toArray();
+        $passedHours = (int) $user->passedCourses->sum('credit_hours');
         $allowedIds = [];
         $blockedCourses = [];
 
-        $totalPassedHoursForGraduation = (int) $user->passedCourses()->sum('courses.credit_hours');
+        $totalPassedHoursForGraduation = $passedHours;
         $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
 
         // Determine current term limits (summer vs regular)
-        $currentAcademic = \App\Models\AcademicPeriod::current();
-        $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
+        $isSummer = $currentPeriod ? ((int) $currentPeriod->academic_term === 3) : false;
         
         $hasOneHourLab = false;
         foreach ($requestedIds as $courseId) {

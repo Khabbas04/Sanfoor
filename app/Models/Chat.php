@@ -22,4 +22,10 @@ class Chat extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    // علاقة لجلب أحدث رسالة بشكل مباشر لتجنب N+1
+    public function latestMessage()
+    {
+        return $this->hasOne(Message::class)->latestOfMany();
+    }
 }

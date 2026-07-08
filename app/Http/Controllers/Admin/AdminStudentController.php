@@ -41,66 +41,72 @@ class AdminStudentController extends Controller
             ->when($request->major_id, function ($query, $majorId) {
                 $query->where('major_id', $majorId);
             })
-            ->latest()
-            ->paginate(15)
-            ->through(function ($student) {
-                
-                $totalCredits = 0;
-                $weightedSum = 0;
+            ->latest();
+        $paginatedStudents = $students->paginate(15);
+        
+        // جلب آخر نشاط لجميع الطلاب في الصفحة الحالية لتجنب N+1
+        $studentIds = $paginatedStudents->getCollection()->pluck('id')->toArray();
+        $sessionData = DB::table('sessions')
+            ->whereIn('user_id', $studentIds)
+            ->selectRaw('user_id, MAX(last_activity) as last_activity')
+            ->groupBy('user_id')
+            ->pluck('last_activity', 'user_id');
 
-                // ✅ تصحيح: استخدام passedCourses (Camel Case) كما هي معرفة في الموديل
-                foreach ($student->passedCourses as $course) {
-                    $grade = $course->pivot ? floatval($course->pivot->grade) : 0;
-                    if ($grade > 0) {
-                        $totalCredits += $course->credit_hours;
-                        $weightedSum += ($grade * $course->credit_hours);
-                    }
+        $paginatedStudents->getCollection()->transform(function ($student) use ($sessionData) {
+            $totalCredits = 0;
+            $weightedSum = 0;
+
+            foreach ($student->passedCourses as $course) {
+                $grade = $course->pivot ? floatval($course->pivot->grade) : 0;
+                if ($grade > 0) {
+                    $totalCredits += $course->credit_hours;
+                    $weightedSum += ($grade * $course->credit_hours);
                 }
+            }
 
-                $gpa = $totalCredits > 0 ? round($weightedSum / $totalCredits, 2) : 0;
+            $gpa = $totalCredits > 0 ? round($weightedSum / $totalCredits, 2) : 0;
 
-                $cartHours = 0;
-                if ($student->cartCourses && $student->cartCourses->count() > 0) {
-                    $cartHours = (int) $student->cartCourses->sum('credit_hours');
-                }
+            $cartHours = 0;
+            if ($student->cartCourses && $student->cartCourses->count() > 0) {
+                $cartHours = (int) $student->cartCourses->sum('credit_hours');
+            }
 
-                $lastSession = DB::table('sessions')->where('user_id', $student->id)->max('last_activity');
-                $lastSeen = $lastSession ? Carbon::createFromTimestamp((int) $lastSession)->diffForHumans() : 'لم يسجل';
+            $lastSession = $sessionData[$student->id] ?? null;
+            $lastSeen = $lastSession ? Carbon::createFromTimestamp((int) $lastSession)->diffForHumans() : 'لم يسجل';
 
-                return [
-                    'id' => $student->id,
-                    'name' => $student->name,
-                    'avatar' => $student->avatar,
-                    'email' => $student->email,
-                    'major_id' => $student->major_id,
-                    'study_plan_version' => (int) ($student->study_plan_version ?? 12),
-                    'ip_address' => $student->ip_address ?? 'غير مسجل',
-                    'last_login' => ($student->last_login_at instanceof \Carbon\Carbon)
-                        ? $student->last_login_at->diffForHumans()
-                        : 'لم يسجل دخول',
-                    'last_seen' => $lastSeen,
-                    'created_at' => $student->created_at ? $student->created_at->format('Y-m-d') : '---',
-                    'major' => $student->major ? $student->major->name : 'غير محدد',
-                    'college' => $student->major && $student->major->college ? $student->major->college->name : 'غير محدد',
-                    'portal_student_id' => $student->portal_student_id,
-                    'graduation_eligibility' => $student->isEligibleForGraduation(),
-                    'stats' => [
-                        'gpa' => $gpa,
-                        'total_passed_credits' => $totalCredits,
-                        'cart_courses_count' => $student->cartCourses ? $student->cartCourses->count() : 0,
-                        'cart_hours' => $cartHours,
-                    ],
-                    // ✅ تصحيح العلاقات لضمان ظهور البيانات في ملف الطالب (Sidebar)
-                    'passed_courses' => $student->passedCourses, 
-                    'cart_courses' => $student->cartCourses,
-                ];
-            });
+            return [
+                'id' => $student->id,
+                'name' => $student->name,
+                'avatar' => $student->avatar,
+                'email' => $student->email,
+                'major_id' => $student->major_id,
+                'study_plan_version' => (int) ($student->study_plan_version ?? 12),
+                'ip_address' => $student->ip_address ?? 'غير مسجل',
+                'last_login' => ($student->last_login_at instanceof \Carbon\Carbon)
+                    ? $student->last_login_at->diffForHumans()
+                    : 'لم يسجل دخول',
+                'last_seen' => $lastSeen,
+                'created_at' => $student->created_at ? $student->created_at->format('Y-m-d') : '---',
+                'major' => $student->major ? $student->major->name : 'غير محدد',
+                'college' => $student->major && $student->major->college ? $student->major->college->name : 'غير محدد',
+                'portal_student_id' => $student->portal_student_id,
+                'graduation_eligibility' => $student->isEligibleForGraduation(),
+                'stats' => [
+                    'gpa' => $gpa,
+                    'total_passed_credits' => $totalCredits,
+                    'cart_courses_count' => $student->cartCourses ? $student->cartCourses->count() : 0,
+                    'cart_hours' => $cartHours,
+                ],
+                'passed_courses' => $student->passedCourses, 
+                'cart_courses' => $student->cartCourses,
+            ];
+        });
 
         $colleges = College::select('id', 'name')->get();
         $majors = Major::select('id', 'name', 'college_id')->get();
 
         return Inertia::render('Admin/Students/Index', [
-            'students' => $students,
+            'students' => $paginatedStudents,
             'colleges' => $colleges,
             'majors' => $majors,
             'filters' => $request->only(['search', 'college_id', 'major_id'])
