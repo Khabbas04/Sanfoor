@@ -472,6 +472,24 @@ export default function Advisor() {
     const [input, setInput] = useState('');
     const [typing, setTyping] = useState(false);
     const [generating, setGenerating] = useState(false);
+
+    useEffect(() => {
+        if (st && !st.has_academic_records) {
+            Swal.fire({
+                title: 'تنبيه هام! ⚠️',
+                text: 'للحصول على أفضل تجربة وأدق إجابات من مرشد سنفور، يُرجى الذهاب إلى شجرة المواد أولاً وتحديد المواد التي أنهيتها مع علاماتك.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'الذهاب للشجرة',
+                cancelButtonText: 'لاحقاً',
+                ...swal
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = route('tree.index');
+                }
+            });
+        }
+    }, [st]);
     
     const [thinkingIndex, setThinkingIndex] = useState(0);
     const thinkingPhrases = [
