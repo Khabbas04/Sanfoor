@@ -17,6 +17,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd ${{ secrets.PROJECT_PATH }}
+            cd /var/www/sanfoor
             chmod +x deploy.sh
             ./deploy.sh
