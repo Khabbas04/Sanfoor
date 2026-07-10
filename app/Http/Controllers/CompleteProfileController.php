@@ -90,6 +90,7 @@ class CompleteProfileController extends Controller
             }
 
             $user->newQuery()->whereKey($user->id)->update($updateData);
+            $user->refresh();
 
             // Log the profile completion event.
             try {

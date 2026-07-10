@@ -138,6 +138,7 @@ class GuestDemoController extends Controller
                   ->orWhereNull('major_id');
             })
             ->where('type', 'compulsory')
+            ->orderByRaw('major_id IS NULL ASC')
             ->orderBy('tree_position_y', 'asc')
             ->orderBy('id', 'asc')
             ->take(11)
