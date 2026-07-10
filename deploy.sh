@@ -16,7 +16,7 @@ composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-p
 
 # Install NPM dependencies and build assets
 echo "Building frontend assets..."
-npm ci || npm install
+npm install
 npm run build
 
 # Clear the old cache
