@@ -12,7 +12,7 @@ git pull origin main
 
 # Install/update composer dependencies
 echo "Installing composer dependencies..."
-composer install --no-interaction --prefer-dist --optimize-autoloader
+composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-platform-req=php
 
 # Install NPM dependencies and build assets
 echo "Building frontend assets..."
