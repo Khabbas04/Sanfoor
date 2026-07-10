@@ -890,7 +890,7 @@ class AiAdvisorController extends Controller
                     $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
                     $availableText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
                 } else {
-                    if ($lockedCount >= 120) {
+                    if ($lockedCount >= 20) {
                         continue;
                     }
                     $lockedCount++;
@@ -1155,41 +1155,25 @@ class AiAdvisorController extends Controller
 
     private function parseAIResponse(string $rawText): array
     {
-        // Only strip the outer markdown formatting if the entire response is wrapped in it.
-        $clean = preg_replace('/^```(?:json)?\s*(.*?)\s*```$/is', '$1', trim($rawText));
+        $geminiService = app(\App\Services\GeminiService::class);
+        $decoded = $geminiService->parseJsonResponse($rawText);
 
-        $decoded = json_decode($clean, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
-            return [
-                'reply' => (string) $decoded['reply'],
-                'follow_up_suggestions' => $decoded['follow_up_suggestions'] ?? [],
-                'interactive_widget' => $decoded['interactive_widget'] ?? null,
-                'suggested_course_ids' => $this->extractCourseIds($decoded['suggested_course_ids'] ?? null),
-                'remove_course_ids' => $this->extractCourseIds($decoded['remove_course_ids'] ?? null),
-            ];
+        if (isset($decoded['error_parsing']) && $decoded['error_parsing']) {
+             return [
+                 'reply' => $this->normalizeReplyText($decoded['reply'] ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.'),
+                 'follow_up_suggestions' => [],
+                 'interactive_widget' => null,
+                 'suggested_course_ids' => [],
+                 'remove_course_ids' => [],
+             ];
         }
-
-        $jsonFragment = $this->extractJsonObject($clean);
-        if ($jsonFragment !== null) {
-            $decodedFragment = json_decode($jsonFragment, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedFragment) && isset($decodedFragment['reply'])) {
-                return [
-                    'reply' => (string) $decodedFragment['reply'],
-                    'follow_up_suggestions' => $decodedFragment['follow_up_suggestions'] ?? [],
-                    'interactive_widget' => $decodedFragment['interactive_widget'] ?? null,
-                    'suggested_course_ids' => $this->extractCourseIds($decodedFragment['suggested_course_ids'] ?? null),
-                    'remove_course_ids' => $this->extractCourseIds($decodedFragment['remove_course_ids'] ?? null),
-                ];
-            }
-        }
-
 
         return [
-            'reply' => $this->stripReplyEnvelope($clean) ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.',
-            'follow_up_suggestions' => [],
-            'interactive_widget' => null,
-            'suggested_course_ids' => [],
-            'remove_course_ids' => [],
+            'reply' => $this->normalizeReplyText((string) ($decoded['reply'] ?? '')),
+            'follow_up_suggestions' => $decoded['follow_up_suggestions'] ?? [],
+            'interactive_widget' => $decoded['interactive_widget'] ?? null,
+            'suggested_course_ids' => $this->extractCourseIds($decoded['suggested_course_ids'] ?? null),
+            'remove_course_ids' => $this->extractCourseIds($decoded['remove_course_ids'] ?? null),
         ];
     }
 
@@ -1215,49 +1199,7 @@ class AiAdvisorController extends Controller
         return array_values(array_unique($ids));
     }
 
-    private function extractJsonObject(string $text): ?string
-    {
-        $start = strpos($text, '{');
-        $end = strrpos($text, '}');
 
-        if ($start === false || $end === false || $end <= $start) {
-            return null;
-        }
-
-        return substr($text, $start, ($end - $start + 1));
-    }
-
-    private function stripReplyEnvelope(string $text): string
-    {
-        $value = trim($text);
-
-        $decoded = json_decode($value, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
-            return trim((string) $decoded['reply']);
-        }
-
-        // Strip markdown code blocks formatting
-        $value = preg_replace('/```(?:json)?/is', '', $value);
-
-        // Strip leading braces
-        $value = preg_replace('/^\s*[\{\[]+\s*/u', '', $value);
-        
-        // Remove ALL json keys that might follow the reply to the end of the string
-        $value = preg_replace('/[,\[\]{}]?\s*["\']?(suggested_courses|suggested_course_ids|courses_to_remove|remove_course_ids|follow_up_suggestions|interactive_widget)["\']?\s*[:=].*/isu', '', $value);
-
-        // If it starts with "reply": extract just the value
-        if (preg_match('/^\s*["\']?reply["\']?\s*:\s*["\']?(.*)$/isu', $value, $matches)) {
-            $value = $matches[1];
-        }
-
-        // Remove trailing braces/brackets
-        $value = preg_replace('/\s*[\}\]]+\s*$/u', '', $value);
-        
-        // Remove stray quotes and json delimiters at the end
-        $value = preg_replace('/[,\[\]{}"\':\s]+$/u', '', $value);
-
-        return trim($value, " \t\n\r\0\x0B\"'");
-    }
 
     private function normalizeReplyText(string $text): string
     {
@@ -1270,7 +1212,8 @@ class AiAdvisorController extends Controller
 
         $clean = preg_replace('/\x{00A0}?\s*[\(\[]\s*ID\s*[:：]?\s*\d+\s*[\)\]]/iu', '', $clean);
 
-        $clean = trim($this->stripReplyEnvelope($clean));
+        $geminiService = app(\App\Services\GeminiService::class);
+        $clean = trim($geminiService->stripReplyEnvelope($clean));
 
         // Aggressive catch-all for any JSON property formatting left in the string 
         // Example: "some_key": [...]

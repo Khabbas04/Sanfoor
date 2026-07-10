@@ -240,4 +240,73 @@ class GeminiService
 
         throw new \Exception("Gemini API failed across all keys. Last error: {$lastError}");
     }
+
+    public function parseJsonResponse(string $rawText): array
+    {
+        // Only strip the outer markdown formatting if the entire response is wrapped in it.
+        $clean = preg_replace('/^```(?:json)?\s*(.*?)\s*```$/is', '$1', trim($rawText));
+
+        $decoded = json_decode($clean, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+
+        $jsonFragment = $this->extractJsonObject($clean);
+        if ($jsonFragment !== null) {
+            $decodedFragment = json_decode($jsonFragment, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decodedFragment)) {
+                return $decodedFragment;
+            }
+        }
+
+        // Final fallback: try to clean escaping issues
+        $cleanedText = str_replace("\n", "\\n", $clean);
+        $cleanedText = str_replace("\r", "", $cleanedText);
+        $cleanedText = preg_replace('/[\x00-\x1F]/', '', $cleanedText);
+        $decoded = json_decode($cleanedText, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [
+            'reply' => $this->stripReplyEnvelope($clean) ?: 'حدث خطأ في فهم الرد.',
+            'error_parsing' => true,
+        ];
+    }
+
+    private function extractJsonObject(string $text): ?string
+    {
+        $start = strpos($text, '{');
+        $end = strrpos($text, '}');
+
+        if ($start === false || $end === false || $end <= $start) {
+            return null;
+        }
+
+        return substr($text, $start, ($end - $start + 1));
+    }
+
+    public function stripReplyEnvelope(string $text): string
+    {
+        $value = trim($text);
+
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && isset($decoded['reply'])) {
+            return trim((string) $decoded['reply']);
+        }
+
+        $value = preg_replace('/```(?:json)?/is', '', $value);
+        $value = preg_replace('/^\s*[\{\[]+\s*/u', '', $value);
+        $value = preg_replace('/[,\[\]{}]?\s*["\']?(suggested_courses|suggested_course_ids|courses_to_remove|remove_course_ids|follow_up_suggestions|interactive_widget|proposed_schedule)["\']?\s*[:=].*/isu', '', $value);
+
+        if (preg_match('/^\s*["\']?reply["\']?\s*:\s*["\']?(.*)$/isu', $value, $matches)) {
+            $value = $matches[1];
+        }
+
+        $value = preg_replace('/\s*[\}\]]+\s*$/u', '', $value);
+        $value = preg_replace('/[,\[\]{}"\':\s]+$/u', '', $value);
+
+        return trim($value, " \t\n\r\0\x0B\"'");
+    }
 }
