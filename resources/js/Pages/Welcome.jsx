@@ -797,7 +797,7 @@ export default function Welcome({ auth }) {
                                         </svg>
                                     </div>
                                     <span className="font-[900] text-[13px] tracking-wide text-transparent bg-clip-text bg-gradient-to-l from-sky-200 via-white to-white drop-shadow-sm">
-                                        النظام الذكي الأول في الجامعات
+                                        النظام الذكي الأولل في الجامعات
                                     </span>
                                 </div>
                             </div>
@@ -889,7 +889,7 @@ export default function Welcome({ auth }) {
                                 <button onClick={() => setActiveVideo('tree')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(59,130,246,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200 flex flex-col">
                                     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#0f172a] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
                                     <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/30 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 z-0"></div>
-                                    
+
                                     <div className="relative w-full h-48 sm:h-56 bg-slate-100 overflow-hidden shrink-0 border-b border-slate-200 group-hover:border-slate-700 transition-colors duration-500 z-10">
                                         <img src="/images/tree-tutorial-thumb.jpg" alt="Tree Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                         <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/30 transition-colors duration-500"></div>
@@ -911,7 +911,7 @@ export default function Welcome({ auth }) {
                                 <button onClick={() => setActiveVideo('ai')} className="group text-right overflow-hidden relative rounded-[2rem] shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-[0_25px_50px_-15px_rgba(16,185,129,0.25)] transition-all duration-500 hover:-translate-y-2 bg-white border border-slate-200 flex flex-col">
                                     <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-[#022c22] opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0"></div>
                                     <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-700 z-0"></div>
-                                    
+
                                     <div className="relative w-full h-48 sm:h-56 bg-slate-100 overflow-hidden shrink-0 border-b border-slate-200 group-hover:border-slate-700 transition-colors duration-500 z-10">
                                         <img src="/images/ai-tutorial-thumb.jpg" alt="AI Tutorial" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                                         <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/30 transition-colors duration-500"></div>
