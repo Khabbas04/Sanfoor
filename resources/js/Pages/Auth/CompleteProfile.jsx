@@ -165,6 +165,37 @@ export default function CompleteProfile({ colleges, majors }) {
         show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300 } }
     };
 
+    const backgroundElements = useMemo(() => (
+        <>
+            {/* 🏆 Lightfall Warp Background */}
+            <div className="absolute inset-0 z-0">
+                <Lightfall
+                    colors={isGuest ? ['#16A34A', '#DC2626', '#38BDF8', '#F97316'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
+                    backgroundColor={isGuest ? '#020617' : '#000000'}
+                    speed={isGuest ? 0.8 : 0.5}
+                    streakCount={isGuest ? 5 : 3}
+                    streakWidth={1}
+                    streakLength={isGuest ? 1.5 : 1}
+                    glow={1.2}
+                    density={isGuest ? 0.8 : 0.6}
+                    twinkle={1.5}
+                    zoom={3}
+                    backgroundGlow={isGuest ? 0.3 : 0.5}
+                    mouseInteraction={true}
+                />
+            </div>
+
+            {/* 🕸️ Cyber Grid overlay */}
+            <div className={`absolute inset-0 bg-[linear-gradient(${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px),linear-gradient(90deg,${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none z-0`}></div>
+
+            {/* Floating Tech/Code Symbols (Smart touches) */}
+            <div className={`absolute top-[10%] right-[15%] ${isGuest ? 'text-emerald-500/20' : 'text-emerald-400/20'} text-4xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '0s'}}>⚡</div>
+            <div className={`absolute bottom-[20%] left-[10%] ${isGuest ? 'text-cyan-500/20' : 'text-cyan-400/20'} text-3xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '1.5s'}}>&lt;/&gt;</div>
+            <div className={`absolute top-[30%] left-[20%] ${isGuest ? 'text-indigo-500/20' : 'text-indigo-400/20'} text-2xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '3.5s'}}>{'{ }'}</div>
+            <div className={`absolute bottom-[15%] right-[20%] ${isGuest ? 'text-slate-400/30' : 'text-white/10'} text-xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '2.2s'}}>#</div>
+        </>
+    ), [isGuest]);
+
     return (
         <>
             <Head title="أكمل ملفك الأكاديمي - سنفور" />
@@ -235,32 +266,7 @@ export default function CompleteProfile({ colleges, majors }) {
 
             <div dir="rtl" className={`min-h-screen ${isGuest ? 'bg-slate-50' : 'bg-[#000000]'} flex items-center justify-center px-3 py-6 sm:px-4 sm:py-8 relative overflow-hidden transition-colors duration-1000`}>
                 
-                {/* 🏆 Lightfall Warp Background */}
-                <div className="absolute inset-0 z-0">
-                    <Lightfall
-                        colors={isGuest ? ['#16A34A', '#DC2626', '#38BDF8', '#F97316'] : ['#a6c8ff', '#2195d0', '#ff9ffc']}
-                        backgroundColor={isGuest ? '#020617' : '#000000'}
-                        speed={isGuest ? 0.8 : 0.5}
-                        streakCount={isGuest ? 5 : 3}
-                        streakWidth={1}
-                        streakLength={isGuest ? 1.5 : 1}
-                        glow={1.2}
-                        density={isGuest ? 0.8 : 0.6}
-                        twinkle={1.5}
-                        zoom={3}
-                        backgroundGlow={isGuest ? 0.3 : 0.5}
-                        mouseInteraction={true}
-                    />
-                </div>
-
-                {/* 🕸️ Cyber Grid overlay */}
-                <div className={`absolute inset-0 bg-[linear-gradient(${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px),linear-gradient(90deg,${isGuest ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)'}_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)] pointer-events-none z-0`}></div>
-
-                {/* Floating Tech/Code Symbols (Smart touches) */}
-                <div className={`absolute top-[10%] right-[15%] ${isGuest ? 'text-emerald-500/20' : 'text-emerald-400/20'} text-4xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '0s'}}>⚡</div>
-                <div className={`absolute bottom-[20%] left-[10%] ${isGuest ? 'text-cyan-500/20' : 'text-cyan-400/20'} text-3xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '1.5s'}}>&lt;/&gt;</div>
-                <div className={`absolute top-[30%] left-[20%] ${isGuest ? 'text-indigo-500/20' : 'text-indigo-400/20'} text-2xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '3.5s'}}>{'{ }'}</div>
-                <div className={`absolute bottom-[15%] right-[20%] ${isGuest ? 'text-slate-400/30' : 'text-white/10'} text-xl font-black font-mono animate-float pointer-events-none select-none z-0`} style={{animationDelay: '2.2s'}}>#</div>
+                {backgroundElements}
 
                 <div className={`w-full max-w-2xl relative z-10 ${isGuest ? 'bg-[#020617]/70 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] sm:rounded-[3rem] p-6 sm:p-10 shadow-[0_0_80px_rgba(0,0,0,0.8)]' : ''}`}>
                     {/* Logo + Welcome */}
