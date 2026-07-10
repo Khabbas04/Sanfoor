@@ -89,7 +89,7 @@ function GuestDemoBanner() {
                                     {/* Animated logo */}
                                     <div className="relative shrink-0">
                                         <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-amber-500/30 p-1.5 sm:p-2" style={{ animation: 'demo-float-icon 3s ease-in-out infinite' }}>
-                                            <img src="/images/ntp-logo.png" alt="NTP 2026" className="w-full h-full object-contain drop-shadow-sm" />
+                                            <img src="/images/sanfoor.png" alt="Sanfoor Demo" className="w-full h-full object-contain drop-shadow-sm" />
                                         </div>
                                         <div className="absolute -inset-1 rounded-xl sm:rounded-2xl border-2 border-amber-400/30" style={{ animation: 'demo-pulse-ring 2s ease-out infinite' }} />
                                     </div>
@@ -97,10 +97,10 @@ function GuestDemoBanner() {
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <h3 className="text-white text-sm sm:text-base font-black tracking-tight whitespace-nowrap">
-                                                جرّب سنفور <span className="text-transparent bg-clip-text bg-gradient-to-l from-amber-300 to-orange-400">DEMO</span>
+                                                تجربة سنفور <span className="text-transparent bg-clip-text bg-gradient-to-l from-amber-300 to-orange-400">DEMO</span>
                                             </h3>
                                             <span className="bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full tracking-wider whitespace-nowrap">
-                                                NTP 2026
+                                                تجربة عامة
                                             </span>
                                         </div>
                                         {expanded && (

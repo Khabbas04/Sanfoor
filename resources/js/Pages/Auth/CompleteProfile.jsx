@@ -759,11 +759,7 @@ export default function CompleteProfile({ colleges, majors }) {
                                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Powered by</span>
                                 <div className="flex items-center gap-2 font-black text-white drop-shadow-md">
                                     <img src="/images/sanfoor.png" alt="Sanfoor" className="w-5 h-5 object-contain" />
-                                    <span>Sanfoor</span>
-                                    <svg className="w-3.5 h-3.5 text-orange-400 mx-1 drop-shadow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square">
-                                        <path d="M18 6L6 18M6 6l12 12" />
-                                    </svg>
-                                    <span className="text-emerald-400 tracking-tight">NTP</span>
+                                    <span>Sanfoor Demo</span>
                                 </div>
                             </div>
                         )}

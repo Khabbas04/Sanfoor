@@ -102,11 +102,19 @@ export default function Login({ status, canResetPassword }) {
                             </a>
                         </div>
                         
-                        <div className="text-center pt-2" style={stagger(2)}>
+                        <div className="flex flex-col gap-3 pt-2" style={stagger(2)}>
+                            <a
+                                href={route('guest.demo')}
+                                className="relative group w-full flex items-center justify-center gap-3 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 py-3.5 px-6 rounded-2xl font-black text-[13px] transition-all duration-300 shadow-sm"
+                            >
+                                <span className="text-lg group-hover:scale-110 transition-transform duration-300">👋</span>
+                                زائر؟ اضغط هنا لتجربة المنصة
+                            </a>
+
                             <button
                                 type="button"
                                 onClick={() => setShowExternalLogin(true)}
-                                className="inline-flex items-center justify-center px-4 py-2 text-[12px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
+                                className="inline-flex items-center justify-center px-4 py-3 text-[12px] font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all"
                             >
                                 تسجيل الدخول للإدارة (حساب محلي)
                             </button>
