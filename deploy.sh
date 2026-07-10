@@ -3,8 +3,7 @@ set -e
 
 echo "Deploying application..."
 
-# Enter maintenance mode or return true if already under maintenance
-(php artisan down) || true
+
 
 # Pull the latest changes from the git repository
 echo "Pulling latest changes..."
@@ -36,8 +35,6 @@ php artisan optimize
 echo "Restarting queues..."
 php artisan queue:restart || true
 
-# Exit maintenance mode
-echo "Bringing application up..."
-php artisan up
+
 
 echo "Deployment finished successfully!"
