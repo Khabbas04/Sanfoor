@@ -260,7 +260,7 @@ class AiAdvisorController extends Controller
                 if ($this->isFirstSemesterStudent($academicData)) {
                     $starterIds = $this->getFirstSemesterStarterCourseIds($availableCourses);
                     if (!empty($starterIds)) {
-                        $suggestedIds = array_values(array_unique(array_merge($starterIds, $suggestedIds)));
+                        $suggestedIds = $starterIds;
                         if (!$this->replyMentionsFirstSemesterStarter($replyText)) {
                             $replyText = "بما أنك في أول فصل وما عندك ساعات منجزة، الجدول المعتمد كبداية هو: أساسيات تكنولوجيا معلومات، تصميم منطق رقمي، متطلب جامعة إجباري، ومتطلب جامعة اختياري.\n\n" . $replyText;
                         }
@@ -1027,7 +1027,7 @@ class AiAdvisorController extends Controller
 
         $firstSemesterRule = '';
         if ($this->isFirstSemesterStudent($academicData) && !$isSummer) {
-            $firstSemesterRule = "- 🚨 **قاعدة إلزامية للفصل الأول**: بما أن الطالب لم ينجز أي ساعة بعد، اقترح عليه كبداية 12 ساعة فقط (4 مواد) بهذا الترتيب: 1- أساسيات تكنولوجيا معلومات، 2- تصميم منطق رقمي، 3- مادة متطلب جامعة إجباري، 4- مادة متطلب جامعة اختياري. اختر أرقام المواد فقط من قائمة المواد المتاحة، ولا تستبدل هذه البنية إلا إذا كانت مادة منها غير متاحة فعلياً.\n";
+            $firstSemesterRule = "- 🚨 **قاعدة إلزامية للفصل الأول**: بما أن الطالب لم ينجز أي ساعة بعد، اقترح عليه كبداية 12 ساعة فقط (4 مواد) بهذا الترتيب فقط: 1- أساسيات تكنولوجيا معلومات، 2- تصميم منطق رقمي، 3- مادة متطلب جامعة إجباري من مواد الأونلاين (type=university_req)، 4- مادة متطلب جامعة اختياري من مواد الأونلاين (type=university_req). متطلب الجامعة عندنا يعني مواد الأونلاين فقط، وقد يكون إجباري أو اختياري. لا تقترح مواد تخصص أو مواد عامة أخرى مكان متطلبات الجامعة، وخصوصاً لا تستخدم أساسيات الأمن السيبراني كمتطلب جامعة.\n";
         }
 
         $cartWarning = '';
@@ -1499,29 +1499,19 @@ class AiAdvisorController extends Controller
 
     private function isUniversityRequirementCourse(array $course): bool
     {
-        $type = (string) ($course['type'] ?? '');
-
-        return $type === 'university_req'
-            || $this->courseNameHasAll($course, ['متطلب', 'جامعة'])
-            || $this->courseNameHasAny($course, ['تربية وطنية', 'علوم عسكرية']);
+        return (string) ($course['type'] ?? '') === 'university_req';
     }
 
     private function isUniversityElectiveCourse(array $course): bool
     {
-        $type = (string) ($course['type'] ?? '');
-
-        return ($this->isUniversityRequirementCourse($course) && $this->courseNameHasAny($course, ['اختياري', 'اختيارية']))
-            || ($type === 'elective' && $this->courseNameHasAny($course, ['جامعة', 'متطلب جامعة']));
+        return $this->isUniversityRequirementCourse($course)
+            && $this->courseNameHasAny($course, ['اختياري', 'اختيارية']);
     }
 
     private function isUniversityCompulsoryCourse(array $course): bool
     {
-        if (!$this->isUniversityRequirementCourse($course)) {
-            return false;
-        }
-
-        return !$this->isUniversityElectiveCourse($course)
-            || $this->courseNameHasAny($course, ['اجباري', 'اجبارية', 'تربية وطنية', 'علوم عسكرية']);
+        return $this->isUniversityRequirementCourse($course)
+            && !$this->isUniversityElectiveCourse($course);
     }
 
     private function courseNameHasAll(array $course, array $parts): bool
@@ -1595,7 +1585,7 @@ class AiAdvisorController extends Controller
             'cart' => array_values($cartData['ids'] ?? []),
             'cart_hours' => (int) ($cartData['hours'] ?? 0),
             'available' => array_keys($availableCourses['map'] ?? []),
-            'advisor_rule_version' => 'first_semester_starter_v2',
+            'advisor_rule_version' => 'first_semester_online_req_v4',
         ];
 
         return 'ai_response_' . $userId . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -1665,7 +1655,7 @@ class AiAdvisorController extends Controller
             $starterIds = $this->getFirstSemesterStarterCourseIds($availableCourses);
             if (!empty($starterIds)) {
                 $suggestedIds = $starterIds;
-                $reply .= "\n\nبما أنك في أول فصل، الأفضل تثبيت البداية على: **أساسيات تكنولوجيا معلومات**، **تصميم منطق رقمي**، **متطلب جامعة إجباري**، و**متطلب جامعة اختياري**.";
+                $reply .= "\n\nبما أنك في أول فصل، الأفضل تثبيت البداية على: **أساسيات تكنولوجيا معلومات**، **تصميم منطق رقمي**، **متطلب جامعة إجباري من مواد الأونلاين**، و**متطلب جامعة اختياري من مواد الأونلاين**.";
             }
         }
 

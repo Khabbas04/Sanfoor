@@ -63,21 +63,18 @@ const isDigitalLogicCourse = (course) => nameHasAll(course?.name, ['تصميم',
 
 const isUniversityRequirementCourse = (course) => {
     if (!course) return false;
-    return course.type === 'university_req'
-        || nameHasAll(course.name, ['متطلب', 'جامعة'])
-        || nameHasAny(course.name, ['تربية وطنية', 'علوم عسكرية']);
+    return course.type === 'university_req';
 };
 
 const isUniversityElectiveCourse = (course) => {
     if (!course) return false;
-    return (isUniversityRequirementCourse(course) && nameHasAny(course.name, ['اختياري', 'اختيارية']))
-        || (course.type === 'elective' && nameHasAny(course.name, ['جامعة', 'متطلب جامعة']));
+    return isUniversityRequirementCourse(course)
+        && nameHasAny(course.name, ['اختياري', 'اختيارية']);
 };
 
 const isUniversityCompulsoryCourse = (course) => {
-    if (!isUniversityRequirementCourse(course)) return false;
-    return !isUniversityElectiveCourse(course)
-        || nameHasAny(course.name, ['اجباري', 'اجبارية', 'تربية وطنية', 'علوم عسكرية']);
+    if (!course) return false;
+    return isUniversityRequirementCourse(course) && !isUniversityElectiveCourse(course);
 };
 
 const getFirstSemesterStarterCourses = (availableCourses, maxHours = 12) => {
