@@ -22,6 +22,8 @@ class AiAdvisorController extends Controller
     private const RATE_LIMIT_PER_HOUR = 40;
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
     private const MAX_WIDGET_ITEMS = 8;
+    private const MAX_AVAILABLE_CONTEXT_COURSES = 28;
+    private const MAX_LOCKED_CONTEXT_COURSES = 12;
     private const MAX_HOURS_NORMAL = 18;
     private const MAX_HOURS_PROBATION = 12;
     private const ENABLE_SMART_TITLE = false;
@@ -184,7 +186,8 @@ class AiAdvisorController extends Controller
 
             $newRemaining = null;
             if ($dailyLimit !== null) {
-                $newRemaining = max(0, $dailyLimit - $usage);
+                Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                $newRemaining = max(0, $dailyLimit - ($usage + 1));
             }
 
             return response()->json([
@@ -217,9 +220,18 @@ class AiAdvisorController extends Controller
             } else {
                 $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
                 $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? false);
-                $contents = $this->buildConversationContext($chat, $systemPrompt);
+                $contents = $this->buildConversationContext($chat);
 
-                $rawText = $geminiService->callGeminiAPI($contents);
+                $rawText = $geminiService->callGeminiAPI($contents, [
+                    'systemInstruction' => [
+                        'parts' => [['text' => $systemPrompt]],
+                    ],
+                    'generationConfig' => [
+                        'maxOutputTokens' => 1200,
+                        'temperature' => 0.25,
+                    ],
+                    'timeout' => 22,
+                ]);
                 $parsed = $this->parseAIResponse($rawText);
 
                 $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
@@ -882,7 +894,7 @@ class AiAdvisorController extends Controller
                 $desc = empty($course['desc']) ? 'لا يوجد وصف' : $course['desc'];
 
                 if ($course['status'] === 'Available' || $course['in_cart']) {
-                    if ($availableCount >= 40) {
+                    if ($availableCount >= self::MAX_AVAILABLE_CONTEXT_COURSES) {
                         continue;
                     }
                     $availableCount++;
@@ -890,7 +902,7 @@ class AiAdvisorController extends Controller
                     $sched = empty($course['schedule_info']) ? '' : str_replace(',', '،', $course['schedule_info']);
                     $availableText[] = "{$course['id']},{$course['code']},{$course['name']},{$course['credit_hours']},{$course['course_year']},{$course['type']},{$course['unlocks']},{$course['difficulty_level']},{$cCart},{$sched}";
                 } else {
-                    if ($lockedCount >= 20) {
+                    if ($lockedCount >= self::MAX_LOCKED_CONTEXT_COURSES) {
                         continue;
                     }
                     $lockedCount++;
@@ -1093,7 +1105,7 @@ class AiAdvisorController extends Controller
             "🚨 تحذير شديد: إياك أن تخترع أسماء مواد أو أرقام مواد أو عدد ساعات غير موجودة في القوائم أعلاه، سواء في النص أو في interactive_widget أو في مصفوفات الأرقام. أي رقم أو مادة من خارج القوائم سيسبب خطأ فادح بالنظام.";
     }
 
-    private function buildConversationContext($chat, string $systemPrompt): array
+    private function buildConversationContext($chat): array
     {
         $messages = $chat->messages()->orderBy('created_at', 'desc')->get(); // Reverse chronological
         
@@ -1118,13 +1130,8 @@ class AiAdvisorController extends Controller
             }
         }
 
-        $summaryPrefix = '';
-        if ($chat->messages()->count() > count($validMessages)) {
-            $summaryPrefix = "\n[ملاحظة: تم اختصار المحادثة السابقة]\n";
-        }
 
         $contents = [];
-        $isFirst = true;
 
         foreach ($validMessages as $message) {
             $text = (string) $message->content;
@@ -1138,14 +1145,10 @@ class AiAdvisorController extends Controller
 
             $role = $message->role === 'ai' ? 'model' : 'user';
 
-            if ($isFirst && $role === 'user') {
-                $text = "تعليمات النظام (لا تظهر للطالب):\n{$systemPrompt}{$summaryPrefix}\n\nسؤال الطالب:\n{$text}";
-                $isFirst = false;
-            }
 
             $contents[] = [
                 'role' => $role,
-                'parts' => [['text' => $text]],
+                'parts' => [['text' => mb_substr($text, 0, 1800, 'UTF-8')]],
             ];
         }
 
@@ -1214,6 +1217,7 @@ class AiAdvisorController extends Controller
 
         $geminiService = app(\App\Services\GeminiService::class);
         $clean = trim($geminiService->stripReplyEnvelope($clean));
+        $clean = preg_replace('/\bID\s*[:#]?\s*\d+\b/iu', '', $clean);
 
         // Aggressive catch-all for any JSON property formatting left in the string 
         // Example: "some_key": [...]
@@ -1221,6 +1225,8 @@ class AiAdvisorController extends Controller
         
         // Remove markdown json wrappers if still present
         $clean = preg_replace('/```(?:json)?(.*?)```/is', '$1', $clean);
+        $clean = preg_replace('/(?:[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]\x{FE0F}?\s*){3,}/u', '', $clean);
+        $clean = preg_replace('/[ \t]{2,}/', ' ', $clean);
         
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
 

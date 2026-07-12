@@ -86,6 +86,8 @@ export default function AiWidget({ user }) {
                 message: msg,
                 chat_id: chatId,
                 filters: selectedFilters
+            }, {
+                timeout: 30000,
             });
             if (response.data.status === 'success') {
                 if (response.data.chat_id) setChatId(response.data.chat_id);

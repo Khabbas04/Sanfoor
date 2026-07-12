@@ -132,7 +132,7 @@ class GeminiService
             try {
                 $requestContents = $contents;
                 $fullText = '';
-                $backoffMs = 100;
+                $backoffMs = 120;
 
                 for ($pass = 0; $pass <= 2; $pass++) {
                     for ($retryCount = 0; $retryCount < 2; $retryCount++) {
@@ -150,8 +150,8 @@ class GeminiService
                             }
 
                             $response = Http::withoutVerifying()
-                                ->connectTimeout(5)
-                                ->timeout(35)
+                                ->connectTimeout(3)
+                                ->timeout((int) ($options['timeout'] ?? 24))
                                 ->withHeaders(['Content-Type' => 'application/json'])
                                 ->post($url, $payload);
 

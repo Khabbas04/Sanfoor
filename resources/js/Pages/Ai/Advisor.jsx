@@ -638,6 +638,7 @@ export default function Advisor() {
 
             const res = await axios.post(route('ai.advisor.chat'), pl, {
                 signal: abortRef.current.signal,
+                timeout: 30000,
             });
 
             const data = res.data;
