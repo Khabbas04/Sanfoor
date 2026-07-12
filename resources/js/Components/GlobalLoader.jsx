@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { csrfHeaders } from '@/utils/csrf';
 
-export default function GlobalLoader() {
+export default function GlobalLoader({ isAuthenticated = false }) {
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
-    const { auth } = usePage().props || {};
-    const isAuthenticated = Boolean(auth?.user?.id);
 
     useEffect(() => {
         let timeoutId;
