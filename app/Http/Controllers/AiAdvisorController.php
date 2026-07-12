@@ -257,6 +257,16 @@ class AiAdvisorController extends Controller
                     $removeIds = $matched['remove'];
                 }
 
+                if ($this->isFirstSemesterStudent($academicData)) {
+                    $starterIds = $this->getFirstSemesterStarterCourseIds($availableCourses);
+                    if (!empty($starterIds)) {
+                        $suggestedIds = array_values(array_unique(array_merge($starterIds, $suggestedIds)));
+                        if (!$this->replyMentionsFirstSemesterStarter($replyText)) {
+                            $replyText = "بما أنك في أول فصل وما عندك ساعات منجزة، الجدول المعتمد كبداية هو: أساسيات تكنولوجيا معلومات، تصميم منطق رقمي، متطلب جامعة إجباري، ومتطلب جامعة اختياري.\n\n" . $replyText;
+                        }
+                    }
+                }
+
                 $suggestedDetails = !empty($suggestedIds)
                     ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
                     : [];
@@ -1015,9 +1025,9 @@ class AiAdvisorController extends Controller
 
         $isSummer = !empty($academicData['current_period_is_summer']);
 
-        $itFreshmanRule = '';
-        if (($academicData['college_id'] ?? null) == 1 && $totalPassedHours == 0 && !$isSummer) {
-            $itFreshmanRule = "- 🚨 **قاعدة التوجيه لطلاب كلية الـ IT الجدد**: بما أن هذا الطالب في كلية تكنولوجيا المعلومات وهذا فصله الأول (أنجز 0 ساعة)، **يجب عليك وبشكل إلزامي** أن تقترح عليه تسجيل 12 ساعة فقط (4 مواد) تتكون مما يلي بالتحديد: 1- مادة 'أساسيات تكنولوجيا المعلومات'، 2- مادة 'تصميم المنطق الرقمي'، 3- مادة من متطلبات الجامعة الإجبارية (مثال: التربية الوطنية أو غيرها)، 4- مادة من متطلبات الجامعة الاختيارية. أخبر الطالب صراحة أن هذا هو الجدول المثالي والمتبع لطلاب الـ IT في فصلهم الأول.\n";
+        $firstSemesterRule = '';
+        if ($this->isFirstSemesterStudent($academicData) && !$isSummer) {
+            $firstSemesterRule = "- 🚨 **قاعدة إلزامية للفصل الأول**: بما أن الطالب لم ينجز أي ساعة بعد، اقترح عليه كبداية 12 ساعة فقط (4 مواد) بهذا الترتيب: 1- أساسيات تكنولوجيا معلومات، 2- تصميم منطق رقمي، 3- مادة متطلب جامعة إجباري، 4- مادة متطلب جامعة اختياري. اختر أرقام المواد فقط من قائمة المواد المتاحة، ولا تستبدل هذه البنية إلا إذا كانت مادة منها غير متاحة فعلياً.\n";
         }
 
         $cartWarning = '';
@@ -1071,7 +1081,7 @@ class AiAdvisorController extends Controller
             ($isSummer ? "- (الفصل صيفي). ركز على المواد المطروحة في الصيفي إن وجدت.\n" : "- (ليس صيفياً).\n") .
             "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني/الصيفي'.\n" .
             $filterInstructions .
-            $itFreshmanRule .
+            $firstSemesterRule .
             "- الحساب الدقيق (صارم): لأسئلة حساب المعدل، **اكتب العملية الحسابية الدقيقة** خطوة بخطوة بشكل عمودي (باستخدام الرمز \\n لإنشاء أسطر جديدة داخل الـ JSON)، ولا تدمج الحسابات بفقرة واحدة. ولا تستخدم علامات التنصيص المزدوجة داخل نص الـ reply. القانون: (المعدل الحالي×الساعات المقطوعة + العلامة المتوقعة×الساعات المتوقعة)/إجمالي الساعات.\n" .
             "- الأكواد البرمجية: إذا طلب الطالب كوداً برمجياً أو قمت بشرح أي مفهوم برمجي، **يجب** أن تضع الكود بداخل كتلة أكواد Markdown (Triple backticks) مع تحديد لغة البرمجة (مثال: ```java). إياك كتابة الكود كنص عادي.\n" .
             "- كن جدياً وعملياً، استخدم ايموجيات خفيفة وميّز الكلمات بـ **bold**.\n" .
@@ -1434,6 +1444,121 @@ class AiAdvisorController extends Controller
         return 'مقفلة حالياً';
     }
 
+    private function isFirstSemesterStudent(array $academicData): bool
+    {
+        return (int) ($academicData['total_passed_hours'] ?? 0) === 0;
+    }
+
+    private function getFirstSemesterStarterCourseIds(array $availableCourses, int $maxHours = 12): array
+    {
+        $details = [];
+        foreach (($availableCourses['details'] ?? []) as $id => $course) {
+            if (!is_array($course)) {
+                continue;
+            }
+            $course['id'] = (int) $id;
+            $details[] = $course;
+        }
+
+        $selected = [];
+        $selectedLookup = [];
+        $selectedHours = 0;
+
+        $addFirst = function (callable $predicate) use (&$details, &$selected, &$selectedLookup, &$selectedHours, $maxHours): void {
+            foreach ($details as $course) {
+                $id = (int) ($course['id'] ?? 0);
+                $hours = (int) ($course['credit_hours'] ?? 0);
+                if ($id <= 0 || isset($selectedLookup[$id]) || !$predicate($course) || $selectedHours + $hours > $maxHours) {
+                    continue;
+                }
+
+                $selected[] = $id;
+                $selectedLookup[$id] = true;
+                $selectedHours += $hours;
+                return;
+            }
+        };
+
+        $addFirst(fn(array $course) => $this->isInfoTechBasicsCourse($course));
+        $addFirst(fn(array $course) => $this->isDigitalLogicCourse($course));
+        $addFirst(fn(array $course) => $this->isUniversityCompulsoryCourse($course));
+        $addFirst(fn(array $course) => $this->isUniversityElectiveCourse($course));
+
+        return $selected;
+    }
+
+    private function isInfoTechBasicsCourse(array $course): bool
+    {
+        return $this->courseNameHasAll($course, ['اساسيات', 'تكنولوجيا', 'معلومات']);
+    }
+
+    private function isDigitalLogicCourse(array $course): bool
+    {
+        return $this->courseNameHasAll($course, ['تصميم', 'منطق', 'رقمي']);
+    }
+
+    private function isUniversityRequirementCourse(array $course): bool
+    {
+        $type = (string) ($course['type'] ?? '');
+
+        return $type === 'university_req'
+            || $this->courseNameHasAll($course, ['متطلب', 'جامعة'])
+            || $this->courseNameHasAny($course, ['تربية وطنية', 'علوم عسكرية']);
+    }
+
+    private function isUniversityElectiveCourse(array $course): bool
+    {
+        $type = (string) ($course['type'] ?? '');
+
+        return ($this->isUniversityRequirementCourse($course) && $this->courseNameHasAny($course, ['اختياري', 'اختيارية']))
+            || ($type === 'elective' && $this->courseNameHasAny($course, ['جامعة', 'متطلب جامعة']));
+    }
+
+    private function isUniversityCompulsoryCourse(array $course): bool
+    {
+        if (!$this->isUniversityRequirementCourse($course)) {
+            return false;
+        }
+
+        return !$this->isUniversityElectiveCourse($course)
+            || $this->courseNameHasAny($course, ['اجباري', 'اجبارية', 'تربية وطنية', 'علوم عسكرية']);
+    }
+
+    private function courseNameHasAll(array $course, array $parts): bool
+    {
+        $name = $this->normalizeArabic((string) ($course['name'] ?? ''));
+
+        foreach ($parts as $part) {
+            if (!str_contains($name, $this->normalizeArabic($part))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function courseNameHasAny(array $course, array $parts): bool
+    {
+        $name = $this->normalizeArabic((string) ($course['name'] ?? ''));
+
+        foreach ($parts as $part) {
+            if (str_contains($name, $this->normalizeArabic($part))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function replyMentionsFirstSemesterStarter(string $replyText): bool
+    {
+        $normalized = $this->normalizeArabic($replyText);
+
+        return str_contains($normalized, $this->normalizeArabic('اساسيات تكنولوجيا'))
+            && str_contains($normalized, $this->normalizeArabic('تصميم منطق'))
+            && str_contains($normalized, $this->normalizeArabic('متطلب جامعة'));
+    }
+
     private function normalizeArabic($text): string
     {
         if (!$text) {
@@ -1470,6 +1595,7 @@ class AiAdvisorController extends Controller
             'cart' => array_values($cartData['ids'] ?? []),
             'cart_hours' => (int) ($cartData['hours'] ?? 0),
             'available' => array_keys($availableCourses['map'] ?? []),
+            'advisor_rule_version' => 'first_semester_starter_v2',
         ];
 
         return 'ai_response_' . $userId . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -1505,7 +1631,13 @@ class AiAdvisorController extends Controller
         $remainingHours = max(0, $effectiveLimit - $cartHours);
         $isSummer = !empty($academicData['current_period_is_summer']);
 
-        $availableDetails = array_values($availableCourses['details'] ?? []);
+        $availableDetails = [];
+        foreach (($availableCourses['details'] ?? []) as $id => $course) {
+            if (is_array($course)) {
+                $course['id'] = (int) $id;
+                $availableDetails[] = $course;
+            }
+        }
         usort($availableDetails, fn(array $a, array $b) => ((int) ($a['credit_hours'] ?? 0)) <=> ((int) ($b['credit_hours'] ?? 0)));
 
         $suggestedIds = [];
@@ -1529,8 +1661,18 @@ class AiAdvisorController extends Controller
             $reply .= "\n\nأقدر ألخص لك الخطة أو أرشح مواد مناسبة إذا سألتني بصيغة أقصر.";
         }
 
-        foreach (array_slice($availableDetails, 0, 3) as $course) {
-            $suggestedIds[] = (int) $course['id'];
+        if ($this->isFirstSemesterStudent($academicData)) {
+            $starterIds = $this->getFirstSemesterStarterCourseIds($availableCourses);
+            if (!empty($starterIds)) {
+                $suggestedIds = $starterIds;
+                $reply .= "\n\nبما أنك في أول فصل، الأفضل تثبيت البداية على: **أساسيات تكنولوجيا معلومات**، **تصميم منطق رقمي**، **متطلب جامعة إجباري**، و**متطلب جامعة اختياري**.";
+            }
+        }
+
+        if (empty($suggestedIds)) {
+            foreach (array_slice($availableDetails, 0, 3) as $course) {
+                $suggestedIds[] = (int) $course['id'];
+            }
         }
 
         $suggestedDetails = !empty($suggestedIds)

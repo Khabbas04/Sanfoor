@@ -39,6 +39,75 @@ const swalTheme = {
     customClass: { popup: 'rounded-3xl font-t', title: 'font-t', htmlContainer: 'font-t' },
 };
 
+const normalizeCourseName = (value) => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/[ة]/g, 'ه')
+    .replace(/[ى]/g, 'ي')
+    .replace(/\s+/g, ' ')
+    .replace(/[^\u0600-\u06FFa-z0-9 ]+/gi, '');
+
+const nameHasAll = (name, parts) => {
+    const normalized = normalizeCourseName(name);
+    return parts.every(part => normalized.includes(normalizeCourseName(part)));
+};
+
+const nameHasAny = (name, parts) => {
+    const normalized = normalizeCourseName(name);
+    return parts.some(part => normalized.includes(normalizeCourseName(part)));
+};
+
+const isInfoTechBasicsCourse = (course) => nameHasAll(course?.name, ['اساسيات', 'تكنولوجيا', 'معلومات']);
+const isDigitalLogicCourse = (course) => nameHasAll(course?.name, ['تصميم', 'منطق', 'رقمي']);
+
+const isUniversityRequirementCourse = (course) => {
+    if (!course) return false;
+    return course.type === 'university_req'
+        || nameHasAll(course.name, ['متطلب', 'جامعة'])
+        || nameHasAny(course.name, ['تربية وطنية', 'علوم عسكرية']);
+};
+
+const isUniversityElectiveCourse = (course) => {
+    if (!course) return false;
+    return (isUniversityRequirementCourse(course) && nameHasAny(course.name, ['اختياري', 'اختيارية']))
+        || (course.type === 'elective' && nameHasAny(course.name, ['جامعة', 'متطلب جامعة']));
+};
+
+const isUniversityCompulsoryCourse = (course) => {
+    if (!isUniversityRequirementCourse(course)) return false;
+    return !isUniversityElectiveCourse(course)
+        || nameHasAny(course.name, ['اجباري', 'اجبارية', 'تربية وطنية', 'علوم عسكرية']);
+};
+
+const getFirstSemesterStarterCourses = (availableCourses, maxHours = 12) => {
+    const selected = [];
+    const selectedIds = new Set();
+    let selectedHours = 0;
+
+    const addFirst = (predicate) => {
+        const match = availableCourses.find((course) => {
+            const hours = Number(course?.credit_hours || 0);
+            return !selectedIds.has(course.id)
+                && predicate(course)
+                && selectedHours + hours <= maxHours;
+        });
+
+        if (!match) return false;
+        selected.push(match);
+        selectedIds.add(match.id);
+        selectedHours += Number(match.credit_hours || 0);
+        return true;
+    };
+
+    addFirst(isInfoTechBasicsCourse);
+    addFirst(isDigitalLogicCourse);
+    addFirst(isUniversityCompulsoryCourse);
+    addFirst(isUniversityElectiveCourse);
+
+    return selected;
+};
+
 // Build a readable DAG layout for course nodes before rendering with React Flow.
 const getLayoutedElements = (nodes, edges, direction = 'TB', dimensions = { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }) => {
     const { width, height, ranksep, nodesep } = dimensions;
@@ -1631,16 +1700,6 @@ export default function Tree({
             // متطلبات الجامعة والإجباري يتم إنزالها بالكامل بدون حد
         };
 
-        const normalizeName = (value) => String(value || '')
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, ' ')
-            .replace(/[^\u0600-\u06FFa-z0-9 ]+/gi, '');
-        const nameHasAll = (name, parts) => {
-            const normalized = normalizeName(name);
-            return parts.every(part => normalized.includes(normalizeName(part)));
-        };
-
         while (remainingCourses.length > 0 && currentSem <= maxSemesters) {
             const simulatedPassedHours = courses
                 .filter(c => simulatedPassed.has(c.id))
@@ -1746,10 +1805,8 @@ export default function Tree({
                     return true;
                 };
 
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['اساسيات', 'تكنولوجيا', 'معلومات']));
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تصميم', 'منطق', 'رقمي']));
-                pickFirstSemesterCourse((c) => nameHasAll(c.name, ['تربية', 'وطنية']));
-                pickFirstSemesterCourse((c) => c.type === 'university_req' && nameHasAll(c.name, ['متطلب', 'جامعة', 'اختياري']));
+                getFirstSemesterStarterCourses(availableNow, maxSemHours)
+                    .forEach((starterCourse) => pickFirstSemesterCourse((c) => c.id === starterCourse.id));
             }
 
             for (let c of availableNow) {
@@ -2671,6 +2728,45 @@ export default function Tree({
             if (!c.prerequisites || c.prerequisites.length === 0) return true;
             return c.prerequisites.every(p => passedIds.includes(p.id));
         });
+
+        if (totalPassedCredits === 0) {
+            const starterCourses = getFirstSemesterStarterCourses(trulyAvailable, 12);
+            const starterHours = starterCourses.reduce((sum, course) => sum + Number(course.credit_hours || 0), 0);
+
+            if (starterCourses.length > 0) {
+                const starterMeta = {};
+                starterCourses.forEach((course) => {
+                    starterMeta[course.id] = {
+                        confidence: 100,
+                        dataConfidence: 100,
+                        reasons: [
+                            isInfoTechBasicsCourse(course) || isDigitalLogicCourse(course)
+                                ? 'مادة تأسيسية للفصل الأول'
+                                : isUniversityElectiveCourse(course)
+                                    ? 'متطلب جامعة اختياري للفصل الأول'
+                                    : 'متطلب جامعة إجباري للفصل الأول',
+                            'تتبع قاعدة الفصل الأول المعتمدة',
+                        ],
+                    };
+                });
+
+                const starterIds = starterCourses.map((course) => course.id);
+                setCartIds(starterIds);
+                setSmartMetaByCourseId(starterMeta);
+                syncCartWithDB(starterIds);
+                setShowAiSettings(false);
+
+                Swal.fire({
+                    icon: starterCourses.length >= 4 ? 'success' : 'warning',
+                    title: 'جدول الفصل الأول',
+                    text: starterCourses.length >= 4
+                        ? `تم اقتراح جدول الفصل الأول المعتمد بقيمة ${starterHours} ساعة.`
+                        : `تم اقتراح المواد المتاحة من قاعدة الفصل الأول (${starterHours} ساعة)، وبعض المواد غير ظاهرة كمتاحة حالياً.`,
+                    ...swalTheme,
+                });
+                return;
+            }
+        }
 
         const scored = trulyAvailable.map((course) => {
             const unlock = unlockScore(course.id);
