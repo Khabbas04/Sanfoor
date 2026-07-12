@@ -325,16 +325,28 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
         try {
             return route(name, params);
         } catch (e) {
-            console.warn(`Ziggy route "${name}" not found, falling back to path.`);
+            if (import.meta.env.DEV) {
+                console.warn(`Ziggy route "${name}" not found, falling back to path.`);
+            }
             if (name === 'tree.index') return '/tree';
             if (name === 'calculator.index') return '/calculator';
             if (name === 'campus.directory') return '/campus-directory';
             if (name === 'ai.advisor') return '/ai-advisor';
+            if (name === 'instructor.ai.scheduler') return '/instructor/ai-scheduler';
+            if (name === 'schedule_reviews.index') return '/schedule-reviews';
+            if (name === 'support.issue.create') return '/support/report-issue';
+            if (name === 'public.announcements') return '/announcements';
+            if (name === 'public.how_it_works') return '/how-it-works';
+            if (name === 'public.faq') return '/faq';
+            if (name === 'public.contact') return '/contact-us';
+            if (name === 'legal.about') return '/about-us';
+            if (name === 'legal.terms') return '/terms-of-use';
+            if (name === 'legal.privacy') return '/privacy-policy';
             if (name === 'dashboard') return '/dashboard';
             if (name === 'profile.edit') return '/profile';
             if (name === 'login') return '/login';
             if (name === 'admin.dashboard') return '/admin/dashboard';
-            return '#';
+            return '/';
         }
     };
 
@@ -342,6 +354,9 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
     return (
         <div className={`min-h-screen transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+            <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100000] focus:rounded-xl focus:bg-slate-950 focus:px-4 focus:py-3 focus:text-sm focus:font-black focus:text-white focus:shadow-xl">
+                {lang === 'ar' ? 'تخطي إلى المحتوى' : 'Skip to content'}
+            </a>
             <Head>
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -416,7 +431,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                             {/* Central Links with Icons */}
                             <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-[1.25rem] border transition-all duration-500 hover:shadow-lg ${isDark ? 'bg-slate-900/50 border-white/5 hover:border-white/10' : 'bg-slate-100/60 border-white/60 shadow-[inset_0_1px_4px_rgba(0,0,0,0.02)] hover:bg-slate-100/80'}`}>
-                                <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('welcome', '/') && window.location.pathname === '/' ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
+                                <Link href="/" className={`flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold transition-all duration-300 rounded-xl group ${safeRouteCurrent('home', '/') && window.location.pathname === '/' ? (isDark ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-200/50') : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/40'}`}>
                                     <span className="transition-transform group-hover:scale-110">🏠</span> {t.home}
                                 </Link>
 
@@ -465,10 +480,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                                 {!safeUser.id && (
                                     <>
-                                        <button onClick={toggleLang} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-blue-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                        <button onClick={toggleLang} aria-label={lang === 'ar' ? 'تغيير اللغة إلى الإنجليزية' : 'Switch language to Arabic'} className={`w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-black border transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 border-white/10 text-blue-400 hover:bg-slate-700' : 'bg-white border-slate-200 text-blue-600 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
                                             {lang === 'ar' ? 'EN' : 'AR'}
                                         </button>
-                                        <button onClick={toggleTheme} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 text-yellow-400 border border-white/10 hover:bg-slate-700' : 'bg-white text-slate-400 border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
+                                        <button onClick={toggleTheme} aria-label={isDark ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'} className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all active:scale-90 pointer-events-auto hover:-translate-y-0.5 ${isDark ? 'bg-slate-800 text-yellow-400 border border-white/10 hover:bg-slate-700' : 'bg-white text-slate-400 border border-slate-200 shadow-sm hover:bg-slate-50 hover:shadow'}`}>
                                             {isDark ? '☀️' : '🌙'}
                                         </button>
                                     </>
@@ -565,7 +580,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                 )}
 
                                 {/* Mobile menu button for the off-canvas navigation. */}
-                                <button onClick={() => setMobileOpen(!mobileOpen)} className={`lg:hidden relative w-12 h-12 rounded-[1.25rem] flex items-center justify-center transition-all active:scale-95 z-[101] pointer-events-auto ${isDark ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50'}`}>
+                                <button onClick={() => setMobileOpen(!mobileOpen)} aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'} aria-expanded={mobileOpen} className={`lg:hidden relative w-12 h-12 rounded-[1.25rem] flex items-center justify-center transition-all active:scale-95 z-[101] pointer-events-auto ${isDark ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-white border border-slate-200 text-slate-700 shadow-sm hover:bg-slate-50'}`}>
                                     <div className="flex flex-col items-center justify-center gap-[5px] w-5 h-5">
                                         <span className={`block w-full h-[2.5px] bg-current rounded-full transition-all duration-300 origin-left ${mobileOpen ? 'rotate-[42deg] w-[22px]' : ''}`}></span>
                                         <span className={`block w-full h-[2.5px] bg-current rounded-full transition-all duration-300 ${mobileOpen ? 'opacity-0 translate-x-4' : ''}`}></span>
@@ -596,7 +611,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                                     {lang === 'ar' && <span className="text-sm font-black uppercase tracking-widest opacity-80 mt-0.5">Sanfoor</span>}
                                 </div>
                             </div>
-                            <button onClick={() => setMobileOpen(false)} className="text-3xl opacity-70 hover:opacity-100 transition-opacity">&times;</button>
+                            <button onClick={() => setMobileOpen(false)} aria-label="إغلاق القائمة" className="text-3xl opacity-70 hover:opacity-100 transition-opacity">&times;</button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-2">
@@ -652,10 +667,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
 
                         <div className="p-4 border-t border-slate-100 dark:border-white/5 flex flex-col gap-3">
                             <div className="flex items-center gap-2">
-                                <button onClick={() => { toggleLang(); }} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-colors ${isDark ? 'bg-white/5 text-blue-400 hover:bg-white/10' : 'bg-slate-50 text-blue-600 hover:bg-slate-100'}`}>
+                                <button onClick={() => { toggleLang(); }} aria-label={lang === 'ar' ? 'تغيير اللغة إلى الإنجليزية' : 'Switch language to Arabic'} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-colors ${isDark ? 'bg-white/5 text-blue-400 hover:bg-white/10' : 'bg-slate-50 text-blue-600 hover:bg-slate-100'}`}>
                                     🌍 {lang === 'ar' ? 'English' : 'العربية'}
                                 </button>
-                                <button onClick={() => { toggleTheme(); }} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-colors ${isDark ? 'bg-white/5 text-yellow-400 hover:bg-white/10' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+                                <button onClick={() => { toggleTheme(); }} aria-label={isDark ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'} className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black transition-colors ${isDark ? 'bg-white/5 text-yellow-400 hover:bg-white/10' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
                                     {isDark ? '☀️ Light' : '🌙 Dark'}
                                 </button>
                             </div>
@@ -668,14 +683,14 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             )}
 
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
-            <main className={`flex-1 flex flex-col w-full relative ${shouldHideNav ? 'pt-0' : 'pt-4 md:pt-28'}`}>
+            <main id="main-content" className={`flex-1 flex flex-col w-full relative ${shouldHideNav ? 'pt-0' : 'pt-4 md:pt-28'}`}>
                 {/* ═══ NTP GUEST DEMO BANNER ═══ */}
                 {safeUser.is_guest && <GuestDemoBanner />}
                 {children}
             </main>
 
             {/* The floating AI assistant is available only for signed-in users on the welcome page. */}
-            {safeUser.id && safeRouteCurrent('welcome', '/') && !shouldHideAiWidget && <AiWidget user={safeUser} />}
+            {safeUser.id && safeRouteCurrent('home', '/') && window.location.pathname === '/' && !shouldHideAiWidget && <AiWidget user={safeUser} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>

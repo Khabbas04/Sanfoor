@@ -302,7 +302,7 @@ export default function AiScheduler({ chats, preferences, other_instructors }) {
             }
             ` }} />
 
-            <div className="fixed inset-0 top-[64px] bg-[url('/assets/grid-pattern.svg')] bg-repeat opacity-[0.03] dark:opacity-[0.05] pointer-events-none z-0"></div>
+            <div className="fixed inset-0 top-[64px] bg-repeat opacity-[0.03] dark:opacity-[0.05] pointer-events-none z-0" style={{ backgroundImage: "url('/images/grid.svg')" }}></div>
             
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-400/20 dark:bg-indigo-600/20 blur-[120px] rounded-full mix-blend-multiply pointer-events-none -z-10"></div>
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-teal-400/20 dark:bg-teal-600/20 blur-[150px] rounded-full mix-blend-multiply pointer-events-none -z-10"></div>

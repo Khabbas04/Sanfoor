@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { csrfHeaders } from '@/utils/csrf';
 
 export default function GlobalLoader() {
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
+    const { auth } = usePage().props || {};
+    const isAuthenticated = Boolean(auth?.user?.id);
 
     useEffect(() => {
         let timeoutId;
@@ -26,7 +28,7 @@ export default function GlobalLoader() {
                             return prev + Math.random() * 10;
                         });
                     }, 100);
-                }, 5000); // 5 seconds delay
+                }, 700);
             }
         };
 
@@ -59,6 +61,10 @@ export default function GlobalLoader() {
 
     // Global heartbeat for all users (backend ignores unauthenticated); notify on close.
     useEffect(() => {
+        if (!isAuthenticated) {
+            return undefined;
+        }
+
         const sendHeartbeat = async () => {
             try {
                 await fetch(route('heartbeat'), {
@@ -95,7 +101,7 @@ export default function GlobalLoader() {
             clearInterval(hb);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, []);
+    }, [isAuthenticated]);
 
     // We use a floating dynamic pill so it doesn't block the beautiful page transitions
     return (

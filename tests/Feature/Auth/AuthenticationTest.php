@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\College;
+use App\Models\Major;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,7 +21,12 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $major = $this->createMajor();
+        $user = User::factory()->create([
+            'role' => 'student',
+            'major_id' => $major->id,
+            'study_plan_version' => 12,
+        ]);
 
         $response = $this->post('/login', [
             'email' => $user->email,
@@ -28,6 +35,19 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_students_without_major_are_sent_to_complete_profile(): void
+    {
+        $user = User::factory()->create(['role' => 'student']);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('profile.complete', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
@@ -50,5 +70,16 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
         $response->assertRedirect('/');
+    }
+
+    private function createMajor(): Major
+    {
+        $college = College::create(['name' => 'Test College']);
+
+        return Major::withoutEvents(fn () => Major::create([
+            'college_id' => $college->id,
+            'name' => 'Test Major',
+            'code' => 'TM',
+        ]));
     }
 }

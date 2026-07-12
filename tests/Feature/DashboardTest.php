@@ -2,46 +2,43 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use App\Models\College;
+use App\Models\Major;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class DashboardTest extends TestCase
 {
-    // Do NOT use RefreshDatabase as it will wipe Laragon db
-    // use RefreshDatabase;
+    use RefreshDatabase;
 
-    public function test_new_student_dashboard()
+    public function test_new_student_dashboard(): void
     {
-        $user = User::create([
+        $major = $this->createMajor();
+        $user = User::forceCreate([
             'name' => 'Test Student',
-            'email' => 'test_student_' . time() . '@example.com',
+            'email' => 'test_student@example.com',
             'password' => Hash::make('password'),
             'role' => 'student',
-            'major_id' => 1,
+            'major_id' => $major->id,
             'study_plan_version' => 12,
+            'email_verified_at' => now(),
         ]);
 
-        $this->actingAs($user);
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk();
+    }
 
-        // We expect a redirect to verification.notice if email is not verified
-        $response = $this->get('/dashboard');
-        
-        echo "Response status for unverified user: " . $response->getStatusCode() . "\n";
-        
-        // Now let's verify them and see if dashboard works
-        $user->email_verified_at = now();
-        $user->save();
-        
-        $response = $this->get('/dashboard');
-        echo "Response status for verified user: " . $response->getStatusCode() . "\n";
-        
-        if ($response->getStatusCode() >= 400) {
-            echo "Exception message: " . $response->exception->getMessage() . "\n";
-            echo "Trace: " . $response->exception->getTraceAsString() . "\n";
-        }
-        
-        $user->forceDelete();
+    private function createMajor(): Major
+    {
+        $college = College::create(['name' => 'Test College']);
+
+        return Major::withoutEvents(fn () => Major::create([
+            'college_id' => $college->id,
+            'name' => 'Test Major',
+            'code' => 'TM',
+        ]));
     }
 }
