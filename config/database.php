@@ -86,6 +86,14 @@ return [
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
+            'read' => env('DB_READ_HOST') ? [
+                'host' => explode(',', env('DB_READ_HOST')),
+                'port' => env('DB_READ_PORT', env('DB_PORT', '5432')),
+            ] : null,
+            'write' => [
+                'host' => env('DB_HOST', '127.0.0.1'),
+            ],
+            'sticky' => true,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
