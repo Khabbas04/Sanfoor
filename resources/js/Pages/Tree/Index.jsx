@@ -4735,7 +4735,7 @@ export default function Tree({
 }
 
 Tree.layout = page => (
-    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape hideAiWidgetOnMobileLandscape>
+    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape>
         {page}
     </MainLayout>
 );

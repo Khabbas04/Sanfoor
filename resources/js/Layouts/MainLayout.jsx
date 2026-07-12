@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
-import AiWidget from '@/Pages/Ai/AiWidget';
 
 /**
  * Premium Guest Demo Banner — shown on every page when a guest user is active.
@@ -168,7 +167,7 @@ function GuestDemoBanner() {
 }
 
 // MainLayout is the shared shell for public pages and authenticated student pages.
-export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, hideAiWidgetOnMobileLandscape = false, absoluteNavbar = false }) {
+export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, absoluteNavbar = false }) {
     const page = usePage();
     if (!page || !page.props) return null; // Prevent rendering if props aren't ready
 
@@ -207,7 +206,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     const { lang, toggleLang } = useLanguage();
     const isLandscapeMobile = viewport.width < 1024 && viewport.width >= viewport.height;
     const shouldHideNav = hideNavbarOnMobileLandscape && isLandscapeMobile;
-    const shouldHideAiWidget = hideAiWidgetOnMobileLandscape && isLandscapeMobile;
 
     // Add the compact navbar style after the user scrolls down.
     useEffect(() => {
@@ -688,9 +686,6 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
                 {safeUser.is_guest && <GuestDemoBanner />}
                 {children}
             </main>
-
-            {/* The floating AI assistant is available only for signed-in users on the welcome page. */}
-            {safeUser.id && safeRouteCurrent('home', '/') && window.location.pathname === '/' && !shouldHideAiWidget && <AiWidget user={safeUser} />}
 
             {/* Global footer with cleaner grouped links and focused actions. */}
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
