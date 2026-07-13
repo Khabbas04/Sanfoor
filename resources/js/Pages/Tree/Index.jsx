@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import React, { Suspense, startTransition, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import ReactFlow, { Controls, Background, MarkerType, useNodesState, useEdgesState, getRectOfNodes, getTransformForBounds } from 'reactflow';
 import dagre from 'dagre';
@@ -4765,7 +4765,7 @@ export default function Tree({
             {/* Floating Video Help Button */}
             {!isFullScreen && (
                 <button
-                    onClick={() => setShowVideo(true)}
+                    onClick={() => startTransition(() => setShowVideo(true))}
                     className="fixed bottom-24 left-4 sm:bottom-6 sm:left-6 z-[150] group flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 bg-indigo-600 text-white rounded-full shadow-[0_8px_20px_-4px_rgba(79,70,229,0.5)] hover:shadow-[0_12px_25px_-4px_rgba(79,70,229,0.6)] hover:scale-110 hover:-translate-y-1 transition-all duration-300 border border-indigo-400/30"
                     style={{ direction: 'rtl' }}
                 >
@@ -4792,33 +4792,39 @@ export default function Tree({
                             </button>
                         </div>
                         <div className="p-4 sm:p-6 bg-black" dir="ltr">
-                            <VideoPlayer 
-                                source={{
-                                    type: 'video',
-                                    title: 'Tree Tutorial',
-                                    sources: [
-                                        {
-                                            src: '/videos/tree-demo.mp4',
-                                            type: 'video/mp4',
-                                        }
-                                    ],
-                                    tracks: [
-                                        {
-                                            kind: 'chapters',
-                                            label: 'Chapters',
-                                            srclang: 'ar',
-                                            src: '/videos/tree-chapters.vtt',
-                                            default: true,
-                                        }
-                                    ]
-                                }} 
-                                chapters={[
-                                    { title: 'اجتياز مادة', startTime: 0 },
-                                    { title: 'تسجيل تجريبي و مقارنة', startTime: 11 },
-                                    { title: 'تخطيط', startTime: 30 },
-                                    { title: 'مواد الاونلاين و دليل الشجرة', startTime: 35 }
-                                ]}
-                            />
+                            <Suspense fallback={
+                                <div className="flex h-[260px] sm:h-[420px] items-center justify-center rounded-2xl bg-slate-950 text-white">
+                                    <div className="h-10 w-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
+                                </div>
+                            }>
+                                <VideoPlayer
+                                    source={{
+                                        type: 'video',
+                                        title: 'Tree Tutorial',
+                                        sources: [
+                                            {
+                                                src: '/videos/tree-demo.mp4',
+                                                type: 'video/mp4',
+                                            }
+                                        ],
+                                        tracks: [
+                                            {
+                                                kind: 'chapters',
+                                                label: 'Chapters',
+                                                srclang: 'ar',
+                                                src: '/videos/tree-chapters.vtt',
+                                                default: true,
+                                            }
+                                        ]
+                                    }}
+                                    chapters={[
+                                        { title: 'اجتياز مادة', startTime: 0 },
+                                        { title: 'تسجيل تجريبي و مقارنة', startTime: 11 },
+                                        { title: 'تخطيط', startTime: 30 },
+                                        { title: 'مواد الاونلاين و دليل الشجرة', startTime: 35 }
+                                    ]}
+                                />
+                            </Suspense>
                         </div>
                     </div>
                 </div>
