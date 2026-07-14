@@ -98,11 +98,11 @@ class DocumentRagEngine
     {
         if (empty($this->apiKey)) return null;
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={$this->apiKey}";
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={$this->apiKey}";
         
         try {
             $response = Http::withoutVerifying()->post($url, [
-                'model' => 'models/text-embedding-004',
+                'model' => 'models/gemini-embedding-2',
                 'content' => [
                     'parts' => [['text' => $text]]
                 ]
