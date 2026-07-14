@@ -46,6 +46,7 @@ class StructuredRagEngine
             $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
 
             return [
+                'student_name' => $user->name,
                 'major_name' => $user->major?->name ?? 'تخصص عام',
                 'college_id' => $user->major?->college_id,
                 'gpa_data' => $gpaData,
