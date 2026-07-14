@@ -62,7 +62,7 @@ class DocumentRagEngine
      */
     public function search(string $query, int $topK = 3): array
     {
-        if (empty($this->apiKey) || !$this->isRelevantQuery($query)) {
+        if (empty($this->apiKey)) {
             return [];
         }
 
@@ -92,7 +92,7 @@ class DocumentRagEngine
         // Return top K with a reasonable similarity threshold
         $results = [];
         foreach (array_slice($scoredChunks, 0, $topK) as $sc) {
-            if ($sc['similarity'] > 0.65) {
+            if ($sc['similarity'] > 0.55) {
                 $results[] = $sc;
             }
         }

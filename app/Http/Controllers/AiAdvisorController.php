@@ -282,15 +282,6 @@ class AiAdvisorController extends Controller
                     $removeIds = $matched['remove'];
                 }
 
-                if ($this->isFirstSemesterStudent($academicData)) {
-                    $starterIds = $this->getFirstSemesterStarterCourseIds($availableCourses);
-                    if (!empty($starterIds)) {
-                        $suggestedIds = $starterIds;
-                        if (!$this->replyMentionsFirstSemesterStarter($replyText)) {
-                            $replyText = "بما أنك في أول فصل وما عندك ساعات منجزة، الجدول المعتمد كبداية هو: أساسيات تكنولوجيا معلومات، تصميم منطق رقمي، متطلب جامعة إجباري، ومتطلب جامعة اختياري.\n\n" . $replyText;
-                        }
-                    }
-                }
 
                 $suggestedDetails = !empty($suggestedIds)
                     ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
