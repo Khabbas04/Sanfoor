@@ -1736,9 +1736,9 @@ class AiAdvisorController extends Controller
                     $status = 'cooldown';
                     $statusMessage = "⏳ في استراحة ({$cooldownRemaining} ثانية متبقية)";
                 }
-            } elseif ($currentRpm >= self::RPM_LIMIT) {
+            } elseif ($currentRpm >= 14) {
                 $status = 'rpm_full';
-                $statusMessage = "⚡ وصل حد الدقيقة ({$currentRpm}/" . self::RPM_LIMIT . ") — يتجدد تلقائياً";
+                $statusMessage = "⚡ وصل حد الدقيقة ({$currentRpm}/" . 14 . ") — يتجدد تلقائياً";
             } else {
                 $status = 'active';
                 $statusMessage = '✅ يعمل بشكل طبيعي';
@@ -1752,7 +1752,7 @@ class AiAdvisorController extends Controller
                 'today_usage' => $todayUsage,
                 'weekly_usage' => $weeklyUsage,
                 'current_rpm' => $currentRpm,
-                'rpm_limit' => self::RPM_LIMIT,
+                'rpm_limit' => 14,
                 'cooldown_remaining' => $cooldownRemaining,
                 'cooldown_reason' => $cooldownReason,
                 'estimated_daily_limit' => 1500,
@@ -1796,7 +1796,7 @@ class AiAdvisorController extends Controller
                 'total_chats' => $totalChats,
                 'today_ai_messages' => $todayMessages,
                 'health_level' => $healthLevel,
-                'rpm_limit' => self::RPM_LIMIT,
+                'rpm_limit' => 14,
             ],
         ]);
     }
