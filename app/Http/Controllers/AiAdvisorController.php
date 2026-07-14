@@ -245,7 +245,7 @@ class AiAdvisorController extends Controller
                 $rawText = $geminiService->callGeminiAPI($contents, [
                     'systemInstruction' => $systemInstruction,
                     'generationConfig' => [
-                        'maxOutputTokens' => 1200,
+                        'maxOutputTokens' => 2000,
                         'temperature' => 0.25,
                         'responseMimeType' => 'application/json',
                         'responseSchema' => [
@@ -1285,12 +1285,26 @@ class AiAdvisorController extends Controller
 
         // Aggressive catch-all for any JSON property formatting left in the string 
         // Example: "some_key": [...]
+        // But protect mermaid blocks first
+        $mermaidBlocks = [];
+        $clean = preg_replace_callback('/```mermaid\s*\n(.*?)```/is', function($m) use (&$mermaidBlocks) {
+            $key = '%%MERMAID_' . count($mermaidBlocks) . '%%';
+            $mermaidBlocks[$key] = $m[0];
+            return $key;
+        }, $clean);
+        
         $clean = preg_replace('/["\']?[a-zA-Z_]+["\']?\s*:\s*[\[\{].*?[\]\}]/isu', '', $clean);
         
-        // Remove markdown json wrappers if still present
-        $clean = preg_replace('/```(?:json)?(.*?)```/is', '$1', $clean);
+        // Remove markdown json wrappers if still present (but NOT mermaid)
+        $clean = preg_replace('/```(?:json)?\s*(.*?)```/is', '$1', $clean);
+        
+        // Restore mermaid blocks
+        foreach ($mermaidBlocks as $key => $block) {
+            $clean = str_replace($key, $block, $clean);
+        }
+        
         $clean = preg_replace('/(?:[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]\x{FE0F}?\s*){3,}/u', '', $clean);
-        $clean = preg_replace('/[ \t]{2,}/', ' ', $clean);
+        $clean = preg_replace('/(?<!`)[ \t]{2,}/', ' ', $clean);
         
         $clean = preg_replace('/\n{3,}/', "\n\n", $clean);
 

@@ -14,21 +14,80 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
 
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    themeVariables: {
+        primaryColor: '#dbeafe',
+        primaryTextColor: '#1e3a5f',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#3b82f6',
+        secondaryColor: '#f0fdf4',
+        tertiaryColor: '#fef3c7',
+        fontFamily: 'Tajawal, Arial, sans-serif',
+        fontSize: '14px',
+        nodeBorder: '#3b82f6',
+        mainBkg: '#dbeafe',
+        nodeTextColor: '#1e3a5f',
+    },
+    flowchart: { curve: 'basis', htmlLabels: true, padding: 15, nodeSpacing: 30, rankSpacing: 50 },
+    securityLevel: 'loose',
+});
 
 const MermaidChart = ({ chart }) => {
     const id = useMemo(() => `mermaid-${Math.random().toString(36).substr(2, 9)}`, []);
     const [svg, setSvg] = useState('');
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
-        mermaid.render(id, chart).then((result) => {
+        setError(false);
+        setSvg('');
+
+        // Sanitize the chart: fix common AI mistakes
+        let sanitized = chart
+            .replace(/;\s*/g, '\n')           // semicolons -> newlines
+            .replace(/\r\n/g, '\n')           // normalize line endings
+            .replace(/\n{2,}/g, '\n')         // collapse blank lines
+            .trim();
+
+        // Ensure it starts with a valid graph directive
+        if (!/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|pie|gantt|journey)/i.test(sanitized)) {
+            sanitized = 'graph TD\n' + sanitized;
+        }
+
+        mermaid.render(id, sanitized).then((result) => {
             if (isMounted) setSvg(result.svg);
-        }).catch(err => console.error(err));
+        }).catch(err => {
+            console.error('Mermaid render error:', err);
+            if (isMounted) setError(true);
+        });
         return () => { isMounted = false; };
     }, [chart, id]);
 
-    return <div dangerouslySetInnerHTML={{ __html: svg }} className="my-6 flex justify-center bg-white/50 p-4 rounded-xl border border-slate-100" dir="ltr" />;
+    if (error) {
+        return (
+            <div className="my-6 rounded-2xl overflow-hidden border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg" dir="rtl">
+                <div className="px-4 py-2.5 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200 flex items-center gap-2">
+                    <span className="text-lg">⚠️</span>
+                    <span className="text-sm font-bold text-amber-800">تعذّر عرض المخطط</span>
+                </div>
+                <div className="p-4">
+                    <pre className="text-xs text-amber-900/70 font-mono whitespace-pre-wrap bg-white/50 p-3 rounded-lg border border-amber-100" dir="ltr">{chart}</pre>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="my-6 rounded-2xl overflow-hidden border border-blue-200 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 shadow-lg" dir="ltr">
+            <div className="px-4 py-2.5 bg-gradient-to-r from-blue-100 to-indigo-100 border-b border-blue-200 flex items-center gap-2">
+                <span className="text-lg">📊</span>
+                <span className="text-sm font-bold text-blue-800">المخطط الانسيابي</span>
+            </div>
+            <div className="p-5 flex justify-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
+        </div>
+    );
 };
 
 // Animate AI responses as they stream into the chat window.
@@ -62,19 +121,32 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                    // Intercept <pre> to handle mermaid that's inside code blocks
+                    pre({ children }) {
+                        return <>{children}</>;
+                    },
                     code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
+                        const text = String(children).replace(/\n$/, '');
+
+                        // Detect mermaid via language tag
                         if (match && match[1] === 'mermaid') {
-                            return <MermaidChart chart={String(children).replace(/\n$/, '')} />;
+                            return <MermaidChart chart={text} />;
                         }
-                        const isBlock = !inline && (match || String(children).includes('\n'));
+
+                        // Detect mermaid via content pattern (AI sometimes forgets the language tag)
+                        if (!inline && /^\s*(graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|pie|gantt|journey)/i.test(text)) {
+                            return <MermaidChart chart={text} />;
+                        }
+
+                        const isBlock = !inline && (match || text.includes('\n'));
                         return isBlock ? (
                             <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700/60 shadow-xl" dir="ltr">
                                 <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-slate-700/60">
                                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{match ? match[1] : 'CODE'}</span>
                                     <button
                                         onClick={(e) => {
-                                            navigator.clipboard.writeText(String(children).replace(/\n$/, ''));
+                                            navigator.clipboard.writeText(text);
                                             const btn = e.currentTarget;
                                             const originalText = btn.innerHTML;
                                             btn.innerHTML = '✓ تم النسخ';
@@ -101,6 +173,14 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
                                 {children}
                             </code>
                         );
+                    },
+                    // Catch mermaid that leaked into a paragraph as raw text
+                    p({ children, ...props }) {
+                        const text = typeof children === 'string' ? children : (Array.isArray(children) ? children.map(c => typeof c === 'string' ? c : '').join('') : '');
+                        if (/^\s*(graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR))/i.test(text) && text.includes('-->')) {
+                            return <MermaidChart chart={text.trim()} />;
+                        }
+                        return <p {...props}>{children}</p>;
                     }
                 }}
             >
