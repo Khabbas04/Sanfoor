@@ -218,14 +218,32 @@ class AiAdvisorController extends Controller
                 $suggestedDetails = $parsed['suggested_courses'];
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
-                $ragContext = $this->buildStudentAdvisingRagContext($academicData, $cartData, $availableCourses, $data['message']);
-                $systemPrompt = $this->buildSystemPrompt($user, $academicData, $cartData, $availableCourses, $ragContext, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? false);
+                // --- ENTERPRISE AI PIPELINE ENGINES ---
+                
+                // 1. Structured RAG & Academic Rules
+                $ragEngine = app(\App\Engines\StructuredRagEngine::class);
+                $rulesEngine = app(\App\Engines\AcademicRulesEngine::class);
+                
+                $ragData = $ragEngine->gather($user);
+                $rules = $rulesEngine->evaluate($user, ['total_passed_hours' => $ragData['profile']['total_passed_hours']], $ragData['cart']['hours']);
+                
+                // 2. Course Ranking Engine
+                $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
+                $rankedCourses = $rankingEngine->rank($ragData['available_courses'], $rules, $data['message']);
+                
+                // 3. Document RAG Engine
+                $docEngine = app(\App\Engines\DocumentRagEngine::class);
+                $docContext = $docEngine->search($data['message']);
+                
+                // 4. Ai Context Assembler
+                $assembler = app(\App\Engines\AiContextAssembler::class);
+                $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext);
+                
+                // 5. Build Conversation Context
                 $contents = $this->buildConversationContext($chat);
 
                 $rawText = $geminiService->callGeminiAPI($contents, [
-                    'systemInstruction' => [
-                        'parts' => [['text' => $systemPrompt]],
-                    ],
+                    'systemInstruction' => $systemInstruction,
                     'generationConfig' => [
                         'maxOutputTokens' => 1200,
                         'temperature' => 0.25,
@@ -234,6 +252,13 @@ class AiAdvisorController extends Controller
                 ]);
                 $parsed = $this->parseAIResponse($rawText);
 
+                // 6. Validate AI Response (Hallucination & Overflow Check)
+                $validator = app(\App\Engines\ValidationEngine::class);
+                $parsed = $validator->validate($parsed, $ragData, $rules);
+
+                if (isset($parsed['warning'])) {
+                    $parsed['reply'] = $parsed['warning'] . "\n\n" . $parsed['reply'];
+                }
                 $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
                 $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
                 $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
