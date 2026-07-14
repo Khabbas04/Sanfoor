@@ -247,6 +247,43 @@ class AiAdvisorController extends Controller
                     'generationConfig' => [
                         'maxOutputTokens' => 1200,
                         'temperature' => 0.25,
+                        'responseMimeType' => 'application/json',
+                        'responseSchema' => [
+                            'type' => 'OBJECT',
+                            'properties' => [
+                                'reply' => ['type' => 'STRING'],
+                                'suggested_course_ids' => [
+                                    'type' => 'ARRAY',
+                                    'items' => ['type' => 'INTEGER']
+                                ],
+                                'courses_to_remove' => [
+                                    'type' => 'ARRAY',
+                                    'items' => ['type' => 'INTEGER']
+                                ],
+                                'follow_up_suggestions' => [
+                                    'type' => 'ARRAY',
+                                    'items' => ['type' => 'STRING']
+                                ],
+                                'interactive_widget' => [
+                                    'type' => 'OBJECT',
+                                    'properties' => [
+                                        'type' => ['type' => 'STRING'],
+                                        'title' => ['type' => 'STRING'],
+                                        'courses' => [
+                                            'type' => 'ARRAY',
+                                            'items' => [
+                                                'type' => 'OBJECT',
+                                                'properties' => [
+                                                    'id' => ['type' => 'INTEGER'],
+                                                    'reason' => ['type' => 'STRING']
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            'required' => ['reply']
+                        ]
                     ],
                     'timeout' => 22,
                 ]);
