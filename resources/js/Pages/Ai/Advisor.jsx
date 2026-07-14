@@ -4,7 +4,6 @@ import { Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import mermaid from 'mermaid';
 import Swal from 'sweetalert2';
 const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 
@@ -13,82 +12,6 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
-
-mermaid.initialize({
-    startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-        primaryColor: '#dbeafe',
-        primaryTextColor: '#1e3a5f',
-        primaryBorderColor: '#3b82f6',
-        lineColor: '#3b82f6',
-        secondaryColor: '#f0fdf4',
-        tertiaryColor: '#fef3c7',
-        fontFamily: 'Tajawal, Arial, sans-serif',
-        fontSize: '14px',
-        nodeBorder: '#3b82f6',
-        mainBkg: '#dbeafe',
-        nodeTextColor: '#1e3a5f',
-    },
-    flowchart: { curve: 'basis', htmlLabels: true, padding: 15, nodeSpacing: 30, rankSpacing: 50 },
-    securityLevel: 'loose',
-});
-
-const MermaidChart = ({ chart }) => {
-    const id = useMemo(() => `mermaid-${Math.random().toString(36).substr(2, 9)}`, []);
-    const [svg, setSvg] = useState('');
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        let isMounted = true;
-        setError(false);
-        setSvg('');
-
-        // Sanitize the chart: fix common AI mistakes
-        let sanitized = chart
-            .replace(/;\s*/g, '\n')           // semicolons -> newlines
-            .replace(/\r\n/g, '\n')           // normalize line endings
-            .replace(/\n{2,}/g, '\n')         // collapse blank lines
-            .trim();
-
-        // Ensure it starts with a valid graph directive
-        if (!/^(graph|flowchart|sequenceDiagram|classDiagram|stateDiagram|pie|gantt|journey)/i.test(sanitized)) {
-            sanitized = 'graph TD\n' + sanitized;
-        }
-
-        mermaid.render(id, sanitized).then((result) => {
-            if (isMounted) setSvg(result.svg);
-        }).catch(err => {
-            console.error('Mermaid render error:', err);
-            if (isMounted) setError(true);
-        });
-        return () => { isMounted = false; };
-    }, [chart, id]);
-
-    if (error) {
-        return (
-            <div className="my-6 rounded-2xl overflow-hidden border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-lg" dir="rtl">
-                <div className="px-4 py-2.5 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200 flex items-center gap-2">
-                    <span className="text-lg">⚠️</span>
-                    <span className="text-sm font-bold text-amber-800">تعذّر عرض المخطط</span>
-                </div>
-                <div className="p-4">
-                    <pre className="text-xs text-amber-900/70 font-mono whitespace-pre-wrap bg-white/50 p-3 rounded-lg border border-amber-100" dir="ltr">{chart}</pre>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="my-6 rounded-2xl overflow-hidden border border-blue-200 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 shadow-lg" dir="ltr">
-            <div className="px-4 py-2.5 bg-gradient-to-r from-blue-100 to-indigo-100 border-b border-blue-200 flex items-center gap-2">
-                <span className="text-lg">📊</span>
-                <span className="text-sm font-bold text-blue-800">المخطط الانسيابي</span>
-            </div>
-            <div className="p-5 flex justify-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
-        </div>
-    );
-};
 
 // Animate AI responses as they stream into the chat window.
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
@@ -121,23 +44,13 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    // Intercept <pre> to handle mermaid that's inside code blocks
+                    // The custom code renderer provides its own block container.
                     pre({ children }) {
                         return <>{children}</>;
                     },
                     code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
                         const text = String(children).replace(/\n$/, '');
-
-                        // Detect mermaid via language tag
-                        if (match && match[1] === 'mermaid') {
-                            return <MermaidChart chart={text} />;
-                        }
-
-                        // Detect mermaid via content pattern (AI sometimes forgets the language tag)
-                        if (!inline && /^\s*(graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|pie|gantt|journey)/i.test(text)) {
-                            return <MermaidChart chart={text} />;
-                        }
 
                         const isBlock = !inline && (match || text.includes('\n'));
                         return isBlock ? (
@@ -173,14 +86,6 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
                                 {children}
                             </code>
                         );
-                    },
-                    // Catch mermaid that leaked into a paragraph as raw text
-                    p({ children, ...props }) {
-                        const text = typeof children === 'string' ? children : (Array.isArray(children) ? children.map(c => typeof c === 'string' ? c : '').join('') : '');
-                        if (/^\s*(graph\s+(TD|TB|BT|RL|LR)|flowchart\s+(TD|TB|BT|RL|LR))/i.test(text) && text.includes('-->')) {
-                            return <MermaidChart chart={text.trim()} />;
-                        }
-                        return <p {...props}>{children}</p>;
                     }
                 }}
             >
