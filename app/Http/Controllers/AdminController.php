@@ -188,7 +188,7 @@ class AdminController extends Controller
             'adminNotes' => $adminNotes,
             'myAdminNote' => $myAdminNote,
             'notesEnabled' => $notesEnabled,
-            'demoGuests' => \App\Models\DemoGuest::with(['college', 'major'])->latest()->take(50)->get(),
+            'demoGuests' => \App\Models\User::with(['major.college'])->where('role', 'guest')->latest()->take(50)->get(),
         ]);
     }
 

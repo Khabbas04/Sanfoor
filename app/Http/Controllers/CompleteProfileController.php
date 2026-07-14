@@ -111,16 +111,8 @@ class CompleteProfileController extends Controller
                     'ip_address' => $request->ip(),
                 ]);
 
-                // Track Demo Guest Registration
-                if ($isGuest) {
-                    \App\Models\DemoGuest::create([
-                        'name' => trim($validated['name']),
-                        'college_id' => (int) $validated['college_id'],
-                        'major_id' => (int) $validated['major_id'],
-                        'study_plan_version' => (string) $validated['study_plan_version'],
-                        'user_id' => $user->id,
-                    ]);
-                }
+                // Note: Guest users are tracked naturally because their role is 'guest'.
+                // The Admin dashboard pulls guests directly from the `users` table.
             } catch (Throwable $logError) {
                 Log::warning('Failed to log profile completion or demo guest tracking', ['error' => $logError->getMessage()]);
             }

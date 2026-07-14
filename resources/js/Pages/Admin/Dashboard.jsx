@@ -556,7 +556,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                 {demoGuests.map((guest) => (
                                     <tr key={guest.id} className={`border-b last:border-0 transition-colors ${isDark ? 'border-slate-700 hover:bg-slate-800/50' : 'border-slate-100 hover:bg-slate-50'}`}>
                                         <td className={`py-4 px-4 font-bold text-sm ${heading}`}>{guest.name}</td>
-                                        <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{guest.college?.name || '—'}</td>
+                                        <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>{guest.major?.college?.name || '—'}</td>
                                         <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{guest.major?.name || '—'}</td>
                                         <td className={`py-4 px-4 font-black text-xs ${subtext}`}>الإصدار {guest.study_plan_version}</td>
                                         <td className={`py-4 px-4 font-bold text-[11px] ${subtext}`}>{new Date(guest.created_at).toLocaleString('ar-JO')}</td>
