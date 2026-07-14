@@ -233,7 +233,7 @@ class AiAdvisorController extends Controller
                 
                 // 3. Document RAG Engine
                 $docEngine = app(\App\Engines\DocumentRagEngine::class);
-                $docContext = $docEngine->search($data['message']);
+                $docContext = $docEngine->search($data['message'], 10);
                 
                 // 4. Ai Context Assembler
                 $assembler = app(\App\Engines\AiContextAssembler::class);
