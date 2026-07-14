@@ -541,6 +541,7 @@ export default function Advisor() {
     };
 
     const magicCommands = [
+        // أوامر الجدول
         { cmd: '/جدول', label: '🗓️ بناء جدول متكامل', message: 'ابنِ لي جدول متكامل للفصل الحالي يناسب معدلي', icon: '🗓️' },
         { cmd: '/صيفي', label: '☀️ اقتراح للصيفي', message: 'بناءً على المواد المطروحة هالفصل، شو أحسن مواد أنزلها؟', icon: '☀️' },
         { cmd: '/مواعيد', label: '⏰ مواعيد المواد', message: 'أعطني مواعيد المواد المطروحة التي يمكنني تسجيلها وهل هناك تعارض؟', icon: '⏰' },
@@ -550,6 +551,16 @@ export default function Advisor() {
         { cmd: '/حرج', label: '🚨 المسار الحرج', message: 'ما هي المواد الحرجة التي تفتح مواد أخرى ويجب أن أسجلها الآن؟', icon: '🚨' },
         { cmd: '/تخفيف', label: '😮‍💨 تخفيف العبء', message: 'حاسس العبء كبير، شو أحذف من التسجيل التجريبي؟', icon: '😮‍💨' },
         { cmd: '/تخرج', label: '🎓 خطة التخرج', message: 'كم فصل باقي على تخرجي وما هي المواد المتبقية؟', icon: '🎓' },
+        
+        // أوامر القوانين
+        { cmd: '/غياب', label: '⏰ قوانين الغياب والحرمان', message: 'كم الحد الأقصى للغياب المسموح به قبل الحرمان؟ وما هي الأعذار المقبولة؟', icon: '⏰' },
+        { cmd: '/إنذار', label: '⚠️ الإنذار الأكاديمي', message: 'متى يوضع الطالب تحت الإنذار الأكاديمي؟ وما هو الحد الأقصى للساعات المسموحة له؟', icon: '⚠️' },
+        { cmd: '/إعادة', label: '🔄 شروط إعادة المواد', message: 'ما هي شروط إعادة المواد لرفع المعدل التراكمي؟ وكيف تحسب العلامة الجديدة؟', icon: '🔄' },
+        { cmd: '/فصل', label: '⛔ الفصل من الجامعة', message: 'في أي حالة يتم فصلي من تخصصي في الجامعة؟', icon: '⛔' },
+        { cmd: '/مدة', label: '⏳ مدة الدراسة', message: 'كم المدة القصوى المسموحة للدراسة بالجامعة؟', icon: '⏳' },
+        { cmd: '/مستوى', label: '📊 مستوى الطالب (سنة 2/3)', message: 'كيف يتم تصنيف مستوى الطالب (سنة ثانية/ثالثة) حسب الساعات؟', icon: '📊' },
+        { cmd: '/غير-مكتمل', label: '🏥 الامتحان غير المكتمل', message: 'ماذا يحدث إذا غبت عن امتحان الفاينل بعذر طبي؟ ومتى يجب تقديمه؟', icon: '🏥' },
+        { cmd: '/انسحاب', label: '🚪 الانسحاب من المادة', message: 'هل أستطيع الانسحاب من مادة بعد السحب والإضافة؟ وماذا يسجل في كشف العلامات؟', icon: '🚪' }
     ];
 
     const initAdded = useMemo(() => { const s = {}; initialCartIds?.forEach(id => { s[id] = true; }); return s; }, [initialCartIds]);
@@ -767,12 +778,32 @@ export default function Advisor() {
         return () => window.removeEventListener('keydown', fn);
     }, [newChat, generating, stop, showCommandMenu]);
 
-    const cmds = [
+    const allCommandsBank = useMemo(() => [
+        // أوامر الجداول والتسجيل (الأساسية)
         { text: "ابنِ لي جدول متكامل للفصل الحالي", icon: "🗓️", desc: "جدول ذكي", color: "blue" },
         { text: "بناءً على المطروح، شو أسجل للصيفي؟", icon: "☀️", desc: "مواد الصيفي", color: "amber" },
         { text: "اقترح لي أسهل مواد لرفع المعدل", icon: "🚀", desc: "رفع المعدل", color: "emerald" },
         { text: "راجع التسجيل التجريبي وقيّمه", icon: "🛒", desc: "تقييم التسجيل", color: "slate" },
-    ];
+        { text: "ما هي المواد الحرجة التي يجب تسجيلها الآن؟", icon: "🚨", desc: "المسار الحرج", color: "rose" },
+        
+        // أسئلة من القوانين والأنظمة
+        { text: "كم الحد الأقصى للغياب المسموح به قبل الحرمان؟", icon: "⏰", desc: "قوانين الغياب", color: "indigo" },
+        { text: "متى يوضع الطالب تحت الإنذار الأكاديمي؟", icon: "⚠️", desc: "الإنذار الأكاديمي", color: "orange" },
+        { text: "ما هي شروط إعادة المواد لرفع المعدل؟", icon: "🔄", desc: "إعادة المواد", color: "cyan" },
+        { text: "ما هي متطلبات وشروط التخرج من الجامعة؟", icon: "🎓", desc: "التخرج", color: "violet" },
+        { text: "كم المدة القصوى المسموحة للدراسة بالجامعة؟", icon: "⏳", desc: "مدة الدراسة", color: "fuchsia" },
+        { text: "ماذا يحدث إذا غبت عن امتحان الفاينل بعذر طبي؟", icon: "🏥", desc: "الامتحان غير المكتمل", color: "teal" },
+        { text: "كيف يتم تصنيف مستوى الطالب (سنة ثانية/ثالثة)؟", icon: "📊", desc: "مستوى الطالب", color: "sky" },
+        { text: "هل أستطيع الانسحاب من مادة بعد السحب والإضافة؟", icon: "🚪", desc: "الانسحاب", color: "pink" }
+    ], []);
+
+    const cmds = useMemo(() => {
+        const shuffled = [...allCommandsBank].sort(() => 0.5 - Math.random());
+        // نضمن دائماً ظهور خيار "بناء جدول" أو خيار متعلق بالتسجيل لتشجيع استخدام الودجت
+        const coreCommand = shuffled.find(c => c.desc === "جدول ذكي" || c.desc === "تقييم التسجيل") || shuffled[0];
+        const others = shuffled.filter(c => c !== coreCommand).slice(0, 3);
+        return [coreCommand, ...others].sort(() => 0.5 - Math.random());
+    }, [allCommandsBank, activeId]); // Update random suggestions whenever a chat is opened/closed
 
     const grouped = useMemo(() => {
         const n = new Date(), td = new Date(n.getFullYear(), n.getMonth(), n.getDate()), yd = new Date(td); yd.setDate(yd.getDate() - 1); const wk = new Date(td); wk.setDate(wk.getDate() - 7);
