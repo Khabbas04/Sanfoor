@@ -158,8 +158,10 @@ class StructuredRagEngine
                     'type' => $c->type,
                     'credit_hours' => $c->credit_hours,
                     'difficulty_level' => $c->difficulty_level,
-                    'unlocks' => $c->children->count(),
+                    'unlocks_count' => $c->children->count(),
+                    'unlocks_courses' => $c->children->pluck('name')->toArray(),
                     'prereq_count' => $c->prerequisites->count(),
+                    'prereqs' => $c->prerequisites->pluck('name')->toArray(),
                     'course_year' => $c->semester ? ceil($c->semester / 2) : 1,
                 ];
 

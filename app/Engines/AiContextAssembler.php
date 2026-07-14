@@ -38,7 +38,10 @@ class AiContextAssembler
             $systemPrompt .= "=== ⭐ المواد المقترحة ===\n";
             foreach ($rankedCourses as $rc) {
                 $c = $rc['course'];
-                $systemPrompt .= "- [ID: {$c['id']}] {$c['name']} (ساعات: {$c['credit_hours']}) | السبب: {$rc['reason']}\n";
+                $prereqs = !empty($c['prereqs']) ? implode(' و ', $c['prereqs']) : 'لا يوجد';
+                $unlocks = !empty($c['unlocks_courses']) ? implode(' و ', $c['unlocks_courses']) : 'لا شيء';
+                
+                $systemPrompt .= "- [ID: {$c['id']}] {$c['name']} (ساعات: {$c['credit_hours']}) | يسبقها: {$prereqs} | تفتح: {$unlocks} | السبب: {$rc['reason']}\n";
             }
             $systemPrompt .= "\n";
         }
@@ -53,7 +56,7 @@ class AiContextAssembler
         $systemPrompt .= "=== 🛠️ تعليمات التنسيق المتقدمة (Frontend) ===\n";
         $systemPrompt .= "أنت تعمل ضمن واجهة ذكية جداً تدعم الجداول والمخططات الانسيابية. لذلك يجب عليك الالتزام بما يلي عند الحاجة:\n";
         $systemPrompt .= "1. 📊 **الجداول (Tables):** استخدم جداول Markdown المنظمة إذا طلب الطالب مقارنة، خطة دراسية مجدولة، أو توزيع علامات.\n";
-        $systemPrompt .= "2. 🔀 **المخططات الانسيابية (Flowcharts):** إذا سألك الطالب عن \"سلسلة المواد\" (مادة تفتح مادة)، متطلبات التخرج، أو مسار دراسي، **يجب** أن ترسم له مخطط انسيابي باستخدام كود `mermaid`. ضع الكود داخل كتلة Markdown (Triple backticks) وحدد اللغة كـ mermaid.\nمثال:\n```mermaid\ngraph TD\nA[متطلب جامعة] --> B[تخصص 1]\nB --> C[تخصص 2]\n```\n";
+        $systemPrompt .= "2. 🔀 **المخططات الانسيابية (Flowcharts):** إذا سألك الطالب بشكل مباشر \"رسم مخطط\"، \"flowchart\"، \"سلسلة المواد\"، أو متطلبات التخرج، **يجب إجبارياً** أن ترسم مخطط انسيابي باستخدام `mermaid`. يجب وضع كود الـ mermaid داخل حقل `reply` داخل كتلة Markdown كالتالي:\n```mermaid\ngraph TD\nA[مادة سابقة] --> B[مادة حالية]\nB --> C[مادة لاحقة]\n```\n";
         $systemPrompt .= "3. 🖌️ **تنسيق النصوص:** استخدم العناوين العريضة (###) والألوان والمقاطعات (Bullets) لتسهيل القراءة.\n\n";
 
         // 5. Instruction & Format
@@ -68,7 +71,7 @@ class AiContextAssembler
         
         $systemPrompt .= "=== 📝 صيغة الرد المطلوبة (Strict JSON) ===\n";
         $systemPrompt .= "{
-  \"reply\": \"نص الإجابة هنا (يدعم Markdown)\",
+  \"reply\": \"نص الإجابة هنا (يدعم Markdown، ويجب وضع كود mermaid هنا إذا رسمت flowchart)\",
   \"suggested_course_ids\": [123, 456], // اختياري: قائمة بـ IDs المواد لاقتراحها
   \"courses_to_remove\": [789], // اختياري: قائمة بـ IDs المواد للحذف من السلة
   \"follow_up_suggestions\": [\"سؤال مقترح 1 على لسان الطالب\", \"سؤال مقترح 2 على لسان الطالب\"], // أسئلة مقترحة للطالب
