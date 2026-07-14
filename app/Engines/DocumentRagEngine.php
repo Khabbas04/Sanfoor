@@ -51,16 +51,14 @@ class DocumentRagEngine
         }
     }
 
-    /**
-     * Search for the most relevant document chunks for a given query.
-     */
     public function search(string $query, int $topK = 3): array
     {
         if (empty($this->apiKey)) {
             return [];
         }
 
-        $queryEmbedding = $this->getEmbedding($query);
+        $expandedQuery = $this->expandQuery($query);
+        $queryEmbedding = $this->getEmbedding($expandedQuery);
         if (!$queryEmbedding) {
             return [];
         }
@@ -92,6 +90,36 @@ class DocumentRagEngine
         }
 
         return $results;
+    }
+
+    private function expandQuery(string $query): string
+    {
+        // Don't expand if it's already a long query or if Gemini fails, just return original.
+        try {
+            $gemini = app(\App\Services\GeminiService::class);
+            $prompt = "You are a university academic search assistant. Rewrite the following student query into a formal, concise academic search query to find the relevant university laws or regulations. Do not answer the question. Only output the formal search query in Arabic.\nStudent query: " . $query;
+            
+            $expanded = $gemini->callGeminiAPI([
+                ['role' => 'user', 'parts' => [['text' => $prompt]]]
+            ], [
+                'generationConfig' => [
+                    'maxOutputTokens' => 50,
+                    'temperature' => 0.1,
+                    'responseMimeType' => 'text/plain',
+                ],
+                'timeout' => 5,
+            ]);
+            
+            $expanded = trim($expanded);
+            if (!empty($expanded) && mb_strlen($expanded) > 5) {
+                // Combine original + expanded for maximum vector surface area
+                return $query . " " . $expanded;
+            }
+        } catch (\Exception $e) {
+            // Silently fallback to original
+        }
+        
+        return $query;
     }
 
     private function getEmbedding(string $text): ?array
