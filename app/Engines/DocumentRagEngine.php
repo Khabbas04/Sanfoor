@@ -19,26 +19,20 @@ class DocumentRagEngine
      */
     public function ingestDocument(string $name, string $text): void
     {
-        // Simple chunking logic: split by newlines, group into chunks of ~500 chars
-        $paragraphs = explode("\n", $text);
+        // Chunk by Article "**المادة" to keep context intact with Article numbers
+        $parts = explode('**المادة', $text);
+        
         $chunks = [];
-        $currentChunk = "";
-
-        foreach ($paragraphs as $p) {
-            $p = trim($p);
-            if (empty($p)) continue;
-
-            if (mb_strlen($currentChunk . " " . $p) > 500) {
-                if (!empty($currentChunk)) {
-                    $chunks[] = $currentChunk;
-                }
-                $currentChunk = $p;
-            } else {
-                $currentChunk .= (empty($currentChunk) ? "" : " ") . $p;
-            }
+        // The first part is usually preamble, let's keep it if it's substantial
+        if (trim($parts[0]) !== '') {
+            $chunks[] = trim($parts[0]);
         }
-        if (!empty($currentChunk)) {
-            $chunks[] = $currentChunk;
+        
+        for ($i = 1; $i < count($parts); $i++) {
+            $chunkText = trim('**المادة' . $parts[$i]);
+            if (!empty($chunkText)) {
+                $chunks[] = $chunkText;
+            }
         }
 
         // Generate embeddings for each chunk
