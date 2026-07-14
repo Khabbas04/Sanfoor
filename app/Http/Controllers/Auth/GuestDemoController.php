@@ -40,9 +40,13 @@ class GuestDemoController extends Controller
             return redirect()->route('dashboard');
         }
 
-        // If the user is logged in with a real account, don't overwrite.
+        // If the user is logged in with a real account, don't overwrite silently.
+        // Alert them so they don't get confused thinking a guest account was created.
         if (Auth::check()) {
-            return redirect()->route('dashboard');
+            return redirect()->route('dashboard')->with([
+                'message' => 'أنت مسجل الدخول بالفعل بحسابك الأساسي. لتجربة حساب الضيف، يرجى تسجيل الخروج أولاً.',
+                'type'    => 'info',
+            ]);
         }
 
         try {
