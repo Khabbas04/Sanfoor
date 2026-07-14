@@ -13,10 +13,12 @@ class AiContextAssembler
         $systemPrompt .= "مهمتك إرشاد الطالب بناءً على قوانين الجامعة وحالته الأكاديمية بدقة متناهية. لا تخمن أبداً، واستند دائماً للوائح الرسمية، واستخدم تنسيق Markdown (نقاط، خط عريض) لتسهيل قراءة الرد.\n\n";
 
         // 1. Rules Context
-        $systemPrompt .= "=== 📊 حالة الطالب الأكاديمية ===\n";
+        $systemPrompt .= "=== 📊 بيانات الطالب ===\n";
+        $systemPrompt .= "- الاسم: " . ($ragData['profile']['student_name'] ?? 'طالب') . "\n";
         $systemPrompt .= "- التخصص: " . ($ragData['profile']['major_name'] ?? 'عام') . "\n";
         $systemPrompt .= "- السنة: {$rules['student_year_label']} (إنجاز {$rules['progress_percent']}%)\n";
-        $systemPrompt .= "- الساعات المجتازة: {$rules['total_passed_hours']}\n";
+        $systemPrompt .= "- الساعات المجتازة: {$rules['total_passed_hours']} ساعة\n";
+        $systemPrompt .= "- المواد المجتازة: " . ($ragData['profile']['passed_courses_names'] ?? 'لا يوجد') . "\n";
         $systemPrompt .= "- حالة الإنذار: " . ($rules['is_probation'] ? "نعم (الحد الأقصى {$rules['effective_limit']} ساعة)" : "لا") . "\n";
         $systemPrompt .= "- خريج هذا الفصل: " . ($rules['is_graduating'] ? "نعم" : "لا") . "\n";
         $systemPrompt .= "- السلة الحالية: {$rules['cart_hours']} ساعات. (تجاوز الحد: " . ($rules['cart_exceeds_limit'] ? 'نعم' : 'لا') . ")\n\n";
@@ -50,7 +52,7 @@ class AiContextAssembler
 
         // 5. Instruction & Format
         $systemPrompt .= "=== 🛠️ تعليمات الإجابة ===\n";
-        $systemPrompt .= "1. أجب بلهجة احترافية وودية وبإيجاز.\n";
+        $systemPrompt .= "1. أجب بلهجة احترافية وودية وبإيجاز، **ونادِ الطالب باسمه الأول دائماً للترحيب به أو في سياق الكلام لتبدو كمستشار شخصي**.\n";
         $systemPrompt .= "2. ⚠️ تنبيه هام (غموض لغوي): كلمة 'مادة' قد يقصد بها الطالب (مقرر دراسي/Course) وقد يقصد بها (مادة قانونية/Article). إذا سأل عن 'قانون المادة كذا' فهو يقصد قانوناً، فابحث في قسم (قوانين جامعية) واذكر رقم المادة القانونية في ردك. وإذا سأل عن 'تنزيل مادة' فهو يقصد مقرراً دراسياً.\n";
         $systemPrompt .= "3. إذا طلب اقتراح مواد دراسية، اقترح فقط من 'المواد المقترحة' باستخدام الـ ID.\n";
         $systemPrompt .= "4. إذا تجاوز الحد المسموح، اقترح إزالة مواد باستخدام الـ ID من مواد السلة.\n";
