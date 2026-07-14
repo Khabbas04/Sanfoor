@@ -188,7 +188,18 @@ class AdminController extends Controller
             'adminNotes' => $adminNotes,
             'myAdminNote' => $myAdminNote,
             'notesEnabled' => $notesEnabled,
-            'demoGuests' => \App\Models\User::with(['major.college'])->where('role', 'guest')->latest()->take(50)->get(),
+            'demoGuests' => function() {
+                $query = \App\Models\User::with(['major.college'])->where('role', 'guest')->latest();
+                if (request()->has('guest_date') && request()->guest_date) {
+                    $query->whereDate('created_at', request()->guest_date);
+                } else {
+                    $query->take(50);
+                }
+                return $query->get();
+            },
+            'filters' => [
+                'guest_date' => request()->guest_date,
+            ],
         ]);
     }
 
@@ -227,6 +238,22 @@ class AdminController extends Controller
 
         return redirect()->route('admin.dashboard')->with([
             'message' => 'تم حفظ الملاحظة بنجاح.',
+            'type' => 'success',
+        ]);
+    }
+
+    /**
+     * صفحة إعدادات الإدارة: الأونلاين + روابط إدارة الأدمن
+     */
+    public function destroyGuest(User $guest)
+    {
+        abort_unless(Auth::user() && Auth::user()->isAdminOrOwner(), 403);
+        abort_unless($guest->role === 'guest', 403, 'يمكن حذف الضيوف فقط.');
+        
+        $guest->delete();
+
+        return redirect()->back()->with([
+            'message' => 'تم حذف حساب الضيف بنجاح.',
             'type' => 'success',
         ]);
     }

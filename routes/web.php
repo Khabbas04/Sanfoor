@@ -410,6 +410,7 @@ Route::middleware('auth')->group(function () {
     });
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+        Route::delete('/guests/{guest}', [AdminController::class, 'destroyGuest'])->name('guests.destroy');
         Route::post('/notes', [AdminController::class, 'storeAdminNote'])->name('notes.store');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::get('/ai-chats', [AdminController::class, 'aiChats'])->name('ai_chats');

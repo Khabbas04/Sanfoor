@@ -91,7 +91,7 @@ const translations = {
     },
 };
 
-export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true, demoGuests = [] }) {
+export default function AdminDashboard({ auth, stats, platform = {}, demandReport = [], issueSummary = {}, recentIssues = [], logs = [], onlineUsers = [], adminNotes = [], myAdminNote = null, notesEnabled = true, demoGuests = [], filters = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const t = translations[lang] || translations.ar;
@@ -105,6 +105,24 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
     const safeLogs = Array.isArray(logs) ? logs : [];
     const safeNotes = Array.isArray(adminNotes) ? adminNotes : [];
     const safeMyNote = myAdminNote || null;
+
+    const [guestDate, setGuestDate] = useState(filters?.guest_date || '');
+
+    const handleGuestDateChange = (e) => {
+        const value = e.target.value;
+        setGuestDate(value);
+        router.get(route('admin.dashboard'), { guest_date: value }, { preserveState: true, preserveScroll: true });
+    };
+
+    const handleDeleteGuest = (id) => {
+        if (confirm('هل أنت متأكد من حذف حساب الضيف؟ سيتم إزالة جميع بياناته.')) {
+            router.delete(route('admin.guests.destroy', id), {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => toast.success('تم حذف الضيف بنجاح')
+            });
+        }
+    };
 
     const parseDevice = (userAgent) => {
         if (!userAgent) return 'جهاز غير معروف';
@@ -536,9 +554,17 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                         <h3 className={`text-lg font-black ${heading} flex items-center gap-2`}>
                             <span className="text-amber-500 text-2xl">🎪</span> ضيوف النسخة التجريبية
                         </h3>
-                        <span className={`text-xs font-bold px-3 py-1 rounded-lg ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
-                            إجمالي المسجلين: {demoGuests.length}
-                        </span>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="date"
+                                value={guestDate}
+                                onChange={handleGuestDateChange}
+                                className={`text-xs font-bold px-3 py-1.5 rounded-lg border focus:ring-0 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+                            />
+                            <span className={`text-xs font-bold px-3 py-2 rounded-lg ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700'}`}>
+                                العدد: {demoGuests.length}
+                            </span>
+                        </div>
                     </div>
                     
                     <div className="overflow-x-auto">
@@ -550,6 +576,7 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                     <th className="py-4 px-4 font-black">التخصص</th>
                                     <th className="py-4 px-4 font-black">الخطة</th>
                                     <th className="py-4 px-4 font-black">وقت التسجيل</th>
+                                    <th className="py-4 px-4 font-black text-center">حذف</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -560,11 +587,18 @@ export default function AdminDashboard({ auth, stats, platform = {}, demandRepor
                                         <td className={`py-4 px-4 font-bold text-xs ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{guest.major?.name || '—'}</td>
                                         <td className={`py-4 px-4 font-black text-xs ${subtext}`}>الإصدار {guest.study_plan_version}</td>
                                         <td className={`py-4 px-4 font-bold text-[11px] ${subtext}`}>{new Date(guest.created_at).toLocaleString('ar-JO')}</td>
+                                        <td className="py-4 px-4 text-center">
+                                            <button onClick={() => handleDeleteGuest(guest.id)} className="text-red-500 hover:text-red-700 transition-colors" title="حذف الضيف">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {demoGuests.length === 0 && (
                                     <tr>
-                                        <td colSpan="5" className={`py-8 text-center text-sm font-bold ${subtext}`}>لا يوجد ضيوف مسجلين حتى الآن.</td>
+                                        <td colSpan="6" className={`py-8 text-center text-sm font-bold ${subtext}`}>لا يوجد ضيوف مسجلين في هذا اليوم.</td>
                                     </tr>
                                 )}
                             </tbody>
