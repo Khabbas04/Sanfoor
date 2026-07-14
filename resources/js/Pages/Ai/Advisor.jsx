@@ -3,6 +3,8 @@ import MainLayout from '@/Layouts/MainLayout';
 import { Head, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import mermaid from 'mermaid';
 import Swal from 'sweetalert2';
 const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 
@@ -11,6 +13,23 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
+
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+const MermaidChart = ({ chart }) => {
+    const id = useMemo(() => `mermaid-${Math.random().toString(36).substr(2, 9)}`, []);
+    const [svg, setSvg] = useState('');
+
+    useEffect(() => {
+        let isMounted = true;
+        mermaid.render(id, chart).then((result) => {
+            if (isMounted) setSvg(result.svg);
+        }).catch(err => console.error(err));
+        return () => { isMounted = false; };
+    }, [chart, id]);
+
+    return <div dangerouslySetInnerHTML={{ __html: svg }} className="my-6 flex justify-center bg-white/50 p-4 rounded-xl border border-slate-100" dir="ltr" />;
+};
 
 // Animate AI responses as they stream into the chat window.
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
@@ -39,11 +58,15 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     }, [safeContent, isAnimating]);
     useEffect(() => { if (!isAnimating && !done.current) { setTxt(safeContent); done.current = true; } }, [isAnimating, safeContent]);
     return (
-        <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5">
+        <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5 prose-table:border-collapse prose-table:w-full prose-th:bg-blue-50 prose-th:text-blue-800 prose-th:border prose-th:border-blue-200 prose-th:p-3 prose-td:border prose-td:border-slate-200 prose-td:p-3 prose-tr:even:bg-slate-50/50">
             <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
                 components={{
                     code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
+                        if (match && match[1] === 'mermaid') {
+                            return <MermaidChart chart={String(children).replace(/\n$/, '')} />;
+                        }
                         const isBlock = !inline && (match || String(children).includes('\n'));
                         return isBlock ? (
                             <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700/60 shadow-xl" dir="ltr">
@@ -351,7 +374,7 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
     const u = msg.role === 'user';
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
-            <div className={`flex max-w-[95%] md:max-w-[80%] gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
+            <div className={`flex max-w-[95%] ${u ? 'md:max-w-[80%]' : 'md:max-w-full w-full'} gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
                 {u ? (
                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white overflow-hidden">
                         {u.avatar ? <img src={u.avatar} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0) || 'أ'}
@@ -935,7 +958,7 @@ export default function Advisor() {
         ` }} />
 
             <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
-                <div className="max-w-7xl mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
+                <div className="max-w-[1600px] mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
                     {/* === Mobile Sidebar Overlay === */}
                     {sidebar && <div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebar(false)} /><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={() => setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={() => { setSidebar(false); newChat(); }} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length > 0 ? chats.map(c => <ChatItem key={c.id} c={c} />) : <p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}</div></div>}
