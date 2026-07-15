@@ -489,7 +489,7 @@ export default function Advisor() {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = false;
+            recognitionRef.current.continuous = true;
             recognitionRef.current.interimResults = true;
             recognitionRef.current.lang = 'ar-SA';
 
@@ -498,17 +498,24 @@ export default function Advisor() {
             };
 
             recognitionRef.current.onresult = (event) => {
-                const transcript = Array.from(event.results)
-                    .map(result => result[0])
-                    .map(result => result.transcript)
-                    .join('');
-                
-                setInput(transcript);
+                let currentTranscript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    currentTranscript += event.results[i][0].transcript;
+                }
+                setInput(currentTranscript);
             };
 
             recognitionRef.current.onerror = (event) => {
                 console.error("Speech recognition error", event.error);
                 setIsListening(false);
+                if (event.error === 'not-allowed') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'صلاحية الميكروفون',
+                        text: 'الرجاء إعطاء صلاحية استخدام الميكروفون للمتصفح.',
+                        ...swal
+                    });
+                }
             };
 
             recognitionRef.current.onend = () => {
