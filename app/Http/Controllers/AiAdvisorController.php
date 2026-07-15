@@ -1930,6 +1930,7 @@ class AiAdvisorController extends Controller
         $geminiService = app(\App\Services\GeminiService::class);
         $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'اصنع الجدول الذكي الآن']]]], [
             'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'timeout' => 60,
             'generationConfig' => [
                 'temperature' => 0.2,
                 'responseMimeType' => 'application/json',
@@ -2026,6 +2027,7 @@ class AiAdvisorController extends Controller
         $geminiService = app(\App\Services\GeminiService::class);
         $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'اصنع خطة التخرج الكاملة الآن']]]], [
             'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'timeout' => 60,
             'generationConfig' => [
                 'temperature' => 0.1,
                 'responseMimeType' => 'application/json',
