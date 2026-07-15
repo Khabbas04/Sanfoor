@@ -1908,7 +1908,7 @@ class AiAdvisorController extends Controller
         foreach ($availableCourses['details'] as $id => $course) {
             $systemPrompt .= "- ID: {$id} | {$course['name']} | ساعات: {$course['credit_hours']} | صعوبة: {$course['difficulty_level']}/5 | تفتح: " . ($course['unlocks'] ?? 0) . " مواد\n";
         }
-        $systemPrompt .= "\nقم باختيار أفضل مجموعة مواد بحيث لا يتجاوز مجموع ساعاتها {$targetHours}. يجب أن تكون منطقية ومتوافقة مع إعدادات الطالب. أرجع مصفوفة JSON تحتوي على ID المادة، سبب اختيارها القوي، ونسبة الثقة بالاختيار (0-100).\n";
+        $systemPrompt .= "\nالشرط الأهم والأكثر صرامة: إياك ثم إياك أن يتجاوز مجموع الساعات للمواد المختارة {$targetHours} ساعة كحد أقصى! احسب مجموع الساعات للمواد التي تختارها خطوة بخطوة، وإذا تجاوزت {$targetHours} فسيعتبر الجدول فاشلاً. يجب أن تكون منطقية ومتوافقة مع إعدادات الطالب. أرجع مصفوفة JSON تحتوي على ID المادة، سبب اختيارها القوي، ونسبة الثقة بالاختيار (0-100).\n";
 
         $responseSchema = [
             'type' => 'OBJECT',
@@ -1941,16 +1941,21 @@ class AiAdvisorController extends Controller
         
         $newCart = [];
         $selectedMeta = [];
+        $currentHours = 0;
         
         if (isset($decoded['schedule']) && is_array($decoded['schedule'])) {
             foreach ($decoded['schedule'] as $item) {
-                if (isset($item['course_id'])) {
-                    $newCart[] = $item['course_id'];
-                    $selectedMeta[$item['course_id']] = [
-                        'confidence' => $item['confidence'] ?? 80,
-                        'dataConfidence' => 90,
-                        'reasons' => [$item['reason'] ?? 'مختارة بذكاء']
-                    ];
+                if (isset($item['course_id']) && isset($availableCourses['details'][$item['course_id']])) {
+                    $cHours = $availableCourses['details'][$item['course_id']]['credit_hours'];
+                    if ($currentHours + $cHours <= $targetHours) {
+                        $currentHours += $cHours;
+                        $newCart[] = $item['course_id'];
+                        $selectedMeta[$item['course_id']] = [
+                            'confidence' => $item['confidence'] ?? 80,
+                            'dataConfidence' => 90,
+                            'reasons' => [$item['reason'] ?? 'مختارة بذكاء']
+                        ];
+                    }
                 }
             }
         }
