@@ -18,6 +18,7 @@ class CourseRankingEngine
     public function rank(array $availableDetails, array $academicRules, string $intent = 'عام', int $limit = 8): array
     {
         $studentYear = $academicRules['student_year'] ?? 1;
+        $studentSemester = $academicRules['student_semester'] ?? 1;
         
         $scoredCourses = [];
 
@@ -52,10 +53,23 @@ class CourseRankingEngine
                 default => 5,
             };
             
-            // 4. Year Proximity - Max 15 points
-            $courseYear = (int) ($course['course_year'] ?? 1);
-            $yearDiff = abs($courseYear - $studentYear);
-            $score += max(0, 15 - ($yearDiff * 5)); // Exact year = 15, 1 yr diff = 10, etc.
+            // 4. Semester Proximity - Max 15 points
+            $courseSemester = $course['course_semester'] ?? null;
+            if ($courseSemester !== null) {
+                // If it's the exact recommended semester, give max points (15)
+                // If it's a past semester course (student should have taken it already), give high priority (15) so they catch up!
+                if ($courseSemester <= $studentSemester) {
+                    $score += 15;
+                } else {
+                    $semesterDiff = $courseSemester - $studentSemester;
+                    $score += max(0, 15 - ($semesterDiff * 3));
+                }
+            } else {
+                // Fallback to year if no specific semester
+                $courseYear = (int) ($course['course_year'] ?? 1);
+                $yearDiff = abs($courseYear - $studentYear);
+                $score += max(0, 10 - ($yearDiff * 5)); // Lower max points if we only know the year
+            }
             
             // 5. Prereq Weight - Max 10 points
             // Courses with 0 prereqs get 10, 1 prereq gets 5, more gets 0

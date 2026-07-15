@@ -65,6 +65,7 @@ class AcademicRulesEngine
         $cartExceedsLimit = $cartHours > $effectiveLimit;
         
         $studentYear = max(1, min(5, (int) ceil($totalPassedHours / 33)));
+        $studentSemester = max(1, min(10, (int) floor($totalPassedHours / 16) + 1));
         $studentYearLabels = [1 => 'أولى', 2 => 'ثانية', 3 => 'ثالثة', 4 => 'رابعة', 5 => 'خامسة'];
         
         $isFirstSemester = $totalPassedHours === 0;
@@ -86,6 +87,7 @@ class AcademicRulesEngine
             'cart_exceeds_limit' => $cartExceedsLimit,
             'excess_hours' => $cartExceedsLimit ? ($cartHours - $effectiveLimit) : 0,
             'student_year' => $studentYear,
+            'student_semester' => $studentSemester,
             'student_year_label' => $studentYearLabels[$studentYear] ?? 'أولى',
             'progress_percent' => $totalPlanHours > 0 ? round(($totalPassedHours / $totalPlanHours) * 100) : 0,
         ];

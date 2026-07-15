@@ -163,6 +163,7 @@ class StructuredRagEngine
                     'prereq_count' => $c->prerequisites->count(),
                     'prereqs' => $c->prerequisites->pluck('name')->toArray(),
                     'course_year' => $c->semester ? ceil($c->semester / 2) : 1,
+                    'course_semester' => $c->semester ?: null,
                 ];
 
                 if (empty($unmetPrereqs) && !$lockedByHours) {

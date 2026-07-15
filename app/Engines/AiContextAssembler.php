@@ -38,10 +38,11 @@ class AiContextAssembler
             $systemPrompt .= "=== ⭐ المواد المقترحة ===\n";
             foreach ($rankedCourses as $rc) {
                 $c = $rc['course'];
-                $prereqs = !empty($c['prereqs']) ? implode(' و ', $c['prereqs']) : 'لا يوجد';
-                $unlocks = !empty($c['unlocks_courses']) ? implode(' و ', $c['unlocks_courses']) : 'لا شيء';
+                $prereqText = empty($c['prereqs']) ? 'لا يوجد' : implode('، ', $c['prereqs']);
+                $unlocksText = empty($c['unlocks_courses']) ? 'لا تفتح مواد أخرى' : implode('، ', $c['unlocks_courses']);
+                $semesterInfo = $c['course_semester'] ? "| الفصل الاسترشادي: {$c['course_semester']} " : "";
                 
-                $systemPrompt .= "- [ID: {$c['id']}] {$c['name']} (ساعات: {$c['credit_hours']}) | يسبقها: {$prereqs} | تفتح: {$unlocks} | السبب: {$rc['reason']}\n";
+                $systemPrompt .= "- [ID: {$c['id']}] {$c['name']} (ساعات: {$c['credit_hours']} | صعوبة: {$c['difficulty_level']}/5) {$semesterInfo}| يسبقها: {$prereqText} | تفتح: {$unlocksText} | السبب: {$rc['reason']}\n";
             }
             $systemPrompt .= "\n";
         }
