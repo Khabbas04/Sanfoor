@@ -2636,6 +2636,79 @@ export default function Tree({
         }
     };
 
+    const analyzeCourseAI = async (courseId) => {
+        const course = courses.find(c => c.id === courseId);
+        if (!course) return;
+
+        Swal.fire({
+            title: 'د. سنفور يحلل المادة...',
+            html: '<div class="text-[14px] text-slate-500 mt-2">لحظات وسيعطيك نصيحته الأكاديمية 🧠</div>',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            ...swalTheme
+        });
+
+        try {
+            const response = await axios.post(route('ai.tree.analyze_course'), { course_id: courseId });
+            let adviceHtml = response.data.advice
+                .replace(/\n/g, '<br/>')
+                .replace(/\*\*(.*?)\*\*/g, '<b class="text-indigo-600 dark:text-indigo-400">$1</b>')
+                .replace(/\*(.*?)\*/g, '<i class="text-slate-600 dark:text-slate-400">$1</i>');
+
+            Swal.fire({
+                icon: 'info',
+                title: 'نصيحة د. سنفور 🎓',
+                html: `<div style="text-align: right; line-height: 1.8; font-size: 14.5px; margin-top: 10px;" class="font-t text-slate-700 dark:text-slate-300">${adviceHtml}</div>`,
+                confirmButtonText: 'شكراً د. سنفور!',
+                ...swalTheme
+            });
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: 'لم يتمكن د. سنفور من تقديم النصيحة حالياً.',
+                ...swalTheme
+            });
+        }
+    };
+
+    const analyzeTreeBottlenecksAI = async () => {
+        Swal.fire({
+            title: 'تحليل الخطة جارٍ...',
+            html: '<div class="text-[14px] text-slate-500 mt-2">د. سنفور يبحث عن عنق الزجاجة والمسار الأسرع لك 🚀</div>',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            ...swalTheme
+        });
+
+        try {
+            const response = await axios.post(route('ai.tree.analyze_bottlenecks'));
+            let analysisHtml = response.data.analysis
+                .replace(/\n/g, '<br/>')
+                .replace(/\*\*(.*?)\*\*/g, '<b class="text-indigo-600 dark:text-indigo-400">$1</b>')
+                .replace(/\*(.*?)\*/g, '<i class="text-slate-600 dark:text-slate-400">$1</i>')
+                .replace(/- /g, '<span class="text-rose-500 ml-1">●</span> ');
+
+            Swal.fire({
+                title: 'نصيحة المسار الأسرع 🚀',
+                html: `<div style="text-align: right; line-height: 1.8; font-size: 14.5px; margin-top: 10px;" class="font-t text-slate-700 dark:text-slate-300">${analysisHtml}</div>`,
+                confirmButtonText: 'فهمت، شكراً!',
+                ...swalTheme
+            });
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: 'حدث خطأ أثناء تحليل الخطة.',
+                ...swalTheme
+            });
+        }
+    };
+
     // 🆕 FIX: فحص حد الساعات قبل الإضافة للتسجيل التجريبي
     const toggleCart = (course) => {
         let updatedCart;
@@ -3545,6 +3618,12 @@ export default function Tree({
                             </>
                         )}
 
+                        {/* زر الذكاء الاصطناعي للمادة */}
+                        <button onClick={() => analyzeCourseAI(selectedCourse.id)} className="w-full mt-3 bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 text-indigo-300 hover:from-indigo-500/20 hover:to-violet-500/20 hover:border-indigo-400/40 py-3.5 rounded-xl font-[800] text-[13px] transition-all shadow-sm active:scale-[0.97] flex items-center justify-center gap-2">
+                            <span>🤖</span>
+                            <span>اسأل سنفور عن هذه المادة</span>
+                        </button>
+
                         {/* زر إعادة المادة للمواد المرسوبة أو المنجزة */}
                         {(getStatus(selectedCourse) === 'failed' || getStatus(selectedCourse) === 'passed') && (() => {
                             const attempts = Array.isArray(localPassedCourses) ? localPassedCourses.filter(c => c.id === selectedCourse.id) : [];
@@ -3994,6 +4073,12 @@ export default function Tree({
                                         <div className="absolute inset-0 bg-gradient-to-l from-indigo-600/0 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         <span className="text-2xl relative z-10">🤖</span>
                                         <div className="text-right relative z-10"><p className="text-[13px] text-indigo-200">خطة تخرج كاملة (محاكاة)</p><p className="text-[10px] text-slate-400 font-bold">توزيع المواد المتبقية على كل الفصول</p></div>
+                                    </button>
+
+                                    <button onClick={analyzeTreeBottlenecksAI} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all ring-1 ring-inset ring-white/10 relative overflow-hidden group mt-3">
+                                        <div className="absolute inset-0 bg-gradient-to-l from-rose-500/0 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        <span className="text-2xl relative z-10">🚀</span>
+                                        <div className="text-right relative z-10"><p className="text-[13px] text-rose-200">تحليل عنق الزجاجة للمسار الأسرع</p><p className="text-[10px] text-slate-400 font-bold">أهم المواد التي يجب تسجيلها فوراً</p></div>
                                     </button>
 
                                     <div className="bg-gradient-to-bl from-slate-900 to-indigo-950 p-5 rounded-[1.25rem] text-white shadow-xl relative overflow-hidden">

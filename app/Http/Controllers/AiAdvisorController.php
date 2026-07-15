@@ -2040,4 +2040,92 @@ class AiAdvisorController extends Controller
             'plan' => $decoded['semesters'] ?? []
         ]);
     }
+
+    public function analyzeCourseInTree(Request $request)
+    {
+        $request->validate(['course_id' => 'required|integer']);
+        $user = Auth::user();
+        $course = Course::with(['prerequisites', 'unlocksCourses'])->findOrFail($request->course_id);
+
+        $passedIds = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('grade', '>=', 50)
+            ->pluck('course_id')->toArray();
+
+        $gpaData = $user->calculateGPA();
+
+        $prereqs = $course->prerequisites->pluck('name')->implode('، ');
+        $unlocks = $course->unlocksCourses->pluck('name')->implode('، ');
+        $unlocksCount = $course->unlocksCourses->count();
+        $isPassed = in_array($course->id, $passedIds);
+
+        $systemPrompt = "أنت 'د. سنفور'، المستشار الأكاديمي الودود والذكي. الطالب يطلب نصيحة سريعة حول مادة '{$course->name}'.\n";
+        $systemPrompt .= "معلومات الطالب:\n- معدله التراكمي: " . (isset($gpaData['percentage']) ? $gpaData['percentage'] : 'غير معروف') . "%\n- الساعات المنجزة: " . ($gpaData['completed_hours'] ?? 0) . "\n";
+        $systemPrompt .= "- حالة المادة الحالية: " . ($isPassed ? "مجتازة بنجاح" : "لم ينجزها بعد") . "\n\n";
+        
+        $systemPrompt .= "معلومات المادة:\n- عدد الساعات: {$course->credit_hours}\n- الصعوبة: {$course->difficulty_level}/5\n";
+        $systemPrompt .= "- المتطلبات السابقة: " . ($prereqs ?: 'لا يوجد') . "\n";
+        $systemPrompt .= "- تفتح المواد التالية ({$unlocksCount} مادة): " . ($unlocks ?: 'لا تفتح شيء') . "\n\n";
+        
+        $systemPrompt .= "المطلوب: قدم نصيحة سريعة من 2-3 أسطر فقط. أخبر الطالب إذا كانت المادة هامة جداً (لأنها تفتح مواد أخرى) أو إذا كانت صعبة وبحاجة لوقت، أو شجعه إذا كان قد اجتازها. لا تذكر الأرقام (مثل 3 من 5) بل استخدم كلمات (متوسطة، صعبة، الخ). استخدم تنسيق Markdown (bold, lists) وتحدث بودية واستخدم الايموجي.";
+
+        $geminiService = app(\App\Services\GeminiService::class);
+        $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'أعطني نصيحتك حول هذه المادة']]]], [
+            'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'generationConfig' => [
+                'temperature' => 0.4,
+            ]
+        ]);
+
+        return response()->json([
+            'advice' => $rawText
+        ]);
+    }
+
+    public function analyzeTreeBottlenecks(Request $request)
+    {
+        $user = Auth::user();
+        
+        $passedIds = DB::table('course_user')
+            ->where('user_id', $user->id)
+            ->where('grade', '>=', 50)
+            ->pluck('course_id')->toArray();
+
+        // Get all mandatory courses (compulsory and supporting) that are not passed
+        $mandatoryCourses = Course::whereIn('type', ['compulsory', 'supporting'])
+            ->where('major_id', clone $user->major_id)
+            ->withCount('unlocksCourses')
+            ->get();
+
+        $remainingCourses = $mandatoryCourses->reject(function($c) use ($passedIds) {
+            return in_array($c->id, $passedIds);
+        });
+
+        // Sort by unlocks_courses_count descending
+        $topBottlenecks = $remainingCourses->sortByDesc('unlocks_courses_count')->take(6);
+
+        $gpaData = $user->calculateGPA();
+
+        $systemPrompt = "أنت 'د. سنفور'، المستشار الأكاديمي الاستراتيجي. طلب الطالب تحليل خطته لاكتشاف 'عنق الزجاجة' (المواد التي تفتح مجالات أخرى وتأجيلها سيؤخر تخرجه).\n";
+        $systemPrompt .= "معلومات الطالب:\n- معدله: " . ($gpaData['percentage'] ?? 'غير معروف') . "%\n- الساعات المنجزة: " . ($gpaData['completed_hours'] ?? 0) . "\n\n";
+        
+        $systemPrompt .= "المواد المتبقية التي تمثل عنق زجاجة (مرتبة حسب الأهمية):\n";
+        foreach ($topBottlenecks as $c) {
+            $systemPrompt .= "- {$c->name} (تفتح {$c->unlocks_courses_count} مواد)\n";
+        }
+        
+        $systemPrompt .= "\nالمطلوب: قدم تقريراً سريعاً وذكياً من فقرتين. اشرح له أهمية هذه المواد وأنصحه بتسجيلها في أقرب فرصة لتجنب تأخير التخرج. كن مشجعاً واستخدم Markdown لعرض المواد كنقاط بارزة مع الايموجي المناسب.";
+
+        $geminiService = app(\App\Services\GeminiService::class);
+        $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'حلل خطتي وأعطني الخلاصة']]]], [
+            'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'generationConfig' => [
+                'temperature' => 0.5,
+            ]
+        ]);
+
+        return response()->json([
+            'analysis' => $rawText
+        ]);
+    }
 }
