@@ -1884,4 +1884,150 @@ class AiAdvisorController extends Controller
             ],
         ]);
     }
+
+    public function generateSmartSchedule(\Illuminate\Http\Request $request)
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) return response()->json(['error' => 'Unauthorized'], 401);
+
+        $targetHours = (int) $request->input('targetHours', 15);
+        $schedulePace = $request->input('schedulePace', 'balanced');
+        $smartFocus = $request->input('smartFocus', 'major');
+        $smartProtectGpa = (bool) $request->input('smartProtectGpa', false);
+
+        $academicData = $this->getStudentAcademicData($user);
+        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], [], $user);
+        
+        $systemPrompt = "أنت 'الخوارزمية الذكية' لجامعة الزرقاء. مهمتك بناء جدول دراسي مثالي للطالب لفصل واحد فقط بناءً على خياراته.\n";
+        $systemPrompt .= "الساعات المطلوبة: {$targetHours} ساعة.\n";
+        $systemPrompt .= "نمط الصعوبة: {$schedulePace} (light=سهل, balanced=متوازن, heavy=صعب).\n";
+        $systemPrompt .= "الأولوية: {$smartFocus} (major=مواد تخصص, graduation=تسريع تخرج, gpa=حماية معدل).\n";
+        $systemPrompt .= "حماية المعدل: " . ($smartProtectGpa ? "مفعل (تجنب مواد عالية الرسوب)" : "غير مفعل") . ".\n\n";
+        
+        $systemPrompt .= "المواد المتاحة للتسجيل (مفتوحة المتطلبات):\n";
+        foreach ($availableCourses as $course) {
+            $systemPrompt .= "- ID: {$course['id']} | {$course['name']} | ساعات: {$course['credit_hours']} | صعوبة: {$course['difficulty_level']}/5 | تفتح: " . ($course['unlocks'] ?? 0) . " مواد\n";
+        }
+        $systemPrompt .= "\nقم باختيار أفضل مجموعة مواد بحيث لا يتجاوز مجموع ساعاتها {$targetHours}. يجب أن تكون منطقية ومتوافقة مع إعدادات الطالب. أرجع مصفوفة JSON تحتوي على ID المادة، سبب اختيارها القوي، ونسبة الثقة بالاختيار (0-100).\n";
+
+        $responseSchema = [
+            'type' => 'OBJECT',
+            'properties' => [
+                'schedule' => [
+                    'type' => 'ARRAY',
+                    'items' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'course_id' => ['type' => 'INTEGER'],
+                            'reason' => ['type' => 'STRING'],
+                            'confidence' => ['type' => 'INTEGER']
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $geminiService = app(\App\Services\GeminiService::class);
+        $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'اصنع الجدول الذكي الآن']]]], [
+            'systemInstruction' => $systemPrompt,
+            'responseSchema' => $responseSchema,
+            'responseMimeType' => 'application/json',
+            'generationConfig' => ['temperature' => 0.2]
+        ]);
+
+        $decoded = $geminiService->parseJsonResponse($rawText);
+        
+        $newCart = [];
+        $selectedMeta = [];
+        
+        if (isset($decoded['schedule']) && is_array($decoded['schedule'])) {
+            foreach ($decoded['schedule'] as $item) {
+                if (isset($item['course_id'])) {
+                    $newCart[] = $item['course_id'];
+                    $selectedMeta[$item['course_id']] = [
+                        'confidence' => $item['confidence'] ?? 80,
+                        'dataConfidence' => 90,
+                        'reasons' => [$item['reason'] ?? 'مختارة بذكاء']
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'newCart' => $newCart,
+            'selectedMeta' => $selectedMeta
+        ]);
+    }
+
+    public function generateFullPlan(\Illuminate\Http\Request $request)
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if (!$user) return response()->json(['error' => 'Unauthorized'], 401);
+
+        $academicData = $this->getStudentAcademicData($user);
+        $passedIds = $academicData['passed_course_ids'];
+        
+        $allCourses = \App\Models\Course::where('major_id', $user->major_id)->get();
+        $remainingCourses = [];
+        foreach ($allCourses as $c) {
+            if (!in_array($c->id, $passedIds)) {
+                $prereqText = $c->prerequisites->pluck('id')->implode(',');
+                $remainingCourses[] = [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'hours' => $c->credit_hours,
+                    'diff' => $c->difficulty_level,
+                    'prereqs' => $prereqText
+                ];
+            }
+        }
+
+        $systemPrompt = "أنت مخطط أكاديمي خبير. مهمتك توزيع المواد المتبقية للطالب على الفصول القادمة حتى التخرج.\n";
+        $systemPrompt .= "يجب مراعاة:\n1. السلاسل المعتمدة (لا يمكن أخذ مادة قبل متطلبها السابق).\n";
+        $systemPrompt .= "2. كل فصل عادي يجب أن يحتوي بين 12 إلى 18 ساعة.\n";
+        $systemPrompt .= "3. موازنة الصعوبة في كل فصل.\n\n";
+        $systemPrompt .= "المواد المتبقية:\n";
+        foreach ($remainingCourses as $rc) {
+            $systemPrompt .= "- ID: {$rc['id']} | {$rc['name']} | ساعات: {$rc['hours']} | متطلبات سابقة (IDs): [{$rc['prereqs']}]\n";
+        }
+        
+        $responseSchema = [
+            'type' => 'OBJECT',
+            'properties' => [
+                'semesters' => [
+                    'type' => 'ARRAY',
+                    'items' => [
+                        'type' => 'OBJECT',
+                        'properties' => [
+                            'title' => ['type' => 'STRING', 'description' => 'مثال: الفصل الأول (السنة الثانية)'],
+                            'courses' => [
+                                'type' => 'ARRAY',
+                                'items' => [
+                                    'type' => 'OBJECT',
+                                    'properties' => [
+                                        'course_id' => ['type' => 'INTEGER'],
+                                        'reason' => ['type' => 'STRING']
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $geminiService = app(\App\Services\GeminiService::class);
+        $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'اصنع خطة التخرج الكاملة الآن']]]], [
+            'systemInstruction' => $systemPrompt,
+            'responseSchema' => $responseSchema,
+            'responseMimeType' => 'application/json',
+            'generationConfig' => ['temperature' => 0.1]
+        ]);
+
+        $decoded = $geminiService->parseJsonResponse($rawText);
+        
+        return response()->json([
+            'plan' => $decoded['semesters'] ?? []
+        ]);
+    }
 }

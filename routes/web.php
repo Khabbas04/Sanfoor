@@ -376,6 +376,10 @@ Route::middleware('auth')->group(function () {
         ->name('ai.advisor.regenerate');
     Route::post('/ai-advisor/feedback', [AiAdvisorController::class, 'feedback'])->name('ai.advisor.feedback');
 
+    // New AI generation routes for the Tree planner
+    Route::post('/ai/smart-schedule', [AiAdvisorController::class, 'generateSmartSchedule'])->name('ai.smart_schedule')->middleware('throttle:ai_chat');
+    Route::post('/ai/full-plan', [AiAdvisorController::class, 'generateFullPlan'])->name('ai.full_plan')->middleware('throttle:ai_chat');
+
     // Keep the bulk-delete route before the single chat route to avoid parameter collisions.
     Route::delete('/ai-advisor/chats/all', [AiAdvisorController::class, 'destroyAll'])->name('ai.advisor.delete.all');
     Route::delete('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class, 'destroy'])->name('ai.advisor.delete');

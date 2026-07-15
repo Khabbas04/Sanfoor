@@ -2586,6 +2586,56 @@ export default function Tree({
         }
     };
 
+    const executeSmartSchedule = async () => {
+        Swal.fire({
+            title: 'جاري التفكير...',
+            text: 'د. سنفور يقوم ببناء أفضل جدول لك بالذكاء الاصطناعي 🧠✨',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            ...swalTheme
+        });
+
+        try {
+            const response = await axios.post(route('ai.smart_schedule'), {
+                targetHours: isSummerTerm ? Math.min(targetHours, maxTrialHours) : targetHours,
+                schedulePace,
+                smartFocus,
+                smartProtectGpa
+            });
+
+            if (response.data.newCart && response.data.newCart.length > 0) {
+                setCartIds(response.data.newCart);
+                setSmartMetaByCourseId(response.data.selectedMeta || {});
+                syncCartWithDB(response.data.newCart);
+                setShowAiSettings(false);
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التخطيط بذكاء! 🚀',
+                    text: 'تم بناء جدولك بنجاح بناءً على تفضيلاتك.',
+                    ...swalTheme
+                });
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'لا يوجد مواد',
+                    text: 'يبدو أنه لا يوجد مواد متاحة تناسب هذه الإعدادات، أو أنك أنهيت المتطلبات.',
+                    ...swalTheme
+                });
+            }
+        } catch (error) {
+            console.error('AI Schedule Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'عذراً',
+                text: 'حدث خطأ أثناء تواصل د. سنفور مع الخوادم. يرجى المحاولة مرة أخرى.',
+                ...swalTheme
+            });
+        }
+    };
+
     // 🆕 FIX: فحص حد الساعات قبل الإضافة للتسجيل التجريبي
     const toggleCart = (course) => {
         let updatedCart;
@@ -2680,234 +2730,6 @@ export default function Tree({
         syncCartWithDB(updatedCart);
     };
 
-    const executeSmartSchedule = () => {
-        const paceConfig = {
-            light: { targetDifficulty: 32, maxDifficulty: 52, maxHeavyCourses: 2, yearBias: -1 },
-            balanced: { targetDifficulty: 52, maxDifficulty: 74, maxHeavyCourses: 3, yearBias: 0 },
-            heavy: { targetDifficulty: 72, maxDifficulty: 100, maxHeavyCourses: 4, yearBias: 1 },
-        };
-
-        const pace = paceConfig[schedulePace] || paceConfig.balanced;
-
-        const passedCredits = coursesWithDifficulty
-            .filter((course) => passedIds.includes(course.id))
-            .reduce((sum, course) => sum + (Number(course.credit_hours) || 0), 0);
-
-        const currentAcademicYear = passedCredits < 33 ? 1 : passedCredits < 66 ? 2 : passedCredits < 99 ? 3 : 4;
-
-        const childrenMap = new Map();
-        coursesWithDifficulty.forEach((course) => {
-            (course.prerequisites || []).forEach((prereq) => {
-                const list = childrenMap.get(prereq.id) || [];
-                list.push(course.id);
-                childrenMap.set(prereq.id, list);
-            });
-        });
-
-        const unlockCache = new Map();
-        const unlockScore = (courseId, visited = new Set()) => {
-            if (unlockCache.has(courseId)) return unlockCache.get(courseId);
-            if (visited.has(courseId)) return 0;
-
-            const nextVisited = new Set(visited);
-            nextVisited.add(courseId);
-
-            const children = childrenMap.get(courseId) || [];
-            const score = children.reduce((sum, childId) => sum + 1 + unlockScore(childId, nextVisited), 0);
-
-            unlockCache.set(courseId, score);
-            return score;
-        };
-
-        let trulyAvailable = coursesWithDifficulty.filter(c => {
-            if (passedIds.includes(c.id)) return false;
-            if (isLockedByHours(c)) return false;
-            if (!c.prerequisites || c.prerequisites.length === 0) return true;
-            return c.prerequisites.every(p => passedIds.includes(p.id));
-        });
-
-        if (totalPassedCredits === 0) {
-            const starterCourses = getFirstSemesterStarterCourses(trulyAvailable, 12);
-            const starterHours = starterCourses.reduce((sum, course) => sum + Number(course.credit_hours || 0), 0);
-
-            if (starterCourses.length > 0) {
-                const starterMeta = {};
-                starterCourses.forEach((course) => {
-                    starterMeta[course.id] = {
-                        confidence: 100,
-                        dataConfidence: 100,
-                        reasons: [
-                            isInfoTechBasicsCourse(course) || isDigitalLogicCourse(course)
-                                ? 'مادة تأسيسية للفصل الأول'
-                                : isUniversityElectiveCourse(course)
-                                    ? 'متطلب جامعة اختياري للفصل الأول'
-                                    : 'متطلب جامعة إجباري للفصل الأول',
-                            'تتبع قاعدة الفصل الأول المعتمدة',
-                        ],
-                    };
-                });
-
-                const starterIds = starterCourses.map((course) => course.id);
-                setCartIds(starterIds);
-                setSmartMetaByCourseId(starterMeta);
-                syncCartWithDB(starterIds);
-                setShowAiSettings(false);
-
-                Swal.fire({
-                    icon: starterCourses.length >= 4 ? 'success' : 'warning',
-                    title: 'جدول الفصل الأول',
-                    text: starterCourses.length >= 4
-                        ? `تم اقتراح جدول الفصل الأول المعتمد بقيمة ${starterHours} ساعة.`
-                        : `تم اقتراح المواد المتاحة من قاعدة الفصل الأول (${starterHours} ساعة)، وبعض المواد غير ظاهرة كمتاحة حالياً.`,
-                    ...swalTheme,
-                });
-                return;
-            }
-        }
-
-        const scored = trulyAvailable.map((course) => {
-            const unlock = unlockScore(course.id);
-            const isMajor = course.major_id !== null;
-            const isCompulsory = course.type === 'compulsory';
-            const difficulty = Number(course.difficulty_score || 0);
-            const manualDifficulty = Number(course.manual_difficulty || course.difficulty_level || 3);
-            const isHeavy = difficulty >= 65 || Number(course.fail_rate || 0) >= 30 || manualDifficulty >= 4;
-            const yearGap = Number(course.recommended_year || 1) - currentAcademicYear;
-            const difficultyFit = Math.max(0, 100 - Math.abs(difficulty - pace.targetDifficulty) * 1.7);
-            const dataConfidence = Math.min(100, 42 + (Number(course.graded_attempts || 0) * 7));
-
-            let yearFit = 0;
-            if (pace.yearBias === -1) {
-                yearFit = yearGap <= 0 ? 18 : Math.max(-28, -9 * yearGap);
-            } else if (pace.yearBias === 0) {
-                yearFit = Math.max(-22, 18 - Math.abs(yearGap) * 10);
-            } else {
-                yearFit = yearGap >= 0 ? 14 : Math.max(-24, yearGap * 12);
-            }
-
-            let score = unlock * 5 + difficultyFit + yearFit + (difficulty <= pace.maxDifficulty ? 12 : -42);
-
-            if (smartFocus === 'major') {
-                score += isMajor ? 10 : -5;
-            } else if (smartFocus === 'graduation') {
-                score += (unlock * 4) + (isCompulsory ? 5 : 0) + (yearGap <= 1 ? 6 : -6);
-            } else if (smartFocus === 'gpa') {
-                score += Number(course.avg_grade || 0) >= 75 ? 9 : -9;
-                score += Number(course.fail_rate || 0) <= 20 ? 7 : -11;
-                score += difficulty < 55 ? 5 : -8;
-            }
-
-            if (smartProtectGpa) {
-                score += Number(course.fail_rate || 0) > 35 ? -18 : 4;
-            }
-
-            // Realism Adjustments based on Pace
-            const isOnline = course.type === 'university_req';
-            if (schedulePace === 'light') {
-                if (isOnline) score += 80; // Huge boost to grab online courses
-                score += difficulty < 45 ? 40 : -20; // Boost easy courses
-            } else if (schedulePace === 'balanced') {
-                if (isOnline) score += 50; // Boost to grab 1 online course
-                score += (difficulty > 40 && difficulty < 70) ? 20 : 0; // Favor medium difficulty
-            } else if (schedulePace === 'heavy') {
-                if (isCompulsory || isMajor) score += 60; // Heavy relies on major courses
-                if (isOnline) score -= 50; // Discourage online courses in heavy
-            }
-
-            return { course, score, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence, isOnline };
-        }).sort((a, b) => b.score - a.score);
-
-        let newCart = [];
-        let currentHours = 0;
-        let heavyCount = 0;
-        let onlineCount = 0;
-        const passedElectives = courses.filter(c => passedIds.includes(c.id) && c.type === 'elective');
-        const passedElectiveHours = passedElectives.reduce((sum, c) => sum + (c.credit_hours || 0), 0);
-        let electiveHours = passedElectiveHours;
-        const targetOnline = schedulePace === 'light' ? 2 : (schedulePace === 'balanced' ? 1 : 0);
-        const selectedMeta = {};
-        const finalTargetHours = isSummerTerm ? Math.min(targetHours, maxTrialHours) : targetHours;
-
-        const addCourse = (entry, relaxConstraints = false) => {
-            const { course, isHeavy, difficulty, unlock, yearGap, difficultyFit, dataConfidence, isOnline } = entry;
-            if (currentHours + course.credit_hours <= finalTargetHours && !newCart.includes(course.id)) {
-
-                if (!relaxConstraints) {
-                    // Enforce exact online course target to make it highly realistic
-                    if (isOnline && onlineCount >= targetOnline) return false;
-
-                    // Adjust difficulty thresholds slightly so it doesn't fail to generate a full schedule
-                    if (schedulePace === 'light' && difficulty > 65) return false;
-                    if (schedulePace === 'balanced' && difficulty > 85) return false;
-
-                    if (smartProtectGpa && isHeavy && heavyCount >= pace.maxHeavyCourses) return false;
-                } else {
-                    // Relaxed constraints phase: ignore online count target and max heavy constraints,
-                    // and allow up to 80% difficulty for light schedules.
-                    if (schedulePace === 'light' && difficulty > 80) return false;
-                }
-
-                if (course.type === 'elective' && electiveHours + course.credit_hours > ELECTIVE_MAX_HOURS) return false;
-
-                const confidence = Math.max(
-                    0,
-                    Math.min(
-                        100,
-                        Number((
-                            (difficultyFit * 0.34)
-                            + ((100 - Math.min(Math.abs(yearGap) * 22, 100)) * 0.26)
-                            + (Math.min(unlock * 18, 100) * 0.24)
-                            + (dataConfidence * 0.16)
-                        ).toFixed(1)),
-                    ),
-                );
-
-                selectedMeta[course.id] = {
-                    confidence,
-                    dataConfidence,
-                    reasons: [
-                        isOnline ? '💻 متطلب جامعة (أونلاين)' : `📊 صعوبة ${course.difficulty_level}/5`,
-                        `🔑 يفتح ${unlock} مواد`,
-                        `📅 سنة ${course.recommended_year}`,
-                    ],
-                };
-
-                newCart.push(course.id);
-                currentHours += course.credit_hours;
-                if (isHeavy) heavyCount += 1;
-                if (isOnline) onlineCount += 1;
-                if (course.type === 'elective') electiveHours += course.credit_hours;
-                return true;
-            }
-            return false;
-        };
-
-        // First pass: strict constraints
-        scored.forEach((entry) => addCourse(entry, false));
-
-        // Second pass: relaxed constraints if target hours not met
-        if (currentHours < finalTargetHours) {
-            scored.forEach((entry) => addCourse(entry, true));
-        }
-
-        const avgDifficulty = newCart.length
-            ? (newCart.reduce((sum, courseId) => sum + Number(coursesWithDifficulty.find((course) => course.id === courseId)?.difficulty_score || 0), 0) / newCart.length)
-            : 0;
-
-        if (newCart.length > 0) {
-            setCartIds(newCart);
-            setSmartMetaByCourseId(selectedMeta);
-            syncCartWithDB(newCart);
-            setShowAiSettings(false);
-            const avgConfidence = Object.values(selectedMeta).length
-                ? Object.values(selectedMeta).reduce((sum, item) => sum + Number(item.confidence || 0), 0) / Object.values(selectedMeta).length
-                : 0;
-
-            Swal.fire({ icon: 'success', title: 'تم التخطيط!', text: `تم اقتراح جدول بقيمة ${currentHours} ساعة وثقة ${avgConfidence.toFixed(1)}%.`, ...swalTheme });
-        } else {
-            Swal.fire({ icon: 'info', title: 'لا يوجد مواد', text: 'لا يوجد مواد متاحة حالياً. تأكد من إنجاز متطالباتك.', ...swalTheme });
-        }
-    };
 
     const totalCartCredits = useMemo(() => courses.filter(c => cartIds.includes(c.id)).reduce((acc, c) => acc + (c.credit_hours || 0), 0), [courses, cartIds]);
     const progressPct = useMemo(() => Math.min(Math.round((totalPassedCredits / 132) * 100), 100), [totalPassedCredits]);
@@ -3073,10 +2895,64 @@ export default function Tree({
             }
         };
 
-        const handleRegeneratePlan = () => {
-            const generated = buildPredictivePlan();
-            setPlanDraft(generated);
-            setPlanNotes('');
+        const handleRegeneratePlan = async () => {
+            Swal.fire({
+                title: 'جاري التفكير...',
+                text: 'د. سنفور يقوم بتوزيع المواد المتبقية بناءً على المتطلبات والخطط الدراسية 🧠✨',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+                ...swalTheme
+            });
+
+            try {
+                const response = await axios.post(route('ai.full_plan'));
+                
+                if (response.data.plan && response.data.plan.length > 0) {
+                    const aiSemesters = response.data.plan.map((sem, index) => {
+                        const isSummer = sem.title?.includes('صيفي');
+                        const courseIds = (sem.courses || []).map(c => Number(c.course_id));
+                        const mappedCourses = courseIds.map(id => coursesWithDifficulty.find(c => c.id === id)).filter(Boolean);
+                        
+                        return {
+                            semester: index + 1,
+                            is_summer: isSummer,
+                            courses: mappedCourses,
+                            title: sem.title
+                        };
+                    });
+                    
+                    setPlanDraft({ semesters: aiSemesters });
+                    setPlanNotes('');
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم التخطيط بذكاء! 🚀',
+                        text: 'تم بناء الخطة الكاملة حتى التخرج.',
+                        ...swalTheme
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'الخطة مكتملة',
+                        text: 'يبدو أنك قد أنهيت جميع متطلبات التخرج!',
+                        ...swalTheme
+                    });
+                }
+            } catch (error) {
+                console.error('AI Full Plan Error:', error);
+                // Fallback to local algorithm if AI fails
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'تم استخدام الخوارزمية المحلية',
+                    text: 'حدث خطأ في الاتصال بالذكاء الاصطناعي، فتم استخدام الخوارزمية المحلية بدلاً منه.',
+                    ...swalTheme
+                });
+                const generated = buildPredictivePlan();
+                setPlanDraft(generated);
+                setPlanNotes('');
+            }
         };
 
         const handleClearPlan = () => {
