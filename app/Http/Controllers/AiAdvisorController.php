@@ -2074,6 +2074,7 @@ class AiAdvisorController extends Controller
             'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
             'generationConfig' => [
                 'temperature' => 0.4,
+                'responseMimeType' => 'text/plain',
             ]
         ]);
 
@@ -2101,8 +2102,8 @@ class AiAdvisorController extends Controller
             return in_array($c->id, $passedIds);
         });
 
-        // Sort by children_count descending
-        $topBottlenecks = $remainingCourses->sortByDesc('children_count')->take(6);
+        // Filter unique courses by name to avoid duplicates and Sort by children_count descending
+        $topBottlenecks = $remainingCourses->unique('name')->sortByDesc('children_count')->take(6);
 
         $gpaData = $user->calculateGPA();
 
@@ -2121,6 +2122,7 @@ class AiAdvisorController extends Controller
             'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
             'generationConfig' => [
                 'temperature' => 0.5,
+                'responseMimeType' => 'text/plain',
             ]
         ]);
 
