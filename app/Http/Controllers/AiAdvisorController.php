@@ -257,26 +257,7 @@ class AiAdvisorController extends Controller
                 $refreshCartFlag = false;
                 $rawText = $geminiService->callGeminiAPI($contents, [
                     'systemInstruction' => $systemInstruction,
-                    'tools' => [
-                        [
-                            'functionDeclarations' => [
-                                [
-                                    'name' => 'add_course_to_cart',
-                                    'description' => 'يستخدم هذا الأمر لإضافة مادة محددة إلى سلة الطالب مباشرة',
-                                    'parameters' => [
-                                        'type' => 'OBJECT',
-                                        'properties' => [
-                                            'course_id' => [
-                                                'type' => 'INTEGER',
-                                                'description' => 'رقم المعرف ID للمادة المطلوبة إضافتها'
-                                            ]
-                                        ],
-                                        'required' => ['course_id']
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ],
+                    // Removed tools since we are using JSON Schema instead
                     'generationConfig' => [
                         'maxOutputTokens' => 2000,
                         'temperature' => 0.25,
@@ -286,6 +267,10 @@ class AiAdvisorController extends Controller
                             'properties' => [
                                 'reply' => ['type' => 'STRING'],
                                 'suggested_course_ids' => [
+                                    'type' => 'ARRAY',
+                                    'items' => ['type' => 'INTEGER']
+                                ],
+                                'courses_to_add' => [
                                     'type' => 'ARRAY',
                                     'items' => ['type' => 'INTEGER']
                                 ],
@@ -321,15 +306,12 @@ class AiAdvisorController extends Controller
                     'timeout' => 22,
                 ]);
 
-                // Check if the response is a function call
-                $decodedRaw = json_decode($rawText, true);
-                if (isset($decodedRaw['functionCall'])) {
-                    $fn = $decodedRaw['functionCall']['name'];
-                    $args = $decodedRaw['functionCall']['args'] ?? [];
-                    
-                    if ($fn === 'add_course_to_cart' && isset($args['course_id'])) {
-                        // Execute the backend action
-                        $course = \App\Models\Course::find($args['course_id']);
+                // Check if the response contains courses to add (from schema!)
+                $parsed = $this->parseAIResponse($rawText);
+                
+                if (!empty($parsed['courses_to_add'])) {
+                    foreach ($parsed['courses_to_add'] as $courseId) {
+                        $course = \App\Models\Course::find($courseId);
                         if ($course) {
                             \App\Models\UserCart::firstOrCreate([
                                 'user_id' => $user->id,
@@ -338,14 +320,9 @@ class AiAdvisorController extends Controller
                                 'academic_term' => $academicData['current_period_term'] ?? 1,
                             ]);
                             $refreshCartFlag = true;
-                            $rawText = json_encode(['reply' => "تم تنفيذ أمر إضافة المادة ({$course->name}) إلى سلتك بنجاح! ✅\nهل ترغب بإضافة مواد أخرى؟"]);
-                        } else {
-                            $rawText = json_encode(['reply' => "حاولت إضافة المادة ولكن لم أتمكن من العثور عليها."]);
                         }
                     }
                 }
-
-                $parsed = $this->parseAIResponse($rawText);
 
                 // 6. Validate AI Response (Hallucination & Overflow Check)
                 $validator = app(\App\Engines\ValidationEngine::class);
