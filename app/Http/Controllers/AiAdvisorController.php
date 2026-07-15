@@ -1905,8 +1905,8 @@ class AiAdvisorController extends Controller
         $systemPrompt .= "حماية المعدل: " . ($smartProtectGpa ? "مفعل (تجنب مواد عالية الرسوب)" : "غير مفعل") . ".\n\n";
         
         $systemPrompt .= "المواد المتاحة للتسجيل (مفتوحة المتطلبات):\n";
-        foreach ($availableCourses as $course) {
-            $systemPrompt .= "- ID: {$course['id']} | {$course['name']} | ساعات: {$course['credit_hours']} | صعوبة: {$course['difficulty_level']}/5 | تفتح: " . ($course['unlocks'] ?? 0) . " مواد\n";
+        foreach ($availableCourses['details'] as $id => $course) {
+            $systemPrompt .= "- ID: {$id} | {$course['name']} | ساعات: {$course['credit_hours']} | صعوبة: {$course['difficulty_level']}/5 | تفتح: " . ($course['unlocks'] ?? 0) . " مواد\n";
         }
         $systemPrompt .= "\nقم باختيار أفضل مجموعة مواد بحيث لا يتجاوز مجموع ساعاتها {$targetHours}. يجب أن تكون منطقية ومتوافقة مع إعدادات الطالب. أرجع مصفوفة JSON تحتوي على ID المادة، سبب اختيارها القوي، ونسبة الثقة بالاختيار (0-100).\n";
 
