@@ -2093,7 +2093,7 @@ class AiAdvisorController extends Controller
 
         // Get all mandatory courses (compulsory and supporting) that are not passed
         $mandatoryCourses = Course::whereIn('type', ['compulsory', 'supporting'])
-            ->where('major_id', clone $user->major_id)
+            ->where('major_id', $user->major_id)
             ->withCount('unlocksCourses')
             ->get();
 
