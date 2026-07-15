@@ -235,15 +235,48 @@ class AiAdvisorController extends Controller
                 $docEngine = app(\App\Engines\DocumentRagEngine::class);
                 $docContext = $docEngine->search($data['message'], 10);
                 
+                // 3.5 Risk Prediction Engine
+                $riskEngine = app(\App\Engines\RiskPredictionEngine::class);
+                // We need to fetch the cart course details for risk prediction
+                // $ragData['cart']['ids'] has the ids, but we need details.
+                // Actually, the available_courses has details, but cart courses might not be in available_courses.
+                // Let's pass the raw cartData which has ids and list, but maybe not difficulty.
+                // We can fetch cart courses from DB or just pass $ragData.
+                // Wait, $ragData has 'cart' => ['hours' => X, 'ids' => [...], 'list' => '...'].
+                // For a quick fix, let's fetch the actual cart courses here.
+                $cartCourseDetails = \App\Models\Course::whereIn('id', $ragData['cart']['ids'] ?? [])->get()->toArray();
+                $riskWarnings = $riskEngine->evaluate($user, $cartCourseDetails, $rules);
+
                 // 4. Ai Context Assembler
                 $assembler = app(\App\Engines\AiContextAssembler::class);
-                $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext);
+                $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings);
                 
                 // 5. Build Conversation Context
                 $contents = $this->buildConversationContext($chat);
 
+                $refreshCartFlag = false;
                 $rawText = $geminiService->callGeminiAPI($contents, [
                     'systemInstruction' => $systemInstruction,
+                    'tools' => [
+                        [
+                            'functionDeclarations' => [
+                                [
+                                    'name' => 'add_course_to_cart',
+                                    'description' => 'يستخدم هذا الأمر لإضافة مادة محددة إلى سلة الطالب مباشرة',
+                                    'parameters' => [
+                                        'type' => 'OBJECT',
+                                        'properties' => [
+                                            'course_id' => [
+                                                'type' => 'INTEGER',
+                                                'description' => 'رقم المعرف ID للمادة المطلوبة إضافتها'
+                                            ]
+                                        ],
+                                        'required' => ['course_id']
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
                     'generationConfig' => [
                         'maxOutputTokens' => 2000,
                         'temperature' => 0.25,
@@ -287,6 +320,31 @@ class AiAdvisorController extends Controller
                     ],
                     'timeout' => 22,
                 ]);
+
+                // Check if the response is a function call
+                $decodedRaw = json_decode($rawText, true);
+                if (isset($decodedRaw['functionCall'])) {
+                    $fn = $decodedRaw['functionCall']['name'];
+                    $args = $decodedRaw['functionCall']['args'] ?? [];
+                    
+                    if ($fn === 'add_course_to_cart' && isset($args['course_id'])) {
+                        // Execute the backend action
+                        $course = \App\Models\Course::find($args['course_id']);
+                        if ($course) {
+                            \App\Models\UserCart::firstOrCreate([
+                                'user_id' => $user->id,
+                                'course_id' => $course->id,
+                                'academic_year' => $academicData['current_period_year'] ?? 2026,
+                                'academic_term' => $academicData['current_period_term'] ?? 1,
+                            ]);
+                            $refreshCartFlag = true;
+                            $rawText = json_encode(['reply' => "تم تنفيذ أمر إضافة المادة ({$course->name}) إلى سلتك بنجاح! ✅\nهل ترغب بإضافة مواد أخرى؟"]);
+                        } else {
+                            $rawText = json_encode(['reply' => "حاولت إضافة المادة ولكن لم أتمكن من العثور عليها."]);
+                        }
+                    }
+                }
+
                 $parsed = $this->parseAIResponse($rawText);
 
                 // 6. Validate AI Response (Hallucination & Overflow Check)
@@ -326,6 +384,13 @@ class AiAdvisorController extends Controller
                 $removeDetails = !empty($removeIds)
                     ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
                     : [];
+
+                // 7. Inject Skill Tree Graph if requested
+                if (str_contains($replyText, '%%SKILL_TREE%%')) {
+                    $treeGen = app(\App\Engines\SkillTreeGenerator::class);
+                    $mermaidStr = $treeGen->generate($user, $ragData);
+                    $replyText = str_replace('%%SKILL_TREE%%', "\n\n" . $mermaidStr . "\n\n", $replyText);
+                }
             }
 
             $chat->messages()->create([
@@ -360,6 +425,7 @@ class AiAdvisorController extends Controller
                 'courses_to_remove' => $removeDetails,
                 'follow_up_suggestions' => $followUpSuggestions,
                 'interactive_widget' => $interactiveWidget,
+                'refresh_cart' => $refreshCartFlag ?? false,
                 'chat_id' => $chatId,
                 'chat_title' => $isNewChat ? $chat->title : null,
                 'daily_messages_remaining' => $newRemaining,

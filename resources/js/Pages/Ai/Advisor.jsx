@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/Layouts/MainLayout';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -678,6 +678,10 @@ export default function Advisor() {
             setGenerating(true);
             if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
             typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
+
+            if (data.refresh_cart) {
+                router.reload({ only: ['initialCartIds', 'studentStats'] });
+            }
 
             setMsgs(p => [...p, {
                 id: `ai-${Date.now()}`,

@@ -148,6 +148,9 @@ class GeminiService
                             if (isset($options['systemInstruction'])) {
                                 $payload['systemInstruction'] = $options['systemInstruction'];
                             }
+                            if (isset($options['tools'])) {
+                                $payload['tools'] = $options['tools'];
+                            }
 
                             $response = Http::withoutVerifying()
                                 ->connectTimeout(3)
@@ -205,6 +208,13 @@ class GeminiService
                     $this->incrementKeyRpm($apiKey);
 
                     $candidate = $response->json('candidates.0');
+                    
+                    if (isset($candidate['content']['parts'][0]['functionCall'])) {
+                        return json_encode([
+                            'functionCall' => $candidate['content']['parts'][0]['functionCall']
+                        ]);
+                    }
+
                     $chunk = $candidate['content']['parts'][0]['text'] ?? null;
 
                     if (!is_string($chunk) || trim($chunk) === '') {

@@ -7,10 +7,11 @@ class AiContextAssembler
     /**
      * Assemble the final highly optimized prompt for Gemini.
      */
-    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext): array
+    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = []): array
     {
         $systemPrompt = "أنت 'د. سنفور'، المستشار الأكاديمي الذكي والرسمي لطلبة جامعة الزرقاء. شخصيتك تجمع بين الدقة الأكاديمية العالية (احترافي جداً) والأسلوب الودود والمحفز للطالب.\n";
-        $systemPrompt .= "مهمتك إرشاد الطالب بناءً على قوانين الجامعة وحالته الأكاديمية بدقة متناهية. لا تخمن أبداً، واستند دائماً للوائح الرسمية، واستخدم تنسيق Markdown (نقاط، خط عريض) لتسهيل قراءة الرد.\n\n";
+        $systemPrompt .= "مهمتك إرشاد الطالب بناءً على قوانين الجامعة وحالته الأكاديمية بدقة متناهية. لا تخمن أبداً، واستند دائماً للوائح الرسمية، واستخدم تنسيق Markdown (نقاط، خط عريض) لتسهيل قراءة الرد.\n";
+        $systemPrompt .= "إذا طلب الطالب رؤية (خطته الشجرية، خريطة المواد، الشجرة)، أضف هذا النص الحرفي في ردك وسيقوم النظام بتحويله تلقائياً لخريطة تفاعلية: %%SKILL_TREE%%\n\n";
 
         // 1. Rules Context
         $systemPrompt .= "=== 📊 بيانات الطالب ===\n";
@@ -22,6 +23,16 @@ class AiContextAssembler
         $systemPrompt .= "- حالة الإنذار: " . ($rules['is_probation'] ? "نعم (الحد الأقصى {$rules['effective_limit']} ساعة)" : "لا") . "\n";
         $systemPrompt .= "- خريج هذا الفصل: " . ($rules['is_graduating'] ? "نعم" : "لا") . "\n";
         $systemPrompt .= "- السلة الحالية: {$rules['cart_hours']} ساعات. (تجاوز الحد: " . ($rules['cart_exceeds_limit'] ? 'نعم' : 'لا') . ")\n\n";
+
+        // 1.5 Risk Warnings
+        if (!empty($riskWarnings)) {
+            $systemPrompt .= "=== 🚨 تحذيرات الخطر الأكاديمي ===\n";
+            $systemPrompt .= "المحرك التنبؤي اكتشف المخاطر التالية في جدول الطالب. **يجب عليك تنبيه الطالب لهذه المخاطر بلهجة حازمة واحترافية:**\n";
+            foreach ($riskWarnings as $warning) {
+                $systemPrompt .= "- {$warning}\n";
+            }
+            $systemPrompt .= "\n";
+        }
 
         // 2. Document Context (if relevant)
         if (!empty($documentContext)) {
