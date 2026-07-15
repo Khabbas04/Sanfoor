@@ -1929,10 +1929,12 @@ class AiAdvisorController extends Controller
 
         $geminiService = app(\App\Services\GeminiService::class);
         $rawText = $geminiService->callGeminiAPI([['role' => 'user', 'parts' => [['text' => 'اصنع الجدول الذكي الآن']]]], [
-            'systemInstruction' => $systemPrompt,
-            'responseSchema' => $responseSchema,
-            'responseMimeType' => 'application/json',
-            'generationConfig' => ['temperature' => 0.2]
+            'systemInstruction' => ['parts' => [['text' => $systemPrompt]]],
+            'generationConfig' => [
+                'temperature' => 0.2,
+                'responseMimeType' => 'application/json',
+                'responseSchema' => $responseSchema
+            ]
         ]);
 
         $decoded = $geminiService->parseJsonResponse($rawText);
