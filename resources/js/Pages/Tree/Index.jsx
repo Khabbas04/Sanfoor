@@ -2677,7 +2677,7 @@ export default function Tree({
     const analyzeTreeBottlenecksAI = async () => {
         Swal.fire({
             title: 'تحليل الخطة جارٍ...',
-            html: '<div class="text-[14px] text-slate-500 mt-2">د. سنفور يبحث عن عنق الزجاجة والمسار الأسرع لك 🚀</div>',
+            html: '<div class="text-[14px] text-slate-500 mt-2">د. سنفور يبحث عن أهم المواد المفتاحية لتسريع تخرجك 🚀</div>',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -4078,7 +4078,7 @@ export default function Tree({
                                     <button onClick={analyzeTreeBottlenecksAI} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all ring-1 ring-inset ring-white/10 relative overflow-hidden group mt-3">
                                         <div className="absolute inset-0 bg-gradient-to-l from-rose-500/0 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         <span className="text-2xl relative z-10">🚀</span>
-                                        <div className="text-right relative z-10"><p className="text-[13px] text-rose-200">تحليل عنق الزجاجة للمسار الأسرع</p><p className="text-[10px] text-slate-400 font-bold">أهم المواد التي يجب تسجيلها فوراً</p></div>
+                                        <div className="text-right relative z-10"><p className="text-[13px] text-rose-200">تحليل أهم المواد (المواد المفتاحية)</p><p className="text-[10px] text-slate-400 font-bold">أهم المواد التي يجب تسجيلها فوراً</p></div>
                                     </button>
 
                                     <div className="bg-gradient-to-bl from-slate-900 to-indigo-950 p-5 rounded-[1.25rem] text-white shadow-xl relative overflow-hidden">

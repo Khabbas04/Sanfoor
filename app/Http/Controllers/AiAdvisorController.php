@@ -2106,10 +2106,10 @@ class AiAdvisorController extends Controller
 
         $gpaData = $user->calculateGPA();
 
-        $systemPrompt = "أنت 'د. سنفور'، المستشار الأكاديمي الاستراتيجي. طلب الطالب تحليل خطته لاكتشاف 'عنق الزجاجة' (المواد التي تفتح مجالات أخرى وتأجيلها سيؤخر تخرجه).\n";
+        $systemPrompt = "أنت 'د. سنفور'، المستشار الأكاديمي الاستراتيجي. طلب الطالب تحليل خطته لاكتشاف 'المواد المفتاحية' (المواد التي تفتح مجالات أخرى في الشجرة وتأجيلها سيؤخر تخرجه).\n";
         $systemPrompt .= "معلومات الطالب:\n- معدله: " . ($gpaData['percentage'] ?? 'غير معروف') . "%\n- الساعات المنجزة: " . ($gpaData['completed_hours'] ?? 0) . "\n\n";
         
-        $systemPrompt .= "المواد المتبقية التي تمثل عنق زجاجة (مرتبة حسب الأهمية):\n";
+        $systemPrompt .= "المواد المتبقية التي تمثل مواد مفتاحية (مرتبة حسب الأهمية):\n";
         foreach ($topBottlenecks as $c) {
             $systemPrompt .= "- {$c->name} (تفتح {$c->unlocks_courses_count} مواد)\n";
         }
