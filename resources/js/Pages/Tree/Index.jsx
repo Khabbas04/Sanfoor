@@ -2665,10 +2665,11 @@ export default function Tree({
                 ...swalTheme
             });
         } catch (error) {
+            console.error('AI Analyze Course Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'عذراً',
-                text: 'لم يتمكن د. سنفور من تقديم النصيحة حالياً.',
+                text: 'لم يتمكن د. سنفور من تقديم النصيحة حالياً. ' + (error?.message || ''),
                 ...swalTheme
             });
         }
@@ -2700,10 +2701,11 @@ export default function Tree({
                 ...swalTheme
             });
         } catch (error) {
+            console.error('AI Analyze Bottlenecks Error:', error);
             Swal.fire({
                 icon: 'error',
                 title: 'عذراً',
-                text: 'حدث خطأ أثناء تحليل الخطة.',
+                text: 'حدث خطأ أثناء تحليل الخطة. ' + (error?.message || ''),
                 ...swalTheme
             });
         }
