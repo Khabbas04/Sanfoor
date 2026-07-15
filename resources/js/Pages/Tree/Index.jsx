@@ -1735,7 +1735,7 @@ export default function Tree({
             if (availableNow.length === 0) break;
 
             const remainingOnlineCount = remainingCourses.filter(c => c.type === 'university_req').length;
-            const remainingSemestersEstimate = Math.max(1, Math.ceil(remainingHours / baseMaxSemHours));
+            const remainingSemestersEstimate = Math.max(1, Math.ceil(remainingHours / 18));
             const mustPlaceOnline = remainingOnlineCount > 0 && remainingOnlineCount >= remainingSemestersEstimate;
 
             // الترتيب الذكي جداً والمبني على الأولويات المنطقية:
