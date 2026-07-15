@@ -2013,8 +2013,7 @@ class AiAdvisorController extends Controller
                                 'items' => [
                                     'type' => 'OBJECT',
                                     'properties' => [
-                                        'course_id' => ['type' => 'INTEGER'],
-                                        'reason' => ['type' => 'STRING']
+                                        'course_id' => ['type' => 'INTEGER']
                                     ]
                                 ]
                             ]
