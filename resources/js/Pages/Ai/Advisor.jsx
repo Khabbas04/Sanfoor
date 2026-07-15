@@ -515,6 +515,13 @@ export default function Advisor() {
                         text: 'الرجاء إعطاء صلاحية استخدام الميكروفون للمتصفح.',
                         ...swal
                     });
+                } else if (event.error === 'no-speech') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'لم يتم التقاط أي صوت',
+                        text: 'لم يتمكن المتصفح من سماعك. يرجى التأكد من أن الميكروفون متصل ويعمل، أو حاول التحدث بصوت أعلى.',
+                        ...swal
+                    });
                 }
             };
 
