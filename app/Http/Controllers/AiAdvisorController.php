@@ -2045,7 +2045,7 @@ class AiAdvisorController extends Controller
     {
         $request->validate(['course_id' => 'required|integer']);
         $user = Auth::user();
-        $course = Course::with(['prerequisites', 'unlocksCourses'])->findOrFail($request->course_id);
+        $course = Course::with(['prerequisites', 'children'])->findOrFail($request->course_id);
 
         $passedIds = DB::table('course_user')
             ->where('user_id', $user->id)
@@ -2055,8 +2055,8 @@ class AiAdvisorController extends Controller
         $gpaData = $user->calculateGPA();
 
         $prereqs = $course->prerequisites->pluck('name')->implode('، ');
-        $unlocks = $course->unlocksCourses->pluck('name')->implode('، ');
-        $unlocksCount = $course->unlocksCourses->count();
+        $unlocks = $course->children->pluck('name')->implode('، ');
+        $unlocksCount = $course->children->count();
         $isPassed = in_array($course->id, $passedIds);
 
         $systemPrompt = "أنت 'د. سنفور'، المستشار الأكاديمي الودود والذكي. الطالب يطلب نصيحة سريعة حول مادة '{$course->name}'.\n";
@@ -2094,15 +2094,15 @@ class AiAdvisorController extends Controller
         // Get all mandatory courses (compulsory and supporting) that are not passed
         $mandatoryCourses = Course::whereIn('type', ['compulsory', 'supporting'])
             ->where('major_id', $user->major_id)
-            ->withCount('unlocksCourses')
+            ->withCount('children')
             ->get();
 
         $remainingCourses = $mandatoryCourses->reject(function($c) use ($passedIds) {
             return in_array($c->id, $passedIds);
         });
 
-        // Sort by unlocks_courses_count descending
-        $topBottlenecks = $remainingCourses->sortByDesc('unlocks_courses_count')->take(6);
+        // Sort by children_count descending
+        $topBottlenecks = $remainingCourses->sortByDesc('children_count')->take(6);
 
         $gpaData = $user->calculateGPA();
 
@@ -2111,7 +2111,7 @@ class AiAdvisorController extends Controller
         
         $systemPrompt .= "المواد المتبقية التي تمثل مواد مفتاحية (مرتبة حسب الأهمية):\n";
         foreach ($topBottlenecks as $c) {
-            $systemPrompt .= "- {$c->name} (تفتح {$c->unlocks_courses_count} مواد)\n";
+            $systemPrompt .= "- {$c->name} (تفتح {$c->children_count} مواد)\n";
         }
         
         $systemPrompt .= "\nالمطلوب: قدم تقريراً سريعاً وذكياً من فقرتين. اشرح له أهمية هذه المواد وأنصحه بتسجيلها في أقرب فرصة لتجنب تأخير التخرج. كن مشجعاً واستخدم Markdown لعرض المواد كنقاط بارزة مع الايموجي المناسب.";
