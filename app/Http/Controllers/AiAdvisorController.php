@@ -1275,6 +1275,7 @@ class AiAdvisorController extends Controller
                  'interactive_widget' => null,
                  'suggested_course_ids' => [],
                  'remove_course_ids' => [],
+                 'courses_to_add' => [],
              ];
         }
 
@@ -1284,6 +1285,7 @@ class AiAdvisorController extends Controller
             'interactive_widget' => $decoded['interactive_widget'] ?? null,
             'suggested_course_ids' => $this->extractCourseIds($decoded['suggested_course_ids'] ?? null),
             'remove_course_ids' => $this->extractCourseIds($decoded['remove_course_ids'] ?? null),
+            'courses_to_add' => $this->extractCourseIds($decoded['courses_to_add'] ?? null),
         ];
     }
 
