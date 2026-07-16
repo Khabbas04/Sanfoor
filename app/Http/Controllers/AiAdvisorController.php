@@ -259,8 +259,8 @@ class AiAdvisorController extends Controller
                     'systemInstruction' => $systemInstruction,
                     // Removed tools since we are using JSON Schema instead
                     'generationConfig' => [
-                        'maxOutputTokens' => 2000,
-                        'temperature' => 0.25,
+                        'maxOutputTokens' => (int) config('ai.generation.max_output_tokens', 2000),
+                        'temperature' => (float) config('ai.generation.temperature', 0.25),
                         'responseMimeType' => 'application/json',
                         'responseSchema' => [
                             'type' => 'OBJECT',

@@ -5,61 +5,78 @@ namespace App\Engines;
 use App\Models\User;
 use App\Models\Course;
 
+/**
+ * Produces the student "skill tree" that the AI advisor injects in place of the
+ * %%SKILL_TREE%% marker.
+ *
+ * Output is a fenced ```skilltree block containing structured JSON (nodes + edges),
+ * NOT mermaid text: the frontend renders it with reactflow/dagre (already bundled),
+ * so no heavy diagramming dependency is added to the build.
+ */
 class SkillTreeGenerator
 {
     public function generate(User $user, array $academicData): string
     {
-        // Get all courses in user's major plan
-        $majorId = $user->major_id;
-        $planVersion = $user->study_plan_version;
-
-        $courses = Course::where('major_id', $majorId)
-            ->where('study_plan_version', $planVersion)
+        $courses = Course::with('prerequisites')
+            ->where('major_id', $user->major_id)
+            ->where('study_plan_version', $user->study_plan_version)
             ->orderBy('semester')
             ->get();
 
         if ($courses->isEmpty()) {
-            return "```mermaid\ngraph TD;\n  A[لا توجد خطة دراسية متاحة]:::locked\n```";
+            return $this->wrap(['nodes' => [], 'edges' => [], 'empty' => true]);
         }
 
-        $passedNames = collect($academicData['profile']['passed_courses_names_array'] ?? []);
-        $cartIds = collect($academicData['cart']['ids'] ?? []);
+        // Reliable "passed" detection by course id (the previous code read a
+        // non-existent 'passed_courses_names_array' key, so nothing was ever
+        // highlighted as passed).
+        $passedSet = array_flip(array_map('intval', $academicData['profile']['passed_course_ids'] ?? []));
+        $cartSet = array_flip(array_map('intval', $academicData['cart']['ids'] ?? []));
+        $planIds = array_flip($courses->pluck('id')->map('intval')->all());
 
-        $mermaid = "```mermaid\ngraph TD;\n";
-        $mermaid .= "  classDef passed fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534,font-weight:bold;\n";
-        $mermaid .= "  classDef locked fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,font-weight:bold,stroke-dasharray: 5 5;\n";
-        $mermaid .= "  classDef available fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e40af,font-weight:bold;\n";
-        $mermaid .= "  classDef inCart fill:#fef9c3,stroke:#eab308,stroke-width:3px,color:#854d0e,font-weight:bold;\n\n";
+        $nodes = [];
+        $edges = [];
 
-        // To create a hierarchical tree, we group by semester
-        $semesterGroups = $courses->groupBy('semester');
-        
-        foreach ($semesterGroups as $semester => $semCourses) {
-            $mermaid .= "  subgraph الفصل {$semester}\n";
-            $mermaid .= "    direction TB;\n";
-            foreach ($semCourses as $course) {
-                $nodeId = 'C' . $course->id;
-                $name = str_replace(['(', ')', '[', ']', '"'], '', $course->name);
-                
-                // Determine class
-                $class = 'locked';
-                if ($passedNames->contains($course->name)) {
-                    $class = 'passed';
-                } elseif ($cartIds->contains($course->id)) {
-                    $class = 'inCart';
-                } else {
-                    $class = 'available'; // Simplified: assume available if not passed. In reality we'd check prereqs.
+        foreach ($courses as $course) {
+            $cid = (int) $course->id;
+
+            if (isset($passedSet[$cid])) {
+                $status = 'passed';
+            } elseif (isset($cartSet[$cid])) {
+                $status = 'inCart';
+            } else {
+                $status = 'available';
+                foreach ($course->prerequisites as $prereq) {
+                    if (!isset($passedSet[(int) $prereq->id])) {
+                        $status = 'locked';
+                        break;
+                    }
                 }
-
-                $mermaid .= "    {$nodeId}[\"{$name}\"]:::{$class};\n";
             }
-            $mermaid .= "  end\n";
+
+            $nodes[] = [
+                'id' => $cid,
+                'name' => $course->name,
+                'code' => (string) $course->code,
+                'credit_hours' => (int) $course->credit_hours,
+                'semester' => (int) ($course->semester ?? 0),
+                'status' => $status,
+            ];
+
+            // Real prerequisite edges, but only between nodes that exist in this plan.
+            foreach ($course->prerequisites as $prereq) {
+                $pid = (int) $prereq->id;
+                if (isset($planIds[$pid])) {
+                    $edges[] = ['from' => $pid, 'to' => $cid];
+                }
+            }
         }
 
-        // Draw prerequisite lines (simplified, just sequential for demo if we don't have real prereqs)
-        // If we have actual prerequisite logic in Course model, we can add arrows.
-        
-        $mermaid .= "```\n";
-        return $mermaid;
+        return $this->wrap(['nodes' => $nodes, 'edges' => $edges]);
+    }
+
+    private function wrap(array $payload): string
+    {
+        return "```skilltree\n" . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n```";
     }
 }

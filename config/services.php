@@ -47,6 +47,11 @@ return [
         'key' => env('GEMINI_API_KEY'),
         'keys' => env('GEMINI_API_KEYS', ''),
         'model' => env('GEMINI_MODEL'),
+        // Embedding model used by the document RAG engine (university regulations search).
+        'embedding_model' => env('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-2'),
+        // When true, each RAG query costs an extra LLM round-trip to rewrite the query.
+        // Off by default: it adds ~1s latency and burns a request from the RPM budget.
+        'rag_query_expansion' => env('GEMINI_RAG_QUERY_EXPANSION', false),
     ],
 
     'azure' => [

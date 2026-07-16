@@ -29,14 +29,9 @@ class GeminiService
             $keys[] = $single;
         }
 
-        // Add environment variable fallback for old controllers
-        for ($i = 1; $i <= 3; $i++) {
-            $envKeyName = $i === 1 ? 'GEMINI_API_KEY' : "GEMINI_API_KEY_$i";
-            $envKey = trim((string) env($envKeyName, ''));
-            if ($envKey !== '') {
-                $keys[] = $envKey;
-            }
-        }
+        // NOTE: keys are read from config only (services.gemini.*), never env() directly,
+        // so the service keeps working after `php artisan config:cache` in production.
+        // For multiple keys use the comma-separated GEMINI_API_KEYS env var.
 
         return array_values(array_unique($keys));
     }
@@ -249,6 +244,87 @@ class GeminiService
         }
 
         throw new \Exception("Gemini API failed across all keys. Last error: {$lastError}");
+    }
+
+    /**
+     * Generate an embedding vector for the given text.
+     *
+     * Uses the same multi-key rotation, cooldown and RPM accounting as chat calls,
+     * so a rate-limited key no longer silently disables the whole RAG feature.
+     * Returns null (and logs a warning) only when every key fails.
+     */
+    public function embedContent(string $text, array $apiKeys = null): ?array
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return null;
+        }
+
+        if ($apiKeys === null) {
+            $apiKeys = $this->getApiKeys();
+        }
+        if (empty($apiKeys)) {
+            Log::warning('Gemini embedContent skipped: no API keys configured');
+            return null;
+        }
+
+        $model = trim((string) config('services.gemini.embedding_model')) ?: 'gemini-embedding-2';
+        $sortedKeys = $this->sortKeysByAvailability($apiKeys);
+        $lastError = 'unknown';
+
+        foreach ($sortedKeys as $apiKey) {
+            if ($this->getKeyCooldownRemaining($apiKey) > 0) {
+                $lastError = 'key in cooldown';
+                continue;
+            }
+            if ($this->getKeyRpm($apiKey) >= self::RPM_LIMIT) {
+                $lastError = 'key RPM limit reached';
+                continue;
+            }
+
+            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:embedContent?key={$apiKey}";
+
+            try {
+                $response = Http::withoutVerifying()
+                    ->connectTimeout(3)
+                    ->timeout(8)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post($url, [
+                        'model' => "models/{$model}",
+                        'content' => ['parts' => [['text' => $text]]],
+                    ]);
+
+                $status = $response->status();
+
+                if ($status === 429) {
+                    $this->setCooldown($apiKey, 60, 'embed_rate_limited_429');
+                    $lastError = 'HTTP 429';
+                    continue;
+                }
+                if (in_array($status, [401, 403], true)) {
+                    $this->setCooldown($apiKey, 600, 'embed_invalid_key_' . $status);
+                    $lastError = "HTTP {$status}";
+                    continue;
+                }
+                if (!$response->successful()) {
+                    $lastError = "HTTP {$status}";
+                    continue;
+                }
+
+                $this->incrementKeyRpm($apiKey);
+                $values = $response->json('embedding.values');
+                if (is_array($values) && !empty($values)) {
+                    $this->workingApiKey = $apiKey;
+                    return $values;
+                }
+                $lastError = 'empty embedding payload';
+            } catch (\Throwable $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        Log::warning("Gemini embedContent failed across all keys. Last error: {$lastError}");
+        return null;
     }
 
     public function parseJsonResponse(string $rawText): array
