@@ -1,105 +1,115 @@
-# 🎓 منصة سنفور الأكاديمية | Sanfoor Platform v2.1.4
-
-> **النظام الذكي لإدارة الخطط الشجرية وتحليل مسارات الطلاب الأكاديمية.**
-
-مشروع **Sanfoor** هو منصة متكاملة مخصصة لطلاب الجامعات (خاصة جامعة الزرقاء)، تهدف إلى تبسيط العملية الأكاديمية من خلال عرض مرئي تفاعلي للمواد (الشجرة) وتوفير أدوات اتخاذ قرار ذكية للإدارة بناءً على بيانات الطلاب الحقيقية.
-
----
-
-## 🛠️ المتطلبات التقنية (Tech Stack)
-
-النظام مبني بأحدث التقنيات لضمان السرعة والأمان:
-
-* **Backend:** [Laravel 12](https://laravel.com/) (PHP 8.2+)
-* **Frontend:** [React](https://reactjs.org/) مع [Inertia.js](https://inertiajs.com/)
-* **Database:** [PostgreSQL](https://www.postgresql.org/) (لإدارة الاستعلامات الحسابية المتقدمة)
-* **UI/UX:** [Tailwind CSS](https://tailwindcss.com/) مع أنظمة Glassmorphism
+<div align="center">
+  <h1>🎓 Sanfoor — AI-Powered Academic Advising Platform</h1>
+  <p><em>An AI-native academic advising platform that helps university students make smarter academic decisions through personalized AI recommendations, interactive curriculum planning, and intelligent course registration assistance.</em></p>
+</div>
 
 ---
 
-## 🚀 طريقة تشغيل المشروع (Installation)
+## 🚀 Overview
 
-نفذ الأوامر التالية بالترتيب لتشغيل البيئة المحلية:
+Sanfoor is an AI-powered academic advising platform designed to solve one of the biggest challenges faced by universities: providing personalized academic guidance to thousands of students while reducing the workload of academic advisors.
 
-1. **تحميل الكود:**
-```bash
-git clone https://github.com/Khabbas04/Sanfoor.git
-cd Sanfoor
+Instead of relying on long queues, manual advising sessions, or unofficial recommendations, students receive **instant, context-aware academic guidance** based on their real academic records.
 
+The platform combines visual curriculum planning, AI-powered academic advising, trial registration, and intelligent recommendation systems into a single unified experience.
+
+## ✨ Key Features
+
+### 🤖 AI Academic Advisor
+An intelligent academic advisor powered by **Google Gemini** and **Structured Retrieval-Augmented Generation (Structured RAG)**.
+
+The advisor understands:
+- **Student GPA**
+- **Completed courses**
+- **Degree requirements**
+- **Current registration cart**
+- **Prerequisite chains**
+- **Course difficulty**
+- **Academic warning status**
+- **Credit hour regulations**
+
+*It provides personalized recommendations instead of generic chatbot responses.*
+
+### 🌳 Interactive Curriculum Tree
+Students can visualize their entire study plan using an interactive prerequisite tree.
+
+Each course is displayed as:
+- ✅ **Completed**
+- 🔵 **Available**
+- 🔒 **Locked**
+
+*allowing students to easily understand prerequisite relationships.*
+
+### 🛒 Trial Registration
+Students can simulate course registration before the official university registration period.
+
+The AI can analyze the trial schedule and recommend:
+- Better course combinations
+- Balanced workload
+- GPA-friendly schedules
+- Graduation optimization
+
+### 💬 Interactive AI Widgets
+Instead of returning plain text, the AI generates structured JSON responses that power interactive UI components, including:
+- Course recommendation cards
+- Cart review
+- Course comparison
+- Credit-hour slider
+- Follow-up suggestions
+- Interactive action buttons
+
+### 📊 Academic Analytics
+The platform provides intelligent academic insights such as:
+- Course demand analysis
+- Curriculum visualization
+- Student progress tracking
+- Academic workload analysis
+
+## 🧠 AI Architecture
+
+Sanfoor uses a **Structured Retrieval-Augmented Generation (Structured RAG)** architecture.
+
+```mermaid
+graph TD;
+    A[Student Question] --> B[(Retrieve Student Academic Data <br> PostgreSQL)];
+    B --> C[Context Builder];
+    C --> D[Intent Classification];
+    D --> E[Google Gemini];
+    E --> F{JSON Response};
+    F --> G[Interactive UI];
 ```
+> Unlike traditional chatbots, Sanfoor retrieves real academic information before generating recommendations.
 
+## 🛠 Tech Stack
 
-2. **تنصيب المكتبات:**
-```bash
-composer install
-npm install
+### Backend
+- **Laravel 12**
+- **PHP 8.2**
 
-```
+### Frontend
+- **React**
+- **Inertia.js**
+- **Vite**
+- **Tailwind CSS**
 
+### Database
+- **PostgreSQL**
 
-3. **إعداد البيئة:**
-* انسخ ملف `.env.example` ليكون `.env`.
-* قم بتعديل بيانات قاعدة البيانات لتطابق إعدادات **PostgreSQL** لديك.
+### AI
+- **Google Gemini API**
+- **Structured RAG**
+- **Prompt Engineering**
+- **Intent Classification**
 
+### Visualization
+- **React Flow**
+- **Mermaid**
 
-4. **تجهيز قاعدة البيانات:**
-```bash
-php artisan key:generate
-php artisan migrate --seed
+### Deployment
+- **Linux**
+- **Nginx**
+- **PHP-FPM**
 
-```
+## 🎯 Vision
 
-
-5. **التشغيل:**
-* افتح Terminal للـ Backend: `php artisan serve`
-* افتح Terminal للـ Frontend: `npm run dev`
-
-
-
----
-
-## 💾 إعدادات قاعدة البيانات (PostgreSQL)
-
-يرجى التأكد من ضبط ملف الـ `.env` كالتالي لتجنب أخطاء الاستعلامات:
-
-```env
-DB_CONNECTION=pgsql
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_DATABASE=sanfoor_db
-DB_USERNAME=postgres
-DB_PASSWORD=كلمة_المرور_الخاصة_بك
-
-```
-
----
-
-## 📂 خريطة النظام (Project Structure)
-
-### 👨‍🎓 بوابة الطالب (Student Portal)
-
-* **الشجرة التفاعلية:** عرض المواد باستخدام `ReactFlow` مع تحديد الحالة (منجز، متاح، مغلق).
-* **التسجيل التجريبي:** إضافة المواد للتسجيل التجريبي لمزامنتها مع الإدارة بصمت دون رسائل مزعجة.
-* **المستشار الذكي:** نظام نصائح يعتمد على الذكاء الاصطناعي لتحسين المعدل.
-
-### ⚙️ بوابة الإدارة (Admin Core)
-
-* **الداشبورد:** مراقبة لحظية لأعداد الطلاب وحالة النظام.
-* **إدارة الطلاب:** تعديل بيانات الطلاب، مراقبة معدلاتهم، والتحكم في الحسابات.
-* **تحليل الطلب (Demand Heatmap):** تقرير ذكي يفرز المواد الأكثر طلباً حسب الكلية والتخصص.
-* **إدارة الخطط:** استيراد المواد عبر CSV وبناء المتطلبات السابقة تلقائياً.
-
----
-
-## 🔐 بيانات الدخول للتجربة (Test Credentials)
-يمكنك استخدام الحساب التالي لتجربة لوحة تحكم الإدارة (Admin Panel):
-* **البريد الإلكتروني:** `admin@sanfoor.com`
-* **كلمة المرور:** `password` (أو كلمة المرور التي حددتها في الـ Seeder)
-
----
-
-**فريق العمل:** [Asem Alkhabbas](https://www.google.com/search?q=https://github.com/Khabbas04) & Team Kollia 🚀
-
----
-
-.*
+To become the next generation AI-powered academic advising platform for universities by transforming academic planning from a manual process into an intelligent, personalized experience.
