@@ -11,6 +11,30 @@ const MermaidDiagram = React.lazy(() => import('@/Components/MermaidDiagram'));
 // Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
+// Backward-compat: older advisor responses embedded the skill tree as a
+// ```skilltree JSON block ({nodes,edges}). Convert it to Mermaid on the fly so
+// cached/stored legacy messages still render as a real diagram.
+const MERMAID_CLASSDEFS = [
+    'classDef passed fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534;',
+    'classDef available fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e40af;',
+    'classDef inCart fill:#fef9c3,stroke:#eab308,stroke-width:3px,color:#854d0e;',
+    'classDef locked fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,stroke-dasharray: 4 4;',
+];
+const skilltreeToMermaid = (data) => {
+    const nodes = Array.isArray(data?.nodes) ? data.nodes : [];
+    const edges = Array.isArray(data?.edges) ? data.edges : [];
+    if (!nodes.length) return null;
+    const clean = (s) => String(s || '').replace(/["()\[\]{};|<>#`\\&]/g, ' ').replace(/\s+/g, ' ').trim();
+    const known = ['passed', 'available', 'inCart', 'locked'];
+    const lines = ['graph TD', ...MERMAID_CLASSDEFS];
+    nodes.forEach((n) => {
+        const st = known.includes(n.status) ? n.status : 'available';
+        lines.push(`C${n.id}["${clean(n.name)} — ${n.credit_hours || 0}س"]:::${st}`);
+    });
+    edges.forEach((e) => lines.push(`C${e.from} --> C${e.to}`));
+    return lines.join('\n');
+};
+
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
 
@@ -53,12 +77,20 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
                         const match = /language-(\w+)/.exec(className || '');
                         const text = String(children).replace(/\n$/, '');
 
-                        // Mermaid diagram (student skill tree) -> render as a real
-                        // diagram, not raw code, via the lazy-loaded mermaid renderer.
-                        if (match && match[1] === 'mermaid') {
+                        // Student skill tree -> render as a real diagram via the
+                        // lazy-loaded mermaid renderer. Handles both the current
+                        // ```mermaid output and the legacy ```skilltree JSON.
+                        if (match && (match[1] === 'mermaid' || match[1] === 'skilltree')) {
+                            let chart = text;
+                            if (match[1] === 'skilltree') {
+                                try { chart = skilltreeToMermaid(JSON.parse(text)); } catch (e) { chart = null; }
+                                if (!chart) {
+                                    return <div className="my-3 text-[11px] font-bold text-slate-400">⏳ جاري تجهيز مخطط الخطة...</div>;
+                                }
+                            }
                             return (
                                 <React.Suspense fallback={<div className="my-3 text-[11px] font-bold text-slate-400">⏳ جاري تحميل المخطط...</div>}>
-                                    <MermaidDiagram chart={text} />
+                                    <MermaidDiagram chart={chart} />
                                 </React.Suspense>
                             );
                         }
@@ -771,7 +803,7 @@ export default function Advisor() {
                 courses_to_remove: data.courses_to_remove || [],
                 follow_up_suggestions: data.follow_up_suggestions || [],
                 interactive_widget: data.interactive_widget || null,
-                isAnimating: !safeReply.includes('```mermaid')
+                isAnimating: !(safeReply.includes('```mermaid') || safeReply.includes('```skilltree'))
             }]);
 
             if (!activeId && data.chat_id) {
@@ -805,7 +837,7 @@ export default function Advisor() {
                     ? r.data.reply
                     : 'ما وصلني رد واضح هذه المرة. جرّب إعادة السؤال.';
                 setGenerating(true);
-                setMsgs(p => [...p, { id: `r-${Date.now()}`, role: 'ai', content: safeReply, suggested_courses: r.data.suggested_courses || [], courses_to_remove: r.data.courses_to_remove || [], follow_up_suggestions: r.data.follow_up_suggestions || [], interactive_widget: r.data.interactive_widget || null, isAnimating: !safeReply.includes('```mermaid') }]);
+                setMsgs(p => [...p, { id: `r-${Date.now()}`, role: 'ai', content: safeReply, suggested_courses: r.data.suggested_courses || [], courses_to_remove: r.data.courses_to_remove || [], follow_up_suggestions: r.data.follow_up_suggestions || [], interactive_widget: r.data.interactive_widget || null, isAnimating: !(safeReply.includes('```mermaid') || safeReply.includes('```skilltree')) }]);
             }
         } catch { setMsgs(p => [...p, { id: `e-${Date.now()}`, role: 'ai', content: 'فشلت إعادة التوليد.', isAnimating: false }]); }
         finally { setTyping(false); setRegenning(false); }
