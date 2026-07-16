@@ -10,4 +10,17 @@ export default defineConfig({
         }),
         react(),
     ],
+    build: {
+        sourcemap: false,
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    react_vendor: ['react', 'react-dom', '@inertiajs/react'],
+                    mermaid_vendor: ['mermaid'],
+                    chart_vendor: ['recharts', 'reactflow', 'dagre']
+                }
+            }
+        }
+    }
 });
