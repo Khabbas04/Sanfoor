@@ -4508,49 +4508,73 @@ export default function Tree({
                         </div>
 
                         <div className="overflow-y-auto flex-1 p-4 sm:p-6 hide-scrollbar space-y-4">
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-right space-y-2">
-                                <p className="text-[13px] font-[900] text-slate-800 flex items-center justify-end gap-1.5">🌳 كيف تعمل الشجرة؟</p>
-                                <p className="text-[11px] font-bold text-slate-500 leading-relaxed">
-                                    الشجرة الأكاديمية تعرض خطتك الدراسية. يمكنك النقر على أي مادة لتمييزها كـ "منجزة". الشجرة تحسب الساعات وتفتح لك المواد التي تعتمد على مواد أخرى قمت باجتيازها تلقائياً، وتغلق المواد التي لم تستوفِ متطلباتها.
-                                </p>
-                            </div>
-
-                            <div className="bg-rose-50 p-4 rounded-xl border border-rose-100 text-right space-y-2">
-                                <p className="text-[13px] font-[900] text-rose-800 flex items-center justify-end gap-1.5">🔄 نظام الإعادة (لرفع المعدل أو النجاح)</p>
-                                <p className="text-[11px] font-bold text-rose-600/90 leading-relaxed">
-                                    إذا رسبت في مادة أو رغبت برفع معدلك في مادة اجتزتها، ستتمكن من تفاصيل المادة من الضغط على زر <b>"إعادة المادة"</b> لفتح محاولة جديدة وإعادة دراستها ليتم حسابها كإعادة لرفع المعدل.
-                                </p>
-                            </div>
-
-                            <div className="rounded-xl border border-violet-500/20 bg-violet-50 p-4 text-right">
-                                <p className="text-[13px] font-[900] text-violet-700 mb-2 flex items-center justify-end gap-1.5">⚖️ المقارنة الاحترافية</p>
-                                <p className="text-[11px] font-bold text-slate-600 leading-relaxed">
-                                    افتح أي مادة من الشجرة ثم اضغط زر <b>"مقارنة المادة"</b>، بعدها اختر مادة أخرى من الشجرة. ستظهر لك نافذة تقارن بين المادتين من ناحية الصعوبة، التأثير (كم مادة تفتح)، والأولوية، لمساعدتك في اختيار المادة الأنسب للتسجيل.
-                                </p>
-                            </div>
-
-                            <div className="pt-2">
-                                <p className="text-[11px] font-[900] text-slate-400 uppercase tracking-wider mb-3 text-right">حالة المادة</p>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 mb-2">
-                                    {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'راسب (إعادة)' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'في التسجيل التجريبي' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
-                                        <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-700">{l.label}</span><span className={`w-4 h-4 rounded-[4px] ${l.color} shadow-sm border border-black/5`} /></div>
-                                    ))}
+                            
+                            {/* أساسيات الشجرة */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-right">
+                                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                                    <p className="text-[12px] font-[900] text-slate-800 mb-1.5">🌳 كيف تعمل الشجرة؟</p>
+                                    <p className="text-[10px] font-bold text-slate-500 leading-relaxed">
+                                        انقر على المادة لتمييزها كـ "منجزة". ستُفتح المواد اللاحقة تلقائياً.
+                                    </p>
+                                </div>
+                                <div className="bg-rose-50 p-3.5 rounded-xl border border-rose-100">
+                                    <p className="text-[12px] font-[900] text-rose-800 mb-1.5">🔄 نظام الإعادة</p>
+                                    <p className="text-[10px] font-bold text-rose-600/90 leading-relaxed">
+                                        من تفاصيل المادة، اضغط "إعادة المادة" لفتح محاولة جديدة لرفع معدلك.
+                                    </p>
+                                </div>
+                                <div className="bg-violet-50 p-3.5 rounded-xl border border-violet-200/50 sm:col-span-2">
+                                    <p className="text-[12px] font-[900] text-violet-800 mb-1.5">⚖️ المقارنة الاحترافية</p>
+                                    <p className="text-[10px] font-bold text-slate-600 leading-relaxed">
+                                        افتح المادة واضغط "مقارنة المادة"، ثم اختر مادة أخرى للمقارنة بالصعوبة والتأثير المستقبلي.
+                                    </p>
                                 </div>
                             </div>
 
+                            {/* أزرار الذكاء الاصطناعي الجديدة */}
                             <div className="pt-2">
-                                <p className="text-[11px] font-[900] text-slate-400 uppercase tracking-wider mb-3 text-right">الرموز والمسار</p>
-                                <div className="flex flex-col gap-3">
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">إجباري (مستطيل)</span><div className="w-6 h-4 bg-slate-200 rounded-[4px] border border-black/5"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">مساندة (بيضاوي)</span><div className="w-6 h-4 bg-slate-200 rounded-[10px] border border-black/5"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">اختياري (مائل)</span><div className="w-6 h-4 bg-slate-200 rounded-tr-[8px] rounded-bl-[8px] rounded-tl-[1px] rounded-br-[1px] border border-black/5"></div></div>
-                                    <div className="flex items-center justify-end gap-2"><span className="text-[11px] font-bold text-slate-600">جامعة (حاد)</span><div className="w-6 h-4 bg-slate-200 rounded-[2px] border border-black/5"></div></div>
-                                    <div className="flex items-start justify-end gap-3 mt-2 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                        <div className="text-right flex-1">
-                                            <p className="text-[11px] font-bold text-slate-800">المسار الحرج (شريط أحمر أعلى البطاقة)</p>
-                                            <p className="text-[10px] font-bold text-slate-500 leading-snug mt-1">مواد تفتح سلسلة طويلة من المواد، تأخيرها قد يؤخر تخرجك.</p>
+                                <p className="text-[11px] font-[900] text-indigo-500 uppercase tracking-wider mb-2.5 text-right flex items-center justify-end gap-1.5">✨ أدوات الذكاء الاصطناعي في قائمة (🪄 التخطيط)</p>
+                                <div className="space-y-2 text-right">
+                                    <div className="flex items-center justify-end gap-3 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/50">
+                                        <div className="flex-1">
+                                            <p className="text-[11px] font-[900] text-indigo-800">توليد جدول ذكي 🪄</p>
+                                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">دع الخوارزمية تخطط جدول فصلك القادم حسب الساعات ومستوى الصعوبة.</p>
                                         </div>
-                                        <span className="w-6 h-1.5 rounded-full bg-gradient-to-l from-rose-500 to-rose-400 shadow-sm mt-1.5 shrink-0"></span>
+                                    </div>
+                                    <div className="flex items-center justify-end gap-3 bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50">
+                                        <div className="flex-1">
+                                            <p className="text-[11px] font-[900] text-emerald-800">عرض على المرشد الأكاديمي 👨🏻‍🏫</p>
+                                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">أضف مواد للسلة (التسجيل التجريبي) ثم اطلب من الذكاء الاصطناعي مراجعتها وإعطائك نصائح.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-end gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                                        <div className="flex-1">
+                                            <p className="text-[11px] font-[900] text-slate-800">تحليل المواد المفتاحية 🚀</p>
+                                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">يكتشف الـ AI المواد التي تفتح أكبر عدد من المواد اللاحقة لتسجلها أولاً.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* الألوان والرموز */}
+                            <div className="pt-2 border-t border-slate-100">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[10px] font-[900] text-slate-400 uppercase tracking-wider mb-2.5 text-right">دلالات الألوان</p>
+                                        <div className="grid grid-cols-2 gap-y-2 mb-2">
+                                            {[{ color: 'bg-[#10b981]', label: 'منجز' }, { color: 'bg-[#ef4444]', label: 'إعادة' }, { color: 'bg-[#6366f1]', label: 'متاح' }, { color: 'bg-[#f59e0b]', label: 'السلة' }, { color: 'bg-slate-200', label: 'مغلق' }].map(l => (
+                                                <div key={l.label} className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">{l.label}</span><span className={`w-3.5 h-3.5 rounded-[4px] ${l.color} shadow-sm border border-black/5`} /></div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-[900] text-slate-400 uppercase tracking-wider mb-2.5 text-right">أشكال المسارات</p>
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">إجباري (مستطيل)</span><div className="w-5 h-3 bg-slate-200 rounded-[3px] border border-black/5"></div></div>
+                                            <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">مساندة (بيضاوي)</span><div className="w-5 h-3 bg-slate-200 rounded-[10px] border border-black/5"></div></div>
+                                            <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">اختياري (مائل)</span><div className="w-5 h-3 bg-slate-200 rounded-tr-[6px] rounded-bl-[6px] rounded-tl-[1px] rounded-br-[1px] border border-black/5"></div></div>
+                                            <div className="flex items-center justify-end gap-2"><span className="text-[10px] font-bold text-slate-600">المسار الحرج (شريط أحمر)</span><span className="w-5 h-1 rounded-full bg-gradient-to-l from-rose-500 to-rose-400"></span></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
