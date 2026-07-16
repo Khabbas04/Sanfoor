@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Swal from 'sweetalert2';
 const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
-const SkillTreeDiagram = React.lazy(() => import('@/Components/SkillTreeDiagram'));
+const MermaidDiagram = React.lazy(() => import('@/Components/MermaidDiagram'));
 
 // Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -53,18 +53,12 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
                         const match = /language-(\w+)/.exec(className || '');
                         const text = String(children).replace(/\n$/, '');
 
-                        // Structured skill-tree block -> render as an interactive graph
-                        // (reactflow), not raw code. Tolerates partial JSON while the
-                        // message is still streaming in.
-                        if (match && match[1] === 'skilltree') {
-                            let parsed = null;
-                            try { parsed = JSON.parse(text); } catch (e) { parsed = null; }
-                            if (!parsed) {
-                                return <div className="my-3 text-[11px] font-bold text-slate-400">⏳ جاري تجهيز مخطط الخطة...</div>;
-                            }
+                        // Mermaid diagram (student skill tree) -> render as a real
+                        // diagram, not raw code, via the lazy-loaded mermaid renderer.
+                        if (match && match[1] === 'mermaid') {
                             return (
                                 <React.Suspense fallback={<div className="my-3 text-[11px] font-bold text-slate-400">⏳ جاري تحميل المخطط...</div>}>
-                                    <SkillTreeDiagram nodes={parsed.nodes || []} edges={parsed.edges || []} empty={!!parsed.empty} />
+                                    <MermaidDiagram chart={text} />
                                 </React.Suspense>
                             );
                         }
@@ -777,7 +771,7 @@ export default function Advisor() {
                 courses_to_remove: data.courses_to_remove || [],
                 follow_up_suggestions: data.follow_up_suggestions || [],
                 interactive_widget: data.interactive_widget || null,
-                isAnimating: !safeReply.includes('```skilltree')
+                isAnimating: !safeReply.includes('```mermaid')
             }]);
 
             if (!activeId && data.chat_id) {
@@ -811,7 +805,7 @@ export default function Advisor() {
                     ? r.data.reply
                     : 'ما وصلني رد واضح هذه المرة. جرّب إعادة السؤال.';
                 setGenerating(true);
-                setMsgs(p => [...p, { id: `r-${Date.now()}`, role: 'ai', content: safeReply, suggested_courses: r.data.suggested_courses || [], courses_to_remove: r.data.courses_to_remove || [], follow_up_suggestions: r.data.follow_up_suggestions || [], interactive_widget: r.data.interactive_widget || null, isAnimating: !safeReply.includes('```skilltree') }]);
+                setMsgs(p => [...p, { id: `r-${Date.now()}`, role: 'ai', content: safeReply, suggested_courses: r.data.suggested_courses || [], courses_to_remove: r.data.courses_to_remove || [], follow_up_suggestions: r.data.follow_up_suggestions || [], interactive_widget: r.data.interactive_widget || null, isAnimating: !safeReply.includes('```mermaid') }]);
             }
         } catch { setMsgs(p => [...p, { id: `e-${Date.now()}`, role: 'ai', content: 'فشلت إعادة التوليد.', isAnimating: false }]); }
         finally { setTyping(false); setRegenning(false); }

@@ -6,12 +6,9 @@ use App\Models\User;
 use App\Models\Course;
 
 /**
- * Produces the student "skill tree" that the AI advisor injects in place of the
- * %%SKILL_TREE%% marker.
- *
- * Output is a fenced ```skilltree block containing structured JSON (nodes + edges),
- * NOT mermaid text: the frontend renders it with reactflow/dagre (already bundled),
- * so no heavy diagramming dependency is added to the build.
+ * Produces the student "skill tree" (Mermaid flowchart) that the AI advisor
+ * injects in place of the %%SKILL_TREE%% marker. Rendered on the frontend by the
+ * `mermaid` library.
  */
 class SkillTreeGenerator
 {
@@ -24,59 +21,72 @@ class SkillTreeGenerator
             ->get();
 
         if ($courses->isEmpty()) {
-            return $this->wrap(['nodes' => [], 'edges' => [], 'empty' => true]);
+            return "```mermaid\ngraph TD\n  A[\"لا توجد خطة دراسية متاحة\"]\n```";
         }
 
-        // Reliable "passed" detection by course id (the previous code read a
+        // Reliable "passed" detection by course id (the old code read a
         // non-existent 'passed_courses_names_array' key, so nothing was ever
         // highlighted as passed).
         $passedSet = array_flip(array_map('intval', $academicData['profile']['passed_course_ids'] ?? []));
         $cartSet = array_flip(array_map('intval', $academicData['cart']['ids'] ?? []));
         $planIds = array_flip($courses->pluck('id')->map('intval')->all());
 
-        $nodes = [];
-        $edges = [];
+        $lines = [
+            'graph TD',
+            'classDef passed fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#166534;',
+            'classDef available fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e40af;',
+            'classDef inCart fill:#fef9c3,stroke:#eab308,stroke-width:3px,color:#854d0e;',
+            'classDef locked fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#991b1b,stroke-dasharray: 4 4;',
+        ];
 
-        foreach ($courses as $course) {
-            $cid = (int) $course->id;
-
-            if (isset($passedSet[$cid])) {
-                $status = 'passed';
-            } elseif (isset($cartSet[$cid])) {
-                $status = 'inCart';
-            } else {
-                $status = 'available';
-                foreach ($course->prerequisites as $prereq) {
-                    if (!isset($passedSet[(int) $prereq->id])) {
-                        $status = 'locked';
-                        break;
-                    }
-                }
+        // Group nodes by semester for a clean top-down layout.
+        foreach ($courses->groupBy('semester') as $semester => $group) {
+            $sem = (int) $semester;
+            $semLabel = $sem > 0 ? "الفصل {$sem}" : 'غير مصنّف';
+            $lines[] = "subgraph sem{$sem}[\"{$semLabel}\"]";
+            foreach ($group as $course) {
+                $cid = (int) $course->id;
+                $label = $this->sanitize($course->name);
+                $hrs = (int) $course->credit_hours;
+                $status = $this->status($cid, $course, $passedSet, $cartSet);
+                $lines[] = "  C{$cid}[\"{$label} — {$hrs}س\"]:::{$status}";
             }
+            $lines[] = 'end';
+        }
 
-            $nodes[] = [
-                'id' => $cid,
-                'name' => $course->name,
-                'code' => (string) $course->code,
-                'credit_hours' => (int) $course->credit_hours,
-                'semester' => (int) ($course->semester ?? 0),
-                'status' => $status,
-            ];
-
-            // Real prerequisite edges, but only between nodes that exist in this plan.
+        // Real prerequisite arrows, only between courses that exist in this plan.
+        foreach ($courses as $course) {
             foreach ($course->prerequisites as $prereq) {
                 $pid = (int) $prereq->id;
                 if (isset($planIds[$pid])) {
-                    $edges[] = ['from' => $pid, 'to' => $cid];
+                    $lines[] = "C{$pid} --> C" . (int) $course->id;
                 }
             }
         }
 
-        return $this->wrap(['nodes' => $nodes, 'edges' => $edges]);
+        return "```mermaid\n" . implode("\n", $lines) . "\n```";
     }
 
-    private function wrap(array $payload): string
+    private function status(int $cid, Course $course, array $passedSet, array $cartSet): string
     {
-        return "```skilltree\n" . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n```";
+        if (isset($passedSet[$cid])) {
+            return 'passed';
+        }
+        if (isset($cartSet[$cid])) {
+            return 'inCart';
+        }
+        foreach ($course->prerequisites as $prereq) {
+            if (!isset($passedSet[(int) $prereq->id])) {
+                return 'locked';
+            }
+        }
+        return 'available';
+    }
+
+    /** Strip characters that would break Mermaid node labels. */
+    private function sanitize(string $name): string
+    {
+        $name = str_replace(['"', '(', ')', '[', ']', '{', '}', ';', '|', '<', '>', '#', '`', '\\', '&'], ' ', $name);
+        return trim(preg_replace('/\s+/u', ' ', $name));
     }
 }

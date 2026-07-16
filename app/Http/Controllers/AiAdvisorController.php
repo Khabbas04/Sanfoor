@@ -18,7 +18,7 @@ use Inertia\Inertia;
 
 class AiAdvisorController extends Controller
 {
-    private const MAX_CONTEXT_MESSAGES = 4;
+    private const MAX_CONTEXT_MESSAGES = 16;
     private const RATE_LIMIT_PER_HOUR = 40;
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
     private const MAX_WIDGET_ITEMS = 8;
@@ -1248,6 +1248,9 @@ class AiAdvisorController extends Controller
                 if (json_last_error() === JSON_ERROR_NONE && isset($decoded['reply'])) {
                     $text = (string) $decoded['reply'];
                 }
+                // Drop rendered diagram source from the conversation memory: it is
+                // noise for the model and would eat the per-message character budget.
+                $text = preg_replace('/```mermaid.*?```/is', '[مخطط الخطة]', $text);
             }
 
             $role = $message->role === 'ai' ? 'model' : 'user';
