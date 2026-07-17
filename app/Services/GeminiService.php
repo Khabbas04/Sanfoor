@@ -103,7 +103,7 @@ class GeminiService
             throw new \Exception('No Gemini API keys configured');
         }
 
-        $model = $options['model'] ?? trim((string) config('services.gemini.model')) ?: 'gemini-3.1-flash-lite';
+        $model = trim((string) config('services.gemini.model')) ?: 'gemini-3.1-flash-lite';
         $sortedKeys = $this->sortKeysByAvailability($apiKeys);
         $lastError = 'Unknown Gemini error';
 
