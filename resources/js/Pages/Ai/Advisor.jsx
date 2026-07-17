@@ -490,12 +490,13 @@ const ProactiveBriefing = ({ insights }) => {
 // ======================================================================
 // 🧠 Welcome Chat
 // ======================================================================
-const WelcomeChat = ({ insights, st, onQuick }) => {
-    const actions = insights?.quick_actions || [
-        "اقترح لي أفضل مواد أبدأ فيها",
-        "كم ساعة أسجل أول فصل؟",
-        "رتب لي خطة بداية بسيطة",
-        "كم ساعة أقدر أسجل هذا الفصل؟"
+const WelcomeChat = ({ st }) => {
+    const capabilities = [
+        { icon: '📊', title: 'تحليل دقيق لوضعك', desc: 'بحلل معدلك وساعاتك وموقعك من التخرج بذكاء' },
+        { icon: '🎯', title: 'اقتراح أفضل المواد', desc: 'ببني لك جدول مخصص يرفع معدلك ويناسب خطتك' },
+        { icon: '📋', title: 'تقييم تسجيلك الحالي', desc: 'براجع موادك التجريبية وبنصحك تحذف أو تخفف العبء' },
+        { icon: '⚖️', title: 'مقارنة المواد', desc: 'بساعدك تختار بين مادتين وتعرف تأثير كل مادة' },
+        { icon: '📅', title: 'قوانين وتقويم جامعي', desc: 'بجاوبك عن مواعيد التسجيل، الامتحانات، وأي قانون' },
     ];
 
     return (
@@ -503,23 +504,30 @@ const WelcomeChat = ({ insights, st, onQuick }) => {
             <div className="w-20 h-20 mb-4 rounded-full overflow-hidden shadow-sm ring-4 ring-blue-50">
                 <img src="/images/aiwidget.png?v=2" alt="سنفور" className="w-full h-full object-cover" />
             </div>
-            <h2 className="text-xl font-black text-slate-800 mb-2">أهلاً بك {st?.name?.split(' ')[0] || ''}! 👋</h2>
-            <p className="text-[13px] font-bold text-slate-500 mb-8 max-w-md leading-relaxed">
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-2">أهلاً بك {st?.name?.split(' ')[0] || ''}! 👋</h2>
+            <p className="text-[13px] font-bold text-slate-500 mb-8 max-w-lg leading-relaxed px-2">
                 أنا دكتور سنفور، مستشارك الأكاديمي الذكي. 🤖<br/>
-                يمكنني مساعدتك في تخطيط جدولك، اختيار المواد المناسبة لرفع معدلك، وترتيب خطتك الدراسية لضمان تخرجك بأفضل صورة.
+                هنا مساحتك الخاصة لتسألني وتستشيرني عن أي شيء يخص مسيرتك الأكاديمية!
             </p>
             
-            <div className="w-full max-w-2xl bg-white border border-blue-100 rounded-3xl p-5 shadow-sm">
-                <p className="text-[12px] font-black text-blue-700 mb-4 flex items-center justify-center gap-2">
-                    <span className="text-lg">💡</span> جرب تسألني:
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {actions.map((q, i) => (
-                        <button key={i} onClick={() => onQuick(q)} className="text-[11px] font-bold bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 p-3.5 rounded-2xl shadow-sm active:scale-[.98] transition-all text-right flex items-center gap-2">
-                            <span className="text-blue-500 text-sm">✨</span> <span className="flex-1">{q}</span>
-                        </button>
+            <div className="w-full max-w-3xl bg-white border border-blue-100 rounded-3xl p-5 md:p-6 shadow-sm">
+                <h3 className="text-[13px] font-black text-blue-700 mb-5 flex items-center justify-center gap-2">
+                    <span className="text-lg">✨</span> كيف يمكنني مساعدتك؟
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 text-right">
+                    {capabilities.map((cap, i) => (
+                        <div key={i} className={`p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-start gap-3 transition-transform hover:-translate-y-1 hover:shadow-md hover:border-blue-200 ${i === 4 ? 'md:col-span-2 lg:col-span-1' : ''}`}>
+                            <span className="text-2xl mt-1">{cap.icon}</span>
+                            <div>
+                                <h4 className="font-black text-[12px] text-slate-700 mb-1">{cap.title}</h4>
+                                <p className="text-[10px] font-bold text-slate-500 leading-relaxed">{cap.desc}</p>
+                            </div>
+                        </div>
                     ))}
                 </div>
+                <p className="text-[11px] font-bold text-slate-400 mt-6 text-center animate-pulse">
+                    اكتب سؤالك في صندوق الدردشة بالأسفل للبدء 👇
+                </p>
             </div>
         </div>
     );
