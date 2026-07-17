@@ -442,7 +442,7 @@ const briefBold = (t) => String(t ?? '').split(/(\*\*[^*]+\*\*)/g).map((x, i) =>
 const ProactiveBriefing = ({ insights }) => {
     const p = insights.progress || {};
     return (
-        <div className="sfr-fade-up bg-white border border-blue-200/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+        <div className="sfr-fade-up bg-white border border-blue-200/60 rounded-2xl p-4 shadow-sm relative overflow-hidden shrink-0">
             <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-sky-400 to-blue-500"></div>
             <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-blue-100 shrink-0 shadow-sm"><img src="/images/aiwidget.png?v=2" alt="سنفور" className="w-full h-full object-cover" /></div>
@@ -500,32 +500,32 @@ const WelcomeChat = ({ st }) => {
     ];
 
     return (
-        <div className="flex flex-col items-center justify-center text-center px-4 py-8 h-full sfr-fade-up">
-            <div className="w-20 h-20 mb-4 rounded-full overflow-hidden shadow-sm ring-4 ring-blue-50">
+        <div className="flex flex-col items-center justify-center text-center px-4 py-2 md:py-4 h-full sfr-fade-up">
+            <div className="w-14 h-14 md:w-16 md:h-16 mb-4 rounded-full overflow-hidden shadow-sm ring-4 ring-blue-50">
                 <img src="/images/aiwidget.png?v=2" alt="سنفور" className="w-full h-full object-cover" />
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-2">أهلاً بك {st?.name?.split(' ')[0] || ''}! 👋</h2>
-            <p className="text-[13px] font-bold text-slate-500 mb-8 max-w-lg leading-relaxed px-2">
+            <h2 className="text-lg md:text-xl font-black text-slate-800 mb-1">أهلاً بك {st?.name?.split(' ')[0] || ''}! 👋</h2>
+            <p className="text-[12px] font-bold text-slate-500 mb-4 max-w-lg leading-relaxed px-2">
                 أنا دكتور سنفور، مستشارك الأكاديمي الذكي. 🤖<br/>
                 هنا مساحتك الخاصة لتسألني وتستشيرني عن أي شيء يخص مسيرتك الأكاديمية!
             </p>
             
-            <div className="w-full max-w-3xl bg-white border border-blue-100 rounded-3xl p-5 md:p-6 shadow-sm">
-                <h3 className="text-[13px] font-black text-blue-700 mb-5 flex items-center justify-center gap-2">
+            <div className="w-full max-w-3xl bg-white border border-blue-100 rounded-3xl p-4 md:p-5 shadow-sm">
+                <h3 className="text-[12px] md:text-[13px] font-black text-blue-700 mb-3 flex items-center justify-center gap-2">
                     <span className="text-lg">✨</span> كيف يمكنني مساعدتك؟
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 text-right">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 text-right">
                     {capabilities.map((cap, i) => (
-                        <div key={i} className={`p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-start gap-3 transition-transform hover:-translate-y-1 hover:shadow-md hover:border-blue-200 ${i === 4 ? 'md:col-span-2 lg:col-span-1' : ''}`}>
-                            <span className="text-2xl mt-1">{cap.icon}</span>
+                        <div key={i} className={`p-3 rounded-2xl border border-slate-100 bg-slate-50 flex items-start gap-2.5 transition-transform hover:-translate-y-1 hover:shadow-md hover:border-blue-200 ${i === 4 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
+                            <span className="text-xl md:text-2xl mt-0.5">{cap.icon}</span>
                             <div>
-                                <h4 className="font-black text-[12px] text-slate-700 mb-1">{cap.title}</h4>
-                                <p className="text-[10px] font-bold text-slate-500 leading-relaxed">{cap.desc}</p>
+                                <h4 className="font-black text-[11px] md:text-[12px] text-slate-700 mb-0.5">{cap.title}</h4>
+                                <p className="text-[9.5px] md:text-[10px] font-bold text-slate-500 leading-relaxed">{cap.desc}</p>
                             </div>
                         </div>
                     ))}
                 </div>
-                <p className="text-[11px] font-bold text-slate-400 mt-6 text-center animate-pulse">
+                <p className="text-[10px] md:text-[11px] font-bold text-slate-400 mt-4 text-center animate-pulse">
                     اكتب سؤالك في صندوق الدردشة بالأسفل للبدء 👇
                 </p>
             </div>
@@ -845,7 +845,11 @@ export default function Advisor() {
 
         setInput(''); setSidebar(false);
         const userMsgId = `u-${Date.now()}`;
-        setMsgs(p => [...p, { id: userMsgId, role: 'user', content: t }]); setTyping(true);
+        setMsgs(p => {
+            const filtered = p.filter(m => m.id !== 'welcome');
+            return [...filtered, { id: userMsgId, role: 'user', content: t }];
+        });
+        setTyping(true);
 
         try {
             if (abortRef.current) abortRef.current.abort();
@@ -1163,7 +1167,44 @@ export default function Advisor() {
                 <div className="max-w-[1600px] mx-auto px-2.5 md:px-4 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-3 lg:gap-4 items-start">
 
                     {/* === Mobile Sidebar Overlay === */}
-                    {sidebar && <div className="lg:hidden fixed inset-0 z-[100] flex"><div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebar(false)} /><div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-5 space-y-4 sfr-scrollbar transition-transform translate-x-0"><div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-2"><h3 className="font-black text-slate-800 text-[14px]">📂 المحادثات السابقة</h3><button onClick={() => setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button></div><button onClick={() => { setSidebar(false); newChat(); }} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3.5 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all mb-4">✨ محادثة جديدة</button>{chats.length > 0 ? chats.map(c => <ChatItem key={c.id} c={c} />) : <p className="text-center text-slate-400 text-[12px] py-8 font-bold">📭 لا يوجد محادثات سابقة</p>}</div></div>}
+                    {sidebar && <div className="lg:hidden fixed inset-0 z-[100] flex">
+                        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setSidebar(false)} />
+                        <div className="relative w-[85%] max-w-[320px] bg-white h-full shadow-2xl overflow-y-auto p-4 space-y-4 sfr-scrollbar transition-transform translate-x-0 flex flex-col">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-2 shrink-0">
+                                <h3 className="font-black text-slate-800 text-[14px]">القائمة</h3>
+                                <button onClick={() => setSidebar(false)} className="w-8 h-8 flex items-center justify-center bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-xl text-slate-500 transition-colors">✕</button>
+                            </div>
+                            
+                            <div className="shrink-0 space-y-3">
+                                <button onClick={() => { setSidebar(false); newChat(); }} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white p-3 rounded-xl font-black text-[13px] shadow-md flex items-center justify-center gap-2 active:scale-[.97] transition-all">✨ محادثة جديدة</button>
+                                
+                                {proactiveInsights ? (
+                                    <ProactiveBriefing insights={proactiveInsights} />
+                                ) : st && (
+                                    <div className="bg-slate-50 rounded-2xl border border-slate-200/50 p-3.5">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center text-lg font-black text-blue-700 shrink-0 overflow-hidden">
+                                                {st.avatar ? <img src={st.avatar} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0) || 'أ'}
+                                            </div>
+                                            <div className="min-w-0"><p className="font-black text-[13px] text-slate-800 truncate">{st.name}</p><p className="text-[9px] text-slate-400 font-bold">{st.major || '—'}</p></div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {st.gpa != null && <div className="text-center bg-white rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل %</p><p className="text-[14px] font-black text-blue-700">{st.has_academic_records ? `${st.gpa}%` : 'لا'}</p></div>}
+                                            {st.hours_completed != null && <div className="text-center bg-white rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">منجزة</p><p className="text-[14px] font-black text-sky-700">{st.hours_completed}</p></div>}
+                                            {st.progress_percent != null && <div className="flex flex-col items-center bg-white rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">التخرج</p><Ring pct={st.progress_percent} size={28} s={2.5} /><p className="text-[8px] font-black text-slate-700 mt-0.5">{st.progress_percent}%</p></div>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex-1 min-h-0 flex flex-col border-t border-slate-100 pt-3">
+                                <h3 className="font-black text-slate-800 text-[13px] mb-2 shrink-0">📂 المحادثات السابقة</h3>
+                                <div className="flex-1 overflow-y-auto space-y-1 sfr-scrollbar pr-1">
+                                    {chats.length > 0 ? chats.map(c => <ChatItem key={c.id} c={c} />) : <p className="text-center text-slate-400 text-[11px] py-6 font-bold">📭 لا يوجد محادثات</p>}
+                                </div>
+                            </div>
+                        </div>
+                    </div>}
 
                     {/* === Sidebar === */}
                     <div className="hidden lg:flex flex-col gap-2.5 lg:sticky top-20 max-h-[calc(100vh-100px)]">
@@ -1175,7 +1216,7 @@ export default function Advisor() {
                         {proactiveInsights ? (
                             <ProactiveBriefing insights={proactiveInsights} />
                         ) : st && (
-                            <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3.5">
+                            <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3.5 shrink-0">
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center text-lg font-black text-blue-700 shrink-0 overflow-hidden">
                                         {st.avatar ? <img src={st.avatar} alt={st.name} className="w-full h-full object-cover" /> : st.name?.charAt(0) || 'أ'}
