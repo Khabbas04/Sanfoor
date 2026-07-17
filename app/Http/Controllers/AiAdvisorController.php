@@ -179,7 +179,8 @@ class AiAdvisorController extends Controller
 
         $geminiService = app(\App\Services\GeminiService::class);
         $apiKeys = $geminiService->getApiKeys();
-        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
+        $use_thinking = filter_var($data['use_thinking'] ?? true, FILTER_VALIDATE_BOOL);
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $use_thinking);
         $cachedAiResponse = Cache::get($responseCacheKey);
         if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
             $replyText = (string) $cachedAiResponse['reply'];
@@ -263,9 +264,13 @@ class AiAdvisorController extends Controller
                 // 5. Build Conversation Context
                 $contents = $this->buildConversationContext($chat);
 
+                $use_thinking = filter_var($data['use_thinking'] ?? true, FILTER_VALIDATE_BOOL);
+                $modelToUse = $use_thinking ? 'gemini-3.1-flash-lite' : 'gemini-2.5-flash-lite';
+
                 $refreshCartFlag = false;
                 $rawText = $geminiService->callGeminiAPI($contents, [
                     'systemInstruction' => $systemInstruction,
+                    'model' => $modelToUse,
                     // Removed tools since we are using JSON Schema instead
                     'generationConfig' => [
                         'maxOutputTokens' => (int) config('ai.generation.max_output_tokens', 2000),
@@ -586,6 +591,7 @@ class AiAdvisorController extends Controller
             'difficulty' => $request->input('difficulty'),
             'critical_path' => $request->input('critical_path'),
             'wants_code' => $request->input('wants_code'),
+            'use_thinking' => $request->input('use_thinking', true),
         ]));
     }
 

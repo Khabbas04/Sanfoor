@@ -733,6 +733,7 @@ export default function Advisor() {
     const [difficulty, setDifficulty] = useState(null); // 'easy', 'balanced', 'hard'
     const [criticalPath, setCriticalPath] = useState(false);
     const [wantsCode, setWantsCode] = useState(false);
+    const [useThinking, setUseThinking] = useState(true);
     const [selectedFilters, setSelectedFilters] = useState([]);
     const filterOptions = [
         { id: 'compulsory', label: 'إجباري' },
@@ -1082,6 +1083,20 @@ export default function Advisor() {
                             </div>
                             <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${wantsCode ? 'bg-sky-500' : 'bg-slate-200'}`}>
                                 <div className={`bg-white w-3 h-3 rounded-full shadow-sm transition-transform ${wantsCode ? 'translate-x-[-16px]' : 'translate-x-0'}`} />
+                            </div>
+                        </button>
+
+                        {/* وضع التفكير العميق */}
+                        <button type="button" onClick={() => setUseThinking(!useThinking)} className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all ${useThinking ? 'bg-purple-50 border-purple-300 shadow-sm shadow-purple-200/30' : 'bg-white border-slate-100 hover:border-purple-200 hover:bg-purple-50/30'}`}>
+                            <div className="flex items-center gap-2 text-right">
+                                <span className={`text-lg transition-transform ${useThinking ? 'scale-110' : 'grayscale opacity-60'}`}>🧠</span>
+                                <div>
+                                    <p className={`text-[11px] font-black ${useThinking ? 'text-purple-700' : 'text-slate-600'}`}>التفكير العميق (Deep Thinking)</p>
+                                    <p className="text-[8.5px] text-slate-400 font-bold mt-0.5">رد أبطأ بقليل لكن أكثر ذكاءً ودقة (يُنصح به)</p>
+                                </div>
+                            </div>
+                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${useThinking ? 'bg-purple-500' : 'bg-slate-200'}`}>
+                                <div className={`bg-white w-3 h-3 rounded-full shadow-sm transition-transform ${useThinking ? 'translate-x-[-16px]' : 'translate-x-0'}`} />
                             </div>
                         </button>
 
