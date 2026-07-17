@@ -12,23 +12,31 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
 
-// The model sometimes pads bold markers with inner spaces ("** نص **"), which
-// Markdown renders as literal asterisks instead of bold. Collapse the padding so
-// it renders correctly — for historical stored messages too, not just new ones.
-// Code inside ``` fences is left untouched so snippets aren't mangled.
-const fixMarkdownBold = (s) => {
-    if (typeof s !== 'string' || s.indexOf('**') === -1) return s;
-    return s
-        .split(/(```[\s\S]*?```)/g)
-        .map((seg, i) => (i % 2 === 1 ? seg : seg.replace(/\*\*[ \t]*([^*\n]+?)[ \t]*\*\*/g, '**$1**')))
-        .join('');
+// Clean an AI reply before markdown rendering:
+//  - The skill-tree feature was removed. Older stored messages may still contain a
+//    ```mermaid / ```skilltree diagram fence (or a bare %%SKILL_TREE%% token); strip
+//    them so raw diagram source never renders as an ugly code block.
+//  - The model sometimes pads bold markers with inner spaces ("** نص **"), which
+//    Markdown shows as literal asterisks. Collapse the padding (code fences untouched).
+const sanitizeReply = (s) => {
+    if (typeof s !== 'string') s = String(s ?? '');
+    let out = s
+        .replace(/```(?:mermaid|skilltree)[\s\S]*?```/gi, '')
+        .replace(/%%SKILL_TREE%%/g, '');
+    if (out.indexOf('**') !== -1) {
+        out = out
+            .split(/(```[\s\S]*?```)/g)
+            .map((seg, i) => (i % 2 === 1 ? seg : seg.replace(/\*\*[ \t]*([^*\n]+?)[ \t]*\*\*/g, '**$1**')))
+            .join('');
+    }
+    return out.trim();
 };
 
 // Animate AI responses as they stream into the chat window.
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     const [txt, setTxt] = useState('');
     const idx = useRef(0), raf = useRef(null), done = useRef(false);
-    const safeContent = fixMarkdownBold(typeof content === 'string' ? content : String(content ?? ''));
+    const safeContent = sanitizeReply(content);
     useEffect(() => {
         if (!isAnimating) { setTxt(safeContent); done.current = true; return; }
 

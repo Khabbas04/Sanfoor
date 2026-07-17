@@ -414,11 +414,10 @@ class AiAdvisorController extends Controller
                     ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
                     : [];
 
-                // 7. Inject Skill Tree Graph if requested
+                // Safety net: if any older stored prompt still emits the placeholder,
+                // strip it so the raw token never reaches the student.
                 if (str_contains($replyText, '%%SKILL_TREE%%')) {
-                    $treeGen = app(\App\Engines\SkillTreeGenerator::class);
-                    $mermaidStr = $treeGen->generate($user, $ragData);
-                    $replyText = str_replace('%%SKILL_TREE%%', "\n\n" . $mermaidStr . "\n\n", $replyText);
+                    $replyText = trim(str_replace('%%SKILL_TREE%%', '', $replyText));
                 }
             }
 
