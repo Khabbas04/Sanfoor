@@ -1389,6 +1389,12 @@ class AiAdvisorController extends Controller
         
         // Remove markdown JSON wrappers if still present.
         $clean = preg_replace('/```(?:json)?\s*(.*?)```/is', '$1', $clean);
+
+        // Repair bold spans the model padded with inner spaces ("** نص **"), which
+        // Markdown renders as literal asterisks instead of bold. Collapse the padding
+        // so "**نص**" renders correctly. Content excludes '*'/newline so multiple
+        // bold spans on one line don't cross-match.
+        $clean = preg_replace('/\*\*[ \t]*([^*\n]+?)[ \t]*\*\*/u', '**$1**', $clean);
         
         $clean = preg_replace('/(?:[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]\x{FE0F}?\s*){3,}/u', '', $clean);
         $clean = preg_replace('/(?<!`)[ \t]{2,}/', ' ', $clean);
