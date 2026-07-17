@@ -284,19 +284,71 @@ class AiAdvisorController extends Controller
                                 ],
                                 'interactive_widget' => [
                                     'type' => 'OBJECT',
+                                    // Superset schema covering every widget the frontend renders
+                                    // (comparison | poll | hours_slider | cart_review). Only `type`
+                                    // is meaningful for all of them; the rest are per-type optional
+                                    // fields — the backend sanitizer keeps only what each type needs.
                                     'properties' => [
                                         'type' => ['type' => 'STRING'],
                                         'title' => ['type' => 'STRING'],
+                                        // poll / hours_slider
+                                        'question' => ['type' => 'STRING'],
+                                        // hours_slider
+                                        'min' => ['type' => 'INTEGER'],
+                                        'max' => ['type' => 'INTEGER'],
+                                        'default' => ['type' => 'INTEGER'],
+                                        'current_cart_hours' => ['type' => 'INTEGER'],
+                                        // poll
+                                        'options' => [
+                                            'type' => 'ARRAY',
+                                            'items' => [
+                                                'type' => 'OBJECT',
+                                                'properties' => [
+                                                    'label' => ['type' => 'STRING'],
+                                                    'value' => ['type' => 'STRING'],
+                                                ]
+                                            ]
+                                        ],
+                                        // comparison
+                                        'items' => [
+                                            'type' => 'ARRAY',
+                                            'items' => [
+                                                'type' => 'OBJECT',
+                                                'properties' => [
+                                                    'name' => ['type' => 'STRING'],
+                                                    'code' => ['type' => 'STRING'],
+                                                    'credit_hours' => ['type' => 'INTEGER'],
+                                                    'difficulty' => ['type' => 'INTEGER'],
+                                                    'unlocks' => ['type' => 'INTEGER'],
+                                                    'gpa_impact' => ['type' => 'STRING'],
+                                                    'recommendation' => ['type' => 'STRING'],
+                                                ]
+                                            ]
+                                        ],
+                                        // cart_review
                                         'courses' => [
                                             'type' => 'ARRAY',
                                             'items' => [
                                                 'type' => 'OBJECT',
                                                 'properties' => [
-                                                    'id' => ['type' => 'INTEGER'],
-                                                    'reason' => ['type' => 'STRING']
+                                                    'name' => ['type' => 'STRING'],
+                                                    'code' => ['type' => 'STRING'],
+                                                    'credit_hours' => ['type' => 'INTEGER'],
+                                                    'difficulty' => ['type' => 'INTEGER'],
+                                                    'verdict' => ['type' => 'STRING'],
+                                                    'reason' => ['type' => 'STRING'],
                                                 ]
                                             ]
-                                        ]
+                                        ],
+                                        'summary' => [
+                                            'type' => 'OBJECT',
+                                            'properties' => [
+                                                'total_hours' => ['type' => 'INTEGER'],
+                                                'max_hours' => ['type' => 'INTEGER'],
+                                                'overall_difficulty' => ['type' => 'STRING'],
+                                                'recommendation' => ['type' => 'STRING'],
+                                            ]
+                                        ],
                                     ]
                                 ]
                             ],
