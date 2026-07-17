@@ -439,10 +439,11 @@ const briefBold = (t) => String(t ?? '').split(/(\*\*[^*]+\*\*)/g).map((x, i) =>
         ? <strong key={i} className="font-extrabold">{x.slice(2, -2)}</strong>
         : <span key={i}>{x}</span>);
 
-const ProactiveBriefing = ({ insights, onQuick }) => {
+const ProactiveBriefing = ({ insights }) => {
     const p = insights.progress || {};
     return (
-        <div className="sfr-fade-up bg-gradient-to-br from-white to-blue-50/40 border border-blue-100 rounded-3xl p-4 md:p-5 shadow-sm">
+        <div className="sfr-fade-up bg-white border border-blue-200/60 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-sky-400 to-blue-500"></div>
             <div className="flex items-start gap-3">
                 <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-blue-100 shrink-0 shadow-sm"><img src="/images/aiwidget.png?v=2" alt="سنفور" className="w-full h-full object-cover" /></div>
                 <div className="flex-1 min-w-0">
@@ -482,13 +483,44 @@ const ProactiveBriefing = ({ insights, onQuick }) => {
                 </div>
             )}
 
-            {insights.quick_actions?.length > 0 && (
-                <div className="mt-3.5 flex flex-wrap gap-2">
-                    {insights.quick_actions.map((q, i) => (
-                        <button key={i} onClick={() => onQuick(q)} className="text-[10px] font-black bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all">{q}</button>
+        </div>
+    );
+};
+
+// ======================================================================
+// 🧠 Welcome Chat
+// ======================================================================
+const WelcomeChat = ({ insights, st, onQuick }) => {
+    const actions = insights?.quick_actions || [
+        "اقترح لي أفضل مواد أبدأ فيها",
+        "كم ساعة أسجل أول فصل؟",
+        "رتب لي خطة بداية بسيطة",
+        "كم ساعة أقدر أسجل هذا الفصل؟"
+    ];
+
+    return (
+        <div className="flex flex-col items-center justify-center text-center px-4 py-8 h-full sfr-fade-up">
+            <div className="w-20 h-20 mb-4 rounded-full overflow-hidden shadow-sm ring-4 ring-blue-50">
+                <img src="/images/aiwidget.png?v=2" alt="سنفور" className="w-full h-full object-cover" />
+            </div>
+            <h2 className="text-xl font-black text-slate-800 mb-2">أهلاً بك {st?.name?.split(' ')[0] || ''}! 👋</h2>
+            <p className="text-[13px] font-bold text-slate-500 mb-8 max-w-md leading-relaxed">
+                أنا دكتور سنفور، مستشارك الأكاديمي الذكي. 🤖<br/>
+                يمكنني مساعدتك في تخطيط جدولك، اختيار المواد المناسبة لرفع معدلك، وترتيب خطتك الدراسية لضمان تخرجك بأفضل صورة.
+            </p>
+            
+            <div className="w-full max-w-2xl bg-white border border-blue-100 rounded-3xl p-5 shadow-sm">
+                <p className="text-[12px] font-black text-blue-700 mb-4 flex items-center justify-center gap-2">
+                    <span className="text-lg">💡</span> جرب تسألني:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {actions.map((q, i) => (
+                        <button key={i} onClick={() => onQuick(q)} className="text-[11px] font-bold bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 p-3.5 rounded-2xl shadow-sm active:scale-[.98] transition-all text-right flex items-center gap-2">
+                            <span className="text-blue-500 text-sm">✨</span> <span className="flex-1">{q}</span>
+                        </button>
                     ))}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
@@ -1116,8 +1148,10 @@ export default function Advisor() {
                             <span className="group-hover:rotate-12 transition-transform">✨</span> محادثة جديدة
                         </button>
 
-                        {/* Student Info Card */}
-                        {st && (
+                        {/* Student Info Card / Briefing */}
+                        {proactiveInsights ? (
+                            <ProactiveBriefing insights={proactiveInsights} />
+                        ) : st && (
                             <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm p-3.5">
                                 <div className="flex items-center gap-3 mb-3">
                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 flex items-center justify-center text-lg font-black text-blue-700 shrink-0 overflow-hidden">
@@ -1130,7 +1164,6 @@ export default function Advisor() {
                                     {st.hours_completed != null && <div className="text-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase">منجزة</p><p className="text-[15px] font-black text-sky-700">{st.hours_completed}</p>{st.total_plan_hours && <p className="text-[7px] text-slate-400">/{st.total_plan_hours}</p>}</div>}
                                     {st.progress_percent != null && <div className="flex flex-col items-center bg-slate-50/80 rounded-xl p-2"><p className="text-[7px] font-bold text-slate-400 uppercase mb-0.5">التخرج</p><Ring pct={st.progress_percent} size={32} s={3} /><p className="text-[9px] font-black text-slate-700 mt-0.5">{st.progress_percent}%</p></div>}
                                 </div>
-                                {/* 🆕 تحديث الساعات في Sidebar لتكون ديناميكية */}
                                 {addedCount > 0 && <div className="mt-2 bg-emerald-50/80 rounded-xl p-2 flex items-center gap-2"><span className="text-sm">🛒</span><p className="text-[10px] font-black text-emerald-700">{addedCount} مادة بالتسجيل التجريبي</p>{cartHours > 0 && <span className="mr-auto text-[9px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">{cartHours}س</span>}</div>}
                             </div>
                         )}
@@ -1194,10 +1227,10 @@ export default function Advisor() {
                         <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-[#fafbfc] sfr-scrollbar">
                             {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-blue-400"><div className="w-7 h-7 border-[3px] border-blue-100 border-t-blue-600 rounded-full animate-spin mb-2" /><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                                 <div className="space-y-3">
-                                    {proactiveInsights && !activeId && msgs.length === 1 && msgs[0].id === 'welcome' && (
-                                        <ProactiveBriefing insights={proactiveInsights} onQuick={send} />
+                                    {!activeId && msgs.length === 1 && msgs[0].id === 'welcome' && (
+                                        <WelcomeChat insights={proactiveInsights} st={st} onQuick={send} />
                                     )}
-                                    {msgs.map(m => (proactiveInsights && m.id === 'welcome') ? null : <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} />)}
+                                    {msgs.map(m => (!activeId && msgs.length === 1 && m.id === 'welcome') ? null : <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} />)}
                                     {typing && <div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover" /></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot" />{regenning && <span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}<span className="text-[12px] font-bold text-slate-500 animate-pulse transition-opacity duration-500 mr-2">{thinkingPhrases[thinkingIndex]}</span></div></div>}
                                 </div>)}<div className="h-2" />
                         </div>
