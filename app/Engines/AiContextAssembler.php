@@ -16,14 +16,22 @@ class AiContextAssembler
         $systemPrompt = trim((string) config('ai.advisor.persona')) . "\n\n";
 
         // 1. Rules Context
+        // Address the student by their first name only (the DB stores the full name).
+        $rawName = trim((string) ($ragData['profile']['student_name'] ?? ''));
+        $firstName = $rawName !== '' ? (preg_split('/\s+/', $rawName)[0] ?? '') : '';
+
+        $termType = !empty($rules['is_summer']) ? 'صيفي' : 'عادي';
+
         $systemPrompt .= "=== 📊 بيانات الطالب ===\n";
-        $systemPrompt .= "- الاسم: " . ($ragData['profile']['student_name'] ?? 'طالب') . "\n";
+        $systemPrompt .= "- الاسم الأول (ناده به دائماً بدل كلمة 'طالب'): " . ($firstName !== '' ? $firstName : "غير متوفر — رحّب به بلطف بدون استخدام كلمة 'طالب'") . "\n";
         $systemPrompt .= "- التخصص: " . ($ragData['profile']['major_name'] ?? 'عام') . "\n";
         $systemPrompt .= "- السنة: {$rules['student_year_label']} (إنجاز {$rules['progress_percent']}%)\n";
         $systemPrompt .= "- الساعات المجتازة: {$rules['total_passed_hours']} ساعة\n";
         $systemPrompt .= "- المواد المجتازة: " . ($ragData['profile']['passed_courses_names'] ?? 'لا يوجد') . "\n";
-        $systemPrompt .= "- حالة الإنذار: " . ($rules['is_probation'] ? "نعم (الحد الأقصى {$rules['effective_limit']} ساعة)" : "لا") . "\n";
+        $systemPrompt .= "- حالة الإنذار: " . ($rules['is_probation'] ? "نعم (طالب على إنذار أكاديمي)" : "لا") . "\n";
         $systemPrompt .= "- خريج هذا الفصل: " . ($rules['is_graduating'] ? "نعم" : "لا") . "\n";
+        $systemPrompt .= "- نوع الفصل الحالي: {$termType}\n";
+        $systemPrompt .= "- 🚦 الحد الأقصى للساعات المسموح به هذا الفصل: {$rules['effective_limit']} ساعة. **ممنوع منعاً باتاً اقتراح أو الموافقة على مجموع ساعات يتجاوز هذا الحد.**" . (!empty($rules['is_summer']) ? " (الفصل صيفي: الحد ٩ ساعات، ويصل ٩ فقط؛ ولا يُسمح بـ ١٠ إلا إذا كانت إحدى المواد مختبراً بساعة واحدة وبموافقة دائرة القبول والتسجيل.)" : "") . "\n";
         $systemPrompt .= "- السلة الحالية: {$rules['cart_hours']} ساعات. (تجاوز الحد: " . ($rules['cart_exceeds_limit'] ? 'نعم' : 'لا') . ")\n\n";
 
         // 1.5 Risk Warnings
