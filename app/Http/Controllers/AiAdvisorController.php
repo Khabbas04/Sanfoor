@@ -1254,7 +1254,7 @@ class AiAdvisorController extends Controller
             "- تخصص إجباري: أنجز {$academicData['passed_compulsory']} / 87 ساعة\n" .
             "- تخصص اختياري: أنجز {$academicData['passed_elective']} / 9 ساعات\n" .
             "- مساندة: أنجز {$academicData['passed_supporting']} / 6 ساعات\n" .
-            "المواد التي أتمها الطالب (ناجح فيها): " . ($academicData['passed_courses_names'] ?: 'لم ينجز أي مواد بعد') . "\n" .
+            "المواد التي أتمها الطالب (ناجح فيها): " . ($academicData['passed_courses_names'] ?: 'لم ينجز أي مواد بعد') . " (⛔ هذه مواد ماضية، إياك أن تدرج أي منها ضمن جدول الفصل الحالي أو تحسب ساعاتها ضمن تسجيله الجديد)\n" .
             "التسجيل التجريبي الحالي: " . ($cartListWithIds ?: 'فارغ') . " ({$cartData['hours']}س)" . ($cartWarning ? " | تنبيه: تجاوز الحد الفعلي {$effectiveLimit}س" : '') . "\n\n" .
             "✅ المواد المتاحة للتسجيل للطالب (استخدم هذه القائمة فقط للاقتراح وإضافة المواد). العمود الأول (ID) هو الرقم التعريفي للمادة:\n{$availableCourses['available_text']}\n\n" .
             "🔒 المواد المغلقة حالياً — **هذه مواد موجودة في خطة الطالب لكنها مقفلة مؤقتاً** (لا تقترحها للتسجيل، لكن إذا سأل عنها الطالب فأكّد أنها موجودة واشرح سبب إغلاقها من عمود Reason ومتى يقدر يأخذها). الأعمدة: ID,Code,Name,Hrs,Status,Reason,Desc:\n{$availableCourses['locked_text']}\n\n" .
