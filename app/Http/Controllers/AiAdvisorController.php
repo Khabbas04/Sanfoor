@@ -66,7 +66,16 @@ class AiAdvisorController extends Controller
         $usage = (int) Cache::get($usageKey, 0);
         $remaining = $dailyLimit === null ? null : max(0, $dailyLimit - $usage);
 
+        // Proactive briefing shown the moment the page loads (deterministic, no API cost).
+        $proactiveInsights = null;
+        try {
+            $proactiveInsights = app(\App\Engines\ProactiveInsightsEngine::class)->generate($user);
+        } catch (\Throwable $e) {
+            Log::warning('Proactive insights generation failed: ' . $e->getMessage());
+        }
+
         return Inertia::render('Ai/Advisor', [
+            'proactiveInsights' => $proactiveInsights,
             'studentStats' => [
                 'name' => $user->name ?? 'طالب',
                 'major' => $user->major?->name ?? 'غير محدد',

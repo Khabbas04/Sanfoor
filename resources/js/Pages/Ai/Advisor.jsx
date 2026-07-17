@@ -426,10 +426,78 @@ const Ring = ({ pct, size = 40, s = 3.5 }) => {
 };
 
 // ======================================================================
+// 🧠 Proactive Briefing — personalized analysis shown on page open
+// ======================================================================
+const BRIEF_CHIP = {
+    risk: 'bg-red-50 border-red-200 text-red-700',
+    warning: 'bg-amber-50 border-amber-200 text-amber-800',
+    opportunity: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    pivotal: 'bg-indigo-50 border-indigo-200 text-indigo-800',
+};
+const briefBold = (t) => String(t ?? '').split(/(\*\*[^*]+\*\*)/g).map((x, i) =>
+    x.startsWith('**') && x.endsWith('**')
+        ? <strong key={i} className="font-extrabold">{x.slice(2, -2)}</strong>
+        : <span key={i}>{x}</span>);
+
+const ProactiveBriefing = ({ insights, onQuick }) => {
+    const p = insights.progress || {};
+    return (
+        <div className="sfr-fade-up bg-gradient-to-br from-white to-blue-50/40 border border-blue-100 rounded-3xl p-4 md:p-5 shadow-sm">
+            <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-full overflow-hidden ring-2 ring-blue-100 shrink-0 shadow-sm"><img src="/images/aiwidget.png?v=2" alt="سنفور" className="w-full h-full object-cover" /></div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-black text-slate-800">{insights.greeting}</p>
+                    <p className="text-[12px] font-bold text-blue-700 leading-snug">{insights.headline}</p>
+                </div>
+                {p.percent != null && (
+                    <div className="relative flex items-center justify-center shrink-0"><Ring pct={p.percent} size={44} s={3.5} /><span className="absolute text-[10px] font-black text-slate-700">{p.percent}%</span></div>
+                )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-3">
+                <div className="bg-white border border-slate-100 rounded-xl px-3 py-1.5"><p className="text-[7px] font-bold text-slate-400 uppercase">الساعات</p><p className="text-[12px] font-black text-slate-700">{p.passed}/{p.total}</p></div>
+                {insights.gpa != null && <div className="bg-white border border-slate-100 rounded-xl px-3 py-1.5"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل</p><p className="text-[12px] font-black text-blue-700">{insights.gpa}%</p></div>}
+                <div className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 flex-1 min-w-[150px]"><p className="text-[7px] font-bold text-slate-400 uppercase">🎓 توقّع التخرج</p><p className="text-[10px] font-bold text-slate-600 leading-tight">{insights.graduation_forecast}</p></div>
+            </div>
+
+            {insights.highlights?.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                    {insights.highlights.map((h, i) => (
+                        <div key={i} className={`flex items-start gap-2 p-2.5 rounded-xl border text-[11px] font-bold leading-snug ${BRIEF_CHIP[h.type] || BRIEF_CHIP.opportunity}`}>
+                            <span className="text-sm shrink-0">{h.icon}</span>
+                            <span className="flex-1">{briefBold(h.text)}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {insights.sections?.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                    {insights.sections.map((s, i) => (
+                        <div key={i} className="bg-white border border-slate-100 rounded-xl p-2">
+                            <div className="flex items-center justify-between mb-1"><span className="text-[9px] font-black text-slate-600">{s.icon} {s.label}</span><span className="text-[8px] font-bold text-slate-400">{s.done}/{s.total}</span></div>
+                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-sky-400 to-blue-500 rounded-full transition-all duration-700" style={{ width: `${s.percent}%` }} /></div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {insights.quick_actions?.length > 0 && (
+                <div className="mt-3.5 flex flex-wrap gap-2">
+                    {insights.quick_actions.map((q, i) => (
+                        <button key={i} onClick={() => onQuick(q)} className="text-[10px] font-black bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-full shadow-sm active:scale-95 transition-all">{q}</button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ======================================================================
 // 🧠 MAIN
 // ======================================================================
 export default function Advisor() {
-    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive } = usePage().props;
+    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive, proactiveInsights } = usePage().props;
 
     const [remaining, setRemaining] = useState(initialHasDailyLimit ? (initialRemaining ?? 5) : null);
     const [hasDailyLimit, setHasDailyLimit] = useState(initialHasDailyLimit ?? true);
@@ -1126,7 +1194,10 @@ export default function Advisor() {
                         <div ref={chatRef} className="flex-1 overflow-y-auto p-3 md:p-5 pb-5 space-y-3 bg-[#fafbfc] sfr-scrollbar">
                             {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-blue-400"><div className="w-7 h-7 border-[3px] border-blue-100 border-t-blue-600 rounded-full animate-spin mb-2" /><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                                 <div className="space-y-3">
-                                    {msgs.map(m => <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} />)}
+                                    {proactiveInsights && !activeId && msgs.length === 1 && msgs[0].id === 'welcome' && (
+                                        <ProactiveBriefing insights={proactiveInsights} onQuick={send} />
+                                    )}
+                                    {msgs.map(m => (proactiveInsights && m.id === 'welcome') ? null : <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} />)}
                                     {typing && <div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover" /></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot" />{regenning && <span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}<span className="text-[12px] font-bold text-slate-500 animate-pulse transition-opacity duration-500 mr-2">{thinkingPhrases[thinkingIndex]}</span></div></div>}
                                 </div>)}<div className="h-2" />
                         </div>
