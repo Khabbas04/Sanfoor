@@ -17,7 +17,6 @@ export default defineConfig({
             output: {
                 manualChunks: {
                     react_vendor: ['react', 'react-dom', '@inertiajs/react'],
-                    mermaid_vendor: ['mermaid'],
                     chart_vendor: ['recharts', 'reactflow', 'dagre']
                 }
             }
