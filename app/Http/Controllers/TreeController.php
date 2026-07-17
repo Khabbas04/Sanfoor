@@ -606,8 +606,17 @@ class TreeController extends Controller
                     $query->where(function ($majorScope) use ($user) {
                         $majorScope->where('major_id', $user->major_id)
                             ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                    })->orWhere(function ($collegeScope) use ($user) {
+                        if ($user->major && $user->major->college_id) {
+                            $collegeScope->whereNull('major_id')
+                                ->where('college_id', $user->major->college_id)
+                                ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
+                        } else {
+                            $collegeScope->whereRaw('1 = 0');
+                        }
                     })->orWhere(function ($universityScope) use ($user) {
                         $universityScope->whereNull('major_id')
+                            ->whereNull('college_id')
                             ->where('study_plan_version', (int) ($user->study_plan_version ?? 12));
                     });
                 })
