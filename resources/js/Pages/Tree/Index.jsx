@@ -2972,8 +2972,8 @@ export default function Tree({
 
         const handleRegeneratePlan = async () => {
             Swal.fire({
-                title: 'جاري التفكير...',
-                text: 'د. سنفور يقوم بتوزيع المواد المتبقية بناءً على المتطلبات والخطط الدراسية 🧠✨',
+                title: 'جاري توليد الخطة...',
+                text: 'د. سنفور يقوم بتوزيع المواد المتبقية بناءً على المتطلبات الأكاديمية 🚀',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -2981,53 +2981,23 @@ export default function Tree({
                 ...swalTheme
             });
 
-            try {
-                const response = await axios.post(route('ai.full_plan'));
-                
-                if (response.data.plan && response.data.plan.length > 0) {
-                    const aiSemesters = response.data.plan.map((sem, index) => {
-                        const isSummer = sem.title?.includes('صيفي');
-                        const courseIds = (sem.courses || []).map(c => Number(c.course_id));
-                        const mappedCourses = courseIds.map(id => coursesWithDifficulty.find(c => c.id === id)).filter(Boolean);
-                        
-                        return {
-                            semester: index + 1,
-                            is_summer: isSummer,
-                            courses: mappedCourses,
-                            title: sem.title
-                        };
-                    });
-                    
-                    setPlanDraft({ semesters: aiSemesters });
+            setTimeout(() => {
+                try {
+                    const generated = buildPredictivePlan();
+                    setPlanDraft(generated);
                     setPlanNotes('');
-                    
+                    Swal.close();
+                } catch (error) {
+                    console.error('Plan Generation Error:', error);
                     Swal.fire({
-                        icon: 'success',
-                        title: 'تم التخطيط بذكاء! 🚀',
-                        text: 'تم بناء الخطة الكاملة حتى التخرج.',
-                        ...swalTheme
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'الخطة مكتملة',
-                        text: 'يبدو أنك قد أنهيت جميع متطلبات التخرج!',
+                        icon: 'error',
+                        title: 'تعذر التوليد',
+                        text: 'حدث خطأ أثناء بناء الخطة.',
                         ...swalTheme
                     });
                 }
-            } catch (error) {
-                console.error('AI Full Plan Error:', error);
-                // Fallback to local algorithm if AI fails
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'تم استخدام الخوارزمية المحلية',
-                    text: 'حدث خطأ في الاتصال بالذكاء الاصطناعي، فتم استخدام الخوارزمية المحلية بدلاً منه.',
-                    ...swalTheme
-                });
-                const generated = buildPredictivePlan();
-                setPlanDraft(generated);
-                setPlanNotes('');
-            }
+            }, 300);
+
         };
 
         const handleClearPlan = () => {
@@ -3078,7 +3048,7 @@ export default function Tree({
                                 <button onClick={handleLoadApproved} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">📥 المعتمدة</button>
                             )}
                             <button onClick={handleClearPlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-rose-500/80 transition-all">🗑️ تصفير</button>
-                            <button onClick={handleRegeneratePlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🔄 توليد ذكي</button>
+                            <button onClick={handleRegeneratePlan} className="px-3.5 py-2 rounded-xl text-[11px] font-[800] bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">🔄 توليد تلقائي</button>
                             <button onClick={handleApprovePlan} disabled={isSavingPlan} className="px-4 py-2.5 rounded-xl text-[11px] font-[900] bg-emerald-500 text-white shadow-lg hover:bg-emerald-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                                 {isSavingPlan ? 'جارٍ الاعتماد...' : '✅ اعتماد الخطة'}
                             </button>
