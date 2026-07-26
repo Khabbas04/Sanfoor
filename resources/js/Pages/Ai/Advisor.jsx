@@ -6,11 +6,32 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Swal from 'sweetalert2';
 const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
+const AiCharts = React.lazy(() => import('@/Components/AiCharts'));
 // Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
 // Shared SweetAlert configuration for advisor-side confirmations and alerts.
 const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl font-t', title: 'font-t font-black', htmlContainer: 'font-t font-bold text-sm' } };
+
+const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+// Read one SSE frame ("event: x\ndata: {...}") into { event, data }.
+const parseSseFrame = (frame) => {
+    let event = 'message';
+    const dataLines = [];
+
+    for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+
+    let data = null;
+    if (dataLines.length) {
+        try { data = JSON.parse(dataLines.join('')); } catch { data = null; }
+    }
+
+    return { event, data };
+};
 
 // Clean an AI reply before markdown rendering:
 //  - The skill-tree feature was removed. Older stored messages may still contain a
@@ -433,10 +454,17 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
     );
 };
 
+// Charts pull in recharts, so they load only when a reply actually contains one.
+const ChartWidget = ({ widget }) => (
+    <React.Suspense fallback={<div className="sfr-attach"><div className="h-[190px] rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-center"><span className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" /></div></div>}>
+        <AiCharts widget={widget} />
+    </React.Suspense>
+);
+
 // Widget Router
 const Widget = ({ widget, addedCourses, onToggleCourse, loadingCourseId, onSubmit }) => {
     if (!widget?.type) return null;
-    const map = { comparison: ComparisonWidget, poll: PollWidget, hours_slider: HoursSliderWidget, cart_review: CartReviewWidget };
+    const map = { comparison: ComparisonWidget, poll: PollWidget, hours_slider: HoursSliderWidget, cart_review: CartReviewWidget, gpa_forecast: ChartWidget, radar: ChartWidget };
     const C = map[widget.type]; if (!C) return null;
     return <C widget={widget} addedCourses={addedCourses} onToggleCourse={onToggleCourse} loadingCourseId={loadingCourseId} onSubmit={onSubmit} />;
 };
@@ -476,6 +504,10 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
         return { suggest: take(msg.suggested_courses), remove: take(msg.courses_to_remove) };
     }, [msg.suggested_courses, msg.courses_to_remove, msg.interactive_widget]);
 
+    // Appended blocks (courses, widgets, actions) only make sense once the reply is
+    // complete — mid-stream they would pop in against a half-written answer.
+    const settled = !msg.isAnimating && !msg.isStreaming;
+
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex w-full ${u ? 'md:max-w-[75%] justify-end' : 'w-full'} gap-3 ${u ? 'flex-row-reverse' : ''} items-start`}>
@@ -488,11 +520,12 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
                             <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone} />
-                            {!msg.isAnimating && suggest.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-blue-600">✨ مواد مقترحة</p><div className="space-y-1.5">{suggest.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>}
-                            {!msg.isAnimating && remove.some(c => added[c.id]) && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-rose-600">⚠️ تخفيف العبء</p><div className="space-y-1.5">{remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
-                            {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow} />}
-                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-slate-500">💬 أسئلة متابعة</p><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q, i) => <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10.5px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all active:scale-95">{q}</button>)}</div></div>}
-                            {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb} />}
+                            {msg.isStreaming && <span className="sfr-caret" aria-hidden="true" />}
+                            {settled && suggest.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-blue-600">✨ مواد مقترحة</p><div className="space-y-1.5">{suggest.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>}
+                            {settled && remove.some(c => added[c.id]) && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-rose-600">⚠️ تخفيف العبء</p><div className="space-y-1.5">{remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
+                            {settled && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow} />}
+                            {settled && msg.follow_up_suggestions?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-slate-500">💬 أسئلة متابعة</p><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q, i) => <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10.5px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all active:scale-95">{q}</button>)}</div></div>}
+                            {settled && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb} />}
                         </div>
                     )}
                 </div>
@@ -931,18 +964,150 @@ export default function Advisor() {
         });
         setTyping(true);
 
+        if (abortRef.current) abortRef.current.abort();
+        abortRef.current = new AbortController();
+        const signal = abortRef.current.signal;
+
+        const basePayload = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath, wants_code: wantsCode };
+        if (activeId) basePayload.chat_id = activeId;
+
+        // Shared tail for both transports: limits, cart refresh, chat list bookkeeping.
+        const applyMeta = (data) => {
+            if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
+            if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
+            setIsFallback(!!data.is_fallback);
+
+            if (data.refresh_cart) router.reload({ only: ['initialCartIds', 'studentStats'] });
+
+            if (!activeId && data.chat_id) {
+                setActiveId(data.chat_id);
+                setChats(p => p.some(c => c.id === data.chat_id) ? p : [{ id: data.chat_id, title: data.chat_title || t.substring(0, 40) + '...', created_at: new Date().toISOString() }, ...p]);
+            } else if (data.chat_title && data.chat_id) {
+                setChats(p => p.map(c => c.id === data.chat_id ? { ...c, title: data.chat_title } : c));
+            }
+        };
+
+        const aiId = `ai-${Date.now()}`;
+        let streamedChatId = null;   // chat the stream created, so a retry reuses it
+        let streamedText = '';       // what the student already saw
+
+        // ── 1. Streaming transport (SSE) ────────────────────────────────────────
+        // Falls through to the blocking endpoint on any failure; that endpoint owns
+        // the local-fallback reply, so nothing is lost by trying this first.
         try {
-            if (abortRef.current) abortRef.current.abort();
-            abortRef.current = new AbortController();
-
-            const pl = { message: t, filters: selectedFilters, difficulty, critical_path: criticalPath, wants_code: wantsCode };
-            if (activeId) pl.chat_id = activeId;
-
-            const res = await axios.post(route('ai.advisor.chat'), pl, {
-                signal: abortRef.current.signal,
-                timeout: 30000,
+            const res = await fetch(route('ai.advisor.stream'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-CSRF-TOKEN': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify(basePayload),
+                credentials: 'same-origin',
+                signal,
             });
 
+            const isSse = (res.headers.get('content-type') || '').includes('text/event-stream');
+
+            if (!res.ok || !isSse || !res.body) {
+                // A quota/rate-limit answer is final — don't retry it as a normal send.
+                if (res.status === 429) {
+                    const j = await res.json().catch(() => null);
+                    setTyping(false);
+                    if (j?.daily_messages_remaining !== undefined) setRemaining(j.daily_messages_remaining);
+                    if (j?.has_daily_limit !== undefined) setHasDailyLimit(!!j.has_daily_limit);
+                    setMsgs(p => [...p, { id: `e-${Date.now()}`, role: 'ai', content: j?.message || 'وصلت للحد المسموح من الرسائل.', isAnimating: false }]);
+                    setTimeout(scroll, 100);
+                    return;
+                }
+                throw new Error('stream_unavailable');
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let finished = false;
+
+            while (!finished) {
+                const { value, done } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                let cut;
+                while ((cut = buffer.indexOf('\n\n')) !== -1) {
+                    const { event, data } = parseSseFrame(buffer.slice(0, cut));
+                    buffer = buffer.slice(cut + 2);
+
+                    if (event === 'open') {
+                        streamedChatId = data?.chat_id ?? null;
+                        continue;
+                    }
+
+                    if (event === 'delta' && data?.text) {
+                        const firstChunk = streamedText === '';
+                        streamedText += data.text;
+
+                        if (firstChunk) {
+                            setTyping(false);
+                            setGenerating(true);
+                            // isAnimating stays false: the text is already arriving
+                            // progressively, so the typewriter would double-animate it.
+                            setMsgs(p => [...p, { id: aiId, role: 'ai', content: streamedText, isAnimating: false, isStreaming: true }]);
+                        } else {
+                            setMsgs(p => p.map(m => m.id === aiId ? { ...m, content: streamedText } : m));
+                        }
+                        scroll();
+                        continue;
+                    }
+
+                    if (event === 'done' && data) {
+                        finished = true;
+                        setTyping(false);
+                        setGenerating(false);
+                        applyMeta(data);
+
+                        const finalReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : (streamedText || 'ما وصلني رد واضح.');
+                        const payload = {
+                            id: aiId,
+                            role: 'ai',
+                            content: finalReply,
+                            suggested_courses: data.suggested_courses || [],
+                            courses_to_remove: data.courses_to_remove || [],
+                            follow_up_suggestions: data.follow_up_suggestions || [],
+                            interactive_widget: data.interactive_widget || null,
+                            isAnimating: false,
+                            isStreaming: false,
+                        };
+                        setMsgs(p => p.some(m => m.id === aiId) ? p.map(m => m.id === aiId ? payload : m) : [...p, payload]);
+                        setTimeout(scroll, 100);
+                        return;
+                    }
+
+                    if (event === 'error') {
+                        streamedChatId = data?.chat_id ?? streamedChatId;
+                        throw new Error('stream_failed');
+                    }
+                }
+            }
+
+            // Connection ended without a `done` frame — treat as a failed stream.
+            throw new Error('stream_incomplete');
+        } catch (err) {
+            if (err?.name === 'AbortError' || signal.aborted) { setTyping(false); return; }
+
+            // Drop the half-written bubble; the retry renders the complete reply.
+            if (streamedText) setMsgs(p => p.filter(m => m.id !== aiId));
+            streamedText = '';
+        }
+
+        // ── 2. Blocking transport (JSON) ───────────────────────────────────────
+        try {
+            setTyping(true);
+            const pl = { ...basePayload };
+            if (streamedChatId) {
+                // The stream already created the chat and stored this message.
+                pl.chat_id = streamedChatId;
+                pl.user_message_stored = true;
+            }
+
+            const res = await axios.post(route('ai.advisor.chat'), pl, { signal, timeout: 30000 });
             const data = res.data;
             setTyping(false);
 
@@ -953,18 +1118,12 @@ export default function Advisor() {
                 return;
             }
 
-            if (data.has_daily_limit !== undefined) setHasDailyLimit(!!data.has_daily_limit);
-            if (data.daily_messages_remaining !== undefined) setRemaining(data.daily_messages_remaining);
-            setIsFallback(!!data.is_fallback);
+            applyMeta(data);
 
             const safeReply = typeof data.reply === 'string' && data.reply.trim() ? data.reply : 'ما وصلني رد واضح.';
             setGenerating(true);
             if (typewriterTimeoutRef.current) clearTimeout(typewriterTimeoutRef.current);
             typewriterTimeoutRef.current = setTimeout(() => setGenerating(false), 12000);
-
-            if (data.refresh_cart) {
-                router.reload({ only: ['initialCartIds', 'studentStats'] });
-            }
 
             setMsgs(p => [...p, {
                 id: `ai-${Date.now()}`,
@@ -976,14 +1135,6 @@ export default function Advisor() {
                 interactive_widget: data.interactive_widget || null,
                 isAnimating: true
             }]);
-
-            if (!activeId && data.chat_id) {
-                setActiveId(data.chat_id);
-                setChats(p => [{ id: data.chat_id, title: data.chat_title || t.substring(0, 40) + '...', created_at: new Date().toISOString() }, ...p]);
-            } else if (data.chat_title && data.chat_id) {
-                setChats(p => p.map(c => c.id === data.chat_id ? { ...c, title: data.chat_title } : c));
-            }
-
         } catch (err) {
             setTyping(false);
             if (axios.isCancel(err) || err?.name === 'AbortError') return;
@@ -992,7 +1143,7 @@ export default function Advisor() {
             setGenerating(false);
             setTimeout(scroll, 100);
         }
-    }, [activeId, generating, typing, magicCommands, scroll, selectedFilters, difficulty, criticalPath]);
+    }, [activeId, generating, typing, magicCommands, scroll, selectedFilters, difficulty, criticalPath, wantsCode]);
 
 
     const handleSend = e => { e.preventDefault(); send(input); };
@@ -1273,6 +1424,10 @@ export default function Advisor() {
             .sfr-md .sfr-code__copy:hover { background: rgba(148,163,184,.3); color: #fff; }
             .sfr-md .sfr-code__body { padding: .8rem; overflow-x: auto; }
             .sfr-md .sfr-code__body code { color: #e6edf3; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.75; display: block; white-space: pre; }
+
+            /* Caret shown while the reply is still streaming in. */
+            .sfr-caret { display: inline-block; width: 2px; height: 13px; background: var(--sfr-primary); margin-inline-start: 2px; vertical-align: -2px; animation: sfr-blink 1s steps(2, start) infinite; }
+            @keyframes sfr-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
             /* Blocks appended under a reply (courses, widgets, follow-ups). */
             .sfr-attach { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid #eef2f7; }

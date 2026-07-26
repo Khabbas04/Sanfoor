@@ -18,7 +18,8 @@ use Inertia\Inertia;
 
 class AiAdvisorController extends Controller
 {
-    private const MAX_CONTEXT_MESSAGES = 16;
+    // Verbatim history size now lives in ConversationMemoryEngine::VERBATIM_MESSAGES,
+    // which also decides what gets folded into the rolling summary instead.
     private const RATE_LIMIT_PER_HOUR = 40;
     private const MAX_FOLLOW_UP_SUGGESTIONS = 3;
     private const MAX_WIDGET_ITEMS = 8;
@@ -119,6 +120,9 @@ class AiAdvisorController extends Controller
             'filters.*' => ['string'],
             'difficulty' => ['nullable', 'string', 'in:easy,balanced,hard'],
             'critical_path' => ['nullable', 'boolean'],
+            // Set when retrying after a failed stream(): that request already stored
+            // the student's message, so storing it again would duplicate the turn.
+            'user_message_stored' => ['nullable', 'boolean'],
         ]);
 
         $user = Auth::user();
@@ -158,10 +162,12 @@ class AiAdvisorController extends Controller
         $chatId = $chat->id;
         $isNewChat = $chat->wasRecentlyCreated;
 
-        $chat->messages()->create([
-            'role' => 'user',
-            'content' => $data['message'],
-        ]);
+        if (empty($data['user_message_stored'])) {
+            $chat->messages()->create([
+                'role' => 'user',
+                'content' => $data['message'],
+            ]);
+        }
 
         $academicData = $this->getStudentAcademicData($user);
         $cartData = $this->getCartData($user);
@@ -227,114 +233,14 @@ class AiAdvisorController extends Controller
                 $suggestedDetails = $parsed['suggested_courses'];
                 $removeDetails = $parsed['courses_to_remove'];
             } else {
-                // --- ENTERPRISE AI PIPELINE ENGINES ---
-                
-                // 1. Structured RAG & Academic Rules
-                $ragEngine = app(\App\Engines\StructuredRagEngine::class);
-                $rulesEngine = app(\App\Engines\AcademicRulesEngine::class);
-                
-                $ragData = $ragEngine->gather($user);
-                $rules = $rulesEngine->evaluate($user, ['total_passed_hours' => $ragData['profile']['total_passed_hours']], $ragData['cart']['hours']);
-                
-                // 2. Course Ranking Engine
-                $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
-                $rankedCourses = $rankingEngine->rank($ragData['available_courses'], $rules, $data['message']);
-                
-                // 3. Document RAG Engine
-                $docEngine = app(\App\Engines\DocumentRagEngine::class);
-                $docContext = $docEngine->search($data['message'], 10);
-                
-                // 3.5 Risk Prediction Engine
-                $riskEngine = app(\App\Engines\RiskPredictionEngine::class);
-                // We need to fetch the cart course details for risk prediction
-                // $ragData['cart']['ids'] has the ids, but we need details.
-                // Actually, the available_courses has details, but cart courses might not be in available_courses.
-                // Let's pass the raw cartData which has ids and list, but maybe not difficulty.
-                // We can fetch cart courses from DB or just pass $ragData.
-                // Wait, $ragData has 'cart' => ['hours' => X, 'ids' => [...], 'list' => '...'].
-                // For a quick fix, let's fetch the actual cart courses here.
-                $cartCourseDetails = \App\Models\Course::whereIn('id', $ragData['cart']['ids'] ?? [])->get()->toArray();
-                $riskWarnings = $riskEngine->evaluate($user, $cartCourseDetails, $rules);
+                $pipeline = $this->runAdvisorPipeline($user, $chat, $data, $academicData, $cartData, $availableCourses, $geminiService);
 
-                // 4. Ai Context Assembler
-                $assembler = app(\App\Engines\AiContextAssembler::class);
-                $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings);
-                
-                // 5. Build Conversation Context
-                $contents = $this->buildConversationContext($chat);
-
-                $refreshCartFlag = false;
-                $rawText = $geminiService->callGeminiAPI($contents, [
-                    'systemInstruction' => $systemInstruction,
-                    'generationConfig' => [
-                        'maxOutputTokens' => (int) config('ai.generation.max_output_tokens', 2000),
-                        'temperature' => (float) config('ai.generation.temperature', 0.25),
-                        'responseMimeType' => 'application/json',
-                    ],
-                    'timeout' => 22,
-                ]);
-
-                // Check if the response contains courses to add (from schema!)
-                $parsed = $this->parseAIResponse($rawText);
-                
-                if (!empty($parsed['courses_to_add'])) {
-                    foreach ($parsed['courses_to_add'] as $courseId) {
-                        $course = \App\Models\Course::find($courseId);
-                        if ($course) {
-                            \App\Models\UserCart::firstOrCreate([
-                                'user_id' => $user->id,
-                                'course_id' => $course->id,
-                                'academic_year' => $academicData['current_period_year'] ?? 2026,
-                                'academic_term' => $academicData['current_period_term'] ?? 1,
-                            ]);
-                            $refreshCartFlag = true;
-                        }
-                    }
-                }
-
-                // 6. Validate AI Response (Hallucination & Overflow Check)
-                $validator = app(\App\Engines\ValidationEngine::class);
-                $parsed = $validator->validate($parsed, $ragData, $rules);
-
-                if (isset($parsed['warning'])) {
-                    $parsed['reply'] = $parsed['warning'] . "\n\n" . $parsed['reply'];
-                }
-                $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
-                $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
-                $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
-                
-                $availableDetailsMap = [];
-                foreach (($availableCourses['details'] ?? []) as $cid => $cdata) {
-                    $availableDetailsMap[$cid] = $cdata['name'];
-                }
-
-                $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableDetailsMap, $cartData['map']);
-
-                $eligibleIds = array_map('intval', array_keys($availableDetailsMap));
-                $cartIds = array_map('intval', array_keys($cartData['map']));
-
-                $suggestedIds = array_values(array_intersect($parsed['suggested_course_ids'] ?? [], $eligibleIds));
-                $removeIds = array_values(array_intersect($parsed['remove_course_ids'] ?? [], $cartIds));
-
-                if (empty($suggestedIds) && empty($removeIds)) {
-                    $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
-                    $suggestedIds = $matched['suggested'];
-                    $removeIds = $matched['remove'];
-                }
-
-
-                $suggestedDetails = !empty($suggestedIds)
-                    ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
-                    : [];
-                $removeDetails = !empty($removeIds)
-                    ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
-                    : [];
-
-                // Safety net: if any older stored prompt still emits the placeholder,
-                // strip it so the raw token never reaches the student.
-                if (str_contains($replyText, '%%SKILL_TREE%%')) {
-                    $replyText = trim(str_replace('%%SKILL_TREE%%', '', $replyText));
-                }
+                $replyText = $pipeline['reply'];
+                $followUpSuggestions = $pipeline['follow_up_suggestions'];
+                $interactiveWidget = $pipeline['interactive_widget'];
+                $suggestedDetails = $pipeline['suggested_courses'];
+                $removeDetails = $pipeline['courses_to_remove'];
+                $refreshCartFlag = $pipeline['refresh_cart'];
             }
 
             $chat->messages()->create([
@@ -354,6 +260,10 @@ class AiAdvisorController extends Controller
                     : $this->makeFallbackTitle($data['message']);
 
                 $chat->update(['title' => $title]);
+            }
+
+            if (!$useFallback) {
+                $this->queueContextSummary($chat);
             }
 
             $newRemaining = null;
@@ -461,6 +371,327 @@ class AiAdvisorController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * The advisor generation pipeline: gather context, call Gemini, validate the
+     * answer and resolve it into the payload the frontend renders.
+     *
+     * Shared by the blocking endpoint (chat) and the streaming one (stream). When
+     * $onDelta is given the model is called in streaming mode and every newly
+     * arrived slice of the reply text is handed to that callback.
+     *
+     * @return array{reply: string, suggested_courses: array, courses_to_remove: array, follow_up_suggestions: array, interactive_widget: ?array, refresh_cart: bool}
+     */
+    private function runAdvisorPipeline($user, Chat $chat, array $data, array $academicData, array $cartData, array $availableCourses, $geminiService, ?callable $onDelta = null): array
+    {
+        // --- ENTERPRISE AI PIPELINE ENGINES ---
+
+        // 1. Structured RAG & Academic Rules
+        $ragEngine = app(\App\Engines\StructuredRagEngine::class);
+        $rulesEngine = app(\App\Engines\AcademicRulesEngine::class);
+
+        $ragData = $ragEngine->gather($user);
+        $rules = $rulesEngine->evaluate($user, ['total_passed_hours' => $ragData['profile']['total_passed_hours']], $ragData['cart']['hours']);
+
+        // 2. Course Ranking Engine
+        $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
+        $rankedCourses = $rankingEngine->rank($ragData['available_courses'], $rules, $data['message']);
+
+        // 3. Document RAG Engine
+        $docEngine = app(\App\Engines\DocumentRagEngine::class);
+        $docContext = $docEngine->search($data['message'], 10);
+
+        // 3.5 Risk Prediction Engine (needs cart course details, not just ids)
+        $riskEngine = app(\App\Engines\RiskPredictionEngine::class);
+        $cartCourseDetails = Course::whereIn('id', $ragData['cart']['ids'] ?? [])->get()->toArray();
+        $riskWarnings = $riskEngine->evaluate($user, $cartCourseDetails, $rules);
+
+        // 4. Ai Context Assembler (+ rolling memory of older turns)
+        $memory = app(\App\Engines\ConversationMemoryEngine::class);
+        $assembler = app(\App\Engines\AiContextAssembler::class);
+        $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings, $memory->summaryBlock($chat));
+
+        // 5. Build Conversation Context
+        $contents = $this->buildConversationContext($chat);
+
+        $options = [
+            'systemInstruction' => $systemInstruction,
+            'generationConfig' => [
+                'maxOutputTokens' => (int) config('ai.generation.max_output_tokens', 2000),
+                'temperature' => (float) config('ai.generation.temperature', 0.25),
+                'responseMimeType' => 'application/json',
+                'responseSchema' => $this->advisorResponseSchema(),
+            ],
+            'timeout' => $onDelta ? 40 : 22,
+        ];
+
+        if ($onDelta) {
+            // The model emits one JSON object, so the reply text has to be lifted out
+            // of the partially received envelope to be shown while it is still being
+            // written. Only the characters not emitted yet are pushed downstream.
+            $jsonBuffer = '';
+            $emitted = 0;
+
+            $rawText = $geminiService->streamGeminiAPI($contents, $options, function (string $fragment) use (&$jsonBuffer, &$emitted, $onDelta) {
+                $jsonBuffer .= $fragment;
+                $reply = $this->partialReplyText($jsonBuffer);
+                $length = mb_strlen($reply, 'UTF-8');
+
+                if ($length > $emitted) {
+                    $onDelta(mb_substr($reply, $emitted, $length - $emitted, 'UTF-8'));
+                    $emitted = $length;
+                }
+            });
+        } else {
+            $rawText = $geminiService->callGeminiAPI($contents, $options);
+        }
+
+        $parsed = $this->parseAIResponse($rawText);
+
+        // 6. Validate AI Response (Hallucination & Overflow Check)
+        $validator = app(\App\Engines\ValidationEngine::class);
+        $parsed = $validator->validate($parsed, $ragData, $rules);
+
+        // 7. Only now touch the cart. Writing before validation meant a
+        // hallucinated course id inserted a real UserCart row for a course
+        // the student is not even eligible to register.
+        $refreshCartFlag = $this->addCoursesToCart($user, $parsed['courses_to_add'] ?? [], $academicData);
+
+        if (isset($parsed['warning'])) {
+            $parsed['reply'] = $parsed['warning'] . "\n\n" . $parsed['reply'];
+        }
+
+        $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
+        $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
+        $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
+
+        $availableDetailsMap = [];
+        foreach (($availableCourses['details'] ?? []) as $cid => $cdata) {
+            $availableDetailsMap[$cid] = $cdata['name'];
+        }
+
+        $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableDetailsMap, $cartData['map']);
+
+        $eligibleIds = array_map('intval', array_keys($availableDetailsMap));
+        $cartIds = array_map('intval', array_keys($cartData['map']));
+
+        $suggestedIds = array_values(array_intersect($parsed['suggested_course_ids'] ?? [], $eligibleIds));
+        $removeIds = array_values(array_intersect($parsed['remove_course_ids'] ?? [], $cartIds));
+
+        if (empty($suggestedIds) && empty($removeIds)) {
+            $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
+            $suggestedIds = $matched['suggested'];
+            $removeIds = $matched['remove'];
+        }
+
+        // Safety net: if any older stored prompt still emits the placeholder,
+        // strip it so the raw token never reaches the student.
+        if (str_contains($replyText, '%%SKILL_TREE%%')) {
+            $replyText = trim(str_replace('%%SKILL_TREE%%', '', $replyText));
+        }
+
+        return [
+            'reply' => $replyText,
+            'suggested_courses' => !empty($suggestedIds)
+                ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                : [],
+            'courses_to_remove' => !empty($removeIds)
+                ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                : [],
+            'follow_up_suggestions' => $followUpSuggestions,
+            'interactive_widget' => $interactiveWidget,
+            'refresh_cart' => $refreshCartFlag,
+        ];
+    }
+
+    /**
+     * The reply text of a response envelope that is still being written.
+     * Shares GeminiService's partial-JSON reader (same problem, one implementation).
+     */
+    private function partialReplyText(string $jsonBuffer): string
+    {
+        return app(\App\Services\GeminiService::class)->partialJsonStringValue($jsonBuffer, 'reply');
+    }
+
+    /**
+     * Streaming counterpart of chat(): same pipeline, but the reply is pushed to the
+     * browser as Gemini writes it (SSE) instead of after the whole call completes.
+     *
+     * Anything that would make streaming pointless or unsafe (no API keys, quota
+     * exhausted, a cached answer) returns a normal JSON response instead, which the
+     * frontend treats as "fall back to the blocking endpoint".
+     */
+    public function stream(Request $request)
+    {
+        set_time_limit(0);
+
+        $data = $request->validate([
+            'message' => ['required', 'string', 'max:2000'],
+            'chat_id' => ['nullable', 'integer', 'exists:chats,id'],
+            'filters' => ['nullable', 'array'],
+            'filters.*' => ['string'],
+            'difficulty' => ['nullable', 'string', 'in:easy,balanced,hard'],
+            'critical_path' => ['nullable', 'boolean'],
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        $geminiService = app(\App\Services\GeminiService::class);
+        if (empty($geminiService->getApiKeys())) {
+            // No cloud advisor: the local fallback lives in chat().
+            return response()->json(['status' => 'error', 'reason' => 'stream_unavailable'], 503);
+        }
+
+        $usageKey = "ai_daily_usage_" . $user->id . "_" . date('Y-m-d');
+        $usage = (int) Cache::get($usageKey, 0);
+        $dailyLimit = $this->getDailyMessageLimitForUser($user);
+        if ($dailyLimit !== null && $usage >= $dailyLimit) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'لقد استهلكت جميع محاولاتك اليومية المتاحة للمستشار الأكاديمي. حاول غداً ⏳',
+                'daily_messages_remaining' => 0,
+                'has_daily_limit' => true,
+            ], 429);
+        }
+
+        if (!$this->checkRateLimit($user->id)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => '⏳ وصلت للحد الأقصى من الرسائل لهذا الوقت. حاول لاحقاً.',
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
+                'has_daily_limit' => $dailyLimit !== null,
+            ], 429);
+        }
+
+        $currentPeriod = AcademicPeriod::current();
+
+        $academicData = $this->getStudentAcademicData($user);
+        $cartData = $this->getCartData($user);
+        $availableCourses = $this->getAvailableCourses($academicData['passed_course_ids'], $cartData['ids'], $user);
+        $registrationLimits = $this->getRegistrationLimits($currentPeriod, (bool) ($academicData['is_probation'] ?? false));
+        $academicData = array_merge($academicData, [
+            'current_period_label' => $currentPeriod?->displayLabel() ?? 'الفصل الحالي غير محدد',
+            'current_period_term' => $currentPeriod?->academic_term,
+            'current_period_year' => $currentPeriod?->academic_year,
+            'current_period_is_summer' => $registrationLimits['is_summer'],
+            'current_term_limit' => $registrationLimits['term_limit'],
+            'academic_limit' => $registrationLimits['academic_limit'],
+            'effective_registration_limit' => $registrationLimits['effective_limit'],
+        ]);
+
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
+
+        // An identical question was already answered: there is nothing to stream, and
+        // chat() serves it from cache without spending a Gemini call. Bail out before
+        // creating the chat/message so the fallback request doesn't duplicate them.
+        if (Cache::has($responseCacheKey)) {
+            return response()->json(['status' => 'error', 'reason' => 'cached'], 409);
+        }
+
+        // Only now is a real generation certain, so the turn may be persisted.
+        $chat = $this->resolveChat($user, $data['chat_id'] ?? null, $data['message']);
+        $isNewChat = $chat->wasRecentlyCreated;
+
+        $chat->messages()->create([
+            'role' => 'user',
+            'content' => $data['message'],
+        ]);
+
+        // The response is held open for the whole generation, so release the session
+        // lock first — otherwise other requests from this tab (cart reload, history)
+        // would queue behind the stream.
+        if ($request->hasSession()) {
+            $request->session()->save();
+        }
+
+        return response()->stream(function () use ($user, $chat, $data, $academicData, $cartData, $availableCourses, $geminiService, $isNewChat, $dailyLimit, $usage, $usageKey, $responseCacheKey) {
+            // Anything that buffers or compresses output would hold the whole reply
+            // back to the end and defeat the point of streaming.
+            @ini_set('zlib.output_compression', '0');
+            @ini_set('output_buffering', '0');
+            @ini_set('implicit_flush', '1');
+            while (ob_get_level() > 0) {
+                @ob_end_flush();
+            }
+
+            $send = function (string $event, array $payload) {
+                echo "event: {$event}\n";
+                echo 'data: ' . json_encode($payload, JSON_UNESCAPED_UNICODE) . "\n\n";
+                @flush();
+            };
+
+            $send('open', ['chat_id' => $chat->id]);
+
+            try {
+                $payload = $this->runAdvisorPipeline(
+                    $user,
+                    $chat,
+                    $data,
+                    $academicData,
+                    $cartData,
+                    $availableCourses,
+                    $geminiService,
+                    fn (string $delta) => $send('delta', ['text' => $delta])
+                );
+
+                $stored = [
+                    'reply' => $payload['reply'],
+                    'suggested_courses' => $payload['suggested_courses'],
+                    'courses_to_remove' => $payload['courses_to_remove'],
+                    'follow_up_suggestions' => $payload['follow_up_suggestions'],
+                    'interactive_widget' => $payload['interactive_widget'],
+                ];
+
+                $chat->messages()->create([
+                    'role' => 'ai',
+                    'content' => json_encode($stored, JSON_UNESCAPED_UNICODE),
+                ]);
+
+                if ($isNewChat) {
+                    $chat->update(['title' => $this->makeFallbackTitle($data['message'])]);
+                }
+
+                $this->queueContextSummary($chat);
+
+                $newRemaining = null;
+                if ($dailyLimit !== null) {
+                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
+                    $newRemaining = max(0, $dailyLimit - ($usage + 1));
+                }
+
+                Cache::put($responseCacheKey, $stored, now()->addHours(2));
+
+                $send('done', array_merge($stored, [
+                    'status' => 'success',
+                    'refresh_cart' => $payload['refresh_cart'],
+                    'chat_id' => $chat->id,
+                    'chat_title' => $isNewChat ? $chat->title : null,
+                    'daily_messages_remaining' => $newRemaining,
+                    'has_daily_limit' => $dailyLimit !== null,
+                    'is_fallback' => false,
+                    'is_cached' => false,
+                    'fallback_reason' => null,
+                ]));
+            } catch (\Throwable $e) {
+                Log::error('Gemini stream error: ' . $e->getMessage(), [
+                    'exception' => get_class($e),
+                    'line' => $e->getLine(),
+                ]);
+
+                // The user message is already stored; the frontend retries against
+                // the blocking endpoint, which owns the local-fallback path.
+                $send('error', ['chat_id' => $chat->id, 'reason' => 'stream_failed']);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream; charset=utf-8',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     public function regenerate(Request $request)
@@ -1179,59 +1410,182 @@ class AiAdvisorController extends Controller
             "🚨 تحذير شديد: إياك أن تخترع أسماء مواد أو أرقام مواد أو عدد ساعات غير موجودة في القوائم أعلاه، سواء في النص أو في interactive_widget أو في مصفوفات الأرقام. أي رقم أو مادة من خارج القوائم سيسبب خطأ فادح بالنظام.";
     }
 
+    /**
+     * Recent turns sent verbatim. Older turns are not replayed at all — they reach
+     * the model as the rolling summary that ConversationMemoryEngine::summaryBlock()
+     * puts in the system instruction.
+     */
     private function buildConversationContext($chat): array
     {
-        $messages = $chat->messages()->orderBy('created_at', 'desc')->get(); // Reverse chronological
-        
-        $maxKeep = self::MAX_CONTEXT_MESSAGES;
-        if ($maxKeep % 2 === 0) {
-            $maxKeep--; 
-        }
-
-        $validMessages = [];
-        $expectedRole = 'user';
-
-        foreach ($messages as $message) {
-            $role = $message->role === 'ai' ? 'model' : 'user';
-
-            if ($role === $expectedRole) {
-                array_unshift($validMessages, $message); // Add to beginning to restore chronological order
-                $expectedRole = ($expectedRole === 'user') ? 'model' : 'user';
-                
-                if (count($validMessages) >= $maxKeep) {
-                    break;
-                }
-            }
-        }
-
-
-        $contents = [];
-
-        foreach ($validMessages as $message) {
-            $text = (string) $message->content;
-
-            if ($message->role === 'ai') {
-                $decoded = json_decode($text, true);
-                if (json_last_error() === JSON_ERROR_NONE && isset($decoded['reply'])) {
-                    $text = (string) $decoded['reply'];
-                }
-                // Drop rendered diagram source from the conversation memory: it is
-                // noise for the model and would eat the per-message character budget.
-                $text = preg_replace('/```mermaid.*?```/is', '[مخطط الخطة]', $text);
-            }
-
-            $role = $message->role === 'ai' ? 'model' : 'user';
-
-
-            $contents[] = [
-                'role' => $role,
-                'parts' => [['text' => mb_substr($text, 0, 1800, 'UTF-8')]],
-            ];
-        }
-
-        return $contents;
+        return app(\App\Engines\ConversationMemoryEngine::class)->buildContents($chat);
     }
 
+    /**
+     * Queue a refresh of the chat's rolling summary once enough turns piled up past
+     * the stored one. Never inline: the student's reply must not wait for it.
+     */
+    private function queueContextSummary($chat): void
+    {
+        try {
+            if (app(\App\Engines\ConversationMemoryEngine::class)->needsSummary($chat)) {
+                \App\Jobs\SummarizeChatContext::dispatch($chat->id);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Could not queue chat summary: ' . $e->getMessage(), ['chat_id' => $chat->id]);
+        }
+    }
+
+
+    /**
+     * Insert validated course ids into the student's cart for the current period.
+     * Callers must pass ids that already went through ValidationEngine.
+     */
+    private function addCoursesToCart($user, array $courseIds, array $academicData): bool
+    {
+        if (empty($courseIds)) {
+            return false;
+        }
+
+        $added = false;
+        foreach (Course::whereIn('id', $courseIds)->get() as $course) {
+            \App\Models\UserCart::firstOrCreate([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'academic_year' => $academicData['current_period_year'] ?? 2026,
+                'academic_term' => $academicData['current_period_term'] ?? 1,
+            ]);
+            $added = true;
+        }
+
+        if ($added) {
+            $this->clearStudentCache($user->id);
+        }
+
+        return $added;
+    }
+
+    /**
+     * Response schema for the main advisor call.
+     *
+     * Gemini enforces this server-side, so the reply comes back as a well-formed
+     * object instead of "hopefully JSON" text — which is what the regex repair
+     * layers in normalizeReplyText()/stripReplyEnvelope() used to clean up.
+     *
+     * interactive_widget is a single superset object rather than a union: the
+     * OpenAPI subset Gemini accepts has no reliable oneOf, and every field is
+     * optional here, so sanitizeInteractiveWidget() keeps only what the chosen
+     * type actually uses.
+     */
+    private function advisorResponseSchema(): array
+    {
+        $courseIdList = ['type' => 'ARRAY', 'items' => ['type' => 'INTEGER']];
+
+        return [
+            'type' => 'OBJECT',
+            'properties' => [
+                'reply' => ['type' => 'STRING'],
+                'suggested_course_ids' => $courseIdList,
+                'courses_to_add' => $courseIdList,
+                'remove_course_ids' => $courseIdList,
+                'follow_up_suggestions' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                'interactive_widget' => [
+                    'type' => 'OBJECT',
+                    'nullable' => true,
+                    'properties' => [
+                        'type' => ['type' => 'STRING'],
+                        'title' => ['type' => 'STRING'],
+                        'question' => ['type' => 'STRING'],
+                        // hours_slider
+                        'min' => ['type' => 'INTEGER'],
+                        'max' => ['type' => 'INTEGER'],
+                        'default' => ['type' => 'INTEGER'],
+                        'current_cart_hours' => ['type' => 'INTEGER'],
+                        // poll
+                        'options' => [
+                            'type' => 'ARRAY',
+                            'items' => [
+                                'type' => 'OBJECT',
+                                'properties' => [
+                                    'label' => ['type' => 'STRING'],
+                                    'value' => ['type' => 'STRING'],
+                                ],
+                            ],
+                        ],
+                        // comparison
+                        'items' => [
+                            'type' => 'ARRAY',
+                            'items' => [
+                                'type' => 'OBJECT',
+                                'properties' => [
+                                    'name' => ['type' => 'STRING'],
+                                    'code' => ['type' => 'STRING'],
+                                    'credit_hours' => ['type' => 'INTEGER'],
+                                    'difficulty' => ['type' => 'INTEGER'],
+                                    'unlocks' => ['type' => 'INTEGER'],
+                                    'gpa_impact' => ['type' => 'STRING'],
+                                    'recommendation' => ['type' => 'STRING'],
+                                ],
+                            ],
+                        ],
+                        // cart_review
+                        'courses' => [
+                            'type' => 'ARRAY',
+                            'items' => [
+                                'type' => 'OBJECT',
+                                'properties' => [
+                                    'name' => ['type' => 'STRING'],
+                                    'code' => ['type' => 'STRING'],
+                                    'credit_hours' => ['type' => 'INTEGER'],
+                                    'difficulty' => ['type' => 'INTEGER'],
+                                    'verdict' => ['type' => 'STRING'],
+                                    'reason' => ['type' => 'STRING'],
+                                ],
+                            ],
+                        ],
+                        'summary' => [
+                            'type' => 'OBJECT',
+                            'properties' => [
+                                'total_hours' => ['type' => 'INTEGER'],
+                                'max_hours' => ['type' => 'INTEGER'],
+                                'overall_difficulty' => ['type' => 'STRING'],
+                                'recommendation' => ['type' => 'STRING'],
+                            ],
+                        ],
+                        // gpa_forecast (generative chart)
+                        'current_gpa' => ['type' => 'NUMBER'],
+                        'target_gpa' => ['type' => 'NUMBER'],
+                        'note' => ['type' => 'STRING'],
+                        'points' => [
+                            'type' => 'ARRAY',
+                            'items' => [
+                                'type' => 'OBJECT',
+                                'properties' => [
+                                    'label' => ['type' => 'STRING'],
+                                    'optimistic' => ['type' => 'NUMBER'],
+                                    'expected' => ['type' => 'NUMBER'],
+                                    'pessimistic' => ['type' => 'NUMBER'],
+                                ],
+                            ],
+                        ],
+                        // radar (generative chart)
+                        'axes' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                        'series' => [
+                            'type' => 'ARRAY',
+                            'items' => [
+                                'type' => 'OBJECT',
+                                'properties' => [
+                                    'name' => ['type' => 'STRING'],
+                                    'values' => ['type' => 'ARRAY', 'items' => ['type' => 'NUMBER']],
+                                ],
+                            ],
+                        ],
+                    ],
+                    'required' => ['type'],
+                ],
+            ],
+            'required' => ['reply'],
+        ];
+    }
 
     private function parseAIResponse(string $rawText): array
     {
@@ -1240,7 +1594,9 @@ class AiAdvisorController extends Controller
 
         if (isset($decoded['error_parsing']) && $decoded['error_parsing']) {
              return [
-                 'reply' => $this->normalizeReplyText($decoded['reply'] ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.'),
+                 // Only this path may still contain a broken JSON envelope, so it is
+                 // the only one that pays for the aggressive repair regexes.
+                 'reply' => $this->normalizeReplyText($decoded['reply'] ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.', true),
                  'follow_up_suggestions' => [],
                  'interactive_widget' => null,
                  'suggested_course_ids' => [],
@@ -1249,6 +1605,8 @@ class AiAdvisorController extends Controller
              ];
         }
 
+        // responseSchema guarantees the shape here, so the reply only needs cosmetic
+        // normalisation — no envelope stripping that could eat legitimate text.
         return [
             'reply' => $this->normalizeReplyText((string) ($decoded['reply'] ?? '')),
             'follow_up_suggestions' => $decoded['follow_up_suggestions'] ?? [],
@@ -1283,27 +1641,39 @@ class AiAdvisorController extends Controller
 
 
 
-    private function normalizeReplyText(string $text): string
+    /**
+     * Cosmetic cleanup of a reply.
+     *
+     * $repairEnvelope runs the destructive layer that tears a leaked JSON envelope
+     * out of the text. It also mangles legitimate content (a `key: {` inside a code
+     * block, a "ID: 3" the student typed), so it is reserved for the parse-failure
+     * path; a schema-validated reply never needs it.
+     */
+    private function normalizeReplyText(string $text, bool $repairEnvelope = false): string
     {
         $clean = str_replace(['\\n', '\n'], "\n", $text);
-        
+
         $clean = preg_replace('/<style\b[^>]*>.*?<\/style>/is', '', $clean);
         $clean = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $clean);
-        
+
         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
+        // Internal course ids are meaningless to the student, so they never stay in
+        // the prose regardless of which path produced it.
         $clean = preg_replace('/\x{00A0}?\s*[\(\[]\s*ID\s*[:：]?\s*\d+\s*[\)\]]/iu', '', $clean);
-
-        $geminiService = app(\App\Services\GeminiService::class);
-        $clean = trim($geminiService->stripReplyEnvelope($clean));
         $clean = preg_replace('/\bID\s*[:#]?\s*\d+\b/iu', '', $clean);
 
-        // Aggressive catch-all for any JSON property formatting left in the string.
-        // Example: "some_key": [...]
-        $clean = preg_replace('/["\']?[a-zA-Z_]+["\']?\s*:\s*[\[\{].*?[\]\}]/isu', '', $clean);
-        
-        // Remove markdown JSON wrappers if still present.
-        $clean = preg_replace('/```(?:json)?\s*(.*?)```/is', '$1', $clean);
+        if ($repairEnvelope) {
+            $geminiService = app(\App\Services\GeminiService::class);
+            $clean = trim($geminiService->stripReplyEnvelope($clean));
+
+            // Catch-all for any JSON property formatting left in the string.
+            // Example: "some_key": [...]
+            $clean = preg_replace('/["\']?[a-zA-Z_]+["\']?\s*:\s*[\[\{].*?[\]\}]/isu', '', $clean);
+
+            // Remove markdown JSON wrappers if still present.
+            $clean = preg_replace('/```(?:json)?\s*(.*?)```/is', '$1', $clean);
+        }
 
         // Repair bold spans the model padded with inner spaces ("** نص **"), which
         // Markdown renders as literal asterisks instead of bold. Collapse the padding
@@ -1405,8 +1775,104 @@ class AiAdvisorController extends Controller
                     'recommendation' => mb_substr(trim((string) ($widget['summary']['recommendation'] ?? '')), 0, 200, 'UTF-8'),
                 ],
             ],
+            // Generative charts: the model supplies the data points, the frontend
+            // owns the rendering. Values are clamped so a hallucinated 900% GPA or a
+            // 30-point series can never break the chart layout.
+            'gpa_forecast' => $this->sanitizeGpaForecastWidget($widget),
+            'radar' => $this->sanitizeRadarWidget($widget),
             default => null,
         };
+    }
+
+    private function sanitizeGpaForecastWidget(array $widget): ?array
+    {
+        $clampGpa = fn ($value) => round(min(100, max(0, (float) $value)), 2);
+
+        $points = [];
+        foreach (array_slice(is_array($widget['points'] ?? null) ? $widget['points'] : [], 0, 6) as $point) {
+            if (!is_array($point)) {
+                continue;
+            }
+
+            $label = mb_substr(trim((string) ($point['label'] ?? '')), 0, 30, 'UTF-8');
+            if ($label === '') {
+                continue;
+            }
+
+            $expected = $clampGpa($point['expected'] ?? 0);
+            $row = ['label' => $label, 'expected' => $expected];
+
+            // Optimistic/pessimistic bands are optional; drop them unless both make
+            // sense relative to the expected line.
+            if (isset($point['optimistic'])) {
+                $row['optimistic'] = max($expected, $clampGpa($point['optimistic']));
+            }
+            if (isset($point['pessimistic'])) {
+                $row['pessimistic'] = min($expected, $clampGpa($point['pessimistic']));
+            }
+
+            $points[] = $row;
+        }
+
+        if (count($points) < 2) {
+            return null; // a single dot is not a forecast
+        }
+
+        return [
+            'type' => 'gpa_forecast',
+            'title' => mb_substr(trim((string) ($widget['title'] ?? 'توقّع معدلك التراكمي')), 0, 120, 'UTF-8'),
+            'current_gpa' => isset($widget['current_gpa']) ? $clampGpa($widget['current_gpa']) : null,
+            'target_gpa' => isset($widget['target_gpa']) ? $clampGpa($widget['target_gpa']) : null,
+            'note' => mb_substr(trim((string) ($widget['note'] ?? '')), 0, 200, 'UTF-8'),
+            'points' => $points,
+        ];
+    }
+
+    private function sanitizeRadarWidget(array $widget): ?array
+    {
+        $axes = [];
+        foreach (array_slice(is_array($widget['axes'] ?? null) ? $widget['axes'] : [], 0, 6) as $axis) {
+            $label = mb_substr(trim((string) $axis), 0, 30, 'UTF-8');
+            if ($label !== '') {
+                $axes[] = $label;
+            }
+        }
+
+        if (count($axes) < 3) {
+            return null; // a radar needs at least a triangle
+        }
+
+        $series = [];
+        foreach (array_slice(is_array($widget['series'] ?? null) ? $widget['series'] : [], 0, 4) as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $name = mb_substr(trim((string) ($entry['name'] ?? '')), 0, 60, 'UTF-8');
+            $rawValues = is_array($entry['values'] ?? null) ? $entry['values'] : [];
+            if ($name === '' || count($rawValues) < count($axes)) {
+                continue; // an axis without a value would render as a collapsed shape
+            }
+
+            $values = [];
+            foreach (array_slice($rawValues, 0, count($axes)) as $value) {
+                $values[] = round(min(5, max(0, (float) $value)), 1);
+            }
+
+            $series[] = ['name' => $name, 'values' => $values];
+        }
+
+        if (empty($series)) {
+            return null;
+        }
+
+        return [
+            'type' => 'radar',
+            'title' => mb_substr(trim((string) ($widget['title'] ?? 'مقارنة متعددة الأبعاد')), 0, 120, 'UTF-8'),
+            'note' => mb_substr(trim((string) ($widget['note'] ?? '')), 0, 200, 'UTF-8'),
+            'axes' => $axes,
+            'series' => $series,
+        ];
     }
 
     private function enrichWidgetWithCourseIds(?array $widget, array $availableCoursesMap, array $cartCoursesMap): ?array

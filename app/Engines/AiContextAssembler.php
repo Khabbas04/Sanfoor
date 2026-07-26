@@ -11,9 +11,15 @@ class AiContextAssembler
      * (versioned via ai.prompt_version) so they can be tuned without touching code and
      * so every reply can be correlated with the prompt version that produced it.
      */
-    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = []): array
+    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = [], string $memoryBlock = ''): array
     {
         $systemPrompt = trim((string) config('ai.advisor.persona')) . "\n\n";
+
+        // 0. Rolling memory of older turns (ConversationMemoryEngine). Lives in the
+        // system prompt so `contents` stays a clean alternating transcript.
+        if ($memoryBlock !== '') {
+            $systemPrompt .= $memoryBlock;
+        }
 
         // 1. Rules Context
         // Address the student by their first name only (the DB stores the full name).

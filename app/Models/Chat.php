@@ -9,7 +9,9 @@ class Chat extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'title'];
+    protected $fillable = ['user_id', 'title', 'context_summary', 'summary_upto_message_id', 'summary_updated_at'];
+
+    protected $casts = ['summary_updated_at' => 'datetime'];
 
     // المحادثة تابعة لطالب
     public function user()

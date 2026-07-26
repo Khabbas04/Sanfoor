@@ -370,6 +370,12 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:15,1')
         ->name('ai.advisor.chat');
 
+    // Same generation pipeline as /chat, but streamed over SSE. Falls back to /chat
+    // when streaming is unavailable, so it shares the same throttle budget.
+    Route::post('/ai-advisor/stream', [AiAdvisorController::class, 'stream'])
+        ->middleware('throttle:15,1')
+        ->name('ai.advisor.stream');
+
     Route::get('/ai-advisor/chat/{chat_id}', [AiAdvisorController::class, 'getMessages'])->name('ai.advisor.messages');
     Route::post('/ai-advisor/regenerate', [AiAdvisorController::class, 'regenerate'])
         ->middleware('throttle:15,1')
