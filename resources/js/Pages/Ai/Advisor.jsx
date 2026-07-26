@@ -32,6 +32,136 @@ const sanitizeReply = (s) => {
     return out.trim();
 };
 
+// ──────────────────────────────────────────────────────────────
+// AI reply rendering
+//
+// The model is instructed (config/ai.php → formatting_instructions) to split
+// consultations into `### ` sections: الخلاصة / خطة العمل المقترحة / نصيحة د. سنفور.
+// Markdown alone renders those as bare headings followed by loose text, so we
+// parse the reply into sections and render each one as a real card that WRAPS
+// its own body — instead of styling the heading and leaving the content outside.
+// ──────────────────────────────────────────────────────────────
+
+// One visual theme per known section title (first match wins).
+const SECTION_THEMES = [
+    { test: /خلاصة|ملخص/, icon: '📌', cls: 'sfr-sec--summary' },
+    { test: /خطة|المواد|مقترح|توصيات/, icon: '📚', cls: 'sfr-sec--plan' },
+    { test: /نصيحة|توجيه|إستراتيجية|استراتيجية/, icon: '💡', cls: 'sfr-sec--tip' },
+    { test: /تحذير|تنبيه|خطر|انتبه/, icon: '⚠️', cls: 'sfr-sec--warn' },
+    { test: /قانون|قوانين|مادة \(|نظام/, icon: '⚖️', cls: 'sfr-sec--legal' },
+    { test: /تقويم|موعد|مواعيد|جدول زمني/, icon: '📅', cls: 'sfr-sec--date' },
+];
+
+// Leading emoji of a heading (with variation selectors / ZWJ sequences).
+const LEAD_EMOJI = /^(?:[\p{Extended_Pictographic}←-➿][︎️‍⃣]*)+/u;
+
+// Strip a leading emoji and markdown punctuation so the card owns the icon.
+const cleanTitle = (t) => t
+    .replace(/^[\s#*_]+/, '')
+    .replace(/[:：*_\s]+$/, '')
+    .replace(LEAD_EMOJI, '')
+    .trim();
+
+// Split markdown into [{ title, icon, cls, body }]. Text before the first
+// heading becomes an untitled intro section (rendered without a card).
+const parseSections = (md) => {
+    const lines = String(md ?? '').split('\n');
+    const out = [];
+    let cur = { title: null, icon: null, cls: null, lines: [] };
+    let fence = false;
+
+    for (const line of lines) {
+        if (/^\s{0,3}```/.test(line)) fence = !fence;
+        const h = !fence && line.match(/^\s{0,3}#{2,4}\s+(.+?)\s*$/);
+        if (h) {
+            if (cur.lines.length || cur.title) out.push(cur);
+            const raw = h[1].trim();
+            const title = cleanTitle(raw);
+            const theme = SECTION_THEMES.find(t => t.test.test(title));
+            cur = {
+                title: title || raw,
+                icon: theme?.icon || raw.match(LEAD_EMOJI)?.[0] || '▸',
+                cls: theme?.cls || 'sfr-sec--plain',
+                lines: [],
+            };
+            continue;
+        }
+        cur.lines.push(line);
+    }
+    if (cur.lines.length || cur.title) out.push(cur);
+
+    return out
+        .map(s => ({ ...s, body: s.lines.join('\n').trim() }))
+        .filter(s => s.title || s.body);
+};
+
+// Markdown element overrides shared by every section body.
+const mdComponents = {
+    // Headings deeper than the section split act as inline sub-titles.
+    h1: ({ children }) => <p className="sfr-sub">{children}</p>,
+    h2: ({ children }) => <p className="sfr-sub">{children}</p>,
+    h3: ({ children }) => <p className="sfr-sub">{children}</p>,
+    h4: ({ children }) => <p className="sfr-sub">{children}</p>,
+    h5: ({ children }) => <p className="sfr-sub">{children}</p>,
+    h6: ({ children }) => <p className="sfr-sub">{children}</p>,
+    hr: () => <div className="sfr-hr" />,
+    blockquote: ({ children }) => <blockquote className="sfr-quote">{children}</blockquote>,
+    a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="sfr-link">{children}</a>,
+    table: ({ children }) => <div className="sfr-table-wrap"><table>{children}</table></div>,
+    pre: ({ children }) => <>{children}</>,
+    code({ node, inline, className, children, ...props }) {
+        const match = /language-(\w+)/.exec(className || '');
+        const text = String(children).replace(/\n$/, '');
+        const isBlock = !inline && (match || text.includes('\n'));
+        if (!isBlock) return <code className="sfr-code-inline" dir="ltr" {...props}>{children}</code>;
+        return (
+            <div className="sfr-code" dir="ltr">
+                <div className="sfr-code__bar">
+                    <span className="sfr-code__lang">{match ? match[1] : 'code'}</span>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            navigator.clipboard.writeText(text);
+                            const btn = e.currentTarget, was = btn.innerHTML;
+                            btn.innerHTML = '✓ تم النسخ';
+                            setTimeout(() => { btn.innerHTML = was; }, 2000);
+                        }}
+                        className="sfr-code__copy"
+                        title="نسخ الكود"
+                    >📋 نسخ</button>
+                </div>
+                <div className="sfr-code__body">
+                    <code className={className || ''} {...props}>{children}</code>
+                </div>
+            </div>
+        );
+    },
+};
+
+const Md = ({ children }) => (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{children}</ReactMarkdown>
+);
+
+// One section = header strip (icon + title) + its own body.
+const ReplySection = ({ section }) => {
+    if (!section.title) return <div className="sfr-intro"><Md>{section.body}</Md></div>;
+    return (
+        <section className={`sfr-sec ${section.cls}`}>
+            <header className="sfr-sec__head">
+                <span className="sfr-sec__icon">{section.icon}</span>
+                <h3 className="sfr-sec__title">{section.title}</h3>
+            </header>
+            {section.body && <div className="sfr-sec__body"><Md>{section.body}</Md></div>}
+        </section>
+    );
+};
+
+const ReplyBody = ({ content }) => {
+    const sections = useMemo(() => parseSections(content), [content]);
+    if (!sections.length) return null;
+    return <div className="sfr-md">{sections.map((s, i) => <ReplySection key={i} section={s} />)}</div>;
+};
+
 // Animate AI responses as they stream into the chat window.
 const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     const [txt, setTxt] = useState('');
@@ -58,82 +188,7 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
         return () => { if (raf.current) cancelAnimationFrame(raf.current); };
     }, [safeContent, isAnimating]);
     useEffect(() => { if (!isAnimating && !done.current) { setTxt(safeContent); done.current = true; } }, [isAnimating, safeContent]);
-    return (
-        <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-p:leading-relaxed prose-strong:text-blue-800 prose-table:border-collapse prose-table:w-full prose-th:bg-blue-50 prose-th:text-blue-800 prose-th:border prose-th:border-blue-200 prose-th:p-3 prose-td:border prose-td:border-slate-200 prose-td:p-3 prose-tr:even:bg-slate-50/50">
-            <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                    h3({ node, children, ...props }) {
-                        const text = String(children);
-                        if (text.includes('الخلاصة')) {
-                            return <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-2xl p-4 my-5 shadow-sm flex items-start gap-3"><span className="text-2xl mt-0.5 drop-shadow-sm">📌</span><div><h3 className="!my-0 !mb-1 font-black text-sm text-blue-900 border-b-0" {...props}>{text.replace('📌', '').trim()}</h3><p className="text-[12px] text-blue-800/80 font-bold leading-relaxed mb-0">تم تحليل بياناتك بنجاح</p></div></div>;
-                        }
-                        if (text.includes('خطة العمل')) {
-                            return <div className="mt-8 mb-5 flex items-center gap-4"><div className="h-px bg-gradient-to-r from-transparent to-slate-200 flex-1"></div><h3 className="!my-0 font-black text-[13px] text-slate-700 bg-white px-4 py-1.5 border border-slate-200 rounded-full shadow-sm flex items-center gap-2" {...props}><span className="text-lg">📚</span> {text.replace('📚', '').trim()}</h3><div className="h-px bg-gradient-to-l from-transparent to-slate-200 flex-1"></div></div>;
-                        }
-                        if (text.includes('نصيحة')) {
-                            return <div className="bg-gradient-to-br from-amber-50 to-orange-50/30 border border-amber-200/60 rounded-2xl p-4 my-5 flex items-start gap-3 shadow-sm"><span className="text-2xl mt-0.5 drop-shadow-sm">💡</span><div><h3 className="!my-0 !mb-1 font-black text-sm text-amber-900 border-b-0" {...props}>{text.replace('💡', '').trim()}</h3></div></div>;
-                        }
-                        return <h3 className="font-black text-slate-800 text-sm mt-6 mb-3 flex items-center gap-1.5" {...props}>{children}</h3>;
-                    },
-                    ul({ node, children, ...props }) {
-                        return <ul className="space-y-2.5 my-5 list-none pl-0 rtl:pr-0" {...props}>{children}</ul>;
-                    },
-                    li({ node, children, ...props }) {
-                        return <li className="bg-white border border-slate-200/60 rounded-2xl p-3.5 shadow-sm flex items-start gap-3 transition-all hover:shadow-md hover:border-blue-200 group relative overflow-hidden" {...props}>
-                            <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-blue-400 to-sky-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <span className="text-blue-500 mt-1 text-lg leading-none shrink-0">•</span>
-                            <div className="flex-1 text-[13px] leading-relaxed pt-0.5">{children}</div>
-                        </li>;
-                    },
-                    pre({ children }) {
-                        return <>{children}</>;
-                    },
-                    code({ node, inline, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const text = String(children).replace(/\n$/, '');
-
-                        const isBlock = !inline && (match || text.includes('\n'));
-                        return isBlock ? (
-                            <div className="relative my-4 rounded-xl overflow-hidden bg-[#0d1117] border border-slate-700/60 shadow-xl" dir="ltr">
-                                <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-slate-700/60">
-                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">{match ? match[1] : 'CODE'}</span>
-                                    <button
-                                        onClick={(e) => {
-                                            navigator.clipboard.writeText(text);
-                                            const btn = e.currentTarget;
-                                            const originalText = btn.innerHTML;
-                                            btn.innerHTML = '✓ تم النسخ';
-                                            btn.classList.add('text-emerald-400');
-                                            setTimeout(() => {
-                                                btn.innerHTML = originalText;
-                                                btn.classList.remove('text-emerald-400');
-                                            }, 2000);
-                                        }}
-                                        className="text-[10px] text-slate-400 hover:text-white transition-colors flex items-center gap-1 bg-slate-700/50 hover:bg-slate-600/80 px-2.5 py-1 rounded-md font-bold"
-                                        title="نسخ الكود"
-                                    >
-                                        📋 Copy
-                                    </button>
-                                </div>
-                                <div className="p-4 overflow-x-auto" style={{ margin: 0 }}>
-                                    <code className={`text-[13px] text-slate-50 font-mono leading-relaxed block ${className || ''}`} {...props}>
-                                        {children}
-                                    </code>
-                                </div>
-                            </div>
-                        ) : (
-                            <code className="bg-slate-100/80 border border-slate-200 text-pink-600 px-1.5 py-0.5 rounded-md font-mono text-[12px] font-bold mx-0.5" dir="ltr" {...props}>
-                                {children}
-                            </code>
-                        );
-                    }
-                }}
-            >
-                {txt}
-            </ReactMarkdown>
-        </div>
-    );
+    return <ReplyBody content={txt} />;
 };
 
 
@@ -414,18 +469,10 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                         {u.avatar ? <img src={u.avatar} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0) || 'أ'}
                     </div>
                 ) : <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 border-2 border-white flex items-center justify-center shrink-0 overflow-hidden shadow-md mt-1"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover opacity-90" onError={e => { e.target.outerHTML = '<span class="text-sm">🤖</span>'; }} /></div>}
-                <div className={`group/m ${u ? 'bg-slate-800 text-white rounded-3xl rounded-se-sm shadow-md p-4' : 'bg-white/90 backdrop-blur-xl border border-slate-200 text-slate-700 rounded-3xl rounded-ss-xl w-full shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 md:p-7 relative overflow-hidden'}`}>
-                    {!u && <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>}
-                    {!u && <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>}
+                <div className={`group/m ${u ? 'bg-slate-800 text-white rounded-3xl rounded-se-sm shadow-md p-4' : 'bg-white border border-slate-200/80 text-slate-700 rounded-2xl rounded-ss-md w-full shadow-[0_2px_14px_rgba(15,23,42,0.05)] p-4 md:p-5'}`}>
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
-                            <div className="sfr-ai-shell">
-                                <div className="sfr-ai-card">
-                                    <div className="sfr-md text-[12.5px] font-medium">
-                                        <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone} />
-                                    </div>
-                                </div>
-                            </div>
+                            <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone} />
                             {!msg.isAnimating && (() => {
                                 const seenIds = new Set();
                                 const uniqueSuggested = msg.suggested_courses?.filter(c => {
@@ -435,11 +482,11 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                                     if (msg.interactive_widget?.type === 'comparison' && msg.interactive_widget.items?.some(wc => wc.id === c.id)) return false;
                                     return true;
                                 }) || [];
-                                return uniqueSuggested.length > 0 && <div className="mt-3 pt-2.5 border-t border-blue-100/40 sfr-fade-up"><p className="text-[9px] font-black text-blue-500 mb-2">✨ مواد مقترحة:</p><div className="space-y-1.5">{uniqueSuggested.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>;
+                                return uniqueSuggested.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-blue-600">✨ مواد مقترحة</p><div className="space-y-1.5">{uniqueSuggested.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>;
                             })()}
-                            {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="mt-2.5 pt-2.5 border-t border-red-100/40 sfr-fade-up"><p className="text-[9px] font-black text-red-500 mb-2">⚠️ تخفيف العبء:</p><div className="space-y-1.5">{msg.courses_to_remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
+                            {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-rose-600">⚠️ تخفيف العبء</p><div className="space-y-1.5">{msg.courses_to_remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
                             {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow} />}
-                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="mt-3 pt-2.5 border-t border-slate-100/50 sfr-fade-up"><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q, i) => <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-slate-50 border border-slate-200/50 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all active:scale-95">{q}</button>)}</div></div>}
+                            {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-slate-500">💬 أسئلة متابعة</p><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q, i) => <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10.5px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all active:scale-95">{q}</button>)}</div></div>}
                             {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb} />}
                         </div>
                     )}
@@ -1159,14 +1206,72 @@ export default function Advisor() {
             .typing-dot:nth-child(1) { animation-delay: -.32s; }
             .typing-dot:nth-child(2) { animation-delay: -.16s; }
             @keyframes sfr-bounce { 0%,80%,100% { transform: scale(.4); opacity: .25; } 40% { transform: scale(1); opacity: 1; } }
-            .sfr-md p { margin-bottom: .6rem; line-height: 1.85; color: #334155; }
-            .sfr-md p:last-child { margin-bottom: 0; }
-            .sfr-md p:first-child { background: linear-gradient(to left, rgba(59,130,246,0.06), transparent); border-right: 3px solid var(--sfr-primary); padding: .5rem .7rem; border-radius: 8px; font-weight: 600; color: #1e293b; margin-bottom: .8rem; }
-            .sfr-md strong { color: #1d4ed8; font-weight: 800; background: rgba(59,130,246,0.08); padding: 0.15rem 0.4rem; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(59,130,246,0.15); margin: 0 0.1rem; }
-            .sfr-md em { color: #4338ca; font-style: normal; font-weight: 700; background: rgba(99,102,241,0.08); padding: 0 0.2rem; border-radius: 4px; }
-            .sfr-md ul { list-style: none; padding-right: .2rem; margin-bottom: .8rem; margin-top: .4rem; }
-            .sfr-md li { position: relative; padding-right: 1.2rem; margin-bottom: .4rem; line-height: 1.7; color: #475569; }
-            .sfr-md li::before { content: ""; position: absolute; right: .15rem; top: .6em; width: 6px; height: 6px; background: linear-gradient(135deg, var(--sfr-primary), var(--sfr-accent)); border-radius: 50%; box-shadow: 0 0 4px rgba(59,130,246,0.4); }
+            /* ===== AI reply typography =====
+               One rhythm for the whole reply: body text stays quiet, emphasis is
+               weight-based (no chips), and structure comes from the section cards. */
+            .sfr-md { font-size: 12.75px; color: #334155; }
+            .sfr-md > * + * { margin-top: .7rem; }
+            .sfr-md p { margin: 0 0 .55rem; line-height: 1.9; }
+            .sfr-md > .sfr-intro > :last-child, .sfr-md p:last-child { margin-bottom: 0; }
+            .sfr-md strong { font-weight: 800; color: #0f172a; }
+            .sfr-md em { font-style: normal; font-weight: 700; color: #1d4ed8; }
+            .sfr-md .sfr-sub { font-weight: 800; color: #1e293b; font-size: 12.5px; margin: .8rem 0 .35rem; }
+            .sfr-md .sfr-hr { height: 1px; background: #e9eef5; margin: .9rem 0; }
+            .sfr-md .sfr-link { color: #1d4ed8; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+            .sfr-md .sfr-quote { border-inline-start: 3px solid #cbd5e1; padding: .1rem .8rem; color: #64748b; font-weight: 600; margin: .6rem 0; }
+
+            /* Lists: single quiet marker, generous line-height, no nested cards. */
+            .sfr-md ul, .sfr-md ol { list-style: none; padding: 0; margin: .45rem 0 .55rem; }
+            .sfr-md li { position: relative; padding-inline-start: 1.05rem; margin-bottom: .45rem; line-height: 1.85; color: #3f4c5f; }
+            .sfr-md li:last-child { margin-bottom: 0; }
+            .sfr-md li::before { content: ""; position: absolute; inset-inline-start: .2rem; top: .78em; width: 5px; height: 5px; border-radius: 50%; background: #94a3b8; }
+            .sfr-md li > strong:first-child { color: #1d4ed8; }
+            .sfr-md ol { counter-reset: sfr-ol; }
+            .sfr-md ol > li { counter-increment: sfr-ol; padding-inline-start: 1.5rem; }
+            .sfr-md ol > li::before { content: counter(sfr-ol); inset-inline-start: 0; top: .25em; width: 1.1rem; height: 1.1rem; border-radius: 6px; background: #eef2f7; color: #475569; font-size: 9.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+            .sfr-md li ul, .sfr-md li ol { margin: .35rem 0 0; }
+
+            /* ===== Sections ===== */
+            .sfr-md .sfr-sec { border: 1px solid #e6ebf2; border-radius: 14px; background: #fff; overflow: hidden; }
+            .sfr-md .sfr-sec__head { display: flex; align-items: center; gap: .5rem; padding: .55rem .8rem; border-bottom: 1px solid #eef2f7; background: #fafbfd; }
+            .sfr-md .sfr-sec__icon { font-size: 13px; line-height: 1; width: 22px; height: 22px; border-radius: 7px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #e6ebf2; }
+            .sfr-md .sfr-sec__title { margin: 0; font-size: 12px; font-weight: 900; color: #334155; letter-spacing: 0; }
+            .sfr-md .sfr-sec__body { padding: .8rem .85rem; }
+            .sfr-md .sfr-sec--summary { border-color: #d7e5fb; }
+            .sfr-md .sfr-sec--summary .sfr-sec__head { background: #f3f8ff; border-bottom-color: #e2ecfd; }
+            .sfr-md .sfr-sec--summary .sfr-sec__title { color: #1d4ed8; }
+            .sfr-md .sfr-sec--tip { border-color: #f6e4bf; }
+            .sfr-md .sfr-sec--tip .sfr-sec__head { background: #fffaf0; border-bottom-color: #f8ead0; }
+            .sfr-md .sfr-sec--tip .sfr-sec__title { color: #92610a; }
+            .sfr-md .sfr-sec--warn { border-color: #f7d7d7; }
+            .sfr-md .sfr-sec--warn .sfr-sec__head { background: #fff5f5; border-bottom-color: #fadede; }
+            .sfr-md .sfr-sec--warn .sfr-sec__title { color: #b42323; }
+            .sfr-md .sfr-sec--legal { border-color: #e0dcfa; }
+            .sfr-md .sfr-sec--legal .sfr-sec__head { background: #f7f5ff; border-bottom-color: #e8e4fb; }
+            .sfr-md .sfr-sec--legal .sfr-sec__title { color: #4c37c4; }
+            .sfr-md .sfr-sec--date .sfr-sec__title, .sfr-md .sfr-sec--plan .sfr-sec__title { color: #0f172a; }
+
+            /* ===== Tables ===== */
+            .sfr-md .sfr-table-wrap { overflow-x: auto; border: 1px solid #e6ebf2; border-radius: 12px; }
+            .sfr-md table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+            .sfr-md th, .sfr-md td { padding: .5rem .6rem; text-align: start; border-bottom: 1px solid #eef2f7; }
+            .sfr-md th { background: #f6f8fc; color: #334155; font-weight: 900; font-size: 11px; }
+            .sfr-md tr:last-child td { border-bottom: 0; }
+            .sfr-md tbody tr:nth-child(even) td { background: #fcfdfe; }
+
+            /* ===== Code ===== */
+            .sfr-md .sfr-code-inline { background: #f1f5f9; border: 1px solid #e2e8f0; color: #be185d; padding: .05rem .3rem; border-radius: 5px; font-family: ui-monospace, monospace; font-size: 11.5px; font-weight: 700; }
+            .sfr-md .sfr-code { border-radius: 12px; overflow: hidden; background: #0d1117; border: 1px solid #1f2937; }
+            .sfr-md .sfr-code__bar { display: flex; align-items: center; justify-content: space-between; padding: .35rem .7rem; background: #161b22; border-bottom: 1px solid #1f2937; }
+            .sfr-md .sfr-code__lang { font-size: 10px; font-weight: 800; color: #8b98a8; text-transform: uppercase; letter-spacing: .1em; }
+            .sfr-md .sfr-code__copy { font-size: 10px; font-weight: 800; color: #cbd5e1; background: rgba(148,163,184,.16); padding: .15rem .5rem; border-radius: 6px; cursor: pointer; }
+            .sfr-md .sfr-code__copy:hover { background: rgba(148,163,184,.3); color: #fff; }
+            .sfr-md .sfr-code__body { padding: .8rem; overflow-x: auto; }
+            .sfr-md .sfr-code__body code { color: #e6edf3; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.75; display: block; white-space: pre; }
+
+            /* Blocks appended under a reply (courses, widgets, follow-ups). */
+            .sfr-attach { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid #eef2f7; }
+            .sfr-attach__label { font-size: 10px; font-weight: 900; margin-bottom: .5rem; }
             @keyframes sfr-su { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
             .sfr-slide-up { animation: sfr-su .3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
             @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
@@ -1175,8 +1280,6 @@ export default function Advisor() {
             .sfr-glow { animation: sfr-glow 3s infinite; }
             .sfr-action-btn { padding: 4px 6px; border-radius: 6px; font-size: 11px; transition: all .2s; cursor: pointer; color: #64748b; }
             .sfr-action-btn:hover { background: #f1f5f9; color: #334155; transform: scale(1.05); }
-            .sfr-ai-shell { background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(99,102,241,0.3), rgba(14,165,233,0.4)); padding: 1.5px; border-radius: 20px; box-shadow: 0 4px 20px -10px rgba(59,130,246,0.4); margin-bottom: 0.2rem; }
-            .sfr-ai-card { background: rgba(255,255,255,0.96); backdrop-filter: blur(10px); border-radius: 19px; padding: 1rem 1.1rem; }
         ` }} />
 
             <div className="py-2.5 md:py-5 pb-5 lg:pb-0 bg-[#f8f9fb] min-h-screen font-t" dir="rtl">
