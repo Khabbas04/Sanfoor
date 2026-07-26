@@ -59,19 +59,39 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     }, [safeContent, isAnimating]);
     useEffect(() => { if (!isAnimating && !done.current) { setTxt(safeContent); done.current = true; } }, [isAnimating, safeContent]);
     return (
-        <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-li:marker:text-blue-500 prose-p:leading-relaxed prose-strong:text-blue-800 prose-ul:my-2 prose-li:my-0.5 prose-table:border-collapse prose-table:w-full prose-th:bg-blue-50 prose-th:text-blue-800 prose-th:border prose-th:border-blue-200 prose-th:p-3 prose-td:border prose-td:border-slate-200 prose-td:p-3 prose-tr:even:bg-slate-50/50">
+        <div className="prose prose-sm prose-slate max-w-none rtl:prose-li:pl-0 rtl:prose-li:pr-2 prose-p:leading-relaxed prose-strong:text-blue-800 prose-table:border-collapse prose-table:w-full prose-th:bg-blue-50 prose-th:text-blue-800 prose-th:border prose-th:border-blue-200 prose-th:p-3 prose-td:border prose-td:border-slate-200 prose-td:p-3 prose-tr:even:bg-slate-50/50">
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                    // The custom code renderer provides its own block container.
+                    h3({ node, children, ...props }) {
+                        const text = String(children);
+                        if (text.includes('الخلاصة')) {
+                            return <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-100 rounded-2xl p-4 my-5 shadow-sm flex items-start gap-3"><span className="text-2xl mt-0.5 drop-shadow-sm">📌</span><div><h3 className="!my-0 !mb-1 font-black text-sm text-blue-900 border-b-0" {...props}>{text.replace('📌', '').trim()}</h3><p className="text-[12px] text-blue-800/80 font-bold leading-relaxed mb-0">تم تحليل بياناتك بنجاح</p></div></div>;
+                        }
+                        if (text.includes('خطة العمل')) {
+                            return <div className="mt-8 mb-5 flex items-center gap-4"><div className="h-px bg-gradient-to-r from-transparent to-slate-200 flex-1"></div><h3 className="!my-0 font-black text-[13px] text-slate-700 bg-white px-4 py-1.5 border border-slate-200 rounded-full shadow-sm flex items-center gap-2" {...props}><span className="text-lg">📚</span> {text.replace('📚', '').trim()}</h3><div className="h-px bg-gradient-to-l from-transparent to-slate-200 flex-1"></div></div>;
+                        }
+                        if (text.includes('نصيحة')) {
+                            return <div className="bg-gradient-to-br from-amber-50 to-orange-50/30 border border-amber-200/60 rounded-2xl p-4 my-5 flex items-start gap-3 shadow-sm"><span className="text-2xl mt-0.5 drop-shadow-sm">💡</span><div><h3 className="!my-0 !mb-1 font-black text-sm text-amber-900 border-b-0" {...props}>{text.replace('💡', '').trim()}</h3></div></div>;
+                        }
+                        return <h3 className="font-black text-slate-800 text-sm mt-6 mb-3 flex items-center gap-1.5" {...props}>{children}</h3>;
+                    },
+                    ul({ node, children, ...props }) {
+                        return <ul className="space-y-2.5 my-5 list-none pl-0 rtl:pr-0" {...props}>{children}</ul>;
+                    },
+                    li({ node, children, ...props }) {
+                        return <li className="bg-white border border-slate-200/60 rounded-2xl p-3.5 shadow-sm flex items-start gap-3 transition-all hover:shadow-md hover:border-blue-200 group relative overflow-hidden" {...props}>
+                            <div className="absolute top-0 right-0 w-1 h-full bg-gradient-to-b from-blue-400 to-sky-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <span className="text-blue-500 mt-1 text-lg leading-none shrink-0">•</span>
+                            <div className="flex-1 text-[13px] leading-relaxed pt-0.5">{children}</div>
+                        </li>;
+                    },
                     pre({ children }) {
                         return <>{children}</>;
                     },
                     code({ node, inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
                         const text = String(children).replace(/\n$/, '');
-
-
 
                         const isBlock = !inline && (match || text.includes('\n'));
                         return isBlock ? (
@@ -124,14 +144,22 @@ const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' })
     if (rm && !isAdded) return null;
     return (
         <div className="flex items-center gap-2 sfr-fade-up">
-            {/* 🆕 تم تمرير الساعات هنا: course.credit_hours */}
             <button onClick={() => onToggle(course.id, course.name, course.credit_hours)} disabled={isLoading}
-                className={`flex-1 font-black py-2.5 px-4 rounded-xl transition-all duration-200 flex justify-between items-center group/b text-[11.5px] ${rm ? 'bg-red-50 hover:bg-red-500 text-red-600 hover:text-white border border-red-200/60 hover:border-red-500' : isAdded ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 'bg-blue-50/70 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200/50 hover:border-blue-600 hover:shadow-lg hover:shadow-blue-200/30'} ${isLoading ? 'opacity-50' : ''}`}>
-                <span className="flex items-center gap-2">
-                    {isLoading ? <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" /> : rm ? '🗑' : isAdded ? '✅' : <span className="group-hover/b:rotate-90 transition-transform inline-block text-sm">+</span>}
-                    {rm ? `إزالة ${course.name}` : isAdded ? `${course.name} ✓` : `إضافة ${course.name}`}
+                className={`flex-1 font-black py-3 px-4 rounded-2xl transition-all duration-300 flex justify-between items-center group/b text-[12px] relative overflow-hidden
+                ${rm ? 'bg-gradient-to-r from-red-50 to-rose-50 hover:from-red-500 hover:to-rose-600 text-red-600 hover:text-white border border-red-200/60 hover:border-transparent hover:shadow-lg hover:shadow-red-500/30'
+                : isAdded ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-md'
+                : 'bg-gradient-to-r from-sky-50 to-blue-50 hover:from-sky-500 hover:to-blue-600 text-blue-700 hover:text-white border border-blue-200/50 hover:border-transparent hover:shadow-lg hover:shadow-blue-500/30'} ${isLoading ? 'opacity-50 cursor-wait' : ''}`}>
+                
+                {/* Glossy shine effect */}
+                {!isAdded && !rm && <div className="absolute top-0 -left-[100%] h-full w-[50%] z-0 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white/40 group-hover/b:animate-[shine_1.5s_ease-in-out_infinite]" />}
+
+                <span className="flex items-center gap-2.5 relative z-10">
+                    {isLoading ? <span className="w-4 h-4 border-[2.5px] border-current border-t-transparent rounded-full animate-spin" /> : rm ? <span className="text-sm drop-shadow-sm">🗑</span> : isAdded ? <span className="text-sm drop-shadow-sm">✅</span> : <span className="group-hover/b:rotate-90 transition-transform inline-block text-lg mt-0.5 leading-none drop-shadow-sm">+</span>}
+                    {rm ? `إزالة ${course.name}` : isAdded ? `${course.name} في خطتك` : `إضافة ${course.name}`}
                 </span>
-                <span className={`text-[9px] px-2 py-0.5 rounded-lg font-black ${rm ? 'bg-red-200/60' : isAdded ? 'bg-emerald-200/60' : 'bg-white/80 group-hover/b:bg-white/20'}`}>{course.credit_hours}س</span>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-lg font-black relative z-10 transition-colors ${rm ? 'bg-red-200/60 group-hover/b:bg-white/20' : isAdded ? 'bg-white/20 text-white' : 'bg-white/80 group-hover/b:bg-white/20 group-hover/b:text-white text-slate-700'}`}>
+                    {course.credit_hours}س
+                </span>
             </button>
         </div>
     );
@@ -380,13 +408,15 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
     const u = msg.role === 'user';
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
-            <div className={`flex max-w-[95%] ${u ? 'md:max-w-[80%]' : 'md:max-w-full w-full'} gap-2 ${u ? 'flex-row-reverse' : ''} items-end`}>
+            <div className={`flex w-full ${u ? 'md:max-w-[75%] justify-end' : 'w-full'} gap-3 ${u ? 'flex-row-reverse' : ''} items-start`}>
                 {u ? (
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center text-[10px] font-black text-white shrink-0 mb-1 shadow ring-2 ring-white overflow-hidden">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-md ring-4 ring-white overflow-hidden mt-1">
                         {u.avatar ? <img src={u.avatar} alt={name} className="w-full h-full object-cover" /> : name?.charAt(0) || 'أ'}
                     </div>
-                ) : <div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 mb-1 overflow-hidden shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover" onError={e => { e.target.outerHTML = '<span class="text-xs">🤖</span>'; }} /></div>}
-                <div className={`group/m ${u ? 'bg-gradient-to-tr from-sky-400 to-blue-500 text-white rounded-2xl rounded-se-sm shadow-lg shadow-blue-500/10 p-3.5' : 'bg-white border border-slate-200/50 text-slate-700 rounded-2xl rounded-ss-sm w-full shadow-sm p-3.5'}`}>
+                ) : <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 border-2 border-white flex items-center justify-center shrink-0 overflow-hidden shadow-md mt-1"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover opacity-90" onError={e => { e.target.outerHTML = '<span class="text-sm">🤖</span>'; }} /></div>}
+                <div className={`group/m ${u ? 'bg-slate-800 text-white rounded-3xl rounded-se-sm shadow-md p-4' : 'bg-white/90 backdrop-blur-xl border border-slate-200 text-slate-700 rounded-3xl rounded-ss-xl w-full shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-5 md:p-7 relative overflow-hidden'}`}>
+                    {!u && <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>}
+                    {!u && <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl pointer-events-none"></div>}
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
                             <div className="sfr-ai-shell">
@@ -699,12 +729,11 @@ export default function Advisor() {
     
     const [thinkingIndex, setThinkingIndex] = useState(0);
     const thinkingPhrases = [
-        "بقرأ استفسارك 🔍...",
-        "بحوس بقاعدة البيانات 🧠...",
-        "بدور على أفضل الخيارات إلك 📚...",
-        "بحلل الخطة الدراسية ⏳...",
-        "بجهزلك الرد 💡...",
-        "لحظة صغيرة وبكون الرد جاهز 🚀..."
+        "🔎 جاري قراءة وتحليل سجلك الأكاديمي...",
+        "⚖️ جاري موازنة المواد المتاحة للفصل القادم...",
+        "💡 جاري استنباط أفضل مسار لرفع معدلك...",
+        "⏳ جاري تجهيز الخطة الأنسب لك بناءً على القوانين...",
+        "📝 جاري صياغة التقرير النهائي..."
     ];
     
     useEffect(() => {
