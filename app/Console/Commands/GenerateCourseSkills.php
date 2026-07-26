@@ -43,9 +43,10 @@ class GenerateCourseSkills extends Command
 
             try {
                 // 🔥 تم إضافة withoutVerifying() لتخطي شهادات SSL المحلية في Laragon 🔥
+                $model = config('services.gemini.model', 'gemini-3.5-flash-lite');
                 $response = Http::withoutVerifying()
                     ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={$apiKey}", [
+                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
                         'contents' => [['role' => 'user', 'parts' => [['text' => $prompt]]]]
                     ]);
 

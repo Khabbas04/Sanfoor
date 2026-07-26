@@ -266,103 +266,10 @@ class AiAdvisorController extends Controller
                 $refreshCartFlag = false;
                 $rawText = $geminiService->callGeminiAPI($contents, [
                     'systemInstruction' => $systemInstruction,
-                    // Removed tools since we are using JSON Schema instead
                     'generationConfig' => [
                         'maxOutputTokens' => (int) config('ai.generation.max_output_tokens', 2000),
                         'temperature' => (float) config('ai.generation.temperature', 0.25),
                         'responseMimeType' => 'application/json',
-                        'responseSchema' => [
-                            'type' => 'OBJECT',
-                            'properties' => [
-                                'reply' => ['type' => 'STRING'],
-                                'suggested_course_ids' => [
-                                    'type' => 'ARRAY',
-                                    'items' => ['type' => 'INTEGER']
-                                ],
-                                'courses_to_add' => [
-                                    'type' => 'ARRAY',
-                                    'items' => ['type' => 'INTEGER']
-                                ],
-                                'courses_to_remove' => [
-                                    'type' => 'ARRAY',
-                                    'items' => ['type' => 'INTEGER']
-                                ],
-                                'follow_up_suggestions' => [
-                                    'type' => 'ARRAY',
-                                    'items' => ['type' => 'STRING']
-                                ],
-                                'interactive_widget' => [
-                                    'type' => 'OBJECT',
-                                    // Superset schema covering every widget the frontend renders
-                                    // (comparison | poll | hours_slider | cart_review). Only `type`
-                                    // is meaningful for all of them; the rest are per-type optional
-                                    // fields — the backend sanitizer keeps only what each type needs.
-                                    'properties' => [
-                                        'type' => ['type' => 'STRING'],
-                                        'title' => ['type' => 'STRING'],
-                                        // poll / hours_slider
-                                        'question' => ['type' => 'STRING'],
-                                        // hours_slider
-                                        'min' => ['type' => 'INTEGER'],
-                                        'max' => ['type' => 'INTEGER'],
-                                        'default' => ['type' => 'INTEGER'],
-                                        'current_cart_hours' => ['type' => 'INTEGER'],
-                                        // poll
-                                        'options' => [
-                                            'type' => 'ARRAY',
-                                            'items' => [
-                                                'type' => 'OBJECT',
-                                                'properties' => [
-                                                    'label' => ['type' => 'STRING'],
-                                                    'value' => ['type' => 'STRING'],
-                                                ]
-                                            ]
-                                        ],
-                                        // comparison
-                                        'items' => [
-                                            'type' => 'ARRAY',
-                                            'items' => [
-                                                'type' => 'OBJECT',
-                                                'properties' => [
-                                                    'name' => ['type' => 'STRING'],
-                                                    'code' => ['type' => 'STRING'],
-                                                    'credit_hours' => ['type' => 'INTEGER'],
-                                                    'difficulty' => ['type' => 'INTEGER'],
-                                                    'unlocks' => ['type' => 'INTEGER'],
-                                                    'gpa_impact' => ['type' => 'STRING'],
-                                                    'recommendation' => ['type' => 'STRING'],
-                                                ]
-                                            ]
-                                        ],
-                                        // cart_review
-                                        'courses' => [
-                                            'type' => 'ARRAY',
-                                            'items' => [
-                                                'type' => 'OBJECT',
-                                                'properties' => [
-                                                    'name' => ['type' => 'STRING'],
-                                                    'code' => ['type' => 'STRING'],
-                                                    'credit_hours' => ['type' => 'INTEGER'],
-                                                    'difficulty' => ['type' => 'INTEGER'],
-                                                    'verdict' => ['type' => 'STRING'],
-                                                    'reason' => ['type' => 'STRING'],
-                                                ]
-                                            ]
-                                        ],
-                                        'summary' => [
-                                            'type' => 'OBJECT',
-                                            'properties' => [
-                                                'total_hours' => ['type' => 'INTEGER'],
-                                                'max_hours' => ['type' => 'INTEGER'],
-                                                'overall_difficulty' => ['type' => 'STRING'],
-                                                'recommendation' => ['type' => 'STRING'],
-                                            ]
-                                        ],
-                                    ]
-                                ]
-                            ],
-                            'required' => ['reply']
-                        ]
                     ],
                     'timeout' => 22,
                 ]);
