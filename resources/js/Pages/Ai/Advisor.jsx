@@ -192,31 +192,28 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
 };
 
 
-// Reusable button used to add or remove suggested courses from the simulator cart.
+// A single course row: name + hours + one clear action. Used for both the
+// "add" lists and the "remove" list, so every course reads the same way.
 const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' }) => {
     const rm = variant === 'remove';
     if (!course || !course.id) return null;
     if (rm && !isAdded) return null;
+    const tone = rm ? 'sfr-crow--remove' : isAdded ? 'sfr-crow--added' : 'sfr-crow--add';
     return (
-        <div className="flex items-center gap-2 sfr-fade-up">
-            <button onClick={() => onToggle(course.id, course.name, course.credit_hours)} disabled={isLoading}
-                className={`flex-1 font-black py-3 px-4 rounded-2xl transition-all duration-300 flex justify-between items-center group/b text-[12px] relative overflow-hidden
-                ${rm ? 'bg-gradient-to-r from-red-50 to-rose-50 hover:from-red-500 hover:to-rose-600 text-red-600 hover:text-white border border-red-200/60 hover:border-transparent hover:shadow-lg hover:shadow-red-500/30'
-                : isAdded ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-md'
-                : 'bg-gradient-to-r from-sky-50 to-blue-50 hover:from-sky-500 hover:to-blue-600 text-blue-700 hover:text-white border border-blue-200/50 hover:border-transparent hover:shadow-lg hover:shadow-blue-500/30'} ${isLoading ? 'opacity-50 cursor-wait' : ''}`}>
-                
-                {/* Glossy shine effect */}
-                {!isAdded && !rm && <div className="absolute top-0 -left-[100%] h-full w-[50%] z-0 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white/40 group-hover/b:animate-[shine_1.5s_ease-in-out_infinite]" />}
-
-                <span className="flex items-center gap-2.5 relative z-10">
-                    {isLoading ? <span className="w-4 h-4 border-[2.5px] border-current border-t-transparent rounded-full animate-spin" /> : rm ? <span className="text-sm drop-shadow-sm">🗑</span> : isAdded ? <span className="text-sm drop-shadow-sm">✅</span> : <span className="group-hover/b:rotate-90 transition-transform inline-block text-lg mt-0.5 leading-none drop-shadow-sm">+</span>}
-                    {rm ? `إزالة ${course.name}` : isAdded ? `${course.name} في خطتك` : `إضافة ${course.name}`}
-                </span>
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-lg font-black relative z-10 transition-colors ${rm ? 'bg-red-200/60 group-hover/b:bg-white/20' : isAdded ? 'bg-white/20 text-white' : 'bg-white/80 group-hover/b:bg-white/20 group-hover/b:text-white text-slate-700'}`}>
-                    {course.credit_hours}س
-                </span>
-            </button>
-        </div>
+        <button
+            type="button"
+            onClick={() => onToggle(course.id, course.name, course.credit_hours)}
+            disabled={isLoading}
+            className={`sfr-crow ${tone} ${isLoading ? 'is-loading' : ''} sfr-fade-up`}
+            title={rm ? 'إزالة من التسجيل التجريبي' : isAdded ? 'إزالة من التسجيل التجريبي' : 'إضافة للتسجيل التجريبي'}
+        >
+            <span className="sfr-crow__mark">
+                {isLoading ? <span className="sfr-spin" /> : rm ? '🗑' : isAdded ? '✓' : '+'}
+            </span>
+            <span className="sfr-crow__name">{course.name}</span>
+            {course.credit_hours != null && <span className="sfr-crow__hours">{course.credit_hours} س</span>}
+            <span className="sfr-crow__cta">{rm ? 'إزالة' : isAdded ? 'في خطتك · إزالة' : 'إضافة'}</span>
+        </button>
     );
 };
 
@@ -332,9 +329,9 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
         if (!inCart) {
             return {
                 type: 'suggest_add',        // مادة مقترحة قابلة للإضافة
-                borderClass: 'border-blue-200 bg-blue-50/40',
+                rowClass: 'sfr-crow--add',
                 icon: '💡',
-                badge: { text: 'أضفها', bg: 'bg-blue-100 text-blue-700' },
+                badge: { text: 'أضفها', cls: 'sfr-badge--blue' },
                 reason: c.reason || 'مادة مقترحة من المرشد الذكي',
             };
         }
@@ -343,90 +340,91 @@ const CartReviewWidget = ({ widget, addedCourses, onToggleCourse, loadingCourseI
         if (c.verdict === 'remove') {
             return {
                 type: 'remove_from_cart',    // مادة سيئة، الـ AI يطلب حذفها
-                borderClass: 'border-red-200 bg-red-50/40',
+                rowClass: 'sfr-crow--remove',
                 icon: '🗑️',
-                badge: { text: 'احذفها', bg: 'bg-red-200 text-red-800' },
+                badge: { text: 'احذفها', cls: 'sfr-badge--rose' },
                 reason: c.reason || 'ينصح المرشد بإزالتها لتخفيف العبء',
             };
         }
         if (c.verdict === 'warning') {
             return {
                 type: 'warning_in_cart',     // مادة فيها تحفظ
-                borderClass: 'border-amber-200 bg-amber-50/40',
+                rowClass: 'sfr-crow--warn',
                 icon: '⚠️',
-                badge: { text: 'انتبه', bg: 'bg-amber-200 text-amber-800' },
+                badge: { text: 'انتبه', cls: 'sfr-badge--amber' },
                 reason: c.reason || 'راقب هذه المادة',
             };
         }
         // verdict === 'keep' أو أي قيمة أخرى
         return {
             type: 'keep_in_cart',            // مادة جيدة، أبقِها
-            borderClass: 'border-emerald-200 bg-emerald-50/40',
-            icon: '✅',
-            badge: { text: 'أبقِها', bg: 'bg-emerald-200 text-emerald-800' },
+            rowClass: 'sfr-crow--added',
+            icon: '✓',
+            badge: { text: 'أبقِها', cls: 'sfr-badge--green' },
             reason: c.reason || 'مادة مناسبة لجدولك',
         };
     };
 
+    const maxHours = s.max_hours || 18;
+    const over = currentWidgetHours > maxHours;
+
     return (
-        <div className="mt-4 pt-3 border-t border-slate-200/40 sfr-fade-up">
-            <p className="text-[10px] font-black text-slate-600 mb-3">📋 {widget.title || 'مراجعة التسجيل التجريبي'}</p>
+        <div className="sfr-attach sfr-fade-up">
+            <p className="sfr-attach__label text-slate-600">📋 {widget.title || 'مراجعة التسجيل التجريبي'}</p>
             {s.recommendation && (
-                <div className="bg-gradient-to-l from-slate-50 to-blue-50/30 rounded-xl p-3 mb-3 border border-slate-200/50 flex items-center justify-between transition-all">
-                    <div className="flex gap-5">
-                        <div className="text-center">
-                            <p className="text-[7px] font-bold text-slate-400 uppercase">الساعات</p>
-                            <p className={`text-lg font-black transition-colors ${currentWidgetHours > (s.max_hours || 18) ? 'text-red-600' : 'text-blue-700'}`}>
-                                {currentWidgetHours}
-                                <span className="text-[9px] text-slate-400">/{s.max_hours || 18}</span>
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-[7px] font-bold text-slate-400 uppercase">الصعوبة</p>
-                            <p className="text-[12px] font-black text-slate-700">{s.overall_difficulty || '—'}</p>
-                        </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 mb-2 flex items-center gap-4">
+                    <div className="text-center shrink-0">
+                        <p className="text-[8px] font-bold text-slate-400">الساعات</p>
+                        <p className={`text-[17px] font-black leading-tight ${over ? 'text-rose-600' : 'text-blue-700'}`}>
+                            {currentWidgetHours}<span className="text-[10px] text-slate-400">/{maxHours}</span>
+                        </p>
                     </div>
-                    <p className="text-[10px] font-bold text-blue-600 max-w-[45%] text-left leading-snug">{s.recommendation}</p>
+                    <div className="text-center shrink-0">
+                        <p className="text-[8px] font-bold text-slate-400">الصعوبة</p>
+                        <p className="text-[12px] font-black text-slate-700 leading-tight mt-1">{s.overall_difficulty || '—'}</p>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-600 leading-snug border-r border-slate-200 pr-4">{s.recommendation}</p>
                 </div>
             )}
             <div className="space-y-1.5">
                 {(widget.courses || []).map((c, i) => {
                     const state = getCourseState(c);
                     const inCart = !!addedCourses[c.id];
+                    const busy = loadingCourseId === c.id;
 
                     return (
-                        <div key={i} className={`flex items-center gap-2.5 p-3 rounded-xl border-2 transition-all duration-300 ${state.borderClass}`}>
-                            <span className="text-base">{state.icon}</span>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-black text-[12px] text-slate-800 truncate">
-                                    {c.name} <span className="text-[8px] font-mono text-slate-400">{c.code}</span> <span className="text-[9px] text-slate-500">{c.credit_hours}س</span>
-                                </p>
-                                <p className="text-[9px] text-slate-500 font-bold">{state.reason}</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg ${state.badge.bg}`}>{state.badge.text}</span>
+                        <div key={i} className={`sfr-crow sfr-crow--static ${state.rowClass}`}>
+                            <span className="sfr-crow__mark">{state.icon}</span>
+                            <span className="min-w-0 flex-1">
+                                <span className="flex items-baseline gap-1.5">
+                                    <span className="sfr-crow__name truncate">{c.name}</span>
+                                    {c.code && <span className="text-[9px] font-mono text-slate-400">{c.code}</span>}
+                                    {c.credit_hours != null && <span className="sfr-crow__hours">{c.credit_hours} س</span>}
+                                </span>
+                                <span className="block text-[10px] text-slate-500 font-bold leading-snug mt-0.5">{state.reason}</span>
+                            </span>
+                            <span className={`sfr-badge ${state.badge.cls}`}>{state.badge.text}</span>
 
-                                {/* 🛡️ المادة مو بالتسجيل التجريبي → زر إضافة أزرق (بغض النظر عن verdict) */}
-                                {!inCart && c.id && (
-                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all shadow-sm shadow-blue-500/30">
-                                        {loadingCourseId === c.id ? '⏳' : '➕ إضافة'}
-                                    </button>
-                                )}
+                            {/* المادة مو بالتسجيل التجريبي → إضافة (حتى لو الـ AI أرسل verdict: remove) */}
+                            {!inCart && c.id && (
+                                <button type="button" onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={busy} className="sfr-crow__cta sfr-crow__cta--add">
+                                    {busy ? '…' : 'إضافة'}
+                                </button>
+                            )}
 
-                                {/* المادة بالتسجيل التجريبي + الـ AI يطلب حذفها → زر حذف أحمر تحذيري */}
-                                {inCart && c.verdict === 'remove' && c.id && (
-                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all">
-                                        {loadingCourseId === c.id ? '⏳' : '🗑️ احذفها'}
-                                    </button>
-                                )}
+                            {/* المادة بالتسجيل التجريبي + الـ AI يطلب حذفها → حذف تحذيري */}
+                            {inCart && c.verdict === 'remove' && c.id && (
+                                <button type="button" onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={busy} className="sfr-crow__cta sfr-crow__cta--danger">
+                                    {busy ? '…' : 'احذفها'}
+                                </button>
+                            )}
 
-                                {/* المادة بالتسجيل التجريبي + verdict مو remove → زر إزالة بسيط للتراجع */}
-                                {inCart && c.verdict !== 'remove' && (
-                                    <button onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={loadingCourseId === c.id} className="text-[9px] bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-500 px-2.5 py-1 rounded-lg font-black active:scale-95 transition-all border border-slate-200/60">
-                                        {loadingCourseId === c.id ? '⏳' : '✖ إزالة'}
-                                    </button>
-                                )}
-                            </div>
+                            {/* المادة بالتسجيل التجريبي + verdict مو remove → إزالة هادئة للتراجع */}
+                            {inCart && c.verdict !== 'remove' && (
+                                <button type="button" onClick={() => onToggleCourse(c.id, c.name, c.credit_hours)} disabled={busy} className="sfr-crow__cta sfr-crow__cta--ghost">
+                                    {busy ? '…' : 'إزالة'}
+                                </button>
+                            )}
                         </div>
                     );
                 })}
@@ -461,6 +459,23 @@ const Actions = ({ msg, onRegen, onFeedback, isLast }) => {
 // ========== ChatMessage ==========
 const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRegen, onFb, onFollow }) => {
     const u = msg.role === 'user';
+
+    // A course must appear exactly once per reply. The interactive widget is the
+    // single source of truth for anything it lists, and each course belongs to one
+    // list only — otherwise the same course showed up twice with opposite actions
+    // ("أضفها" under the reply and "احذفها" inside the widget).
+    const { suggest, remove } = useMemo(() => {
+        const w = msg.interactive_widget;
+        const owned = new Set([...(w?.courses || []), ...(w?.items || [])].map(c => c?.id).filter(Boolean));
+        const seen = new Set();
+        const take = (list) => (list || []).filter(c => {
+            if (!c?.id || owned.has(c.id) || seen.has(c.id)) return false;
+            seen.add(c.id);
+            return true;
+        });
+        return { suggest: take(msg.suggested_courses), remove: take(msg.courses_to_remove) };
+    }, [msg.suggested_courses, msg.courses_to_remove, msg.interactive_widget]);
+
     return (
         <div className={`flex ${u ? 'justify-end' : 'justify-start'} sfr-slide-up`}>
             <div className={`flex w-full ${u ? 'md:max-w-[75%] justify-end' : 'w-full'} gap-3 ${u ? 'flex-row-reverse' : ''} items-start`}>
@@ -473,18 +488,8 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                     {u ? <p className="font-bold leading-relaxed text-[12.5px] whitespace-pre-wrap">{msg.content}</p> : (
                         <div className="w-full">
                             <Typewriter content={msg.content} isAnimating={msg.isAnimating} onScroll={scroll} onComplete={onDone} />
-                            {!msg.isAnimating && (() => {
-                                const seenIds = new Set();
-                                const uniqueSuggested = msg.suggested_courses?.filter(c => {
-                                    if (!c.id || seenIds.has(c.id)) return false;
-                                    seenIds.add(c.id);
-                                    if (msg.interactive_widget?.type === 'cart_review' && msg.interactive_widget.courses?.some(wc => wc.id === c.id)) return false;
-                                    if (msg.interactive_widget?.type === 'comparison' && msg.interactive_widget.items?.some(wc => wc.id === c.id)) return false;
-                                    return true;
-                                }) || [];
-                                return uniqueSuggested.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-blue-600">✨ مواد مقترحة</p><div className="space-y-1.5">{uniqueSuggested.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>;
-                            })()}
-                            {!msg.isAnimating && msg.courses_to_remove?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-rose-600">⚠️ تخفيف العبء</p><div className="space-y-1.5">{msg.courses_to_remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
+                            {!msg.isAnimating && suggest.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-blue-600">✨ مواد مقترحة</p><div className="space-y-1.5">{suggest.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>}
+                            {!msg.isAnimating && remove.some(c => added[c.id]) && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-rose-600">⚠️ تخفيف العبء</p><div className="space-y-1.5">{remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
                             {!msg.isAnimating && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow} />}
                             {!msg.isAnimating && msg.follow_up_suggestions?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-slate-500">💬 أسئلة متابعة</p><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q, i) => <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10.5px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all active:scale-95">{q}</button>)}</div></div>}
                             {!msg.isAnimating && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb} />}
@@ -1272,6 +1277,44 @@ export default function Advisor() {
             /* Blocks appended under a reply (courses, widgets, follow-ups). */
             .sfr-attach { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid #eef2f7; }
             .sfr-attach__label { font-size: 10px; font-weight: 900; margin-bottom: .5rem; }
+
+            /* ===== Course row — one shared shape for add / remove / review ===== */
+            .sfr-crow { width: 100%; display: flex; align-items: center; gap: .6rem; padding: .6rem .7rem; border: 1px solid #e6ebf2; border-radius: 12px; background: #fff; text-align: start; transition: border-color .18s, background .18s, box-shadow .18s; }
+            .sfr-crow:not(.sfr-crow--static) { cursor: pointer; }
+            .sfr-crow:not(.sfr-crow--static):hover { box-shadow: 0 2px 10px rgba(15,23,42,.06); }
+            .sfr-crow:not(.sfr-crow--static):active { transform: scale(.995); }
+            .sfr-crow.is-loading { opacity: .55; cursor: wait; }
+            .sfr-crow__mark { width: 22px; height: 22px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; background: #f1f5f9; color: #475569; flex-shrink: 0; }
+            .sfr-crow__name { font-size: 12px; font-weight: 800; color: #0f172a; flex: 1; min-width: 0; }
+            .sfr-crow--static .sfr-crow__name { flex: initial; }
+            .sfr-crow__hours { font-size: 9.5px; font-weight: 800; color: #64748b; background: #f1f5f9; padding: .1rem .35rem; border-radius: 5px; flex-shrink: 0; }
+            .sfr-crow__cta { font-size: 10px; font-weight: 900; padding: .2rem .55rem; border-radius: 7px; flex-shrink: 0; }
+            .sfr-crow--add { border-color: #dbe7fb; background: #f8fbff; }
+            .sfr-crow--add:hover { border-color: #9dc2f8; background: #f2f8ff; }
+            .sfr-crow--add .sfr-crow__mark { background: #e5efff; color: #1d4ed8; }
+            .sfr-crow--add .sfr-crow__cta { background: #e5efff; color: #1d4ed8; }
+            .sfr-crow--added { border-color: #cdeade; background: #f6fdf9; }
+            .sfr-crow--added .sfr-crow__mark { background: #dcf5e8; color: #077a4b; }
+            .sfr-crow--added .sfr-crow__cta { background: #eaf7f0; color: #0a7048; }
+            .sfr-crow--warn { border-color: #f6e4bf; background: #fffcf5; }
+            .sfr-crow--warn .sfr-crow__mark { background: #fdf0d5; color: #92610a; }
+            .sfr-crow--remove { border-color: #f7d7d7; background: #fffafa; }
+            .sfr-crow--remove:hover { border-color: #ef9a9a; }
+            .sfr-crow--remove .sfr-crow__mark { background: #fde8e8; color: #b42323; }
+            .sfr-crow--remove .sfr-crow__cta { background: #fde8e8; color: #b42323; }
+            .sfr-crow__cta--add { background: #e5efff; color: #1d4ed8; }
+            .sfr-crow__cta--add:hover { background: #1d4ed8; color: #fff; }
+            .sfr-crow__cta--danger { background: #e11d48; color: #fff; }
+            .sfr-crow__cta--danger:hover { background: #be123c; }
+            .sfr-crow__cta--ghost { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+            .sfr-crow__cta--ghost:hover { background: #fef2f2; color: #b42323; border-color: #fadede; }
+            .sfr-badge { font-size: 9px; font-weight: 900; padding: .15rem .45rem; border-radius: 6px; flex-shrink: 0; }
+            .sfr-badge--blue { background: #e5efff; color: #1d4ed8; }
+            .sfr-badge--green { background: #dcf5e8; color: #0a7048; }
+            .sfr-badge--amber { background: #fdf0d5; color: #92610a; }
+            .sfr-badge--rose { background: #fde8e8; color: #b42323; }
+            .sfr-spin { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; display: inline-block; animation: sfr-rot .7s linear infinite; }
+            @keyframes sfr-rot { to { transform: rotate(360deg); } }
             @keyframes sfr-su { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
             .sfr-slide-up { animation: sfr-su .3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
             @keyframes sfr-fu { from { opacity:0; transform: translateY(5px); } to { opacity:1; transform: translateY(0); } }
