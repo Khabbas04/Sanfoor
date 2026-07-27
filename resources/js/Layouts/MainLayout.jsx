@@ -685,7 +685,10 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             )}
 
             {/* Routed page content is rendered inside the shared layout shell with a professional fade/blur transition. */}
-            <main id="main-content" className={`flex-1 flex flex-col w-full relative ${appShell ? 'min-h-0' : ''} ${shouldHideNav ? 'pt-0' : 'pt-4 md:pt-28'}`}>
+            {/* The navbar is 72px tall on a phone and absolutely positioned, so an app-shell
+                page — which starts at y=0 and cannot be scrolled down away from it — has to
+                reserve that height or its own title lands underneath the logo. */}
+            <main id="main-content" className={`flex-1 flex flex-col w-full relative ${appShell ? 'min-h-0' : ''} ${shouldHideNav ? 'pt-0' : (appShell ? 'pt-[76px] md:pt-28' : 'pt-4 md:pt-28')}`}>
                 {/* ═══ NTP GUEST DEMO BANNER ═══ */}
                 {safeUser.is_guest && <GuestDemoBanner />}
                 {children}

@@ -3854,7 +3854,10 @@ export default function Tree({
             {/* ═══ HEADER ═══ */}
             {!isFullScreen && (
                 <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
-                    {isLandscapeMobile ? (
+                    {/* The centred hero costs ~200px of a viewport-height shell and repeats what
+                        the navbar right above it already says. Phones get the compact title that
+                        landscape already used, and the canvas keeps that space instead. */}
+                    {isMobile ? (
                         <div className="px-1">
                             <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
                         </div>
@@ -4049,6 +4052,18 @@ export default function Tree({
                     <div className="shrink-0 flex gap-2 w-full md:w-auto md:mr-3" dir="rtl">
                         <button id="tour-tree-legend" onClick={() => setLegendOpen(true)} className={`flex-1 md:flex-none md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
                             🌳 دليل الشجرة
+                        </button>
+                        {/* The video help used to float over the canvas at bottom-left, where it
+                            covered the tree and landed on the zoom cluster — on the phone and on
+                            the desktop both. An action with a toolbar to live in does not need to
+                            sit on the drawing it explains. */}
+                        <button
+                            onClick={() => startTransition(() => setShowVideo(true))}
+                            title="كيف تعمل الشجرة؟"
+                            aria-label="كيف تعمل الشجرة؟"
+                            className="shrink-0 w-11 md:w-auto justify-center flex items-center gap-1.5 px-0 md:px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100/70 active:scale-95"
+                        >
+                            ▶<span className="hidden md:inline">كيف تعمل الشجرة؟</span>
                         </button>
                         {/* Icon-only, so it must not claim half the row on a phone the way a
                             w-full button did — it read as a large empty red block. */}
@@ -4933,23 +4948,6 @@ export default function Tree({
                 </div>
             )}
 
-            {/* Floating Video Help Button */}
-            {!isFullScreen && (
-                <button
-                    onClick={() => startTransition(() => setShowVideo(true))}
-                    className="fixed bottom-24 left-4 sm:bottom-6 sm:left-6 z-[150] group flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 bg-indigo-600 text-white rounded-full shadow-[0_8px_20px_-4px_rgba(79,70,229,0.5)] hover:shadow-[0_12px_25px_-4px_rgba(79,70,229,0.6)] hover:scale-110 hover:-translate-y-1 transition-all duration-300 border border-indigo-400/30"
-                    style={{ direction: 'rtl' }}
-                >
-                    <div className="absolute inset-0 rounded-full bg-indigo-400 blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5 relative z-10 drop-shadow-md" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
-                    
-                    {/* Tooltip */}
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-900 text-white text-[11px] sm:text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap translate-x-2 group-hover:translate-x-0 shadow-xl hidden sm:block">
-                        كيف تعمل الشجرة؟
-                        <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
-                    </div>
-                </button>
-            )}
 
             {/* Video Modal */}
             {showVideo && (
