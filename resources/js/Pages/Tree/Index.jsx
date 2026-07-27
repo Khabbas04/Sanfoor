@@ -3768,7 +3768,10 @@ export default function Tree({
                     ) : (
                         <section className="relative overflow-hidden py-4 sm:py-6 text-center">
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none select-none z-0">
-                                <span className={`text-[4rem] sm:text-[6rem] md:text-[8rem] font-black tracking-tighter whitespace-nowrap ${isDark ? 'text-white/[0.02]' : 'text-slate-900/[0.03]'}`}>
+                                {/* On a phone the 4rem watermark was wider than the viewport and
+                                    bigger than the title it sits behind, so its clipped edges read
+                                    as a rendering glitch rather than a backdrop. */}
+                                <span className={`text-[2.25rem] sm:text-[6rem] md:text-[8rem] font-black tracking-tighter whitespace-nowrap ${isDark ? 'text-white/[0.02]' : 'text-slate-900/[0.03]'}`}>
                                     STUDY TREE
                                 </span>
                             </div>
@@ -3951,11 +3954,18 @@ export default function Tree({
 
                     {/* Legend Button & Reset Button */}
                     <div className="shrink-0 flex gap-2 w-full md:w-auto md:mr-3" dir="rtl">
-                        <button id="tour-tree-legend" onClick={() => setLegendOpen(true)} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
+                        <button id="tour-tree-legend" onClick={() => setLegendOpen(true)} className={`flex-1 md:flex-none md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-white text-slate-600 border-slate-200 hover:bg-slate-50`}>
                             🌳 دليل الشجرة
                         </button>
-                        <button onClick={handleResetPlan} className={`w-full md:w-auto justify-center flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/70`}>
-                            🔄
+                        {/* Icon-only, so it must not claim half the row on a phone the way a
+                            w-full button did — it read as a large empty red block. */}
+                        <button
+                            onClick={handleResetPlan}
+                            title="إعادة تعيين الخطة"
+                            aria-label="إعادة تعيين الخطة"
+                            className={`shrink-0 w-11 md:w-auto justify-center flex items-center gap-1.5 px-0 md:px-4 py-2.5 rounded-xl text-[12px] font-[800] transition-all shadow-sm border bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100/70`}
+                        >
+                            🔄<span className="hidden md:inline">إعادة تعيين</span>
                         </button>
                     </div>
                 </div>
@@ -4358,7 +4368,7 @@ export default function Tree({
                             <div className="absolute top-2 right-2 left-2 z-30" dir="rtl">
                                 <div className="bg-amber-50/95 border border-amber-200 text-amber-800 rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm flex items-center gap-2.5">
                                     <span className="text-base shrink-0">🔄</span>
-                                    <p className="text-[10px] font-black leading-snug flex-1">لأفضل تجربة: لف الشاشة للوضع الأفقي ثم فعّل وضع ملء الشاشة.</p>
+                                    <p className="text-[10.5px] font-black leading-snug flex-1 min-w-0">لأفضل تجربة: لف الشاشة للوضع الأفقي ثم فعّل ملء الشاشة.</p>
                                     <button
                                         type="button"
                                         onClick={() => setDismissedRotateHint(true)}
@@ -4432,10 +4442,13 @@ export default function Tree({
                             </div>
                         )}
 
+                        {/* The rotate hint spans the full width of this same top strip, and this
+                            button sits above it (z-100) — on a phone it landed right on top of the
+                            hint's text. Drop below the hint while it is showing. */}
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'top-4 left-4 sm:top-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : 'top-3 left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg'} z-[100] px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
+                            className={`absolute ${isFullScreen ? 'top-4 left-4 sm:top-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : `${showRotateHint ? 'top-[3.6rem]' : 'top-3'} left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg`} z-[100] px-3.5 sm:px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
                         >
                             {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
                         </button>

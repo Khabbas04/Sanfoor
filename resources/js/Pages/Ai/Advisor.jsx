@@ -15,6 +15,26 @@ const swal = { confirmButtonColor: '#3b82f6', customClass: { popup: 'rounded-3xl
 
 const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+// Quick-command tones as literal class strings. Tailwind compiles what it can see in
+// the source, so the previous `bg-${cmd.color}-50/50` produced class names that were
+// never generated — the cards rendered with no background, border or text colour.
+const CMD_TONES = {
+    blue: { card: 'bg-blue-50/60 border-blue-200/50 hover:bg-blue-100/60 hover:border-blue-300/60', title: 'text-blue-700', desc: 'text-blue-500/70' },
+    sky: { card: 'bg-sky-50/60 border-sky-200/50 hover:bg-sky-100/60 hover:border-sky-300/60', title: 'text-sky-700', desc: 'text-sky-500/70' },
+    cyan: { card: 'bg-cyan-50/60 border-cyan-200/50 hover:bg-cyan-100/60 hover:border-cyan-300/60', title: 'text-cyan-700', desc: 'text-cyan-500/70' },
+    teal: { card: 'bg-teal-50/60 border-teal-200/50 hover:bg-teal-100/60 hover:border-teal-300/60', title: 'text-teal-700', desc: 'text-teal-500/70' },
+    emerald: { card: 'bg-emerald-50/60 border-emerald-200/50 hover:bg-emerald-100/60 hover:border-emerald-300/60', title: 'text-emerald-700', desc: 'text-emerald-500/70' },
+    amber: { card: 'bg-amber-50/60 border-amber-200/50 hover:bg-amber-100/60 hover:border-amber-300/60', title: 'text-amber-700', desc: 'text-amber-500/70' },
+    orange: { card: 'bg-orange-50/60 border-orange-200/50 hover:bg-orange-100/60 hover:border-orange-300/60', title: 'text-orange-700', desc: 'text-orange-500/70' },
+    rose: { card: 'bg-rose-50/60 border-rose-200/50 hover:bg-rose-100/60 hover:border-rose-300/60', title: 'text-rose-700', desc: 'text-rose-500/70' },
+    pink: { card: 'bg-pink-50/60 border-pink-200/50 hover:bg-pink-100/60 hover:border-pink-300/60', title: 'text-pink-700', desc: 'text-pink-500/70' },
+    fuchsia: { card: 'bg-fuchsia-50/60 border-fuchsia-200/50 hover:bg-fuchsia-100/60 hover:border-fuchsia-300/60', title: 'text-fuchsia-700', desc: 'text-fuchsia-500/70' },
+    violet: { card: 'bg-violet-50/60 border-violet-200/50 hover:bg-violet-100/60 hover:border-violet-300/60', title: 'text-violet-700', desc: 'text-violet-500/70' },
+    indigo: { card: 'bg-indigo-50/60 border-indigo-200/50 hover:bg-indigo-100/60 hover:border-indigo-300/60', title: 'text-indigo-700', desc: 'text-indigo-500/70' },
+    slate: { card: 'bg-slate-50 border-slate-200/60 hover:bg-slate-100/70 hover:border-slate-300/60', title: 'text-slate-700', desc: 'text-slate-500/70' },
+};
+const cmdTone = (color) => CMD_TONES[color] || CMD_TONES.slate;
+
 // Read one SSE frame ("event: x\ndata: {...}") into { event, data }.
 const parseSseFrame = (frame) => {
     let event = 'message';
@@ -1568,24 +1588,24 @@ export default function Advisor() {
                     {/* === Chat === */}
                     <div className="bg-white rounded-2xl border border-slate-200/50 shadow-sm flex flex-col h-[calc(100dvh-85px)] sm:h-[calc(100dvh-85px)] lg:h-[calc(100vh-80px)] min-h-[420px] overflow-hidden relative">
                         {/* Header */}
-                        <div className="px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between z-20">
-                            <div className="flex items-center gap-3">
-                                <div className="relative">
+                        <div className="px-3 sm:px-4 py-2.5 border-b border-slate-100/70 bg-white shrink-0 flex items-center justify-between gap-2 z-20">
+                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div className="relative shrink-0">
                                     <div className="w-10 h-10 bg-white border-2 border-blue-100 rounded-full flex items-center justify-center shadow-sm overflow-hidden sfr-glow"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover" onError={e => { e.target.outerHTML = '<span class="text-lg">🤖</span>'; }} /></div>
                                     <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 border-2 border-white rounded-full ${(isFallback || !isAiActive) ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <div className="flex items-center gap-3">
-                                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
+                                        <h2 className="text-[15px] font-[900] text-slate-800 flex items-center gap-2 whitespace-nowrap">سنفور <span className={`text-[7px] ${(isFallback || !isAiActive) ? 'bg-rose-600' : 'bg-blue-600'} text-white px-1.5 py-0.5 rounded font-black tracking-wider uppercase`}>{(isFallback || !isAiActive) ? 'Local' : 'AI'}</span></h2>
                                     </div>
-                                    {(isFallback || fallbackReason) && <p className="text-[8px] font-bold text-rose-500 mt-0.5">{fallbackReason === 'gemini_unavailable' ? 'المساعد السحابي غير متاح حالياً، لذلك نستخدم الوضع المحلي.' : fallbackReason === 'local_fallback_error' ? 'الفالباك المحلي احتاج معالجة إضافية.' : 'الوضع المحلي مفعل حالياً.'}</p>}
-                                    <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
-                                        <span className={`w-1.5 h-1.5 rounded-full ${typing || generating ? 'bg-amber-400' : ((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`} />
-                                        {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? 'مستشار سنفور (الوضع المحلي) 🔴' : 'مستشار سنفور (الوضع الذكي) 🟢')}
+                                    {(isFallback || fallbackReason) && <p className="text-[8.5px] font-bold text-rose-500 mt-0.5 line-clamp-2">{fallbackReason === 'gemini_unavailable' ? 'المساعد السحابي غير متاح حالياً، لذلك نستخدم الوضع المحلي.' : fallbackReason === 'local_fallback_error' ? 'الفالباك المحلي احتاج معالجة إضافية.' : 'الوضع المحلي مفعل حالياً.'}</p>}
+                                    <p className="text-[9px] font-bold text-slate-400 flex items-center gap-1 truncate">
+                                        <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${typing || generating ? 'bg-amber-400' : ((isFallback || !isAiActive) ? 'bg-rose-400' : 'bg-emerald-400')} animate-pulse`} />
+                                        {typing ? 'يحلل سؤالك...' : generating ? 'يكتب الرد...' : ((isFallback || !isAiActive) ? (isMobileViewport ? 'الوضع المحلي 🔴' : 'مستشار سنفور (الوضع المحلي) 🔴') : (isMobileViewport ? 'الوضع الذكي 🟢' : 'مستشار سنفور (الوضع الذكي) 🟢'))}
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 shrink-0">
                                 {isMobileViewport && (
                                     <button onClick={() => setSidebar(true)} className="md:hidden bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 w-8 h-8 flex items-center justify-center rounded-lg text-[14px] font-black active:scale-95 transition-all shadow-sm">☰</button>
                                 )}
@@ -1660,17 +1680,22 @@ export default function Advisor() {
                             {/* الأوامر السريعة المربوطة بالـ Widgets (تظهر فقط بالبداية) */}
                             {msgs.length < 3 && !typing && !activeId && !generating && !showCommandMenu && (
                                 <div className="px-3 py-3 border-b border-slate-100/50">
-                                    <p className="text-[9px] font-black text-slate-400 mb-2 px-1">⚡ أوامر سريعة — كل واحد يفتح أداة تفاعلية مختلفة:</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {cmds.map((cmd, i) => (
-                                            <button key={i} onClick={() => send(cmd.text)} className={`flex items-start gap-2.5 p-3 bg-${cmd.color}-50/50 border border-${cmd.color}-200/40 rounded-xl text-right hover:bg-${cmd.color}-100/50 hover:border-${cmd.color}-300/50 transition-all active:scale-[.98] group`}>
-                                                <span className="text-lg shrink-0 mt-0.5">{cmd.icon}</span>
-                                                <div>
-                                                    <p className={`text-[11px] font-black text-${cmd.color}-700 leading-snug`}>{cmd.text}</p>
-                                                    <p className={`text-[8px] font-bold text-${cmd.color}-400 mt-0.5`}>{cmd.desc}</p>
-                                                </div>
-                                            </button>
-                                        ))}
+                                    <p className="text-[9.5px] font-black text-slate-400 mb-2 px-1">⚡ أوامر سريعة — كل واحد يفتح أداة تفاعلية مختلفة</p>
+                                    {/* One column on the narrowest phones: two 140px cells cannot hold a
+                                        full Arabic command without breaking every word. */}
+                                    <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2">
+                                        {cmds.map((cmd, i) => {
+                                            const tone = cmdTone(cmd.color);
+                                            return (
+                                                <button key={i} onClick={() => send(cmd.text)} className={`flex items-start gap-2.5 p-3 border rounded-xl text-right transition-all active:scale-[.98] ${tone.card}`}>
+                                                    <span className="text-lg shrink-0 mt-0.5">{cmd.icon}</span>
+                                                    <div className="min-w-0">
+                                                        <p className={`text-[11.5px] font-black leading-snug ${tone.title}`}>{cmd.text}</p>
+                                                        <p className={`text-[9px] font-bold mt-0.5 ${tone.desc}`}>{cmd.desc}</p>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
@@ -1720,8 +1745,11 @@ export default function Advisor() {
                                                     setCommandFilter('');
                                                 }
                                             }}
-                                            placeholder={limitReached ? "⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳" : isListening ? "جاري الاستماع..." : "اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة..."}
-                                            className={`w-full ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-2xl py-3.5 pr-4 pl-[90px] focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[13px] shadow-inner`}
+                                            // A long placeholder is unreadable on a phone — it just truncates mid-word.
+                                            placeholder={limitReached ? (isMobileViewport ? '⚠️ انتهت محاولاتك اليوم' : '⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳') : isListening ? 'جاري الاستماع...' : (isMobileViewport ? 'اسأل سنفور أي شيء...' : 'اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة...')}
+                                            // text-[16px] on mobile is deliberate: iOS Safari zooms the whole page when a
+                                            // focused input is under 16px, which knocks the chat layout sideways.
+                                            className={`w-full ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-2xl py-3.5 pr-4 pl-[104px] focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[16px] sm:text-[13px] shadow-inner`}
                                             disabled={typing || loadingChat || generating || limitReached}
                                         />
                                         <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -1738,15 +1766,21 @@ export default function Advisor() {
                                         </div>
                                     </div>
                                 </form>
-                                <p className="text-[7.5px] font-bold text-center mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
-                                    <span className="text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                    <span className="text-amber-500 font-black px-1.5 py-0.5 bg-amber-50 rounded">⚠️ هذه الميزة تحت التجربة (Beta) وقد تكون بعض الاقتراحات غير دقيقة</span>
-                                    <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                    <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-black ${limitReached ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-700'}`}>
-                                        {hasDailyLimit ? (limitReached ? '⚠️ انتهت رسائلك المتاحة اليوم' : `الرسائل المتبقية لليوم: ${remaining}/${5}`) : '♾️ رسائل غير محدودة'}
+                                {/* Disclaimer strip. On a phone the full sentences wrapped into three
+                                    ragged lines at 7.5px, so the wording shortens instead of shrinking. */}
+                                <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
+                                    <span className="hidden sm:inline text-[9px] font-bold text-slate-400">النتائج استرشادية — سنفور بيحلل خطتك الحقيقية</span>
+                                    <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-300" />
+                                    <span className="text-[9px] font-black text-amber-600 px-2 py-0.5 bg-amber-50 border border-amber-100 rounded-full">
+                                        <span className="sm:hidden">⚠️ تجريبي (Beta) · نتائج استرشادية</span>
+                                        <span className="hidden sm:inline">⚠️ هذه الميزة تحت التجربة (Beta) وقد تكون بعض الاقتراحات غير دقيقة</span>
                                     </span>
-                                </p>
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${limitReached ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-blue-50 text-blue-700'}`}>
+                                        {hasDailyLimit
+                                            ? (limitReached ? '⚠️ انتهت رسائل اليوم' : (isMobileViewport ? `متبقٍ ${remaining}/5` : `الرسائل المتبقية لليوم: ${remaining}/5`))
+                                            : '♾️ رسائل غير محدودة'}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
