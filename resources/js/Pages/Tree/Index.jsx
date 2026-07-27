@@ -1221,6 +1221,27 @@ export default function Tree({
         flowInstance.zoomTo(next, { duration: 160 });
     }, [flowInstance, flowView.maxZoom, flowView.minZoom]);
 
+    /* ── Gesture ownership ──────────────────────────────────────────────────
+       Only one thing can own a scroll gesture, and with the app shell there is no
+       longer a document scroll to compete with: the canvas pans, the panels scroll
+       inside themselves, nothing scrolls the page. So the canvas keeps its natural
+       gestures and every scrollable overlay isolates itself with overscroll-contain
+       plus React Flow's `nowheel`/`nopan` escape hatches. */
+    const gestureProps = useMemo(() => {
+        if (positionEditMode) {
+            // Admin drags nodes: the pane must not slide out from under the pointer.
+            return { panOnDrag: false, panOnScroll: false, zoomOnScroll: false, zoomOnPinch: true, zoomOnDoubleClick: false, preventScrolling: true };
+        }
+        return {
+            panOnDrag: true,
+            panOnScroll: false,
+            zoomOnScroll: !isMobile,
+            zoomOnPinch: true,
+            zoomOnDoubleClick: !isMobile,
+            preventScrolling: true,
+        };
+    }, [positionEditMode, isMobile]);
+
     /* ── Portrait bottom sheet ──────────────────────────────────────────────
        The panel used to be absolutely positioned inside the graph column, so it
        inherited that column's short height on a phone and moved with the page
@@ -1257,8 +1278,8 @@ export default function Tree({
         else if (delta > 40) setIsSheetExpanded(false);
     }, [sheetDragY]);
 
-    // A sheet floating over a scrollable page is the scroll conflict itself: freeze
-    // the page underneath for as long as it is open.
+    // Belt and braces: the app shell already means the document does not scroll, but
+    // iOS still rubber-bands <body> on a swipe that starts over a fixed overlay.
     useEffect(() => {
         if (!isPortraitSheetOpen) return;
         const previousOverflow = document.body.style.overflow;
@@ -3791,8 +3812,11 @@ export default function Tree({
         )
     );
 
+    // h-full, not 100dvh: the shell is already exactly one viewport tall, and a second
+    // 100dvh inside it would overflow past the navbar padding and reintroduce a page
+    // scroll. min-h-0 lets the graph column shrink instead of pushing the shell taller.
     return (
-        <div className={`w-full flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} style={{ height: '100dvh' }}>
+        <div className={`w-full h-full min-h-0 flex flex-col overflow-hidden font-t ${isDark ? 'bg-[#0a0f18]' : 'bg-[#fafcff]'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <TourManager />
             <Head><title>{lang === 'ar' ? 'الخطة الشجرية الذكية | سنفور' : 'Smart Course Tree | Sanfoor'}</title><meta name="description" content={lang === 'ar' ? 'استعرض خطتك الشجرية، تتبع المتطلبات السابقة، وخطط تسجيل المواد بشكل ذكي داخل حسابك.' : 'Visualize your study tree, track prerequisites, and plan your courses smartly inside your account.'} /><meta name="robots" content="noindex,nofollow,noarchive" /><link rel="canonical" href={`${siteUrl}/tree`} /></Head>
 
@@ -4519,11 +4543,7 @@ export default function Tree({
                             nodesConnectable={false}
                             elementsSelectable={true}
                             selectionOnDrag={false}
-                            panOnDrag={!positionEditMode}
-                            panOnScroll={isMobile && !positionEditMode}
-                            zoomOnPinch={true}
-                            zoomOnScroll={!isMobile && !positionEditMode}
-                            zoomOnDoubleClick={!isMobile && !positionEditMode}
+                            {...gestureProps}
                             proOptions={{ hideAttribution: true }}
                             className="react-flow-rtl-fix"
                         >
@@ -4985,7 +5005,11 @@ export default function Tree({
 }
 
 Tree.layout = page => (
-    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape>
+    // appShell: the tree owns the viewport and scrolls internally (canvas pans, panels
+    // scroll). Without it the shell added ~112px of padding plus a footer around a
+    // 100dvh page, so the document scrolled behind a canvas that ate every wheel and
+    // swipe — the scroll fight the user hit on both laptop and phone.
+    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape appShell>
         {page}
     </MainLayout>
 );
