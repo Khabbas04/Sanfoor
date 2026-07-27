@@ -385,6 +385,8 @@ class AiAdvisorController extends Controller
      */
     private function runAdvisorPipeline($user, Chat $chat, array $data, array $academicData, array $cartData, array $availableCourses, $geminiService, ?callable $onDelta = null): array
     {
+        $message = (string) $data['message'];
+
         // --- ENTERPRISE AI PIPELINE ENGINES ---
 
         // 1. Structured RAG & Academic Rules
@@ -396,11 +398,11 @@ class AiAdvisorController extends Controller
 
         // 2. Course Ranking Engine
         $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
-        $rankedCourses = $rankingEngine->rank($ragData['available_courses'], $rules, $data['message']);
+        $rankedCourses = $rankingEngine->rank($ragData['available_courses'], $rules, $message);
 
         // 3. Document RAG Engine
         $docEngine = app(\App\Engines\DocumentRagEngine::class);
-        $docContext = $docEngine->search($data['message'], 10);
+        $docContext = $docEngine->search($message, 10);
 
         // 3.5 Risk Prediction Engine (needs cart course details, not just ids)
         $riskEngine = app(\App\Engines\RiskPredictionEngine::class);
@@ -458,7 +460,8 @@ class AiAdvisorController extends Controller
         foreach (($availableCourses['details'] ?? []) as $cid => $cdata) {
             $eligibleNames[$cid] = $cdata['name'];
         }
-        $explicitAdds = $widgets->explicitAddRequest((string) $data['message'], $eligibleNames);
+        $claimsAdded = $widgets->claimsAdded((string) ($parsed['reply'] ?? ''));
+        $explicitAdds = $claimsAdded ? $widgets->explicitAddRequest($message, $eligibleNames) : [];
         if (!empty($explicitAdds)) {
             $parsed['courses_to_add'] = array_values(array_unique(array_merge($parsed['courses_to_add'] ?? [], $explicitAdds)));
         }
@@ -470,10 +473,19 @@ class AiAdvisorController extends Controller
         // 7. Only now touch the cart. Writing before validation meant a
         // hallucinated course id inserted a real UserCart row for a course
         // the student is not even eligible to register.
-        $refreshCartFlag = $this->addCoursesToCart($user, $parsed['courses_to_add'] ?? [], $academicData);
+        $refreshCartFlag = $this->addCoursesToCart($user, (array) ($parsed['courses_to_add'] ?? []), $academicData);
 
-        if (isset($parsed['warning'])) {
+        $hadWarning = isset($parsed['warning']);
+        if ($hadWarning) {
             $parsed['reply'] = $parsed['warning'] . "\n\n" . $parsed['reply'];
+        }
+
+        // The reply announced an addition that the cart never received (course already
+        // there, or not eligible). Saying nothing would leave the student believing
+        // their schedule changed. The hour-limit case already carries the validator's
+        // own warning above, so it isn't repeated here.
+        if ($claimsAdded && !$refreshCartFlag && !$hadWarning) {
+            $parsed['reply'] = rtrim((string) $parsed['reply']) . "\n\n" . $this->addFailureNote($message, $eligibleNames, $cartData['map']);
         }
 
         $replyText = $this->normalizeReplyText((string) ($parsed['reply'] ?? ''));
@@ -490,29 +502,27 @@ class AiAdvisorController extends Controller
         // record instead — accurate arithmetic beats a model guess the sanitiser can
         // only clamp. An explicit widget from the model always wins.
         if ($interactiveWidget === null) {
-            $charts = $widgets;
-            $message = (string) $data['message'];
 
             // A course was just added on the student's behalf: show them the resulting
             // schedule instead of only claiming it was added.
             if ($refreshCartFlag) {
                 $freshCartIds = array_merge(array_map('intval', array_keys($cartData['map'])), $parsed['courses_to_add'] ?? []);
-                $interactiveWidget = $this->sanitizeInteractiveWidget($charts->cartReview(
+                $interactiveWidget = $this->sanitizeInteractiveWidget($widgets->cartReview(
                     Course::whereIn('id', array_unique($freshCartIds))->get(['id', 'name', 'code', 'credit_hours', 'difficulty_level']),
                     $rules
                 ));
             }
 
-            $interactiveWidget ??= match ($charts->chooseFor($message)) {
-                'gpa_forecast' => $this->sanitizeInteractiveWidget($charts->gpaForecast(
+            $interactiveWidget ??= match ($widgets->chooseFor($message)) {
+                'gpa_forecast' => $this->sanitizeInteractiveWidget($widgets->gpaForecast(
                     $rules,
                     (int) ($cartData['hours'] ?? 0) ?: (int) ($rules['effective_limit'] ?? 15),
                     $this->targetGpaInMessage($message)
                 )),
                 'radar' => $this->enrichWidgetWithCourseIds(
-                    $this->sanitizeInteractiveWidget($charts->radarFromCourses(
-                        $availableCourses['details'] ?? [],
-                        $charts->courseNamesInMessage($message, $availableDetailsMap)
+                    $this->sanitizeInteractiveWidget($widgets->radarFromCourses(
+                        (array) ($availableCourses['details'] ?? []),
+                        $widgets->courseNamesInMessage($message, $availableDetailsMap)
                     )),
                     $availableDetailsMap,
                     $cartData['map']
@@ -551,6 +561,27 @@ class AiAdvisorController extends Controller
             'interactive_widget' => $interactiveWidget,
             'refresh_cart' => $refreshCartFlag,
         ];
+    }
+
+    /**
+     * Plain-language reason a claimed addition did not reach the cart, so the student
+     * is corrected instead of misled.
+     */
+    private function addFailureNote(string $message, array $eligibleNames, array $cartNames): string
+    {
+        $widgets = app(\App\Engines\DeterministicWidgetEngine::class);
+
+        // Already in the cart is the friendliest and most common case.
+        $inCart = $widgets->courseNamesInMessage($message, $cartNames);
+        if (!empty($inCart)) {
+            return '📌 للتوضيح: **' . $inCart[0] . '** موجودة مسبقاً في تسجيلك التجريبي، فما تغيّر شيء في جدولك.';
+        }
+
+        if (empty($widgets->courseNamesInMessage($message, $eligibleNames))) {
+            return '⚠️ للتوضيح: لم تُضف المادة فعلياً لأنها غير متاحة لك حالياً (قد تكون غير مطروحة أو متطلّبها السابق ناقص). راجع قائمة المواد المتاحة في صفحة الخطة الدراسية.';
+        }
+
+        return '⚠️ للتوضيح: لم تُضف المادة فعلياً — تجاوزت الحد المسموح لساعاتك هذا الفصل. أزل مادة أخرى أولاً ثم أعد المحاولة.';
     }
 
     /**

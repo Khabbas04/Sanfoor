@@ -347,6 +347,34 @@ class DeterministicWidgetEngine
     }
 
     /**
+     * Does this reply tell the student a course was added?
+     *
+     * The cart write is aligned with this claim, never with the raw request: when the
+     * advisor declines on academic grounds ("مادة متقدمة ولا تناسب سنتك الأولى") that
+     * judgement must stand, otherwise the course lands in the cart while the text in
+     * front of the student refuses it.
+     */
+    public function claimsAdded(string $reply): bool
+    {
+        $r = $this->normalize($reply);
+
+        // A refusal wins even when the same sentence contains "إضافة".
+        foreach (['لا استطيع اضافه', 'لم اضف', 'ما اضفت', 'غير متوفره', 'غير متاحه', 'لا يمكن اضافتها', 'لم يتم اضافتها', 'للاسف'] as $refusal) {
+            if (str_contains($r, $refusal)) {
+                return false;
+            }
+        }
+
+        foreach (['تمت اضافتها', 'تمت الاضافه', 'قمت باضافه', 'قمت باضافتها', 'اضفت لك', 'اضفتها لك', 'اضفتها', 'تم اضافه', 'اضفت مادة', 'اضفت ماده'] as $claim) {
+            if (str_contains($r, $claim)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Course ids from an explicit "add this to my cart" request.
      *
      * The model regularly tells the student "تمت إضافتها بنجاح" while leaving
