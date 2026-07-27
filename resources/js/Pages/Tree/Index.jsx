@@ -23,8 +23,9 @@ const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/
 
 const DESKTOP_NODE_WIDTH = 200;
 const DESKTOP_NODE_HEIGHT = 88;
-const MOBILE_NODE_WIDTH = 160;
-const MOBILE_NODE_HEIGHT = 76;
+// React Flow paints each distinct edge zIndex as its own SVG layer, and those layers
+// beat the node layer when their zIndex is higher. Nodes sit above every edge lane.
+const NODE_Z = 4;
 const ELECTIVE_MAX_HOURS = 9;
 const REQUIRED_TYPE_HOURS = {
     compulsory: 87,
@@ -1006,6 +1007,8 @@ export default function Tree({
         return { year: Math.min(6, maxYear + 1), term: 1 };
     }, [localPassedCourses, selectedCourse, legacyPlanSemesterToYearTerm]);
 
+    // One layout for every viewport: the seed has to match the curated positions it is
+    // mixed with, so separation must not depend on screen size.
     const nodeDimensions = useMemo(() => (
         { width: DESKTOP_NODE_WIDTH, height: DESKTOP_NODE_HEIGHT, ranksep: 90, nodesep: 30 }
     ), []);
@@ -1995,6 +1998,10 @@ export default function Tree({
     const buildGraph = useCallback(() => {
         const nodeWidth = nodeDimensions.width;
         const nodeHeight = nodeDimensions.height;
+        // Lanes must fit inside the rank corridor (offset is spent at both ends of an edge).
+        // The corridor is the same on every viewport now that phones share the curated
+        // positions, so the lanes must be too — wider phone lanes overshot the gap.
+        const laneOffsets = [10, 18, 26, 34];
         const titleFontSize = '12px';
         const titleLineHeight = '1.45';
         const badgeFontSize = '9.5px';
@@ -2118,13 +2125,15 @@ export default function Tree({
 
 
             const seededPosition = layoutSeedPositions.get(course.id.toString()) || { x: 0, y: 0 };
-            const storedPosition = (isMobile && !positionEditMode)
-                ? seededPosition
-                : (nodePositions[course.id.toString()] || seededPosition);
+            // Phones used to ignore the curated tree_position_x/y and fall back to the raw
+            // dagre seed, which is why the desktop tree read cleanly while mobile edges ran
+            // across each other. Every viewport now renders the same hand-tuned layout.
+            const storedPosition = nodePositions[course.id.toString()] || seededPosition;
 
             initialNodes.push({
                 id: course.id.toString(),
                 position: storedPosition,
+                zIndex: NODE_Z,
                 style: { padding: 0, border: 'none', background: 'transparent', width: nodeWidth, height: nodeHeight },
                 data: {
                     label: <div dangerouslySetInnerHTML={{ __html: nodeHtml }} />,
@@ -2156,7 +2165,11 @@ export default function Tree({
 
                     let edgeColor = sourceColor;
                     let edgeWidth = isActivePath ? 3.5 : (isSourceDone ? 2.5 : 2);
-                    let isAnimated = (isSourceDone && status !== 'passed') || isActivePath;
+                    // Dashed marching strokes everywhere read as noise on a zoomed-in phone,
+                    // so there they mark the selected path only.
+                    let isAnimated = isMobile
+                        ? isActivePath
+                        : ((isSourceDone && status !== 'passed') || isActivePath);
                     let edgeFilteredOut = false;
                     if (filterMode === 'available' && status !== 'available') edgeFilteredOut = true;
                     if (filterMode === 'easy' && (difficultyBand !== 'easy' || prereqDifficultyBand !== 'easy')) edgeFilteredOut = true;
@@ -2175,7 +2188,12 @@ export default function Tree({
                         source: prereq.id.toString(),
                         target: course.id.toString(),
                         type: 'smoothstep',
-                        zIndex: isActivePath ? 1000 : (isSourceDone ? 10 : 0),
+                        // Edge groups must stay under NODE_Z or the stroke is painted straight
+                        // across the course cards — which is what made the tree look tangled.
+                        zIndex: isActivePath ? 2 : (isSourceDone ? 1 : 0),
+                        // Parallel long runs share a rank corridor; give each source its own
+                        // lane so they no longer collapse onto a single line.
+                        pathOptions: { borderRadius: 12, offset: laneOffsets[prereq.id % laneOffsets.length] },
                         animated: isAnimated,
                         style: {
                             stroke: edgeColor,
@@ -3286,43 +3304,45 @@ export default function Tree({
                 {/* 🆕 نقاط الأولوية + التأثير + الصعوبة */}
                 {getStatus(selectedCourse) !== 'passed' && (
                     <div className="grid grid-cols-3 gap-2.5">
-                        <div className="group relative bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm overflow-visible">
-                            <p className="text-[8px] font-[800] text-indigo-300 uppercase mb-1">الأولوية</p>
+                        {/* These explainers were hover-only, so on a touch screen there was no way to
+                            read them at all. Buttons keep focus after a tap, which reveals the tip. */}
+                        <button type="button" className="group relative w-full bg-indigo-500/15 border border-indigo-400/20 rounded-xl p-3 text-center backdrop-blur-sm overflow-visible focus:outline-none">
+                            <p className="text-[8px] font-[800] text-indigo-300 uppercase mb-1">الأولوية ⓘ</p>
                             <p className={`text-2xl font-[900] leading-none ${getCoursePriority(selectedCourse) >= 70 ? 'text-rose-400' : getCoursePriority(selectedCourse) >= 40 ? 'text-amber-400' : 'text-indigo-300'}`}>{getCoursePriority(selectedCourse)}%</p>
                             <p className="text-[8px] text-white/30 font-bold mt-0.5">نسبة</p>
-                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 max-w-[70vw] opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 z-30">
                                 <div className="relative rounded-xl border border-indigo-200 bg-slate-950/95 px-3 py-2 text-right shadow-2xl backdrop-blur-md">
                                     <p className="text-[10px] font-[900] text-indigo-200 mb-0.5">ما معنى الأولوية؟</p>
                                     <p className="text-[10px] font-bold leading-snug text-white/75">كلما ارتفعت النسبة، كانت المادة أهم في ترتيب دراستك وتأثيرها على التقدم أكبر.</p>
                                     <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-indigo-200 bg-slate-950/95"></span>
                                 </div>
                             </div>
-                        </div>
-                        <div className="group relative bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm overflow-visible">
-                            <p className="text-[8px] font-[800] text-violet-300 uppercase mb-1">التأثير</p>
+                        </button>
+                        <button type="button" className="group relative w-full bg-violet-500/15 border border-violet-400/20 rounded-xl p-3 text-center backdrop-blur-sm overflow-visible focus:outline-none">
+                            <p className="text-[8px] font-[800] text-violet-300 uppercase mb-1">التأثير ⓘ</p>
                             <p className="text-2xl font-[900] text-violet-300 leading-none">{getTotalImpact(selectedCourse.id)}</p>
                             <p className="text-[8px] text-white/30 font-bold mt-0.5">مادة</p>
-                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                            <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 max-w-[70vw] opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 z-30">
                                 <div className="relative rounded-xl border border-violet-200 bg-slate-950/95 px-3 py-2 text-right shadow-2xl backdrop-blur-md">
                                     <p className="text-[10px] font-[900] text-violet-200 mb-0.5">ما معنى التأثير؟</p>
                                     <p className="text-[10px] font-bold leading-snug text-white/75">هذا الرقم يوضح كم مادة أخرى تعتمد على هذه المادة، يعني كم مادة ممكن تتأثر إذا تأخرت.</p>
                                     <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-violet-200 bg-slate-950/95"></span>
                                 </div>
                             </div>
-                        </div>
+                        </button>
                         {selectedCourse.difficulty_level && (
-                            <div className={`group relative rounded-xl p-3 text-center backdrop-blur-sm border overflow-visible ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
-                                <p className={`text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}`}>الصعوبة</p>
+                            <button type="button" className={`group relative w-full rounded-xl p-3 text-center backdrop-blur-sm border overflow-visible focus:outline-none ${selectedCourse.difficulty_level >= 4 ? 'bg-rose-500/15 border-rose-400/20' : selectedCourse.difficulty_level === 3 ? 'bg-amber-500/15 border-amber-400/20' : 'bg-emerald-500/15 border-emerald-400/20'}`}>
+                                <p className={`text-[8px] font-[800] uppercase mb-1 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-300' : selectedCourse.difficulty_level === 3 ? 'text-amber-300' : 'text-emerald-300'}`}>الصعوبة ⓘ</p>
                                 <p className={`text-2xl font-[900] leading-none ${selectedCourse.difficulty_level >= 4 ? 'text-rose-400' : selectedCourse.difficulty_level === 3 ? 'text-amber-400' : 'text-emerald-400'}`}>{selectedCourse.difficulty_level}</p>
                                 <p className={`text-[8px] font-bold mt-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-white/30' : selectedCourse.difficulty_level === 3 ? 'text-white/30' : 'text-white/30'}`}>/5</p>
-                                <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 opacity-0 group-hover:opacity-100 group-hover:-translate-y-0 transition-all duration-200 z-30">
+                                <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-56 max-w-[70vw] opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-200 z-30">
                                     <div className="relative rounded-xl border px-3 py-2 text-right shadow-2xl backdrop-blur-md bg-slate-950/95 border-slate-700/80">
                                         <p className={`text-[10px] font-[900] mb-0.5 ${selectedCourse.difficulty_level >= 4 ? 'text-rose-200' : selectedCourse.difficulty_level === 3 ? 'text-amber-200' : 'text-emerald-200'}`}>ما معنى الصعوبة؟</p>
                                         <p className="text-[10px] font-bold leading-snug text-white/75">هذا الرقم يشرح ثقل المادة الدراسي: خفيف، متوسط، أو مكثف حسب الجهد المتوقع.</p>
                                         <span className="absolute left-1/2 -bottom-1.5 h-3 w-3 -translate-x-1/2 rotate-45 border-r border-b border-slate-700/80 bg-slate-950/95"></span>
                                     </div>
                                 </div>
-                            </div>
+                            </button>
                         )}
                     </div>
                 )}
@@ -3987,33 +4007,62 @@ export default function Tree({
                         }
                 `}>
 
-                        <div className="flex p-2.5 gap-2 bg-white/5 border-b border-white/10 shrink-0">
-                            {isMobile && (
+                        {/* Portrait phones read this as a bottom sheet, so it needs the grab pill and
+                            a close target of its own — with four tabs plus a ✕ in one 2.5rem row the
+                            labels were clipped to a couple of letters each. */}
+                        {isPortraitMobile && (
+                            <div className="shrink-0 flex items-center gap-2 px-3 pt-2.5 pb-1">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setSelectedCourse(null);
                                         setIsSidebarOpen(false);
                                     }}
+                                    aria-label="إغلاق اللوحة"
+                                    className="w-9 h-9 shrink-0 rounded-xl bg-white/10 text-white/70 active:bg-white/20 transition-all flex items-center justify-center text-sm"
+                                >
+                                    ✕
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsSidebarOpen(false)}
+                                    aria-label="إخفاء اللوحة"
+                                    className="flex-1 h-9 flex items-center justify-center"
+                                >
+                                    <span className="w-10 h-1.5 rounded-full bg-white/25" />
+                                </button>
+                                <span className="w-9 shrink-0" />
+                            </div>
+                        )}
+
+                        <div className={`flex ${isPortraitMobile ? 'px-2.5 pb-2.5 pt-0' : 'p-2.5'} gap-2 bg-white/5 border-b border-white/10 shrink-0`}>
+                            {isMobile && !isPortraitMobile && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedCourse(null);
+                                        setIsSidebarOpen(false);
+                                    }}
+                                    aria-label="إغلاق اللوحة"
                                     className="w-9 h-9 rounded-xl bg-white/10 text-white/70 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
                                 >
                                     ✕
                                 </button>
                             )}
-                            <button onClick={() => setActiveTab('details')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 التفاصيل</button>
+                            <button onClick={() => setActiveTab('details')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 <span className="truncate">التفاصيل</span></button>
                             {!is_instructor && (
                                 <>
-                                    <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
-                                        🪄 التخطيط
-                                        {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
+                                    <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
+                                        🪄 <span className="truncate">التخطيط</span>
+                                        {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 shrink-0 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
                                     </button>
-                                    <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 الفصول</button>
+                                    <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 <span className="truncate">الفصول</span></button>
                                 </>
                             )}
-                            <button onClick={() => setActiveTab('university')} className={`flex-1 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ الجامعة</button>
+                            <button onClick={() => setActiveTab('university')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ <span className="truncate">الجامعة</span></button>
                         </div>
 
-                        <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4 pb-24' : 'p-5 pb-24'} hide-scrollbar`}>
+                        <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4' : 'p-5'} pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] hide-scrollbar`}>
 
                             {/* ═══ DETAILS TAB ═══ */}
                             {activeTab === 'details' && renderDetailsPanel()}
@@ -4412,7 +4461,12 @@ export default function Tree({
                             proOptions={{ hideAttribution: true }}
                             className="react-flow-rtl-fix"
                         >
-                            <Controls position="bottom-left" className={`hidden md:block border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
+                            {/* A phone in landscape is wider than the md: breakpoint, so `hidden md:block`
+                                let these render on top of the custom mobile cluster below. Gate on the
+                                JS check instead so exactly one zoom control set is ever visible. */}
+                            {!isMobile && (
+                                <Controls position="bottom-left" className={`border-slate-200 shadow-xl rounded-xl fill-slate-700 m-4 overflow-hidden ${isDark ? 'bg-slate-800 text-white border-white/10 opacity-75 hover:opacity-100' : 'bg-white'}`} showInteractive={false} />
+                            )}
                             <Background
                                 color={isDark ? '#334155' : '#cbd5e1'}
                                 style={{ backgroundColor: isDark ? '#0a0f18' : '#fafcff' }}
@@ -4421,22 +4475,43 @@ export default function Tree({
                         </ReactFlow>
 
 
+                        {/* A full-bleed panel hid the whole tree on a phone, so the course you just
+                            tapped disappeared behind its own details. Portrait gets a bottom sheet,
+                            landscape a narrow drawer — the graph stays on screen either way. */}
                         {isFullScreen && selectedCourse && (
                             <div
-                                className="absolute inset-y-0 right-0 z-40 w-full sm:w-[26rem] lg:w-[30rem] xl:w-[32rem] bg-slate-900/95 border-l border-white/10 backdrop-blur-xl flex flex-col shadow-2xl"
-                                style={{ width: isMobile ? '100%' : 'clamp(20rem, 30vw, 32rem)' }}
+                                className={`absolute z-40 bg-slate-900/95 backdrop-blur-xl flex flex-col shadow-2xl ${isPortraitMobile
+                                    ? 'bottom-0 left-0 right-0 max-h-[72%] rounded-t-[1.5rem] border-t border-white/10'
+                                    : 'inset-y-0 right-0 border-l border-white/10'
+                                    }`}
+                                style={isPortraitMobile ? undefined : { width: isLandscapeMobile ? 'min(26rem, 58%)' : 'clamp(20rem, 30vw, 32rem)' }}
+                                dir="rtl"
                             >
-                                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                                    <span className="text-white font-[900] text-[12px]">تفاصيل المادة</span>
+                                {isPortraitMobile && (
                                     <button
                                         type="button"
                                         onClick={() => setSelectedCourse(null)}
-                                        className="w-8 h-8 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
+                                        aria-label="إغلاق تفاصيل المادة"
+                                        className="w-full pt-2.5 pb-1 flex items-center justify-center shrink-0"
+                                    >
+                                        <span className="w-10 h-1.5 rounded-full bg-white/25" />
+                                    </button>
+                                )}
+                                <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 shrink-0">
+                                    <div className="min-w-0">
+                                        <p className="text-white font-[900] text-[13px] truncate">{selectedCourse.name}</p>
+                                        <p className="text-white/45 font-bold text-[10px] font-mono mt-0.5" dir="ltr">{selectedCourse.code}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedCourse(null)}
+                                        aria-label="إغلاق"
+                                        className="shrink-0 w-9 h-9 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 transition-all flex items-center justify-center text-sm"
                                     >
                                         ✕
                                     </button>
                                 </div>
-                                <div className="flex-1 overflow-y-auto overscroll-contain p-4 hide-scrollbar">
+                                <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))] hide-scrollbar">
                                     {renderDetailsPanel({ showCloseButton: false })}
                                 </div>
                             </div>
@@ -4448,15 +4523,42 @@ export default function Tree({
                         <button
                             type="button"
                             onClick={toggleFullScreen}
-                            className={`absolute ${isFullScreen ? 'top-4 left-4 sm:top-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : `${showRotateHint ? 'top-[3.6rem]' : 'top-3'} left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg`} z-[100] px-3.5 sm:px-4 py-2.5 rounded-xl text-[12px] font-[900] backdrop-blur-md active:scale-95 transition-all`}
+                            title={isFullScreen ? 'خروج من ملء الشاشة' : 'ملء الشاشة'}
+                            aria-label={isFullScreen ? 'خروج من ملء الشاشة' : 'ملء الشاشة'}
+                            className={`absolute ${isFullScreen ? 'top-3 left-3 sm:top-5 sm:left-5 bg-rose-600 hover:bg-rose-700 text-white shadow-[0_0_20px_rgba(225,29,72,0.4)] border border-rose-500/50' : `${showRotateHint ? 'top-[3.6rem]' : 'top-3'} left-3 bg-white/95 text-slate-700 border-slate-200/70 shadow-lg`} z-[100] ${isMobile ? 'w-10 h-10 flex items-center justify-center text-[14px]' : 'px-4 py-2.5 text-[12px]'} rounded-xl font-[900] backdrop-blur-md active:scale-95 transition-all`}
                         >
-                            {isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة'}
+                            {/* A phone in landscape is already past the sm: breakpoint, so the label is
+                                gated on the JS mobile check — otherwise it reappears full-size there. */}
+                            {isMobile ? (isFullScreen ? '✕' : '⛶') : (isFullScreen ? '✕ خروج من ملء الشاشة' : '⛶ ملء الشاشة')}
                         </button>
 
                         {canEditTreePositions && positionEditMode && !isFullScreen && (
-                            <div className="absolute bottom-12 left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2">
+                            <div className={`absolute ${isMobile ? 'bottom-[9.5rem]' : 'bottom-12'} left-3 z-20 bg-slate-900/90 text-white text-[10px] font-bold px-3 py-1.5 rounded-full border border-white/10 backdrop-blur-md flex items-center gap-2`}>
                                 <span>🧭 اسحب بأي اتجاه - التداخل يُعالج تلقائيًا</span>
                                 {hasUnsavedNodeMoves && <span className="text-amber-300">• يوجد تغييرات غير محفوظة</span>}
+                            </div>
+                        )}
+
+                        {/* Phones had no zoom UI at all (the React Flow <Controls> are md:block),
+                            so pinching was the only way to scale the tree. */}
+                        {isMobile && (
+                            <div className={`absolute ${isLandscapeMobile ? 'bottom-2' : 'bottom-3'} left-3 z-[60] flex flex-col overflow-hidden rounded-2xl border shadow-xl backdrop-blur-md ${isDark ? 'bg-slate-900/90 border-white/10' : 'bg-white/95 border-slate-200/80'}`}>
+                                {[
+                                    { key: 'in', label: '+', title: 'تقريب', onClick: () => handleZoom(0.2) },
+                                    { key: 'out', label: '−', title: 'تبعيد', onClick: () => handleZoom(-0.2) },
+                                    { key: 'fit', label: '⛶', title: 'إعادة توسيط الشجرة', onClick: () => fitViewSmart(300) },
+                                ].map((btn, i) => (
+                                    <button
+                                        key={btn.key}
+                                        type="button"
+                                        onClick={btn.onClick}
+                                        title={btn.title}
+                                        aria-label={btn.title}
+                                        className={`w-10 h-10 flex items-center justify-center text-[15px] font-[900] active:scale-90 transition-transform ${i > 0 ? (isDark ? 'border-t border-white/10' : 'border-t border-slate-200/80') : ''} ${isDark ? 'text-white/80' : 'text-slate-600'}`}
+                                    >
+                                        {btn.label}
+                                    </button>
+                                ))}
                             </div>
                         )}
 
