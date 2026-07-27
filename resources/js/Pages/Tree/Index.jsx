@@ -1221,6 +1221,57 @@ export default function Tree({
         flowInstance.zoomTo(next, { duration: 160 });
     }, [flowInstance, flowView.maxZoom, flowView.minZoom]);
 
+    /* ── Portrait bottom sheet ──────────────────────────────────────────────
+       The panel used to be absolutely positioned inside the graph column, so it
+       inherited that column's short height on a phone and moved with the page
+       scroll — it felt wedged into the page and its own scroll fought the page's.
+       On portrait phones it is now pinned to the viewport, has two snap heights,
+       and can be flicked down to dismiss. */
+    const SHEET_PEEK_HEIGHT = '62dvh';
+    const SHEET_FULL_HEIGHT = '92dvh';
+    const [isSheetExpanded, setIsSheetExpanded] = useState(false);
+    const [sheetDragY, setSheetDragY] = useState(0);
+    const sheetDragStartRef = useRef(null);
+    const isPortraitSheetOpen = isPortraitMobile && isSidebarOpen && !isFullScreen;
+
+    const handleSheetTouchStart = useCallback((e) => {
+        sheetDragStartRef.current = e.touches[0].clientY;
+    }, []);
+
+    const handleSheetTouchMove = useCallback((e) => {
+        if (sheetDragStartRef.current === null) return;
+        // Resistance upward (there is nothing above the full snap), free downward.
+        const delta = e.touches[0].clientY - sheetDragStartRef.current;
+        setSheetDragY(delta < 0 ? Math.max(delta, -70) : delta);
+    }, []);
+
+    const handleSheetTouchEnd = useCallback(() => {
+        const delta = sheetDragY;
+        sheetDragStartRef.current = null;
+        setSheetDragY(0);
+        if (delta > 110) {
+            setIsSidebarOpen(false);
+            return;
+        }
+        if (delta < -40) setIsSheetExpanded(true);
+        else if (delta > 40) setIsSheetExpanded(false);
+    }, [sheetDragY]);
+
+    // A sheet floating over a scrollable page is the scroll conflict itself: freeze
+    // the page underneath for as long as it is open.
+    useEffect(() => {
+        if (!isPortraitSheetOpen) return;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => { document.body.style.overflow = previousOverflow; };
+    }, [isPortraitSheetOpen]);
+
+    // Reopening should always start at the smaller snap, never at whatever the
+    // previous course was left expanded to.
+    useEffect(() => {
+        if (!isSidebarOpen) setIsSheetExpanded(false);
+    }, [isSidebarOpen]);
+
     const nodeSnapGrid = useMemo(() => (
         [20, 20]
     ), []);
@@ -3991,25 +4042,37 @@ export default function Tree({
 
             <div className="flex-1 flex w-full min-h-0 relative overflow-hidden">
                 {show4YearPlan && render4YearPlan()}
-                {isSidebarOpen && isMobile && !isLandscapeMobile && !isFullScreen && (
-                    <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+                {isPortraitSheetOpen && (
+                    <div className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm z-[70]" onClick={() => setIsSidebarOpen(false)} />
                 )}
 
                 {/* ═══ SIDEBAR ═══ */}
                 {!isFullScreen && (
-                    <div className={`
-                    absolute lg:relative bg-slate-900/70 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-50 lg:z-10 flex flex-col overflow-hidden transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]
-                    ${isMobile && !isLandscapeMobile
-                            ? `bottom-0 left-0 right-0 h-[82%] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'}`
-                            : `${isLandscapeMobile ? 'top-0 right-0 h-full w-[320px] sm:w-[360px]' : 'top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px]'} rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : `translate-x-full ${isLandscapeMobile ? '' : 'lg:translate-x-0'}`}`
-                        }
-                `}>
+                    <div
+                        className={`
+                    bg-slate-900/80 backdrop-blur-[16px] backdrop-saturate-[180%] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden
+                    ${isPortraitMobile
+                                ? `fixed bottom-0 left-0 right-0 z-[80] rounded-t-[1.5rem] border-b-0 border-l-0 border-r-0 ${isSidebarOpen ? 'translate-y-0' : 'translate-y-full'} ${sheetDragY ? '' : 'transition-[transform,height] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]'}`
+                                : `absolute lg:relative z-50 lg:z-10 transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isLandscapeMobile ? 'top-0 right-0 h-full w-[320px] sm:w-[360px]' : 'top-0 right-0 h-full w-[92%] sm:w-[400px] lg:min-w-[420px] lg:max-w-[420px]'} rounded-none lg:rounded-r-3xl ${isSidebarOpen ? 'translate-x-0' : `translate-x-full ${isLandscapeMobile ? '' : 'lg:translate-x-0'}`}`
+                            }
+                `}
+                        style={isPortraitMobile ? {
+                            height: isSheetExpanded ? SHEET_FULL_HEIGHT : SHEET_PEEK_HEIGHT,
+                            transform: sheetDragY ? `translateY(${sheetDragY}px)` : undefined,
+                        } : undefined}
+                    >
 
-                        {/* Portrait phones read this as a bottom sheet, so it needs the grab pill and
-                            a close target of its own — with four tabs plus a ✕ in one 2.5rem row the
-                            labels were clipped to a couple of letters each. */}
+                        {/* Portrait phones read this as a bottom sheet: the pill is the grab target
+                            (flick down to close, up to expand) and the ✕ lives here so the tab row
+                            below is not four labels plus a button crammed into one 2.5rem strip. */}
                         {isPortraitMobile && (
-                            <div className="shrink-0 flex items-center gap-2 px-3 pt-2.5 pb-1">
+                            <div
+                                className="shrink-0 flex items-center gap-2 px-3 pt-2 pb-1 touch-none select-none"
+                                onTouchStart={handleSheetTouchStart}
+                                onTouchMove={handleSheetTouchMove}
+                                onTouchEnd={handleSheetTouchEnd}
+                                onTouchCancel={handleSheetTouchEnd}
+                            >
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -4023,17 +4086,20 @@ export default function Tree({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setIsSidebarOpen(false)}
-                                    aria-label="إخفاء اللوحة"
-                                    className="flex-1 h-9 flex items-center justify-center"
+                                    onClick={() => setIsSheetExpanded((prev) => !prev)}
+                                    aria-label={isSheetExpanded ? 'تصغير اللوحة' : 'تكبير اللوحة'}
+                                    className="flex-1 h-10 flex flex-col items-center justify-center gap-1"
                                 >
-                                    <span className="w-10 h-1.5 rounded-full bg-white/25" />
+                                    <span className="w-11 h-1.5 rounded-full bg-white/30" />
+                                    <span className="text-[8px] font-[800] text-white/35">{isSheetExpanded ? 'اسحب للأسفل' : 'اسحب للأعلى للتكبير'}</span>
                                 </button>
                                 <span className="w-9 shrink-0" />
                             </div>
                         )}
 
-                        <div className={`flex ${isPortraitMobile ? 'px-2.5 pb-2.5 pt-0' : 'p-2.5'} gap-2 bg-white/5 border-b border-white/10 shrink-0`}>
+                        {/* Four tabs on a 390px phone cannot carry an emoji each and still show a
+                            full word — "التخطيط" was clipped to "التخط...". Portrait drops the icons. */}
+                        <div className={`flex ${isPortraitMobile ? 'px-2 pb-2 pt-0 gap-1' : 'p-2.5 gap-2'} bg-white/5 border-b border-white/10 shrink-0`}>
                             {isMobile && !isPortraitMobile && (
                                 <button
                                     type="button"
@@ -4047,23 +4113,25 @@ export default function Tree({
                                     ✕
                                 </button>
                             )}
-                            <button onClick={() => setActiveTab('details')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📖 <span className="truncate">التفاصيل</span></button>
+                            <button onClick={() => setActiveTab('details')} className={`flex-1 min-w-0 py-2.5 rounded-xl font-[800] transition-all flex items-center justify-center ${isPortraitMobile ? 'text-[11.5px] gap-0 px-1' : 'text-[12px] gap-1.5'} ${activeTab === 'details' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>{!isPortraitMobile && '📖 '}<span className="truncate">التفاصيل</span></button>
                             {!is_instructor && (
                                 <>
-                                    <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 relative ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
-                                        🪄 <span className="truncate">التخطيط</span>
-                                        {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 w-5 h-5 shrink-0 rounded-md text-[10px] flex items-center justify-center font-[900] mr-0.5">{cartIds.length}</span>)}
+                                    <button id="tour-tree-cart" onClick={() => setActiveTab('simulator')} className={`flex-1 min-w-0 py-2.5 rounded-xl font-[800] transition-all flex items-center justify-center relative ${isPortraitMobile ? 'text-[11.5px] gap-1 px-1' : 'text-[12px] gap-1.5'} ${activeTab === 'simulator' ? 'bg-indigo-500/30 text-white shadow-md shadow-indigo-500/15 border border-indigo-400/30' : 'text-white/40 hover:bg-white/10'}`}>
+                                        {!isPortraitMobile && '🪄 '}<span className="truncate">التخطيط</span>
+                                        {cartIds.length > 0 && (<span className="bg-amber-400 text-amber-900 h-[1.1rem] min-w-[1.1rem] px-1 shrink-0 rounded-md text-[10px] flex items-center justify-center font-[900]">{cartIds.length}</span>)}
                                     </button>
-                                    <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>📚 <span className="truncate">الفصول</span></button>
+                                    <button id="tour-tree-plan" onClick={() => setActiveTab('semesters')} className={`flex-1 min-w-0 py-2.5 rounded-xl font-[800] transition-all flex items-center justify-center ${isPortraitMobile ? 'text-[11.5px] gap-0 px-1' : 'text-[12px] gap-1.5'} ${activeTab === 'semesters' ? 'bg-white/15 text-white shadow-sm border border-white/20' : 'text-white/40 hover:bg-white/10'}`}>{!isPortraitMobile && '📚 '}<span className="truncate">الفصول</span></button>
                                 </>
                             )}
-                            <button onClick={() => setActiveTab('university')} className={`flex-1 min-w-0 py-2.5 rounded-xl text-[12px] font-[800] transition-all flex items-center justify-center gap-1.5 ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>☑️ <span className="truncate">الجامعة</span></button>
+                            <button onClick={() => setActiveTab('university')} className={`flex-1 min-w-0 py-2.5 rounded-xl font-[800] transition-all flex items-center justify-center ${isPortraitMobile ? 'text-[11.5px] gap-0 px-1' : 'text-[12px] gap-1.5'} ${activeTab === 'university' ? 'bg-cyan-500/30 text-white shadow-sm border border-cyan-300/30' : 'text-white/40 hover:bg-white/10'}`}>{!isPortraitMobile && '☑️ '}<span className="truncate">الجامعة</span></button>
                         </div>
 
                         <div className={`flex-1 overflow-y-auto overscroll-contain touch-pan-y ${isLandscapeMobile ? 'p-4' : 'p-5'} pb-[max(6rem,calc(env(safe-area-inset-bottom)+5rem))] hide-scrollbar`}>
 
                             {/* ═══ DETAILS TAB ═══ */}
-                            {activeTab === 'details' && renderDetailsPanel()}
+                            {/* The sheet header already carries a ✕ on portrait — two of them a few
+                                pixels apart just looked like a mistake. */}
+                            {activeTab === 'details' && renderDetailsPanel({ showCloseButton: !isPortraitMobile })}
 
                             {/* ═══ SIMULATOR TAB ═══ */}
                             {activeTab === 'simulator' && (
