@@ -1998,10 +1998,10 @@ export default function Tree({
     const buildGraph = useCallback(() => {
         const nodeWidth = nodeDimensions.width;
         const nodeHeight = nodeDimensions.height;
-        // Lanes must fit inside the rank corridor (offset is spent at both ends of an edge).
-        // The corridor is the same on every viewport now that phones share the curated
-        // positions, so the lanes must be too — wider phone lanes overshot the gap.
-        const laneOffsets = [10, 18, 26, 34];
+        // One shared stub length for every edge. Per-source "lanes" (a different offset per
+        // prerequisite) gave each stroke its own turn height, which is what made the tree
+        // look like a staircase — edges now leave and enter at the same depth and read straight.
+        const EDGE_STUB = 22;
         const titleFontSize = '12px';
         const titleLineHeight = '1.45';
         const badgeFontSize = '9.5px';
@@ -2191,9 +2191,7 @@ export default function Tree({
                         // Edge groups must stay under NODE_Z or the stroke is painted straight
                         // across the course cards — which is what made the tree look tangled.
                         zIndex: isActivePath ? 2 : (isSourceDone ? 1 : 0),
-                        // Parallel long runs share a rank corridor; give each source its own
-                        // lane so they no longer collapse onto a single line.
-                        pathOptions: { borderRadius: 12, offset: laneOffsets[prereq.id % laneOffsets.length] },
+                        pathOptions: { borderRadius: 8, offset: EDGE_STUB },
                         animated: isAnimated,
                         style: {
                             stroke: edgeColor,
