@@ -221,7 +221,22 @@ class GeminiService
 
                     $finishReason = strtoupper((string) ($candidate['finishReason'] ?? ''));
                     $stopped = in_array($finishReason, ['MAX_TOKENS', 'LENGTH', 'FINISH_REASON_MAX_TOKENS'], true);
-                    if (!$stopped || $pass >= 2) {
+
+                    // Continuation passes only make sense for prose. Gluing a second
+                    // pass onto a truncated JSON document produces text that parses as
+                    // nothing at all, which is how a cut-off reply used to lose its
+                    // widget, course ids and follow-up questions instead of just its
+                    // tail. In JSON mode, hand the partial document to the parser and
+                    // let it salvage what it can.
+                    $jsonMode = ($payload['generationConfig']['responseMimeType'] ?? '') === 'application/json';
+                    if ($stopped && $jsonMode) {
+                        Log::warning('Gemini hit MAX_TOKENS in JSON mode; returning the partial envelope for salvage.', [
+                            'chars' => strlen($fullText),
+                            'max_output_tokens' => $payload['generationConfig']['maxOutputTokens'] ?? null,
+                        ]);
+                    }
+
+                    if (!$stopped || $jsonMode || $pass >= 2) {
                         $this->workingApiKey = $apiKey;
                         $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
                         Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
@@ -667,6 +682,18 @@ class GeminiService
 
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;
+        }
+
+        // A truncated envelope (MAX_TOKENS) is still readable up to the cut: the same
+        // reader the streaming path uses recovers the reply verbatim, which beats
+        // regex-carving it out of a broken document.
+        $salvaged = $this->partialJsonStringValue($clean, 'reply');
+        if (trim($salvaged) !== '') {
+            return [
+                'reply' => $salvaged,
+                'error_parsing' => true,
+                'truncated' => true,
+            ];
         }
 
         return [

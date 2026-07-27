@@ -449,6 +449,20 @@ class AiAdvisorController extends Controller
 
         $parsed = $this->parseAIResponse($rawText);
 
+        // The model often answers "تمت إضافتها بنجاح" while leaving courses_to_add
+        // empty, so the student is told a course was added that never was. When they
+        // asked for a named course explicitly, resolve it ourselves — ValidationEngine
+        // below still decides whether it may actually enter the cart.
+        $widgets = app(\App\Engines\DeterministicWidgetEngine::class);
+        $eligibleNames = [];
+        foreach (($availableCourses['details'] ?? []) as $cid => $cdata) {
+            $eligibleNames[$cid] = $cdata['name'];
+        }
+        $explicitAdds = $widgets->explicitAddRequest((string) $data['message'], $eligibleNames);
+        if (!empty($explicitAdds)) {
+            $parsed['courses_to_add'] = array_values(array_unique(array_merge($parsed['courses_to_add'] ?? [], $explicitAdds)));
+        }
+
         // 6. Validate AI Response (Hallucination & Overflow Check)
         $validator = app(\App\Engines\ValidationEngine::class);
         $parsed = $validator->validate($parsed, $ragData, $rules);
@@ -466,12 +480,46 @@ class AiAdvisorController extends Controller
         $followUpSuggestions = $this->sanitizeFollowUpSuggestions($parsed['follow_up_suggestions'] ?? []);
         $interactiveWidget = $this->sanitizeInteractiveWidget($parsed['interactive_widget'] ?? null);
 
-        $availableDetailsMap = [];
-        foreach (($availableCourses['details'] ?? []) as $cid => $cdata) {
-            $availableDetailsMap[$cid] = $cdata['name'];
-        }
+        $availableDetailsMap = $eligibleNames;
 
         $interactiveWidget = $this->enrichWidgetWithCourseIds($interactiveWidget, $availableDetailsMap, $cartData['map']);
+
+        // The model treats charts as optional decoration and routinely describes one
+        // in prose without emitting it ("الرسم البياني أدناه..." with nothing below).
+        // When the question is clearly asking for one, build it from the student's own
+        // record instead — accurate arithmetic beats a model guess the sanitiser can
+        // only clamp. An explicit widget from the model always wins.
+        if ($interactiveWidget === null) {
+            $charts = $widgets;
+            $message = (string) $data['message'];
+
+            // A course was just added on the student's behalf: show them the resulting
+            // schedule instead of only claiming it was added.
+            if ($refreshCartFlag) {
+                $freshCartIds = array_merge(array_map('intval', array_keys($cartData['map'])), $parsed['courses_to_add'] ?? []);
+                $interactiveWidget = $this->sanitizeInteractiveWidget($charts->cartReview(
+                    Course::whereIn('id', array_unique($freshCartIds))->get(['id', 'name', 'code', 'credit_hours', 'difficulty_level']),
+                    $rules
+                ));
+            }
+
+            $interactiveWidget ??= match ($charts->chooseFor($message)) {
+                'gpa_forecast' => $this->sanitizeInteractiveWidget($charts->gpaForecast(
+                    $rules,
+                    (int) ($cartData['hours'] ?? 0) ?: (int) ($rules['effective_limit'] ?? 15),
+                    $this->targetGpaInMessage($message)
+                )),
+                'radar' => $this->enrichWidgetWithCourseIds(
+                    $this->sanitizeInteractiveWidget($charts->radarFromCourses(
+                        $availableCourses['details'] ?? [],
+                        $charts->courseNamesInMessage($message, $availableDetailsMap)
+                    )),
+                    $availableDetailsMap,
+                    $cartData['map']
+                ),
+                default => null,
+            };
+        }
 
         $eligibleIds = array_map('intval', array_keys($availableDetailsMap));
         $cartIds = array_map('intval', array_keys($cartData['map']));
@@ -503,6 +551,29 @@ class AiAdvisorController extends Controller
             'interactive_widget' => $interactiveWidget,
             'refresh_cart' => $refreshCartFlag,
         ];
+    }
+
+    /**
+     * A GPA target the student named ("أوصل ٧٥", "أبي معدلي ٨٠") so the forecast can
+     * draw their goal line. Arabic-Indic digits are accepted too.
+     */
+    private function targetGpaInMessage(string $message): ?float
+    {
+        $latin = strtr($message, ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9']);
+
+        if (!preg_match_all('/\d{2,3}(?:[.,]\d{1,2})?/', $latin, $matches)) {
+            return null;
+        }
+
+        foreach ($matches[0] as $candidate) {
+            $value = (float) str_replace(',', '.', $candidate);
+            // Hour counts and dates are not GPA targets; the passing band starts at 60.
+            if ($value >= 60 && $value <= 100) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -1446,15 +1517,47 @@ class AiAdvisorController extends Controller
             return false;
         }
 
-        $added = false;
-        foreach (Course::whereIn('id', $courseIds)->get() as $course) {
-            \App\Models\UserCart::firstOrCreate([
+        // Written with the query builder, exactly like TreeController::toggleSingleCart.
+        // UserCart::$fillable is ['user_id'] only, so the Eloquent route silently
+        // stripped course_id and academic_year/term — every AI-side add either threw a
+        // NOT NULL violation or inserted an empty row, while the reply still told the
+        // student "تمت إضافتها بنجاح".
+        $rows = [];
+        foreach (Course::whereIn('id', $courseIds)->pluck('id') as $courseId) {
+            $rows[] = [
                 'user_id' => $user->id,
-                'course_id' => $course->id,
-                'academic_year' => $academicData['current_period_year'] ?? 2026,
-                'academic_term' => $academicData['current_period_term'] ?? 1,
+                'course_id' => $courseId,
+                'academic_year' => $academicData['current_period_year'] ?? null,
+                'academic_term' => $academicData['current_period_term'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (empty($rows)) {
+            return false;
+        }
+
+        $existing = DB::table('user_carts')
+            ->where('user_id', $user->id)
+            ->whereIn('course_id', array_column($rows, 'course_id'))
+            ->pluck('course_id')
+            ->all();
+
+        $rows = array_values(array_filter($rows, fn ($row) => !in_array($row['course_id'], $existing)));
+        if (empty($rows)) {
+            return false;
+        }
+
+        DB::table('user_carts')->insertOrIgnore($rows);
+        $added = true;
+
+        foreach ($rows as $row) {
+            \App\Models\StudentActivityLog::create([
+                'user_id' => $user->id,
+                'course_id' => $row['course_id'],
+                'action' => 'course_cart_added',
             ]);
-            $added = true;
         }
 
         if ($added) {
@@ -1478,16 +1581,22 @@ class AiAdvisorController extends Controller
      */
     private function advisorResponseSchema(): array
     {
-        $courseIdList = ['type' => 'ARRAY', 'items' => ['type' => 'INTEGER']];
+        // maxItems is not cosmetic: without an upper bound the model was observed
+        // filling suggested_course_ids with a runaway sequence (…335, 336, 337…),
+        // which consumed the entire output budget and truncated the whole envelope.
+        $courseIdList = fn (int $max) => ['type' => 'ARRAY', 'items' => ['type' => 'INTEGER'], 'maxItems' => $max];
 
         return [
             'type' => 'OBJECT',
+            // Generation order matters: the prose comes first (so streaming has
+            // something to show immediately) and the small arrays last.
+            'propertyOrdering' => ['reply', 'interactive_widget', 'suggested_course_ids', 'courses_to_add', 'remove_course_ids', 'follow_up_suggestions'],
             'properties' => [
                 'reply' => ['type' => 'STRING'],
-                'suggested_course_ids' => $courseIdList,
-                'courses_to_add' => $courseIdList,
-                'remove_course_ids' => $courseIdList,
-                'follow_up_suggestions' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                'suggested_course_ids' => $courseIdList(6),
+                'courses_to_add' => $courseIdList(5),
+                'remove_course_ids' => $courseIdList(5),
+                'follow_up_suggestions' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'maxItems' => self::MAX_FOLLOW_UP_SUGGESTIONS],
                 'interactive_widget' => [
                     'type' => 'OBJECT',
                     'nullable' => true,
@@ -1503,6 +1612,7 @@ class AiAdvisorController extends Controller
                         // poll
                         'options' => [
                             'type' => 'ARRAY',
+                            'maxItems' => 4,
                             'items' => [
                                 'type' => 'OBJECT',
                                 'properties' => [
@@ -1514,6 +1624,7 @@ class AiAdvisorController extends Controller
                         // comparison
                         'items' => [
                             'type' => 'ARRAY',
+                            'maxItems' => self::MAX_WIDGET_ITEMS,
                             'items' => [
                                 'type' => 'OBJECT',
                                 'properties' => [
@@ -1530,6 +1641,7 @@ class AiAdvisorController extends Controller
                         // cart_review
                         'courses' => [
                             'type' => 'ARRAY',
+                            'maxItems' => self::MAX_WIDGET_ITEMS,
                             'items' => [
                                 'type' => 'OBJECT',
                                 'properties' => [
@@ -1557,6 +1669,7 @@ class AiAdvisorController extends Controller
                         'note' => ['type' => 'STRING'],
                         'points' => [
                             'type' => 'ARRAY',
+                            'maxItems' => 6,
                             'items' => [
                                 'type' => 'OBJECT',
                                 'properties' => [
@@ -1568,14 +1681,15 @@ class AiAdvisorController extends Controller
                             ],
                         ],
                         // radar (generative chart)
-                        'axes' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING']],
+                        'axes' => ['type' => 'ARRAY', 'items' => ['type' => 'STRING'], 'maxItems' => 6],
                         'series' => [
                             'type' => 'ARRAY',
+                            'maxItems' => 4,
                             'items' => [
                                 'type' => 'OBJECT',
                                 'properties' => [
                                     'name' => ['type' => 'STRING'],
-                                    'values' => ['type' => 'ARRAY', 'items' => ['type' => 'NUMBER']],
+                                    'values' => ['type' => 'ARRAY', 'items' => ['type' => 'NUMBER'], 'maxItems' => 6],
                                 ],
                             ],
                         ],
@@ -1594,9 +1708,9 @@ class AiAdvisorController extends Controller
 
         if (isset($decoded['error_parsing']) && $decoded['error_parsing']) {
              return [
-                 // Only this path may still contain a broken JSON envelope, so it is
-                 // the only one that pays for the aggressive repair regexes.
-                 'reply' => $this->normalizeReplyText($decoded['reply'] ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.', true),
+                 // A salvaged truncated reply is already clean text; only a genuinely
+                 // malformed response pays for the aggressive repair regexes.
+                 'reply' => $this->normalizeReplyText($decoded['reply'] ?: 'ما وصلني رد واضح هذه المرة. حاول إعادة السؤال بصيغة أقصر.', empty($decoded['truncated'])),
                  'follow_up_suggestions' => [],
                  'interactive_widget' => null,
                  'suggested_course_ids' => [],
