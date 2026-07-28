@@ -140,6 +140,34 @@ font-family:'Cairo',sans-serif;
 }
 </style>
 
+<script>
+(() => {
+    const recoveryKey = 'sanfoor_asset_recovery';
+    const isBuildAsset = (value) => typeof value === 'string' && value.includes('/build/assets/');
+    const recover = () => {
+        if (sessionStorage.getItem(recoveryKey)) return;
+        sessionStorage.setItem(recoveryKey, String(Date.now()));
+        const url = new URL(window.location.href);
+        url.searchParams.set('_assets', String(Date.now()));
+        window.location.replace(url.toString());
+    };
+
+    window.addEventListener('error', (event) => {
+        const assetUrl = event.target?.src || event.target?.href || '';
+        if (isBuildAsset(assetUrl)) recover();
+    }, true);
+
+    window.addEventListener('unhandledrejection', (event) => {
+        const message = String(event.reason?.message || event.reason || '');
+        if (/dynamically imported module|loading chunk|failed to fetch/i.test(message)) recover();
+    });
+
+    window.addEventListener('load', () => {
+        window.setTimeout(() => sessionStorage.removeItem(recoveryKey), 5000);
+    });
+})();
+</script>
+
 @routes
 @viteReactRefresh
 @vite(['resources/js/app.jsx'])

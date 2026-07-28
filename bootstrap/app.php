@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\EnsureHostIsCorrect::class,
             \App\Http\Middleware\EnsureSiteMaintenance::class,
+            \App\Http\Middleware\PreventStaleFrontendAssets::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\UpdateLastSeenAt::class,
