@@ -23,6 +23,7 @@ use App\Http\Controllers\AdminCollegeController;
 use App\Http\Controllers\ChapterController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\AcademicInsightController;
+use App\Http\Controllers\AcademicPathPlannerController;
 use App\Models\Course;
 use App\Models\SiteMaintenance;
 use Illuminate\Foundation\Application;
@@ -407,6 +408,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/ai/tree/analyze-course', [AiAdvisorController::class, 'analyzeCourseInTree'])->name('ai.tree.analyze_course')->middleware('throttle:15,1');
     Route::post('/ai/tree/analyze-bottlenecks', [AiAdvisorController::class, 'analyzeTreeBottlenecks'])->name('ai.tree.analyze_bottlenecks')->middleware('throttle:15,1');
     Route::post('/ai/full-plan', [AiAdvisorController::class, 'generateFullPlan'])->name('ai.full_plan')->middleware('throttle:15,1');
+    Route::post('/academic-path-planner/generate', [AcademicPathPlannerController::class, 'generate'])
+        ->middleware('throttle:12,1')
+        ->name('academic-path-planner.generate');
 
     // Keep the bulk-delete route before the single chat route to avoid parameter collisions.
     Route::delete('/ai-advisor/chats/all', [AiAdvisorController::class, 'destroyAll'])->name('ai.advisor.delete.all');

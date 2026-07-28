@@ -2,10 +2,31 @@
 
 namespace App\Engines;
 
+use App\Models\User;
+use App\Services\AcademicPathValidationService;
 use Illuminate\Support\Facades\Log;
 
 class ValidationEngine
 {
+    /**
+     * Validate a deterministic multi-semester path before it reaches the UI.
+     * The specialized validator owns the academic simulation while this method
+     * keeps ValidationEngine as the single validation gateway for AI features.
+     */
+    public function validateAcademicPath(
+        User $user,
+        array $semesters,
+        array $initialPassedIds,
+        int $initialPassedHours
+    ): array {
+        return app(AcademicPathValidationService::class)->validate(
+            $user,
+            $semesters,
+            $initialPassedIds,
+            $initialPassedHours
+        );
+    }
+
     /**
      * Validate and sanitize Gemini's response.
      */

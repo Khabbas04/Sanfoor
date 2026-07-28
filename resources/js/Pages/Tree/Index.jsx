@@ -12,6 +12,7 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'reactflow/dist/style.css';
 import TourManager, { startTreeTour } from '@/Components/TourManager';
+import AcademicPathPlanner from '@/Components/Tree/AcademicPathPlanner';
 const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 
 // Resolve the deployment URL once for canonical metadata on the tree page.
@@ -2724,6 +2725,57 @@ export default function Tree({
         }
     };
 
+    const applyAcademicPath = useCallback(async (courseIds) => {
+        const validIds = (Array.isArray(courseIds) ? courseIds : [])
+            .map(Number)
+            .filter((id) => courses.some((course) => course.id === id));
+
+        if (validIds.length === 0) return false;
+
+        const result = await Swal.fire({
+            icon: 'question',
+            title: 'استخدام مواد هذا الفصل؟',
+            text: 'سيتم استبدال التسجيل التجريبي الحالي بمواد الخطة المقترحة بعد فحص قواعد التسجيل مرة أخرى.',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، استخدم الخطة',
+            cancelButtonText: 'تراجع',
+            ...swalTheme,
+        });
+
+        if (!result.isConfirmed) return false;
+
+        try {
+            const response = await axios.post(route('cart.sync'), { course_ids: validIds });
+            const blocked = response.data?.blocked_courses || [];
+            const appliedIds = Array.isArray(response.data?.synced_course_ids)
+                ? response.data.synced_course_ids.map(Number)
+                : validIds;
+
+            setCartIds(appliedIds);
+            setSmartMetaByCourseId({});
+            setActiveTab('simulator');
+
+            await Swal.fire({
+                icon: blocked.length ? 'warning' : 'success',
+                title: blocked.length ? 'تم تطبيق الجزء المتاح' : 'تم تطبيق الخطة',
+                text: blocked.length
+                    ? 'استبعد النظام بعض المواد بعد إعادة فحص قواعد التسجيل.'
+                    : 'أصبحت مواد الفصل المقترح في تسجيلك التجريبي.',
+                ...swalTheme,
+            });
+
+            return true;
+        } catch (error) {
+            await Swal.fire({
+                icon: 'error',
+                title: 'تعذر تطبيق الخطة',
+                text: error.response?.data?.message || 'حاول مرة أخرى بعد قليل.',
+                ...swalTheme,
+            });
+            return false;
+        }
+    }, [courses]);
+
     const analyzeCourseAI = async (courseId) => {
         const course = courses.find(c => c.id === courseId);
         if (!course) return;
@@ -4175,6 +4227,8 @@ export default function Tree({
                             {/* ═══ SIMULATOR TAB ═══ */}
                             {activeTab === 'simulator' && (
                                 <div className="space-y-5 sn-card-enter">
+                                    <AcademicPathPlanner onApply={applyAcademicPath} />
+
                                     {!showAiSettings ? (
                                         <button id="tour-tree-ai" onClick={() => setShowAiSettings(true)} className="w-full bg-gradient-to-l from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl shadow-indigo-200/30 flex items-center justify-center gap-3 active:scale-[0.97] transition-all relative overflow-hidden group">
                                             <div className="absolute inset-0 bg-gradient-to-l from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />

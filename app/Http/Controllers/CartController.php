@@ -165,6 +165,7 @@ class CartController extends Controller
                 'status' => empty($blockedCourses) ? 'ok' : 'partial',
                 'blocked_courses' => $blockedCourses,
                 'synced_count' => count($allowedIds),
+                'synced_course_ids' => array_values($allowedIds),
             ]);
         }
 
