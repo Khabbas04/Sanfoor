@@ -6,7 +6,7 @@ import { useLanguage } from '@/Contexts/LanguageContext';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import GpaGoalTracker from '@/Components/Calculator/GpaGoalTracker';
-import { calculateWeightedGpa } from '@/Utils/gpaCalculations';
+import { calculateWeightedGpa } from '@/utils/gpaCalculations';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar 
 } from 'recharts';

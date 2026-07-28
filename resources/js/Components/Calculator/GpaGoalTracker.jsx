@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, RotateCcw, Target, TrendingUp } from 'lucide-react';
-import { calculateGoalProjection } from '@/Utils/gpaCalculations';
+import { calculateGoalProjection } from '@/utils/gpaCalculations';
 
 const Field = ({ label, value, onChange, min = 0, max = 100, suffix = '%' }) => (
     <label className="block">
