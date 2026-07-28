@@ -18,18 +18,20 @@ class AcademicPathPlannerController extends Controller
                 'string',
                 Rule::in(array_keys(config('academic_path_planner.goals', []))),
             ],
+            'requested_hours' => ['nullable', 'integer', 'min:3', 'max:21'],
         ]);
 
         $user = $request->user();
         abort_unless($user && $user->role === 'student', 403);
 
-        $path = $planner->generate($user, $data['goal']);
+        $path = $planner->generate($user, $data['goal'], false, $data['requested_hours'] ?? null);
 
         StudentActivityLog::create([
             'user_id' => $user->id,
             'action' => 'academic_path_generated',
             'details' => [
                 'goal' => $data['goal'],
+                'requested_hours' => $data['requested_hours'] ?? null,
                 'planner_version' => $path['planner_version'],
                 'status' => $path['status'],
                 'current_semester_courses' => count($path['current_semester']['courses'] ?? []),

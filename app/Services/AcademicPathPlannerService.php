@@ -21,14 +21,14 @@ class AcademicPathPlannerService
     ) {
     }
 
-    public function generate(User $user, string $goal, bool $fresh = false): array
+    public function generate(User $user, string $goal, bool $fresh = false, ?int $requestedHours = null): array
     {
         $goalConfig = config("academic_path_planner.goals.{$goal}");
         if (!$goalConfig) {
             throw new \InvalidArgumentException('Unsupported academic path goal.');
         }
 
-        $key = $this->cacheKey($user, $goal);
+        $key = $this->cacheKey($user, $goal, $requestedHours);
         if ($fresh) {
             Cache::forget($key);
         }
@@ -36,11 +36,11 @@ class AcademicPathPlannerService
         return Cache::remember(
             $key,
             now()->addMinutes((int) config('academic_path_planner.cache_ttl_minutes', 10)),
-            fn () => $this->build($user, $goal, $goalConfig)
+            fn () => $this->build($user, $goal, $goalConfig, $requestedHours)
         );
     }
 
-    private function build(User $user, string $goal, array $goalConfig): array
+    private function build(User $user, string $goal, array $goalConfig, ?int $requestedHours): array
     {
         $user->loadMissing('major');
         $passedRows = DB::table('course_user')
@@ -83,7 +83,9 @@ class AcademicPathPlannerService
             $hourLimit = $sequence === 1
                 ? (int) $rules['effective_limit']
                 : $this->futureHourLimit($goalConfig, $isSummer, (bool) ($rules['is_probation'] ?? false));
-            $targetHours = $this->targetHours($goalConfig, $hourLimit, $isSummer);
+            $targetHours = $sequence === 1 && $requestedHours !== null
+                ? min($hourLimit, max(3, $requestedHours))
+                : $this->targetHours($goalConfig, $hourLimit, $isSummer);
             $available = $remaining->filter(
                 fn (Course $course) => $this->isAvailable($course, $simulatedPassed, $simulatedPassedHours)
             );
@@ -153,6 +155,7 @@ class AcademicPathPlannerService
         $path = [
             'planner_version' => (string) config('academic_path_planner.version'),
             'goal' => ['id' => $goal, 'label' => $goalConfig['label']],
+            'requested_hours' => $requestedHours,
             'status' => 'ready',
             'current_semester' => $firstSemester,
             'summary' => [
@@ -453,7 +456,7 @@ class AcademicPathPlannerService
         ];
     }
 
-    private function cacheKey(User $user, string $goal): string
+    private function cacheKey(User $user, string $goal, ?int $requestedHours): string
     {
         $academicUpdated = DB::table('course_user')->where('user_id', $user->id)->max('updated_at') ?: 'none';
         $planUpdated = DB::table('graduation_plans')->where('user_id', $user->id)->max('updated_at') ?: 'none';
@@ -467,6 +470,8 @@ class AcademicPathPlannerService
             $courseVersion,
         ]));
 
-        return "academic_path:user:{$user->id}:goal:{$goal}:{$signature}";
+        $hoursKey = $requestedHours === null ? 'auto' : $requestedHours;
+
+        return "academic_path:user:{$user->id}:goal:{$goal}:hours:{$hoursKey}:{$signature}";
     }
 }

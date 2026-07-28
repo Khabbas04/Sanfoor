@@ -7,6 +7,8 @@ import {
     ChevronUp,
     Gauge,
     GraduationCap,
+    Minus,
+    Plus,
     Route,
     ShieldCheck,
     Scale,
@@ -316,6 +318,8 @@ function ResultView({ path, onApply, applying, onRestart }) {
 export default function AcademicPathPlanner({ onApply }) {
     const [open, setOpen] = useState(false);
     const [goal, setGoal] = useState('balanced');
+    const [customHours, setCustomHours] = useState(false);
+    const [requestedHours, setRequestedHours] = useState(15);
     const [state, setState] = useState('goal');
     const [path, setPath] = useState(null);
     const [error, setError] = useState('');
@@ -332,7 +336,10 @@ export default function AcademicPathPlanner({ onApply }) {
         setError('');
         try {
             const [response] = await Promise.all([
-                axios.post(route('academic-path-planner.generate'), { goal }),
+                axios.post(route('academic-path-planner.generate'), {
+                    goal,
+                    requested_hours: customHours ? requestedHours : null,
+                }),
                 new Promise((resolve) => window.setTimeout(resolve, 1250)),
             ]);
             setPath(response.data.path);
@@ -421,6 +428,58 @@ export default function AcademicPathPlanner({ onApply }) {
                                                 );
                                             })}
                                         </div>
+                                        <section className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div>
+                                                    <h4 className="text-sm font-black text-slate-900 dark:text-white">عدد ساعات محدد</h4>
+                                                    <p className="mt-1 text-xs font-bold leading-5 text-slate-500 dark:text-slate-400">
+                                                        اختياري — اتركه تلقائيًا ليختار سنفور الحمل الأنسب.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    aria-checked={customHours}
+                                                    onClick={() => setCustomHours((value) => !value)}
+                                                    className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${customHours ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                                    aria-label="تحديد عدد الساعات يدويًا"
+                                                >
+                                                    <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${customHours ? 'right-6' : 'right-1'}`} />
+                                                </button>
+                                            </div>
+
+                                            {customHours && (
+                                                <div className="mt-4 flex items-center justify-between rounded-xl border border-indigo-200 bg-white p-2 dark:border-indigo-800 dark:bg-slate-900">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setRequestedHours((value) => Math.max(3, value - 1))}
+                                                        disabled={requestedHours <= 3}
+                                                        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-35 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                                                        aria-label="إنقاص ساعة"
+                                                    >
+                                                        <Minus className="h-5 w-5" aria-hidden="true" />
+                                                    </button>
+                                                    <div className="text-center" aria-live="polite">
+                                                        <span className="block text-2xl font-black tabular-nums text-slate-900 dark:text-white">{requestedHours}</span>
+                                                        <span className="block text-[11px] font-bold text-slate-500 dark:text-slate-400">ساعة معتمدة</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setRequestedHours((value) => Math.min(21, value + 1))}
+                                                        disabled={requestedHours >= 21}
+                                                        className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-indigo-700 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-35 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                                                        aria-label="زيادة ساعة"
+                                                    >
+                                                        <Plus className="h-5 w-5" aria-hidden="true" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {customHours && (
+                                                <p className="mt-2 text-[11px] font-bold leading-5 text-slate-500 dark:text-slate-400">
+                                                    سيحترم سنفور الحد المسموح في سجلك؛ وقد تكون الساعات الفعلية أقل إذا لم تتوفر مواد مؤهلة تكمل العدد.
+                                                </p>
+                                            )}
+                                        </section>
                                         {error && <p className="mt-4 rounded-xl bg-rose-50 p-3 text-sm font-bold text-rose-700 dark:bg-rose-950 dark:text-rose-300" role="alert">{error}</p>}
                                         <button type="button" onClick={analyze} className="mt-5 min-h-12 w-full rounded-xl bg-indigo-600 px-5 text-sm font-black text-white transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
                                             ابدأ التحليل — {selectedGoal.label}

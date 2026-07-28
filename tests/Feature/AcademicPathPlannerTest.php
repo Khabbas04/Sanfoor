@@ -73,6 +73,24 @@ class AcademicPathPlannerTest extends TestCase
         $this->assertLessThanOrEqual(1, $courses->where('difficulty_level', '>=', 4)->count());
     }
 
+    public function test_student_can_optionally_limit_current_semester_hours(): void
+    {
+        [$user, $major] = $this->student();
+        foreach (range(1, 5) as $index) {
+            $this->course($major, ['name' => "مادة اختيار الساعات {$index}", 'credit_hours' => 3]);
+        }
+
+        $path = app(AcademicPathPlannerService::class)->generate($user, 'balanced', true, 6);
+
+        $this->assertSame(6, $path['requested_hours']);
+        $this->assertLessThanOrEqual(6, $path['current_semester']['total_hours']);
+
+        $this->actingAs($user)
+            ->postJson(route('academic-path-planner.generate'), ['goal' => 'balanced', 'requested_hours' => 22])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('requested_hours');
+    }
+
     public function test_api_uses_authenticated_student_and_rejects_invalid_goal(): void
     {
         [$user] = $this->student();
