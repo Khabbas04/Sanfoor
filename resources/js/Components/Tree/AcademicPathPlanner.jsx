@@ -14,7 +14,7 @@ import {
     X,
 } from 'lucide-react';
 import axios from 'axios';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const goals = [
     {
@@ -50,23 +50,70 @@ const priorityLabel = {
 };
 
 function AnalysisState() {
-    const stages = ['بناء المسار وفق قواعد الجامعة', 'إرسال الخطة الآمنة إلى AI', 'تحليل القرارات وشرحها', 'التحقق النهائي من النتيجة'];
+    const stages = [
+        { title: 'قراءة خريطتك الأكاديمية', detail: 'تحديد المواد المجتازة والمتبقية' },
+        { title: 'دراسة صعوبة كل مادة', detail: 'موازنة الصعوبة والمؤشرات الأكاديمية' },
+        { title: 'تتبّع ما تفتحه المواد', detail: 'تحليل المتطلبات والمسارات اللاحقة' },
+        { title: 'بناء أفضل ترتيب ممكن', detail: 'الأولوية لهدفك دون مواد عشوائية' },
+        { title: 'التحقق النهائي من الخطة', detail: 'مراجعة المتطلبات وحدود الساعات' },
+    ];
+    const [elapsed, setElapsed] = useState(0);
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
+
+    const activeStage = Math.min(Math.floor(elapsed / 2), stages.length - 1);
+    const progress = Math.min(92, 12 + elapsed * 8);
 
     return (
-        <div className="py-8 text-center" aria-live="polite" aria-busy="true">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200">
-                <BrainCircuit className="h-7 w-7 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+        <div className="py-5 text-center" aria-live="polite" aria-busy="true">
+            <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 shadow-sm dark:bg-indigo-900/60 dark:text-indigo-200">
+                <span className="absolute inset-0 animate-ping rounded-2xl bg-indigo-300/30 motion-reduce:animate-none" aria-hidden="true" />
+                <BrainCircuit className="relative h-8 w-8 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
             </div>
-            <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">الذكاء الاصطناعي يحلل مسارك</h3>
-            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">ننشئ خطة آمنة ثم يفسّر AI أفضل القرارات لك.</p>
-            <div className="mx-auto mt-6 max-w-sm space-y-2 text-right">
-                {stages.map((stage, index) => (
-                    <div key={stage} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-black text-indigo-700 dark:bg-indigo-900 dark:text-indigo-200">{index + 1}</span>
-                        {stage}
+            <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">سنفور يحلل مسارك الآن</h3>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">الاختيار مبني على بيانات خطتك، لا على اقتراحات عشوائية.</p>
+
+            <div className="mx-auto mt-5 max-w-md">
+                <div className="flex items-center justify-between text-xs font-black text-slate-500 dark:text-slate-400">
+                    <span>{stages[activeStage].title}</span>
+                    <span className="tabular-nums">{progress}%</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress}>
+                    <div className="h-full rounded-full bg-gradient-to-l from-indigo-600 to-violet-500 transition-[width] duration-700 ease-out motion-reduce:transition-none" style={{ width: `${progress}%` }} />
+                </div>
+                <p className="mt-2 min-h-6 text-xs font-bold text-indigo-700 dark:text-indigo-300">{stages[activeStage].detail}</p>
+            </div>
+
+            <div className="mx-auto mt-4 max-w-md space-y-2 text-right">
+                {stages.map((stage, index) => {
+                    const complete = index < activeStage;
+                    const active = index === activeStage;
+                    return (
+                    <div
+                        key={stage.title}
+                        className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors duration-300 ${
+                            active
+                                ? 'border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-200'
+                                : complete
+                                    ? 'border-emerald-100 bg-emerald-50/70 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200'
+                                    : 'border-transparent bg-slate-50 text-slate-400 dark:bg-slate-800/70 dark:text-slate-500'
+                        }`}
+                    >
+                        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-black ${
+                            complete ? 'bg-emerald-600 text-white' : active ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                        }`}>
+                            {complete ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                        </span>
+                        <span className="text-sm font-black">{stage.title}</span>
+                        {active && <span className="mr-auto h-2 w-2 animate-pulse rounded-full bg-indigo-600 motion-reduce:animate-none" aria-hidden="true" />}
                     </div>
-                ))}
+                    );
+                })}
             </div>
+            <p className="mt-4 text-[11px] font-bold text-slate-400">يمكن أن يستغرق التحليل بضع ثوانٍ حسب تعقيد الخطة.</p>
         </div>
     );
 }
@@ -108,7 +155,7 @@ function CourseCard({ course, index }) {
                     {course.ai_strategic_impact && (
                         <div className="mb-3 flex items-start gap-2 rounded-xl bg-violet-50 p-3 text-xs font-bold leading-6 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200">
                             <BrainCircuit className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-                            <span><strong>تحليل AI:</strong> {course.ai_strategic_impact}</span>
+                            <span><strong>رؤية سنفور:</strong> {course.ai_strategic_impact}</span>
                         </div>
                     )}
                     <ul className="space-y-2 text-xs font-bold leading-6 text-slate-600 dark:text-slate-300">
@@ -165,9 +212,9 @@ function ResultView({ path, onApply, applying, onRestart }) {
                             <BrainCircuit className="h-5 w-5" aria-hidden="true" />
                         </span>
                         <div>
-                            <p className="text-xs font-black text-violet-700 dark:text-violet-300">تحليل فعلي بواسطة Gemini AI</p>
+                            <p className="text-xs font-black text-violet-700 dark:text-violet-300">تحليل سنفور الذكي</p>
                             <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                                اكتمل خلال {(path.ai.duration_ms / 1000).toFixed(1)} ثانية · بعد التحقق من قواعد الجامعة
+                                اكتمل خلال {(path.ai.duration_ms / 1000).toFixed(1)} ثانية · مبني على بيانات الخطة وقواعد الجامعة
                             </p>
                         </div>
                     </div>
@@ -176,7 +223,7 @@ function ResultView({ path, onApply, applying, onRestart }) {
                 </section>
             ) : path.ai?.status === 'fallback' ? (
                 <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-6 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-                    تعذّر اتصال AI حاليًا؛ عُرضت الخطة الآمنة من المحرك الأكاديمي دون الادعاء بأنها تحليل AI.
+                    تعذّر التحليل الذكي حاليًا؛ عُرضت الخطة الآمنة من محرك سنفور الأكاديمي.
                 </section>
             ) : null}
 

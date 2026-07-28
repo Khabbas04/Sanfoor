@@ -339,6 +339,12 @@ class AcademicPathPlannerService
                 'gpa' => (float) ($course->fail_rate ?? 18) >= 30 ? 'high' : 'medium',
                 'workload' => $this->isHard($course) ? 'high' : 'balanced',
             ],
+            'academic_indicators' => [
+                'average_grade' => round((float) ($course->avg_grade ?? 72), 1),
+                'failure_rate' => round((float) ($course->fail_rate ?? 18), 1),
+                'graded_attempts' => (int) ($course->graded_attempts ?? 0),
+                'sample_is_sufficient' => (int) ($course->graded_attempts ?? 0) >= 10,
+            ],
         ];
     }
 
