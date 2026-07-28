@@ -748,17 +748,36 @@ export default function Advisor() {
     // Voice Recognition State
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef(null);
+    const voiceTimeoutRef = useRef(null);
+
+    const stopListening = useCallback((abort = false) => {
+        if (voiceTimeoutRef.current) {
+            window.clearTimeout(voiceTimeoutRef.current);
+            voiceTimeoutRef.current = null;
+        }
+
+        const recognition = recognitionRef.current;
+        if (recognition) {
+            try {
+                abort ? recognition.abort() : recognition.stop();
+            } catch {
+                // Recognition may already be stopped; state still needs resetting.
+            }
+        }
+        setIsListening(false);
+    }, []);
 
     useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true;
+            recognitionRef.current.continuous = false;
             recognitionRef.current.interimResults = true;
             recognitionRef.current.lang = 'ar-SA';
 
             recognitionRef.current.onstart = () => {
                 setIsListening(true);
+                voiceTimeoutRef.current = window.setTimeout(() => stopListening(), 30000);
             };
 
             recognitionRef.current.onresult = (event) => {
@@ -766,7 +785,7 @@ export default function Advisor() {
                 for (let i = 0; i < event.results.length; i++) {
                     currentTranscript += event.results[i][0].transcript;
                 }
-                setInput(currentTranscript);
+                if (currentTranscript.trim()) setInput(currentTranscript.trim());
             };
 
             recognitionRef.current.onerror = (event) => {
@@ -790,10 +809,33 @@ export default function Advisor() {
             };
 
             recognitionRef.current.onend = () => {
+                if (voiceTimeoutRef.current) {
+                    window.clearTimeout(voiceTimeoutRef.current);
+                    voiceTimeoutRef.current = null;
+                }
                 setIsListening(false);
             };
         }
-    }, []);
+
+        const stopForBackground = () => {
+            if (document.hidden) stopListening(true);
+        };
+        window.addEventListener('pagehide', stopListening);
+        document.addEventListener('visibilitychange', stopForBackground);
+
+        return () => {
+            window.removeEventListener('pagehide', stopListening);
+            document.removeEventListener('visibilitychange', stopForBackground);
+            stopListening(true);
+            if (recognitionRef.current) {
+                recognitionRef.current.onstart = null;
+                recognitionRef.current.onresult = null;
+                recognitionRef.current.onerror = null;
+                recognitionRef.current.onend = null;
+                recognitionRef.current = null;
+            }
+        };
+    }, [stopListening]);
 
     const toggleListening = () => {
         if (!recognitionRef.current) {
@@ -807,10 +849,14 @@ export default function Advisor() {
         }
 
         if (isListening) {
-            recognitionRef.current.stop();
+            stopListening();
         } else {
             setInput('');
-            recognitionRef.current.start();
+            try {
+                recognitionRef.current.start();
+            } catch {
+                stopListening(true);
+            }
         }
     };
 
@@ -938,15 +984,17 @@ export default function Advisor() {
         setTimeout(scroll, 100);
     }, [scroll]);
     const newChat = useCallback(() => {
+        stopListening(true);
         if (typewriterTimeoutRef.current) {
             clearTimeout(typewriterTimeoutRef.current);
             typewriterTimeoutRef.current = null;
         }
         setActiveId(null); setMsgs([welcome]); setInput(''); setGenerating(false); setTyping(false); setSidebar(false); setTimeout(() => inputRef.current?.focus(), 100);
-    }, [welcome]);
+    }, [welcome, stopListening]);
 
     const loadChat = useCallback(async (id) => {
         if (activeId === id) { setSidebar(false); return; }
+        stopListening(true);
         setLoadingChat(true); setActiveId(id); setGenerating(false); setSidebar(false);
         try {
             const r = await axios.get(route('ai.advisor.messages', id));
@@ -958,11 +1006,12 @@ export default function Advisor() {
             }));
         } catch { setMsgs([{ id: 'err', role: 'ai', content: 'خطأ بتحميل المحادثة.', isAnimating: false }]); }
         finally { setLoadingChat(false); setTimeout(scroll, 150); }
-    }, [activeId, scroll]);
+    }, [activeId, scroll, stopListening]);
 
     const send = useCallback(async (text) => {
         const t = text?.trim();
         if (!t || generating || typing) return;
+        stopListening();
 
         if (t.startsWith('/')) {
             const matchedCmd = magicCommands.find(c => c.cmd === t || t.startsWith(c.cmd));
@@ -1163,10 +1212,13 @@ export default function Advisor() {
             setGenerating(false);
             setTimeout(scroll, 100);
         }
-    }, [activeId, generating, typing, magicCommands, scroll, selectedFilters, difficulty, criticalPath, wantsCode]);
+    }, [activeId, generating, typing, magicCommands, scroll, selectedFilters, difficulty, criticalPath, wantsCode, stopListening]);
 
-
-    const handleSend = e => { e.preventDefault(); send(input); };
+    const handleSend = e => {
+        e.preventDefault();
+        stopListening();
+        send(input);
+    };
     const stop = useCallback(() => finish(), [finish]);
 
     const regen = useCallback(async () => {
@@ -1699,7 +1751,7 @@ export default function Advisor() {
                                     </div>
                                 </div>
                             )}
-                            <div className="p-2.5 md:p-3 relative z-50">
+                            <div className="relative z-50 max-w-full overflow-x-hidden px-2 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:p-3">
                                 {/* The popup overlay */}
                                 {showFiltersPopup && (
                                     <div className="absolute bottom-[calc(100%+10px)] right-3 sm:right-6 w-[calc(100%-24px)] sm:w-[360px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-200/80 p-2 z-50 sfr-slide-up origin-bottom-right">
@@ -1716,20 +1768,22 @@ export default function Advisor() {
                                     <div className="fixed inset-0 z-40" onClick={() => setShowFiltersPopup(false)} />
                                 )}
 
-                                <form onSubmit={handleSend} className="relative flex items-center gap-2 z-50">
+                                <form onSubmit={handleSend} className="relative z-50 flex min-w-0 max-w-full items-center gap-1.5 sm:gap-2">
                                     {/* Plus Button */}
                                     <button
                                         type="button"
                                         onClick={() => setShowFiltersPopup(!showFiltersPopup)}
-                                        className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm border-2 ${showFiltersPopup ? 'bg-slate-800 border-slate-800 text-white rotate-45 scale-95 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 hover:border-slate-300 active:scale-95'}`}
+                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 shadow-sm transition-all duration-300 sm:h-12 sm:w-12 sm:rounded-2xl ${showFiltersPopup ? 'bg-slate-800 border-slate-800 text-white rotate-45 scale-95 shadow-inner' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-500 hover:border-slate-300 active:scale-95'}`}
                                         title="إعدادات الذكاء"
+                                        aria-label="فتح إعدادات المحادثة"
+                                        aria-expanded={showFiltersPopup}
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                         </svg>
                                     </button>
 
-                                    <div className="relative flex-1">
+                                    <div className="relative min-w-0 flex-1">
                                         <input
                                             ref={inputRef}
                                             type="text"
@@ -1749,18 +1803,20 @@ export default function Advisor() {
                                             placeholder={limitReached ? (isMobileViewport ? '⚠️ انتهت محاولاتك اليوم' : '⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳') : isListening ? 'جاري الاستماع...' : (isMobileViewport ? 'اسأل سنفور أي شيء...' : 'اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة...')}
                                             // text-[16px] on mobile is deliberate: iOS Safari zooms the whole page when a
                                             // focused input is under 16px, which knocks the chat layout sideways.
-                                            className={`w-full ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-2xl py-3.5 pr-4 pl-[104px] focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[16px] sm:text-[13px] shadow-inner`}
+                                            className={`w-full min-w-0 ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl sm:rounded-2xl py-3 pr-3 sm:py-3.5 sm:pr-4 pl-[100px] focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[16px] sm:text-[13px] shadow-inner`}
                                             disabled={typing || loadingChat || generating || limitReached}
+                                            enterKeyHint="send"
+                                            autoComplete="off"
                                         />
-                                        <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                            <button type="button" onClick={toggleListening} disabled={typing || loadingChat || generating || limitReached} className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm transition-all active:scale-[0.93] ${isListening ? 'bg-red-50 text-red-500 border border-red-200 animate-pulse' : 'bg-white/80 text-slate-500 hover:bg-slate-200 hover:text-blue-600 border border-slate-200/60'}`} title="تحدث بالصوت">
+                                        <div className="absolute left-1 top-1/2 flex -translate-y-1/2 items-center gap-1 sm:left-1.5">
+                                            <button type="button" onClick={toggleListening} disabled={typing || loadingChat || generating || limitReached} className={`flex h-11 w-11 items-center justify-center rounded-lg border shadow-sm transition-all active:scale-[0.93] ${isListening ? 'border-red-300 bg-red-50 text-red-600 ring-2 ring-red-200 motion-safe:animate-pulse' : 'bg-white/80 text-slate-500 hover:bg-slate-200 hover:text-blue-600 border-slate-200/60'}`} title={isListening ? 'إيقاف الاستماع' : 'تحدث بالصوت'} aria-label={isListening ? 'إيقاف الاستماع' : 'بدء الإدخال الصوتي'} aria-pressed={isListening}>
                                                 {isListening ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>
                                                 ) : (
                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" /></svg>
                                                 )}
                                             </button>
-                                            <button type="submit" disabled={!input.trim() || typing || loadingChat || generating || limitReached} className="w-10 h-10 bg-gradient-to-tr from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-xl flex items-center justify-center disabled:opacity-20 shadow-md shadow-blue-500/20 active:scale-[0.93] transition-all">
+                                            <button type="submit" disabled={!input.trim() || typing || loadingChat || generating || limitReached} className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-tr from-sky-400 to-blue-500 text-white shadow-md shadow-blue-500/20 transition-all hover:from-sky-500 hover:to-blue-600 active:scale-[0.93] disabled:opacity-20" aria-label="إرسال الرسالة">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 rotate-180"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>
                                             </button>
                                         </div>
