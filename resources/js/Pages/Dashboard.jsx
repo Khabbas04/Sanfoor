@@ -2,6 +2,7 @@ import MainLayout from '@/Layouts/MainLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import VideoPlayer from '@/Components/VideoPlayer';
+import AcademicInsightCard from '@/Components/AcademicInsightCard';
 
 // Resolve the deployment URL once for page-level SEO metadata.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
@@ -57,6 +58,7 @@ export default function Dashboard({
     planner_courses = [],
     graduation_plan = null,
     pinned_chapters = [],
+    academic_insight = null,
 }) {
 
     // Compute high-level academic summaries once per data change.
@@ -605,6 +607,8 @@ export default function Dashboard({
                             </div>
                         </div>
                     </div>
+
+                    <AcademicInsightCard initialInsight={academic_insight} />
 
                     {/* NEW: PLATFORM TUTORIALS */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-7">

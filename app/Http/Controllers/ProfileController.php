@@ -7,6 +7,7 @@ use App\Models\College;
 use App\Models\GraduationPlan;
 use App\Models\Major;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\StudentDashboardInsightService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -125,6 +126,7 @@ class ProfileController extends Controller
 
         try {
             $user->newQuery()->whereKey($user->id)->update($updatePayload);
+            StudentDashboardInsightService::forget($user->id);
         } catch (Throwable $exception) {
             Log::error('Profile update failed', [
                 'user_id' => $user->id,

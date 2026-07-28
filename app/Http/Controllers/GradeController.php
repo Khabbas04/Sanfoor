@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\StudentDashboardInsightService;
 
 class GradeController extends Controller
 {
@@ -106,6 +107,8 @@ class GradeController extends Controller
                 ]
             ]);
         }
+
+        StudentDashboardInsightService::forget($user->id);
 
         // حساب المعدل الجديد فوراً بعد الحفظ لإرجاعه للواجهة (SweetAlert)
         $newGpa = $user->calculateGPA();

@@ -12,8 +12,14 @@ class AcademicPeriod extends Model
 
     protected static function booted()
     {
-        static::saved(fn () => \Illuminate\Support\Facades\Cache::forget('academic_period_current'));
-        static::deleted(fn () => \Illuminate\Support\Facades\Cache::forget('academic_period_current'));
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('academic_period_current');
+            \Illuminate\Support\Facades\Cache::increment('academic_insights_version');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('academic_period_current');
+            \Illuminate\Support\Facades\Cache::increment('academic_insights_version');
+        });
     }
 
     protected $fillable = [

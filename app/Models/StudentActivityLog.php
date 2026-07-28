@@ -10,6 +10,21 @@ class StudentActivityLog extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::created(function (StudentActivityLog $log) {
+            if (in_array($log->action, [
+                'course_passed',
+                'course_unpassed',
+                'grade_updated',
+                'course_retake_added',
+                'plan_reset',
+            ], true)) {
+                \App\Services\StudentDashboardInsightService::forget((int) $log->user_id);
+            }
+        });
+    }
+
     protected $fillable = [
         'user_id',
         'course_id',

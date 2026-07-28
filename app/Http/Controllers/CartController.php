@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\StudentDashboardInsightService;
 
 class CartController extends Controller
 {
@@ -140,6 +141,7 @@ class CartController extends Controller
         }
 
         $changes = $user->cartCourses()->sync($syncPayload);
+        StudentDashboardInsightService::forget($user->id);
 
         if (class_exists(\App\Models\StudentActivityLog::class)) {
             foreach ($changes['attached'] as $attachedCourseId) {

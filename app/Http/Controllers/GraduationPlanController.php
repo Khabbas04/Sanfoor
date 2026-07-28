@@ -6,6 +6,7 @@ use App\Models\GraduationPlan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use App\Services\StudentDashboardInsightService;
 
 class GraduationPlanController extends Controller
 {
@@ -46,6 +47,8 @@ class GraduationPlanController extends Controller
             ], 500);
         }
 
+        StudentDashboardInsightService::forget($user->id);
+
         return response()->json([
             'message' => 'تم حفظ الخطة بنجاح.',
             'plan' => [
@@ -60,6 +63,7 @@ class GraduationPlanController extends Controller
     {
         $user = $request->user();
         GraduationPlan::where('user_id', $user->id)->delete();
+        StudentDashboardInsightService::forget($user->id);
         
         return redirect()->back()->with('success', 'تم حذف الخطة بنجاح.');
     }

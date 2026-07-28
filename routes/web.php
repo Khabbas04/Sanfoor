@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\AdminQuestionController;
 use App\Http\Controllers\AdminCollegeController;
 use App\Http\Controllers\ChapterController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\AcademicInsightController;
 use App\Models\Course;
 use App\Models\SiteMaintenance;
 use Illuminate\Foundation\Application;
@@ -274,6 +275,15 @@ Route::get('/dashboard', function () {
                 ];
             })->toArray()
             : [],
+        'academic_insight' => rescue(
+            fn () => app(\App\Services\StudentDashboardInsightService::class)->for($user),
+            [
+                'state' => 'error',
+                'title' => 'أهم قرار لك الآن',
+                'message' => 'تعذر تحديث اقتراحك الآن',
+            ],
+            report: true
+        ),
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -325,6 +335,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/graduation-plan', [GraduationPlanController::class, 'destroy'])->name('graduation-plan.destroy');
 
     Route::post('/cart/sync', [CartController::class, 'sync'])->name('cart.sync');
+
+    Route::post('/dashboard/academic-insight/refresh', [AcademicInsightController::class, 'refresh'])
+        ->middleware('throttle:20,1')
+        ->name('dashboard.academic-insight.refresh');
+    Route::post('/dashboard/academic-insight/track', [AcademicInsightController::class, 'track'])
+        ->middleware('throttle:60,1')
+        ->name('dashboard.academic-insight.track');
+    Route::post('/dashboard/academic-insight/dismiss', [AcademicInsightController::class, 'dismiss'])
+        ->middleware('throttle:20,1')
+        ->name('dashboard.academic-insight.dismiss');
 
     // Toggle a single course from either the tree view or AI advisor flows.
     Route::post('/cart/toggle-single', [TreeController::class, 'toggleSingleCart'])->name('cart.toggle.single');
