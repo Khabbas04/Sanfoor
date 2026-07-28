@@ -57,15 +57,17 @@ function AnalysisState() {
         { title: 'بناء أفضل ترتيب ممكن', detail: 'الأولوية لهدفك دون مواد عشوائية' },
         { title: 'التحقق النهائي من الخطة', detail: 'مراجعة المتطلبات وحدود الساعات' },
     ];
-    const [elapsed, setElapsed] = useState(0);
+    const [tick, setTick] = useState(0);
 
     useEffect(() => {
-        const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+        const timer = window.setInterval(() => setTick((value) => value + 1), 240);
         return () => window.clearInterval(timer);
     }, []);
 
-    const activeStage = Math.min(Math.floor(elapsed / 2), stages.length - 1);
-    const progress = Math.min(92, 12 + elapsed * 8);
+    const activeStage = Math.min(tick, stages.length - 1);
+    const progress = activeStage === stages.length - 1
+        ? Math.min(94, 88 + Math.floor(Math.max(0, tick - stages.length) / 3))
+        : 12 + activeStage * 19;
 
     return (
         <div className="py-5 text-center" aria-live="polite" aria-busy="true">
@@ -84,7 +86,9 @@ function AnalysisState() {
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress}>
                     <div className="h-full rounded-full bg-gradient-to-l from-indigo-600 to-violet-500 transition-[width] duration-700 ease-out motion-reduce:transition-none" style={{ width: `${progress}%` }} />
                 </div>
-                <p className="mt-2 min-h-6 text-xs font-bold text-indigo-700 dark:text-indigo-300">{stages[activeStage].detail}</p>
+                <p className="mt-2 min-h-6 text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                    {tick > stages.length + 3 ? 'ما زال سنفور يراجع التفاصيل الدقيقة لخطتك…' : stages[activeStage].detail}
+                </p>
             </div>
 
             <div className="mx-auto mt-4 max-w-md space-y-2 text-right">
@@ -327,7 +331,10 @@ export default function AcademicPathPlanner({ onApply }) {
         setState('analyzing');
         setError('');
         try {
-            const response = await axios.post(route('academic-path-planner.generate'), { goal });
+            const [response] = await Promise.all([
+                axios.post(route('academic-path-planner.generate'), { goal }),
+                new Promise((resolve) => window.setTimeout(resolve, 1250)),
+            ]);
             setPath(response.data.path);
             setState('result');
         } catch (requestError) {
