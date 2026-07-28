@@ -55,9 +55,15 @@ class GradeController extends Controller
         })->filter();
 
         $allCourses = $passedCourses->concat($mappedCartCourses)->values();
+        $gpaData = $user->calculateGPA();
 
         return Inertia::render('Calculator/Index', [
-            'initialCourses' => $allCourses
+            'initialCourses' => $allCourses,
+            'academicSummary' => [
+                'gpa' => (float) ($gpaData['percentage'] ?? 0),
+                'completed_hours' => (int) ($gpaData['completed_hours'] ?? $passedHours),
+                'has_records' => (bool) ($gpaData['has_records'] ?? false),
+            ],
         ]);
     }
 

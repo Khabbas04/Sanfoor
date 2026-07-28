@@ -625,12 +625,6 @@ export default function Tree({
     const [targetTerm, setTargetTerm] = useState(1);
     const [activeTab, setActiveTab] = useState('details');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [showAiSettings, setShowAiSettings] = useState(false);
-    const [targetHours, setTargetHours] = useState(isSummerTerm ? 9 : 15);
-    const [schedulePace, setSchedulePace] = useState('balanced');
-    const [smartFocus, setSmartFocus] = useState('major');
-    const [smartProtectGpa, setSmartProtectGpa] = useState(true);
-    const [smartMetaByCourseId, setSmartMetaByCourseId] = useState({});
     const [filterMode, setFilterMode] = useState('none');
     const [legendOpen, setLegendOpen] = useState(false);
     const [compareMode, setCompareMode] = useState(false);
@@ -2414,7 +2408,6 @@ export default function Tree({
                         setPassedIds([]);
                         setCartIds([]);
                         setLocalPassedCourses([]);
-                        setSmartMetaByCourseId({});
 
                         Swal.fire({
                             icon: 'success',
@@ -2675,56 +2668,6 @@ export default function Tree({
         }
     };
 
-    const executeSmartSchedule = async () => {
-        Swal.fire({
-            title: 'جاري التفكير...',
-            text: 'د. سنفور يقوم ببناء أفضل جدول لك بالذكاء الاصطناعي 🧠✨',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            },
-            ...swalTheme
-        });
-
-        try {
-            const response = await axios.post(route('ai.smart_schedule'), {
-                targetHours: isSummerTerm ? Math.min(targetHours, maxTrialHours) : targetHours,
-                schedulePace,
-                smartFocus,
-                smartProtectGpa
-            });
-
-            if (response.data.newCart && response.data.newCart.length > 0) {
-                setCartIds(response.data.newCart);
-                setSmartMetaByCourseId(response.data.selectedMeta || {});
-                syncCartWithDB(response.data.newCart);
-                setShowAiSettings(false);
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم التخطيط بذكاء! 🚀',
-                    text: 'تم بناء جدولك بنجاح بناءً على تفضيلاتك.',
-                    ...swalTheme
-                });
-            } else {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'لا يوجد مواد',
-                    text: 'يبدو أنه لا يوجد مواد متاحة تناسب هذه الإعدادات، أو أنك أنهيت المتطلبات.',
-                    ...swalTheme
-                });
-            }
-        } catch (error) {
-            console.error('AI Schedule Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'عذراً',
-                text: 'حدث خطأ أثناء تواصل د. سنفور مع الخوادم. يرجى المحاولة مرة أخرى.',
-                ...swalTheme
-            });
-        }
-    };
-
     const applyAcademicPath = useCallback(async (courseIds) => {
         const validIds = (Array.isArray(courseIds) ? courseIds : [])
             .map(Number)
@@ -2752,7 +2695,6 @@ export default function Tree({
                 : validIds;
 
             setCartIds(appliedIds);
-            setSmartMetaByCourseId({});
             setActiveTab('simulator');
 
             await Swal.fire({
@@ -2815,53 +2757,12 @@ export default function Tree({
         }
     };
 
-    const analyzeTreeBottlenecksAI = async () => {
-        Swal.fire({
-            title: 'تحليل الخطة جارٍ...',
-            html: '<div class="text-[14px] text-slate-500 mt-2">د. سنفور يبحث عن أهم المواد المفتاحية لتسريع تخرجك 🚀</div>',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            },
-            ...swalTheme
-        });
-
-        try {
-            const response = await axios.post(route('ai.tree.analyze_bottlenecks'));
-            let analysisHtml = response.data.analysis
-                .replace(/\n/g, '<br/>')
-                .replace(/\*\*(.*?)\*\*/g, '<b class="text-indigo-600 dark:text-indigo-400">$1</b>')
-                .replace(/\*(.*?)\*/g, '<i class="text-slate-600 dark:text-slate-400">$1</i>')
-                .replace(/- /g, '<span class="text-rose-500 ml-1">●</span> ');
-
-            Swal.fire({
-                title: 'نصيحة المسار الأسرع 🚀',
-                html: `<div style="text-align: right; line-height: 1.8; font-size: 14.5px; margin-top: 10px;" class="font-t text-slate-700 dark:text-slate-300">${analysisHtml}</div>`,
-                confirmButtonText: 'فهمت، شكراً!',
-                ...swalTheme
-            });
-        } catch (error) {
-            console.error('AI Analyze Bottlenecks Error:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'عذراً',
-                text: 'حدث خطأ أثناء تحليل الخطة. ' + (error?.message || ''),
-                ...swalTheme
-            });
-        }
-    };
-
     // 🆕 FIX: فحص حد الساعات قبل الإضافة للتسجيل التجريبي
     const toggleCart = (course) => {
         let updatedCart;
         if (cartIds.includes(course.id)) {
             updatedCart = cartIds.filter(id => id !== course.id);
             setCartIds(updatedCart);
-            setSmartMetaByCourseId((prev) => {
-                const next = { ...prev };
-                delete next[course.id];
-                return next;
-            });
             syncCartWithDB(updatedCart);
             return;
         }
@@ -3067,20 +2968,14 @@ export default function Tree({
         if (totalCartCredits === 0) return null;
         const cartCourses = coursesWithDifficulty.filter(c => cartIds.includes(c.id));
         const heavyCount = cartCourses.filter(c => Number(c.difficulty_score || 0) >= 65 || Number(c.fail_rate || 0) >= 30).length;
-        const avgDifficulty = cartCourses.length
-            ? cartCourses.reduce((sum, c) => sum + Number(c.difficulty_score || 0), 0) / cartCourses.length
-            : 0;
-
         const maxHours = isSummerTerm ? 9 : 18;
         const lowHours = isSummerTerm ? 6 : 12;
 
         if (totalCartCredits > maxHours) return { msg: '🚨 تجاوزت الحد الأقصى للساعات!', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
-        if (schedulePace === 'light' && avgDifficulty > 55) return { msg: '⚠️ هذا أعلى من مستوى الخفيف. خفف مواد الصعوبة العالية.', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
-        if (schedulePace === 'heavy' && avgDifficulty < 50) return { msg: '💡 النمط مكثف لكن الصعوبة الفعلية منخفضة حالياً.', cls: 'bg-sky-50 text-sky-700 border-sky-200' };
         if (heavyCount >= 4) return { msg: '⚖️ العبء مرتفع جداً بناءً على صعوبة المواد الفعلية.', cls: 'bg-amber-50 text-amber-700 border-amber-200' };
         if (totalCartCredits < lowHours) return { msg: '🐌 عبء منخفض. توقع تأخر بالتخرج.', cls: 'bg-slate-50 text-slate-600 border-slate-200' };
         return { msg: '✨ جدول متوازن ومثالي.', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
-    }, [cartIds, coursesWithDifficulty, totalCartCredits, schedulePace, isSummerTerm]);
+    }, [cartIds, coursesWithDifficulty, totalCartCredits, isSummerTerm]);
 
 
 
@@ -4229,46 +4124,10 @@ export default function Tree({
                                 <div className="space-y-5 sn-card-enter">
                                     <AcademicPathPlanner onApply={applyAcademicPath} />
 
-                                    {!showAiSettings ? (
-                                        <button id="tour-tree-ai" onClick={() => setShowAiSettings(true)} className="w-full bg-gradient-to-l from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl shadow-indigo-200/30 flex items-center justify-center gap-3 active:scale-[0.97] transition-all relative overflow-hidden group">
-                                            <div className="absolute inset-0 bg-gradient-to-l from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            <span className="text-2xl relative z-10">🪄</span>
-                                            <div className="text-right relative z-10"><p className="text-[13px]">توليد جدول ذكي</p><p className="text-[10px] text-indigo-200/60 font-bold">دع الخوارزمية تخطط فصلك القادم</p></div>
-                                        </button>
-                                    ) : (
-                                        <div className="bg-indigo-50/70 border border-indigo-100 p-5 rounded-[1.25rem] space-y-4">
-                                            <div className="flex justify-between items-center"><h3 className="font-[800] text-indigo-800 text-[13px]">⚙️ إعدادات التوليد</h3><button onClick={() => setShowAiSettings(false)} className="text-slate-400 text-[11px] font-bold hover:text-rose-500 transition-colors">✕ إلغاء</button></div>
-                                            <div>
-                                                <div className="flex items-center justify-between mb-1.5">
-                                                    <label className="text-[11px] font-bold text-indigo-700 block font-i">الساعات المستهدفة:</label>
-                                                    <span className="text-[10px] text-slate-400 font-bold">{isSummerTerm ? '(3 - 10)' : '(9 - 21)'}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between bg-white rounded-xl p-1.5 border border-indigo-100/60 shadow-sm">
-                                                    <button onClick={() => setTargetHours(Math.max(isSummerTerm ? 3 : 9, targetHours - 1))} className="w-12 h-10 flex items-center justify-center rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors font-bold text-lg active:scale-95">-</button>
-                                                    <div className="text-center flex-1">
-                                                        <span className="text-lg font-[900] text-indigo-700">{targetHours}</span>
-                                                        <span className="text-[11px] text-slate-500 mr-1 font-bold">ساعة</span>
-                                                    </div>
-                                                    <button onClick={() => setTargetHours(Math.min(isSummerTerm ? 10 : 21, targetHours + 1))} className="w-12 h-10 flex items-center justify-center rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors font-bold text-lg active:scale-95">+</button>
-                                                </div>
-                                            </div>
-                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">نمط الصعوبة:</label><div className="space-y-2">{[{ id: 'heavy', icon: '🏋️', label: 'مكثف (صعوبة فعلية أعلى)' }, { id: 'balanced', icon: '⚖️', label: 'متوازن (صعوبة وسط)' }, { id: 'light', icon: '🏖️', label: 'خفيف (صعوبة أقل)' }].map(p => (<button key={p.id} onClick={() => setSchedulePace(p.id)} className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center gap-2.5 shadow-sm ${schedulePace === p.id ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-200'}`}><span>{p.icon}</span><span className="text-[12px] font-bold">{p.label}</span></button>))}</div></div>
-                                            <div><label className="text-[11px] font-bold text-indigo-700 mb-1.5 block font-i">الأولوية:</label><div className="grid grid-cols-3 gap-2">{[{ id: 'major', label: 'مواد تخصص' }, { id: 'graduation', label: 'تسريع تخرج' }, { id: 'gpa', label: 'حماية المعدل' }].map(f => (<button key={f.id} onClick={() => setSmartFocus(f.id)} className={`py-2 text-[11px] font-[800] rounded-lg border transition-all ${smartFocus === f.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-200'}`}>{f.label}</button>))}</div></div>
-                                            <label className="flex items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5 cursor-pointer"><div><p className="text-[11px] font-[800] text-slate-700">توازن الحمل</p><p className="text-[10px] font-bold text-slate-400">تقليل المواد عالية الرسوب والصعوبة</p></div><button type="button" onClick={() => setSmartProtectGpa((prev) => !prev)} className={`w-12 h-7 rounded-full transition-colors p-1 ${smartProtectGpa ? 'bg-emerald-500' : 'bg-slate-300'}`}><span className={`block w-5 h-5 rounded-full bg-white transition-transform ${smartProtectGpa ? 'translate-x-0' : '-translate-x-5'}`} /></button></label>
-                                            <button onClick={executeSmartSchedule} className="w-full bg-indigo-700 hover:bg-indigo-800 text-white py-3 rounded-xl font-[800] text-[13px] shadow-lg hover:-translate-y-0.5 active:scale-[0.97] transition-all">🚀 توليد الآن</button>
-                                        </div>
-                                    )}
-
                                     <button onClick={() => setShow4YearPlan(true)} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all ring-1 ring-inset ring-white/10 relative overflow-hidden group">
                                         <div className="absolute inset-0 bg-gradient-to-l from-indigo-600/0 to-indigo-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         <span className="text-2xl relative z-10">🤖</span>
                                         <div className="text-right relative z-10"><p className="text-[13px] text-indigo-200">خطة تخرج كاملة (محاكاة)</p><p className="text-[10px] text-slate-400 font-bold">توزيع المواد المتبقية على كل الفصول</p></div>
-                                    </button>
-
-                                    <button onClick={analyzeTreeBottlenecksAI} className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-[1.25rem] font-[800] shadow-xl flex items-center justify-center gap-3 active:scale-[0.97] transition-all ring-1 ring-inset ring-white/10 relative overflow-hidden group mt-3">
-                                        <div className="absolute inset-0 bg-gradient-to-l from-rose-500/0 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <span className="text-2xl relative z-10">🚀</span>
-                                        <div className="text-right relative z-10"><p className="text-[13px] text-rose-200">تحليل أهم المواد (المواد المفتاحية)</p><p className="text-[10px] text-slate-400 font-bold">أهم المواد التي يجب تسجيلها فوراً</p></div>
                                     </button>
 
                                     <div className="bg-gradient-to-bl from-slate-900 to-indigo-950 p-5 rounded-[1.25rem] text-white shadow-xl relative overflow-hidden">
@@ -4357,7 +4216,7 @@ export default function Tree({
 
                                     {cartIds.length > 0 ? (
                                         <div className="space-y-2.5 pb-8">
-                                            <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); setSmartMetaByCourseId({}); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
+                                            <div className="flex justify-between items-center mb-1"><h4 className="font-[800] text-slate-800 text-[13px]">المواد المختارة ({cartIds.length}):</h4><button onClick={() => { setCartIds([]); syncCartWithDB([]); }} className="text-[11px] text-rose-500 font-bold hover:text-rose-600 transition-colors">🗑️ تفريغ</button></div>
                                             {coursesWithDifficulty.filter(c => cartIds.includes(c.id)).map(c => (
                                                 <div key={c.id} className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex justify-between items-center group hover:border-indigo-200 transition-colors">
                                                     <div className="min-w-0 flex-1 ml-3">
@@ -4771,26 +4630,14 @@ export default function Tree({
                                 </div>
                             </div>
 
-                            {/* أزرار الذكاء الاصطناعي الجديدة */}
+                            {/* أدوات التخطيط */}
                             <div className="pt-2">
-                                <p className="text-[11px] font-[900] text-indigo-500 uppercase tracking-wider mb-2.5 text-right flex items-center justify-end gap-1.5">✨ أدوات الذكاء الاصطناعي في قائمة (🪄 التخطيط)</p>
+                                <p className="text-[11px] font-[900] text-indigo-500 uppercase tracking-wider mb-2.5 text-right flex items-center justify-end gap-1.5">أدوات التخطيط</p>
                                 <div className="space-y-2 text-right">
-                                    <div className="flex items-center justify-end gap-3 bg-indigo-50/50 p-2.5 rounded-xl border border-indigo-100/50">
-                                        <div className="flex-1">
-                                            <p className="text-[11px] font-[900] text-indigo-800">توليد جدول ذكي 🪄</p>
-                                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">دع الخوارزمية تخطط جدول فصلك القادم حسب الساعات ومستوى الصعوبة.</p>
-                                        </div>
-                                    </div>
                                     <div className="flex items-center justify-end gap-3 bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50">
                                         <div className="flex-1">
                                             <p className="text-[11px] font-[900] text-emerald-800">عرض على المرشد الأكاديمي 👨🏻‍🏫</p>
                                             <p className="text-[9px] font-bold text-slate-500 mt-0.5">أضف مواد للسلة (التسجيل التجريبي) ثم اطلب من الذكاء الاصطناعي مراجعتها وإعطائك نصائح.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center justify-end gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                                        <div className="flex-1">
-                                            <p className="text-[11px] font-[900] text-slate-800">تحليل المواد المفتاحية 🚀</p>
-                                            <p className="text-[9px] font-bold text-slate-500 mt-0.5">يكتشف الـ AI المواد التي تفتح أكبر عدد من المواد اللاحقة لتسجلها أولاً.</p>
                                         </div>
                                     </div>
                                 </div>

@@ -404,9 +404,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/ai-advisor/feedback', [AiAdvisorController::class, 'feedback'])->name('ai.advisor.feedback');
 
     // New AI generation routes for the Tree planner
-    Route::post('/ai/smart-schedule', [AiAdvisorController::class, 'generateSmartSchedule'])->name('ai.smart_schedule')->middleware('throttle:15,1');
     Route::post('/ai/tree/analyze-course', [AiAdvisorController::class, 'analyzeCourseInTree'])->name('ai.tree.analyze_course')->middleware('throttle:15,1');
-    Route::post('/ai/tree/analyze-bottlenecks', [AiAdvisorController::class, 'analyzeTreeBottlenecks'])->name('ai.tree.analyze_bottlenecks')->middleware('throttle:15,1');
     Route::post('/ai/full-plan', [AiAdvisorController::class, 'generateFullPlan'])->name('ai.full_plan')->middleware('throttle:15,1');
     Route::post('/academic-path-planner/generate', [AcademicPathPlannerController::class, 'generate'])
         ->middleware('throttle:12,1')

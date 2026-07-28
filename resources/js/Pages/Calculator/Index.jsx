@@ -5,14 +5,16 @@ import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import axios from 'axios';
 import Swal from 'sweetalert2';
+import GpaGoalTracker from '@/Components/Calculator/GpaGoalTracker';
+import { calculateWeightedGpa } from '@/Utils/gpaCalculations';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Bar 
 } from 'recharts';
-import { Target, TrendingUp, AlertTriangle, Lightbulb, CheckCircle2, ChevronDown, Save, BarChart3, SlidersHorizontal, RotateCcw } from 'lucide-react';
+import { Target, TrendingUp, Lightbulb, CheckCircle2, ChevronDown, Save, BarChart3, SlidersHorizontal, RotateCcw } from 'lucide-react';
 
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
-export default function Calculator({ auth, initialCourses }) {
+export default function Calculator({ auth, initialCourses, academicSummary = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     
@@ -78,8 +80,8 @@ export default function Calculator({ auth, initialCourses }) {
     const [loading, setLoading] = useState(false);
     const [selectedYear, setSelectedYear] = useState('');
     const [selectedTerm, setSelectedTerm] = useState('');
-    const [targetGpa, setTargetGpa] = useState('');
-    const [activeTab, setActiveTab] = useState('calculator'); // 'calculator', 'analytics'
+    const [activeTab, setActiveTab] = useState('calculator');
+    const [showAnalytics, setShowAnalytics] = useState(false);
 
     const availableTermsForYear = useMemo(() => {
         if (!selectedYear) return [];
@@ -137,21 +139,12 @@ export default function Calculator({ auth, initialCourses }) {
     };
 
     const calculateStats = (courseList) => {
-        let totalCredits = 0;
-        let weightedSum = 0;
-
-        courseList.forEach(c => {
-            const grade = parseFloat(c.pivot?.grade);
-            if (!isNaN(grade) && grade > 0) {
-                totalCredits += c.credit_hours;
-                weightedSum += (grade * c.credit_hours);
-            }
-        });
-
-        const percentage = totalCredits > 0 ? (weightedSum / totalCredits) : 0;
-        const gpa4 = totalCredits > 0 ? (percentage / 25).toFixed(2) : '0.00';
-
-        return { percentage: percentage.toFixed(2), gpa4, totalCredits };
+        const stats = calculateWeightedGpa(courseList);
+        return {
+            percentage: stats.gpa.toFixed(2),
+            gpa4: (stats.gpa / 25).toFixed(2),
+            totalCredits: stats.hours,
+        };
     };
 
     const cumulativeStats = useMemo(() => calculateStats(courses), [courses]);
@@ -204,59 +197,15 @@ export default function Calculator({ auth, initialCourses }) {
         return history;
     }, [courses]);
 
-    // حاسبة الهدف مخصصة فقط للتسجيل التجريبي
-    const targetAnalysis = useMemo(() => {
-        const target = parseFloat(targetGpa);
-        if (isNaN(target) || target <= 0 || target > 100) return null;
-
-        const currentCourses = courses.filter(c => c.is_from_cart);
-        const completedCourses = courses.filter(c => !c.is_from_cart);
-
-        let compCredits = 0;
-        let compSum = 0;
-        completedCourses.forEach(c => {
-            const grade = parseFloat(c.pivot?.grade);
-            if (!isNaN(grade) && grade > 0) {
-                compCredits += c.credit_hours;
-                compSum += (grade * c.credit_hours);
-            }
-        });
-
-        let currentCredits = 0;
-        currentCourses.forEach(c => currentCredits += c.credit_hours);
-
-        if (currentCredits === 0) return { status: 'error', message: 'يرجى إضافة مواد للتسجيل التجريبي (السلة) لتتمكن من استخدام حاسبة الهدف وتوزيع العلامات.' };
-
-        const totalCredits = compCredits + currentCredits;
-        const requiredSum = (target * totalCredits) - compSum;
-        const requiredAvg = requiredSum / currentCredits;
-
-        if (requiredAvg > 100) return { status: 'impossible', message: `مستحيل أخي! تحتاج لمعدل ${requiredAvg.toFixed(2)}% في مواد التسجيل التجريبي للوصول للهدف.`, requiredAvg: requiredAvg.toFixed(2) };
-        if (requiredAvg <= 50) return { status: 'easy', message: 'سهل جداً! يمكنك الوصول للهدف حتى لو جبت علامات متدنية (أقل من 50) في التسجيل التجريبي.', requiredAvg: requiredAvg.toFixed(2) };
-
-        return { status: 'possible', message: `للوصول لمعدل ${target}%، تحتاج إلى معدل ${requiredAvg.toFixed(2)}% في مواد التسجيل التجريبي.`, requiredAvg: requiredAvg.toFixed(2), currentCredits };
-    }, [targetGpa, courses]);
-
-    // تطبيق الهدف (What-If) - توزيع ذكي للتسجيل التجريبي
-    const applyTargetGrades = () => {
-        if (!targetAnalysis || targetAnalysis.status !== 'possible') return;
-        
-        const avg = parseFloat(targetAnalysis.requiredAvg);
-        setCourses(prev => prev.map(c => {
-            if (c.is_from_cart) {
-                return { ...c, pivot: { ...c.pivot, grade: avg.toFixed(1) } };
-            }
-            return c;
-        }));
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'تم التوزيع!',
-            text: `تم تعبئة مواد التسجيل التجريبي بمعدل ${avg.toFixed(2)}% لتجربة سيناريو الهدف.`,
-            timer: 2000,
-            showConfirmButton: false,
-        });
-    };
+    const realAcademicStats = useMemo(() => {
+        if (academicSummary.has_records) {
+            return {
+                percentage: Number(academicSummary.gpa || 0).toFixed(2),
+                totalCredits: Number(academicSummary.completed_hours || 0),
+            };
+        }
+        return calculateStats(initialCourses.filter((course) => !course.is_from_cart));
+    }, [academicSummary, initialCourses]);
 
     // نصائح ذكية (Smart Nudges)
     const smartNudge = useMemo(() => {
@@ -368,14 +317,14 @@ export default function Calculator({ auth, initialCourses }) {
                                 className={`px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'calculator' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
                             >
                                 <SlidersHorizontal size={18} />
-                                الحاسبة والسيناريوهات
+                                حاسبة المعدل
                             </button>
                             <button 
-                                onClick={() => setActiveTab('analytics')}
-                                className={`px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'analytics' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
+                                onClick={() => setActiveTab('goal')}
+                                className={`px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'goal' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'}`}
                             >
-                                <BarChart3 size={18} />
-                                التحليلات البصرية
+                                <Target size={18} />
+                                هدف المعدل
                             </button>
                         </div>
                     </div>
@@ -442,60 +391,6 @@ export default function Calculator({ auth, initialCourses }) {
                                     </div>
                                 </div>
 
-                                {/* حاسبة الهدف */}
-                                <div className={`rounded-3xl p-6 border shadow-sm ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2.5 rounded-xl bg-orange-100 text-orange-600">
-                                            <Target size={20} />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-black text-lg">حاسبة الهدف 🎯</h3>
-                                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>حدد معدلك المطلوب وسنخبرك بما تحتاجه</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="relative">
-                                            <input 
-                                                type="number" 
-                                                min="50" max="100"
-                                                placeholder="أدخل المعدل المطلوب (مثال: 80)"
-                                                value={targetGpa}
-                                                onChange={(e) => setTargetGpa(e.target.value)}
-                                                className={`w-full py-4 px-5 pr-12 rounded-2xl border-2 text-lg font-black outline-none transition-all ${
-                                                    isDark 
-                                                    ? 'bg-slate-950 border-slate-800 focus:border-orange-500 text-white' 
-                                                    : 'bg-slate-50 border-slate-200 focus:border-orange-500 text-slate-900 focus:bg-white'
-                                                }`}
-                                            />
-                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">%</span>
-                                        </div>
-
-                                        {targetAnalysis && (
-                                            <div className={`p-4 rounded-2xl border ${
-                                                targetAnalysis.status === 'impossible' ? 'bg-rose-50 border-rose-200 text-rose-700' :
-                                                targetAnalysis.status === 'error' ? 'bg-amber-50 border-amber-200 text-amber-700' :
-                                                'bg-emerald-50 border-emerald-200 text-emerald-800'
-                                            }`}>
-                                                <p className="text-sm font-bold flex items-start gap-2">
-                                                    {targetAnalysis.status === 'impossible' ? <AlertTriangle size={18} className="shrink-0 mt-0.5" /> : 
-                                                     targetAnalysis.status === 'error' ? <AlertTriangle size={18} className="shrink-0 mt-0.5" /> : 
-                                                     <Lightbulb size={18} className="shrink-0 mt-0.5" />}
-                                                    {targetAnalysis.message}
-                                                </p>
-                                                
-                                                {targetAnalysis.status === 'possible' && (
-                                                    <button 
-                                                        onClick={applyTargetGrades}
-                                                        className="mt-3 w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"
-                                                    >
-                                                        توزيع العلامة المطلوبة على المواد الحالية ✨
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
                             </div>
 
                             {/* العمود الأيسر: قائمة المواد والفلاتر */}
@@ -662,8 +557,21 @@ export default function Calculator({ auth, initialCourses }) {
                         </div>
                     )}
 
-                    {/* تبويب التحليلات البصرية */}
-                    {activeTab === 'analytics' && (
+                    {activeTab === 'goal' && (
+                        <GpaGoalTracker realGpa={realAcademicStats.percentage} realCompletedHours={realAcademicStats.totalCredits} />
+                    )}
+
+                    {activeTab === 'calculator' && (
+                        <div className="flex justify-center">
+                            <button type="button" onClick={() => setShowAnalytics((value) => !value)} className="min-h-11 rounded-xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                                <BarChart3 className="ml-2 inline h-4 w-4" />
+                                {showAnalytics ? 'إخفاء التحليلات البصرية' : 'عرض التحليلات البصرية'}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* التحليلات البصرية جزء ثانوي داخل حاسبة المعدل */}
+                    {activeTab === 'calculator' && showAnalytics && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
                             
                             <div className={`rounded-[2.5rem] p-6 sm:p-10 border shadow-lg ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
