@@ -5057,11 +5057,9 @@ export default function Tree({
 }
 
 Tree.layout = page => (
-    // appShell: the tree owns the viewport and scrolls internally (canvas pans, panels
-    // scroll). Without it the shell added ~112px of padding plus a footer around a
-    // 100dvh page, so the document scrolled behind a canvas that ate every wheel and
-    // swipe — the scroll fight the user hit on both laptop and phone.
-    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape appShell>
+    // Keep the tree as a full viewport app shell, then render the shared footer
+    // below it in the document flow so it never covers or shrinks the canvas.
+    <MainLayout absoluteNavbar hideNavbarOnMobileLandscape appShell showFooterInAppShell>
         {page}
     </MainLayout>
 );

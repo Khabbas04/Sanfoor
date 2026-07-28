@@ -171,7 +171,13 @@ function GuestDemoBanner() {
 // page manages its own internal scrolling, so the shell must not add a document
 // scroll around it: any leftover page scroll behind a full-height canvas becomes a
 // scroll the canvas silently swallows, and the user is left fighting the wheel.
-export default function MainLayout({ children, hideNavbarOnMobileLandscape = false, absoluteNavbar = false, appShell = false }) {
+export default function MainLayout({
+    children,
+    hideNavbarOnMobileLandscape = false,
+    absoluteNavbar = false,
+    appShell = false,
+    showFooterInAppShell = false,
+}) {
     const page = usePage();
     if (!page || !page.props) return null; // Prevent rendering if props aren't ready
 
@@ -355,7 +361,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
     // academicOpen state removed
 
     return (
-        <div className={`${appShell ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'} transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className={`${appShell && !showFooterInAppShell ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'} transition-colors duration-500 flex flex-col font-sans ${isDark ? 'dark bg-[#0a0f18] text-white' : 'bg-[#fafcff] text-slate-900'}`} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
             <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100000] focus:rounded-xl focus:bg-slate-950 focus:px-4 focus:py-3 focus:text-sm focus:font-black focus:text-white focus:shadow-xl">
                 {lang === 'ar' ? 'تخطي إلى المحتوى' : 'Skip to content'}
             </a>
@@ -688,7 +694,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             {/* The navbar is 72px tall on a phone and absolutely positioned, so an app-shell
                 page — which starts at y=0 and cannot be scrolled down away from it — has to
                 reserve that height or its own title lands underneath the logo. */}
-            <main id="main-content" className={`flex-1 flex flex-col w-full relative ${appShell ? 'min-h-0' : ''} ${shouldHideNav ? 'pt-0' : (appShell ? 'pt-[76px] md:pt-28' : 'pt-4 md:pt-28')}`}>
+            <main id="main-content" className={`${appShell && showFooterInAppShell ? 'h-[100dvh] min-h-[100dvh] flex-none' : 'flex-1'} flex flex-col w-full relative ${appShell ? 'min-h-0' : ''} ${shouldHideNav ? 'pt-0' : (appShell ? 'pt-[76px] md:pt-28' : 'pt-4 md:pt-28')}`}>
                 {/* ═══ NTP GUEST DEMO BANNER ═══ */}
                 {safeUser.is_guest && <GuestDemoBanner />}
                 {children}
@@ -697,7 +703,7 @@ export default function MainLayout({ children, hideNavbarOnMobileLandscape = fal
             {/* Global footer with cleaner grouped links and focused actions. An app-shell page
                 fills the viewport, so a footer below it would only ever be reachable by a page
                 scroll that page deliberately does not have. */}
-            {!appShell && (
+            {(!appShell || showFooterInAppShell) && (
             <footer className={`relative transition-colors duration-500 overflow-hidden mt-12 ${isDark ? 'bg-[#050B14] border-t border-white/5' : 'bg-[#050B14] text-white'}`}>
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-50"></div>
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
