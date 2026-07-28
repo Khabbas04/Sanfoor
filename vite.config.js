@@ -11,9 +11,6 @@ export default defineConfig({
         react(),
     ],
     build: {
-        // Keep hashed files from the immediately previous deployment. Open browser
-        // sessions may still reference those chunks until Inertia reloads them.
-        emptyOutDir: false,
         sourcemap: false,
         chunkSizeWarningLimit: 1000,
         rollupOptions: {

@@ -724,10 +724,6 @@ export default function Tree({
         setApprovedPlan(approved_plan || null);
     }, [approved_plan]);
 
-    useEffect(() => {
-        setTargetHours(isSummerTerm ? 9 : 15);
-    }, [isSummerTerm]);
-
     // 🔥 بولينج (Polling) ذكي لجلب التحديثات فوراً إذا كان الطلب قيد الانتظار
     useEffect(() => {
         let interval;
