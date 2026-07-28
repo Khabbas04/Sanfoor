@@ -6,6 +6,7 @@ return [
     'roadmap_semesters' => 3,
     'default_regular_hours' => 15,
     'default_summer_hours' => 9,
+    'ai_analysis_enabled' => env('ACADEMIC_PATH_AI_ENABLED', true),
 
     'goals' => [
         'fastest_graduation' => [

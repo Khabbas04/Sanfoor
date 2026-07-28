@@ -15,6 +15,12 @@ class AcademicPathPlannerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config()->set('academic_path_planner.ai_analysis_enabled', false);
+    }
+
     public function test_fastest_path_prioritizes_available_bottleneck_and_validates_the_roadmap(): void
     {
         [$user, $major] = $this->student();

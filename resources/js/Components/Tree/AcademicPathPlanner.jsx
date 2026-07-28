@@ -1,6 +1,7 @@
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import {
     ArrowLeft,
+    BrainCircuit,
     Check,
     ChevronDown,
     ChevronUp,
@@ -49,15 +50,15 @@ const priorityLabel = {
 };
 
 function AnalysisState() {
-    const stages = ['قراءة السجل الأكاديمي', 'تحليل المتطلبات والمسارات', 'ترتيب أفضل المواد', 'التحقق من الخطة'];
+    const stages = ['بناء المسار وفق قواعد الجامعة', 'إرسال الخطة الآمنة إلى AI', 'تحليل القرارات وشرحها', 'التحقق النهائي من النتيجة'];
 
     return (
         <div className="py-8 text-center" aria-live="polite" aria-busy="true">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-200">
-                <Route className="h-7 w-7 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
+                <BrainCircuit className="h-7 w-7 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
             </div>
-            <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">نبني أفضل مسار لك</h3>
-            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">نراجع كل مادة قبل إضافتها إلى الخطة.</p>
+            <h3 className="mt-4 text-lg font-black text-slate-900 dark:text-white">الذكاء الاصطناعي يحلل مسارك</h3>
+            <p className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">ننشئ خطة آمنة ثم يفسّر AI أفضل القرارات لك.</p>
             <div className="mx-auto mt-6 max-w-sm space-y-2 text-right">
                 {stages.map((stage, index) => (
                     <div key={stage} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5 text-sm font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -88,7 +89,7 @@ function CourseCard({ course, index }) {
                         <span className={`rounded-lg px-2 py-1 text-[10px] font-black ${priorityClass}`}>أولوية {priorityLabel[course.priority]}</span>
                     </div>
                     <p className="mt-1 text-xs font-bold text-slate-400" dir="ltr">{course.code} · {course.credit_hours} ساعات</p>
-                    <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">{course.reason}</p>
+                    <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">{course.ai_explanation || course.reason}</p>
                 </div>
             </div>
 
@@ -104,6 +105,12 @@ function CourseCard({ course, index }) {
 
             {expanded && (
                 <div className="mt-2 rounded-xl bg-slate-50 p-3 dark:bg-slate-800">
+                    {course.ai_strategic_impact && (
+                        <div className="mb-3 flex items-start gap-2 rounded-xl bg-violet-50 p-3 text-xs font-bold leading-6 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200">
+                            <BrainCircuit className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                            <span><strong>تحليل AI:</strong> {course.ai_strategic_impact}</span>
+                        </div>
+                    )}
                     <ul className="space-y-2 text-xs font-bold leading-6 text-slate-600 dark:text-slate-300">
                         {course.reasons.map((reason) => (
                             <li key={reason} className="flex items-start gap-2">
@@ -151,6 +158,28 @@ function ResultView({ path, onApply, applying, onRestart }) {
 
     return (
         <div className="space-y-6">
+            {path.ai?.status === 'completed' ? (
+                <section className="rounded-2xl border border-violet-200 bg-gradient-to-l from-violet-50 to-indigo-50 p-4 dark:border-violet-800 dark:from-violet-950/60 dark:to-indigo-950/50">
+                    <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white">
+                            <BrainCircuit className="h-5 w-5" aria-hidden="true" />
+                        </span>
+                        <div>
+                            <p className="text-xs font-black text-violet-700 dark:text-violet-300">تحليل فعلي بواسطة Gemini AI</p>
+                            <p className="mt-0.5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                اكتمل خلال {(path.ai.duration_ms / 1000).toFixed(1)} ثانية · بعد التحقق من قواعد الجامعة
+                            </p>
+                        </div>
+                    </div>
+                    <p className="mt-3 text-sm font-bold leading-7 text-slate-700 dark:text-slate-200">{path.ai.analysis}</p>
+                    {path.ai.next_step && <p className="mt-2 text-xs font-black leading-6 text-violet-800 dark:text-violet-200">الخطوة التالية: {path.ai.next_step}</p>}
+                </section>
+            ) : path.ai?.status === 'fallback' ? (
+                <section className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs font-bold leading-6 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                    تعذّر اتصال AI حاليًا؛ عُرضت الخطة الآمنة من المحرك الأكاديمي دون الادعاء بأنها تحليل AI.
+                </section>
+            ) : null}
+
             <section className="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-800 dark:bg-indigo-950/40">
                 <div className="flex items-center gap-3">
                     <ShieldCheck className="h-6 w-6 shrink-0 text-indigo-700 dark:text-indigo-300" aria-hidden="true" />

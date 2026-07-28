@@ -16,7 +16,8 @@ class AcademicPathPlannerService
 {
     public function __construct(
         private readonly AcademicRulesEngine $rulesEngine,
-        private readonly ValidationEngine $validationEngine
+        private readonly ValidationEngine $validationEngine,
+        private readonly AcademicPathAiAnalysisService $aiAnalysis
     ) {
     }
 
@@ -149,7 +150,7 @@ class AcademicPathPlannerService
                 && $course['unlocks']['direct_count'] >= 2
         );
 
-        return [
+        $path = [
             'planner_version' => (string) config('academic_path_planner.version'),
             'goal' => ['id' => $goal, 'label' => $goalConfig['label']],
             'status' => 'ready',
@@ -175,6 +176,8 @@ class AcademicPathPlannerService
             'generated_at' => now()->toISOString(),
             'expires_at' => now()->addMinutes((int) config('academic_path_planner.cache_ttl_minutes', 10))->toISOString(),
         ];
+
+        return $this->aiAnalysis->analyze($user, $path);
     }
 
     private function loadPlanCourses(User $user): Collection
