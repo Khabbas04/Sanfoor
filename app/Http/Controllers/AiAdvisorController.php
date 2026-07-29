@@ -95,6 +95,9 @@ class AiAdvisorController extends Controller
             'dailyMessagesRemaining' => $remaining,
             'hasDailyLimit' => $dailyLimit !== null,
             'isAiActive' => !empty($apiKeys),
+            // What the advisor remembers about this student, and why — shown to them
+            // rather than kept implicit. Empty shape when the feature is off.
+            'aiMemory' => app(\App\Services\AiMemoryService::class)->disclosure($user),
         ]);
     }
 
@@ -112,6 +115,7 @@ class AiAdvisorController extends Controller
     public function chat(Request $request)
     {
         set_time_limit(0);
+        $startedAt = microtime(true);
 
         $data = $request->validate([
             'message' => ['required', 'string', 'max:2000'],
@@ -123,6 +127,10 @@ class AiAdvisorController extends Controller
             // Set when retrying after a failed stream(): that request already stored
             // the student's message, so storing it again would duplicate the turn.
             'user_message_stored' => ['nullable', 'boolean'],
+            // Set by regenerate(): the student explicitly asked for a different
+            // answer, so the response cache must not be consulted.
+            'regenerate' => ['nullable', 'boolean'],
+            'regenerate_mode' => ['nullable', 'string', 'in:shorten,explain_more,alternative,refresh_data'],
         ]);
 
         $user = Auth::user();
@@ -158,6 +166,20 @@ class AiAdvisorController extends Controller
             ]);
         }
 
+        $isRegeneration = (bool) ($data['regenerate'] ?? false);
+        $regenerateMode = $data['regenerate_mode'] ?? null;
+
+        // "Refresh the data and answer again" is the one mode that has to drop the
+        // student's cached academic snapshot before anything is read.
+        if ($regenerateMode === 'refresh_data') {
+            $this->clearStudentCache($user->id);
+            try {
+                app(\App\Services\StudentAcademicContextService::class)->invalidate($user);
+            } catch (\Throwable $e) {
+                Log::warning('Context invalidation on refresh_data failed: ' . $e->getMessage());
+            }
+        }
+
         $chat = $this->resolveChat($user, $data['chat_id'] ?? null, $data['message']);
         $chatId = $chat->id;
         $isNewChat = $chat->wasRecentlyCreated;
@@ -185,8 +207,12 @@ class AiAdvisorController extends Controller
 
         $geminiService = app(\App\Services\GeminiService::class);
         $apiKeys = $geminiService->getApiKeys();
-        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null);
-        $cachedAiResponse = Cache::get($responseCacheKey);
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $regenerateMode);
+
+        // Regeneration means "give me a different answer". Reading the cache here is
+        // what made the button return the SAME reply for two hours while still
+        // charging the student one of their five daily messages.
+        $cachedAiResponse = $isRegeneration ? null : Cache::get($responseCacheKey);
         if (is_array($cachedAiResponse) && isset($cachedAiResponse['reply'])) {
             $replyText = (string) $cachedAiResponse['reply'];
             $followUpSuggestions = $cachedAiResponse['follow_up_suggestions'] ?? [];
@@ -199,12 +225,14 @@ class AiAdvisorController extends Controller
                 'content' => json_encode($cachedAiResponse, JSON_UNESCAPED_UNICODE),
             ]);
 
-            $newRemaining = null;
-            if ($dailyLimit !== null) {
-                Cache::put($usageKey, $usage + 1, now()->endOfDay());
-                $newRemaining = max(0, $dailyLimit - ($usage + 1));
-            }
+            \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logRequest($user, 'chat', [
+                'chat_id' => $chatId,
+                'was_cached' => true,
+                'response_time_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+            ]));
 
+            // Nothing was generated, so nothing is charged: the student asked a
+            // question they had already asked, which costs the system no call.
             return response()->json([
                 'status' => 'success',
                 'reply' => $replyText,
@@ -214,7 +242,7 @@ class AiAdvisorController extends Controller
                 'interactive_widget' => $interactiveWidget,
                 'chat_id' => $chatId,
                 'chat_title' => $isNewChat ? $chat->title : null,
-                'daily_messages_remaining' => $newRemaining,
+                'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
                 'has_daily_limit' => $dailyLimit !== null,
                 'is_fallback' => false,
                 'is_cached' => true,
@@ -241,6 +269,13 @@ class AiAdvisorController extends Controller
                 $suggestedDetails = $pipeline['suggested_courses'];
                 $removeDetails = $pipeline['courses_to_remove'];
                 $refreshCartFlag = $pipeline['refresh_cart'];
+                $detectedIntent = $pipeline['intent'];
+                $toolsCalled = $pipeline['tools_called'];
+                $toolSources = $pipeline['tool_sources'];
+                $answerSources = $pipeline['sources'];
+                $answerConfidence = $pipeline['confidence'];
+                $answerValidation = $pipeline['validation'];
+                $extraWidgets = $pipeline['widgets'];
             }
 
             $chat->messages()->create([
@@ -266,8 +301,11 @@ class AiAdvisorController extends Controller
                 $this->queueContextSummary($chat);
             }
 
-            $newRemaining = null;
-            if ($dailyLimit !== null) {
+            // Only a real cloud generation is charged against the daily limit. A
+            // locally assembled fallback is a degraded answer the student did not
+            // ask for, so making them pay a message for it is the wrong trade.
+            $newRemaining = $dailyLimit === null ? null : max(0, $dailyLimit - $usage);
+            if ($dailyLimit !== null && !$useFallback) {
                 Cache::put($usageKey, $usage + 1, now()->endOfDay());
                 $newRemaining = max(0, $dailyLimit - ($usage + 1));
             }
@@ -287,7 +325,26 @@ class AiAdvisorController extends Controller
                 'is_fallback' => $useFallback,
                 'is_cached' => false,
                 'fallback_reason' => $useFallback ? 'local_fallback' : null,
+                // Optional enhancement fields: empty/null unless those layers ran.
+                'intent' => $detectedIntent ?? null,
+                'tools_called' => $toolsCalled ?? [],
+                'tool_sources' => $toolSources ?? [],
+                'sources' => $answerSources ?? [],
+                'confidence' => $answerConfidence ?? null,
+                'validation' => $answerValidation ?? null,
+                'widgets' => $extraWidgets ?? [],
             ];
+
+            \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logRequest($user, $isRegeneration ? 'regenerate' : 'chat', [
+                'chat_id' => $chatId,
+                'intent' => $detectedIntent ?? null,
+                'confidence' => $answerConfidence ?? null,
+                'validation' => $answerValidation ?? null,
+                'tools_called' => $toolsCalled ?? [],
+                'fallback_used' => $useFallback,
+                'fallback_reason' => $useFallback ? 'local_fallback' : null,
+                'response_time_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+            ]));
 
             if (!$useFallback) {
                 Cache::put($responseCacheKey, [
@@ -306,6 +363,16 @@ class AiAdvisorController extends Controller
                 'line' => $e->getLine(),
                 'file' => $e->getFile(),
             ]);
+
+            \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logRequest($user, 'chat', [
+                'chat_id' => $chatId,
+                'fallback_used' => true,
+                'fallback_reason' => 'gemini_unavailable',
+                // The class name, never the message: an exception message can carry
+                // a URL with a key in it.
+                'provider_error_type' => get_class($e),
+                'response_time_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+            ]));
 
             try {
                 $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
@@ -327,12 +394,8 @@ class AiAdvisorController extends Controller
                     ], JSON_UNESCAPED_UNICODE),
                 ]);
 
-                $newRemaining = null;
-                if ($dailyLimit !== null) {
-                    Cache::put($usageKey, $usage + 1, now()->endOfDay());
-                    $newRemaining = max(0, $dailyLimit - ($usage + 1));
-                }
-
+                // The cloud advisor failed, so this is not the answer the student
+                // asked for: it is not charged against their daily limit.
                 return response()->json([
                     'status' => 'success',
                     'reply' => $replyText,
@@ -342,11 +405,12 @@ class AiAdvisorController extends Controller
                     'interactive_widget' => $interactiveWidget,
                     'chat_id' => $chatId,
                     'chat_title' => $isNewChat ? $chat->title : null,
-                    'daily_messages_remaining' => $newRemaining,
+                    'daily_messages_remaining' => $dailyLimit === null ? null : max(0, $dailyLimit - $usage),
                     'has_daily_limit' => $dailyLimit !== null,
                     'is_fallback' => true,
                     'is_cached' => false,
                     'fallback_reason' => 'gemini_unavailable',
+                    'can_retry' => true,
                 ]);
             } catch (\Throwable $fallbackEx) {
                 Log::error('Local fallback failed: ' . $fallbackEx->getMessage(), [
@@ -381,11 +445,20 @@ class AiAdvisorController extends Controller
      * $onDelta is given the model is called in streaming mode and every newly
      * arrived slice of the reply text is handed to that callback.
      *
-     * @return array{reply: string, suggested_courses: array, courses_to_remove: array, follow_up_suggestions: array, interactive_widget: ?array, refresh_cart: bool}
+     * @return array{reply: string, suggested_courses: array, courses_to_remove: array, follow_up_suggestions: array, interactive_widget: ?array, refresh_cart: bool, intent: ?array}
      */
-    private function runAdvisorPipeline($user, Chat $chat, array $data, array $academicData, array $cartData, array $availableCourses, $geminiService, ?callable $onDelta = null): array
+    private function runAdvisorPipeline($user, Chat $chat, array $data, array $academicData, array $cartData, array $availableCourses, $geminiService, ?callable $onDelta = null, ?callable $onStage = null): array
     {
         $message = (string) $data['message'];
+
+        // Progress events are optional and additive: with no $onStage (or with the
+        // flag off) this is a no-op and the existing open/delta/done sequence is
+        // exactly what it was.
+        $stage = function (string $event, array $payload = []) use ($onStage): void {
+            if ($onStage !== null) {
+                $onStage($event, $payload);
+            }
+        };
 
         // --- ENTERPRISE AI PIPELINE ENGINES ---
 
@@ -393,12 +466,95 @@ class AiAdvisorController extends Controller
         $ragEngine = app(\App\Engines\StructuredRagEngine::class);
         $rulesEngine = app(\App\Engines\AcademicRulesEngine::class);
 
+        $stage('retrieving_context');
         $ragData = $ragEngine->gather($user);
         $rules = $rulesEngine->evaluate($user, ['total_passed_hours' => $ragData['profile']['total_passed_hours']], $ragData['cart']['hours']);
 
+        // 1.5 Intent routing (feature-flagged).
+        //
+        // Runs in front of the existing pipeline and only feeds it: the legacy
+        // behaviour is reproduced exactly when the flag is off, including the
+        // arguments handed to the ranking engine.
+        $intent = null;
+        $namedCourseIds = [];
+        $retrievalSources = [];
+        $completeness = [];
+        $rankingPool = $ragData['available_courses'];
+        // Legacy behaviour: the raw student message was passed where the engine
+        // expects one of its three intent literals, so it never matched and the
+        // difficulty-fit dimension always fell to its default.
+        $rankingIntent = $message;
+
+        if (config('ai.features.intent_router')) {
+            try {
+                $router = app(\App\Services\AiIntentRouterService::class);
+                $contextService = app(\App\Services\StudentAcademicContextService::class);
+
+                // Locked courses are included deliberately: "why can't I take X?" and
+                // "what does X need?" are questions ABOUT a course the student cannot
+                // register, so resolving only the available pool would fail to
+                // recognise the very course they asked about.
+                $courseNames = [];
+                foreach ($ragData['available_courses'] as $course) {
+                    $courseNames[(int) $course['id']] = (string) $course['name'];
+                }
+                foreach ($ragData['locked_courses'] as $course) {
+                    $courseNames[(int) $course['id']] = (string) $course['name'];
+                }
+                foreach (($ragData['cart']['map'] ?? []) as $cartId => $cartName) {
+                    $courseNames[(int) $cartId] = (string) $cartName;
+                }
+
+                $intent = $router->route($message, ['course_names' => $courseNames]);
+                $stage('intent_detected', [
+                    'intent' => $intent['intent'],
+                    'confidence' => $intent['confidence'],
+                ]);
+                $rankingIntent = $router->legacyRankingIntent($intent['intent']);
+                // The pool StructuredRagEngine returns spells the unlock count
+                // `unlocks_count`, which the ranking engine does not read.
+                $rankingPool = $contextService->normaliseCourses($ragData['available_courses']);
+
+                // Intent-aware retrieval (separately flagged).
+                //
+                // Only the pool handed to ranking is narrowed. ValidationEngine
+                // keeps checking against the FULL pool below, so trimming what the
+                // model is shown can never turn a course the student is genuinely
+                // eligible for into a "hallucinated" id.
+                if (config('ai.features.enhanced_rag')) {
+                    $retrieval = $ragEngine->gatherFor($user, [
+                        'intent' => $intent['intent'],
+                        'entities' => $intent['entities'],
+                    ]);
+
+                    $rankingPool = $contextService->normaliseCourses($retrieval['available_courses']);
+                    $namedCourseIds = array_map(
+                        fn ($course) => (int) $course['id'],
+                        $retrieval['named_courses'] ?? []
+                    );
+                    $retrievalSources = $retrieval['sources'] ?? [];
+                    $completeness = $retrieval['completeness'] ?? [];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Intent router failed; continuing on the legacy path: ' . $e->getMessage());
+                $intent = null;
+                $namedCourseIds = [];
+                $retrievalSources = [];
+                $completeness = [];
+                $rankingPool = $ragData['available_courses'];
+                $rankingIntent = $message;
+            }
+        }
+
         // 2. Course Ranking Engine
         $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
-        $rankedCourses = $rankingEngine->rank($ragData['available_courses'], $rules, $message);
+        $rankedCourses = $rankingEngine->rank($rankingPool, $rules, $rankingIntent);
+
+        // A course the student named by hand is the subject of the question, so it
+        // has to reach the model even when its ranking score is low.
+        if (!empty($namedCourseIds)) {
+            $rankedCourses = $this->ensureCoursesAreRanked($rankedCourses, $rankingPool, $namedCourseIds);
+        }
 
         // 3. Document RAG Engine
         $docEngine = app(\App\Engines\DocumentRagEngine::class);
@@ -409,10 +565,67 @@ class AiAdvisorController extends Controller
         $cartCourseDetails = Course::whereIn('id', $ragData['cart']['ids'] ?? [])->get()->toArray();
         $riskWarnings = $riskEngine->evaluate($user, $cartCourseDetails, $rules);
 
+        // 3.7 Tool layer (feature-flagged).
+        //
+        // The planned tools run BEFORE the model call and their results are handed
+        // to it as verified facts. This keeps the enforced responseSchema and the
+        // streaming path intact — neither survives a model-driven tool loop — and
+        // costs no extra request.
+        $toolFacts = [];
+        $toolSources = [];
+        $toolsCalled = [];
+        $toolResults = [];
+
+        if ($intent !== null && config('ai.features.tool_registry')) {
+            try {
+                $tools = app(\App\Services\AiToolRegistry::class);
+                $plan = $tools->plan($intent, $message);
+
+                if ($plan !== []) {
+                    $stage('tool_started', ['tools' => array_column($plan, 'tool')]);
+                    $run = $tools->runPlan($user, $plan);
+                    $stage('tool_completed', ['tools' => $run['tools_called']]);
+                    $toolFacts = $run['facts'];
+                    $toolSources = $run['sources'];
+                    $toolsCalled = $run['tools_called'];
+                    $toolResults = $run['results'];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Tool layer failed; answering without verified facts: ' . $e->getMessage());
+                $toolFacts = [];
+                $toolSources = [];
+                $toolsCalled = [];
+                $toolResults = [];
+            }
+        }
+
         // 4. Ai Context Assembler (+ rolling memory of older turns)
         $memory = app(\App\Engines\ConversationMemoryEngine::class);
         $assembler = app(\App\Engines\AiContextAssembler::class);
-        $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings, $memory->summaryBlock($chat));
+        $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings, $memory->summaryBlock($chat), $toolFacts);
+
+        // Optional academic memory: five preferences the student stated outright,
+        // never mined from past messages. Current academic data still wins, which
+        // the block itself says explicitly.
+        if (config('ai.features.memory')) {
+            try {
+                $memoryService = app(\App\Services\AiMemoryService::class);
+                $memoryBlock = $memoryService->promptBlock($user);
+                if ($memoryBlock !== '') {
+                    $systemInstruction['parts'][0]['text'] .= "\n\n" . $memoryBlock;
+                }
+                $memoryService->remember($user, $intent, $data);
+            } catch (\Throwable $e) {
+                Log::warning('Academic memory skipped: ' . $e->getMessage());
+            }
+        }
+
+        // The student pressed "answer again, but …". Appended last so it is the most
+        // recent instruction the model reads.
+        $regenerateDirective = $this->regenerateDirective($data['regenerate_mode'] ?? null);
+        if ($regenerateDirective !== null) {
+            $systemInstruction['parts'][0]['text'] .= "\n\n" . $regenerateDirective;
+        }
 
         // 5. Build Conversation Context
         $contents = $this->buildConversationContext($chat);
@@ -435,12 +648,16 @@ class AiAdvisorController extends Controller
             $jsonBuffer = '';
             $emitted = 0;
 
-            $rawText = $geminiService->streamGeminiAPI($contents, $options, function (string $fragment) use (&$jsonBuffer, &$emitted, $onDelta) {
+            $rawText = $geminiService->streamGeminiAPI($contents, $options, function (string $fragment) use (&$jsonBuffer, &$emitted, $onDelta, $stage) {
                 $jsonBuffer .= $fragment;
                 $reply = $this->partialReplyText($jsonBuffer);
                 $length = mb_strlen($reply, 'UTF-8');
 
                 if ($length > $emitted) {
+                    if ($emitted === 0) {
+                        // First visible character: this is time-to-first-token.
+                        $stage('response_started');
+                    }
                     $onDelta(mb_substr($reply, $emitted, $length - $emitted, 'UTF-8'));
                     $emitted = $length;
                 }
@@ -450,6 +667,7 @@ class AiAdvisorController extends Controller
         }
 
         $parsed = $this->parseAIResponse($rawText);
+        $stage('validating');
 
         // The model often answers "تمت إضافتها بنجاح" while leaving courses_to_add
         // empty, so the student is told a course was added that never was. When they
@@ -468,7 +686,9 @@ class AiAdvisorController extends Controller
 
         // 6. Validate AI Response (Hallucination & Overflow Check)
         $validator = app(\App\Engines\ValidationEngine::class);
+        $idsBeforeValidation = $this->countProposedIds($parsed);
         $parsed = $validator->validate($parsed, $ragData, $rules);
+        $droppedIds = max(0, $idsBeforeValidation - $this->countProposedIds($parsed));
 
         // 7. Only now touch the cart. Writing before validation meant a
         // hallucinated course id inserted a real UserCart row for a course
@@ -549,6 +769,69 @@ class AiAdvisorController extends Controller
             $replyText = trim(str_replace('%%SKILL_TREE%%', '', $replyText));
         }
 
+        // 8. Sources and confidence (feature-flagged).
+        //
+        // Confidence is computed from what the application observed, never taken
+        // from the model. Both fields are additive: the old frontend simply does
+        // not read them.
+        $sources = [];
+        $confidence = null;
+        $validationSummary = null;
+
+        if (config('ai.features.sources')) {
+            try {
+                $assessor = app(\App\Services\AiAnswerAssessor::class);
+
+                $sources = $assessor->mergeSources(
+                    $retrievalSources,
+                    $toolSources,
+                    $assessor->documentSources($docContext)
+                );
+
+                $validationSummary = [
+                    'valid' => $droppedIds === 0,
+                    'dropped_ids' => $droppedIds,
+                    'checked_rules' => ['course_id_visible_to_student', 'cart_membership', 'hour_limit'],
+                ];
+
+                $confidence = $assessor->confidence([
+                    'intent' => $intent,
+                    'completeness' => $completeness,
+                    'validation' => $validationSummary,
+                    'asked_course_ids' => $intent['entities']['course_ids'] ?? [],
+                    'resolved_course_ids' => $namedCourseIds,
+                    'available_course_count' => count($ragData['available_courses'] ?? []),
+                    'passed_hours' => (int) ($rules['total_passed_hours'] ?? 0),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Sources/confidence assessment failed; omitting both: ' . $e->getMessage());
+                $sources = [];
+                $confidence = null;
+                $validationSummary = null;
+            }
+        }
+
+        // 9. Additional widgets (feature-flagged).
+        //
+        // Built by the application from validated data, not asked of the model, and
+        // emitted ALONGSIDE the legacy interactive_widget rather than instead of it.
+        $widgets = [];
+
+        if (config('ai.features.new_widgets')) {
+            try {
+                $widgets = app(\App\Services\AiWidgetBuilder::class)->build(
+                    $user,
+                    $intent,
+                    $toolResults,
+                    $sources,
+                    ['rules' => $rules, 'completeness' => $completeness]
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Widget builder failed; answering without extra widgets: ' . $e->getMessage());
+                $widgets = [];
+            }
+        }
+
         return [
             'reply' => $replyText,
             'suggested_courses' => !empty($suggestedIds)
@@ -560,7 +843,85 @@ class AiAdvisorController extends Controller
             'follow_up_suggestions' => $followUpSuggestions,
             'interactive_widget' => $interactiveWidget,
             'refresh_cart' => $refreshCartFlag,
+            // Additive, and null/empty whenever the enhancements are off or failed.
+            // Never stored with the message: the persisted envelope keeps its five keys.
+            'intent' => $intent,
+            'tools_called' => $toolsCalled,
+            'tool_sources' => $toolSources,
+            'sources' => $sources,
+            'confidence' => $confidence,
+            'validation' => $validationSummary,
+            'widgets' => $widgets,
         ];
+    }
+
+    /**
+     * The extra instruction behind each regeneration mode.
+     *
+     * Phrased as "the student read your previous answer and wants X" so the retry
+     * is a genuinely different reply rather than the same one re-worded.
+     */
+    private function regenerateDirective(?string $mode): ?string
+    {
+        return match ($mode) {
+            'shorten' => "=== ♻️ إعادة صياغة مطلوبة ===\nالطالب قرأ جوابك السابق ووجده طويلاً. أعد الجواب **مختصراً جداً**: الخلاصة المباشرة فقط في ٣ أسطر أو أقل، بلا أقسام وبلا تفاصيل ثانوية، مع الحفاظ على الدقة والإيموجي.",
+            'explain_more' => "=== ♻️ إعادة صياغة مطلوبة ===\nالطالب قرأ جوابك السابق ويريد **تفصيلاً أعمق**: اشرح 'لماذا' لكل نقطة، واذكر الأثر على خطته وتخرجه، وأعطِ مثالاً رقمياً من بياناته الفعلية. لا تكرر الجواب السابق بنفس الصياغة.",
+            'alternative' => "=== ♻️ إعادة صياغة مطلوبة ===\nالطالب لم يقتنع بجوابك السابق ويريد **خياراً مختلفاً**: اقترح بديلاً حقيقياً (مواد أخرى أو ترتيباً آخر أو استراتيجية مختلفة) واشرح لماذا قد يكون هذا البديل أنسب له. ممنوع تكرار نفس التوصية السابقة.",
+            'refresh_data' => "=== ♻️ إعادة صياغة مطلوبة ===\nتم تحديث بيانات الطالب الآن. أعد الجواب اعتماداً على الأرقام الواردة في هذا السياق حصراً، وإذا تغيّر شيء عن جوابك السابق فصرّح بذلك بجملة قصيرة.",
+            default => null,
+        };
+    }
+
+    /** How many course ids the model proposed, across all three lists. */
+    private function countProposedIds(array $parsed): int
+    {
+        return count((array) ($parsed['suggested_course_ids'] ?? []))
+            + count((array) ($parsed['courses_to_add'] ?? []))
+            + count((array) ($parsed['remove_course_ids'] ?? []));
+    }
+
+    /**
+     * Make sure specific courses survive the ranking cut.
+     *
+     * Ranking answers "what should this student take?", which is the wrong
+     * question when they asked about one course by name. Those courses are put at
+     * the front, and the list keeps its original length so the prompt does not grow.
+     *
+     * @param array $ranked   CourseRankingEngine output
+     * @param array $pool     the candidate courses ranking chose from
+     * @param int[] $requiredIds
+     */
+    private function ensureCoursesAreRanked(array $ranked, array $pool, array $requiredIds): array
+    {
+        $present = array_map(fn ($entry) => (int) ($entry['id'] ?? 0), $ranked);
+        $missing = array_values(array_diff(array_map('intval', $requiredIds), $present));
+
+        if ($missing === []) {
+            return $ranked;
+        }
+
+        $limit = count($ranked);
+        $prepend = [];
+
+        foreach ($pool as $course) {
+            if (!in_array((int) ($course['id'] ?? 0), $missing, true)) {
+                continue;
+            }
+
+            $prepend[] = [
+                'id' => (int) $course['id'],
+                'name' => (string) ($course['name'] ?? ''),
+                'score' => 0,
+                'course' => $course,
+                'reason' => 'المادة التي سألت عنها تحديداً',
+            ];
+        }
+
+        if ($prepend === []) {
+            return $ranked;
+        }
+
+        return array_slice(array_merge($prepend, $ranked), 0, max($limit, count($prepend)));
     }
 
     /**
@@ -710,15 +1071,10 @@ class AiAdvisorController extends Controller
             $request->session()->save();
         }
 
-        return response()->stream(function () use ($user, $chat, $data, $academicData, $cartData, $availableCourses, $geminiService, $isNewChat, $dailyLimit, $usage, $usageKey, $responseCacheKey) {
-            // Anything that buffers or compresses output would hold the whole reply
-            // back to the end and defeat the point of streaming.
-            @ini_set('zlib.output_compression', '0');
-            @ini_set('output_buffering', '0');
-            @ini_set('implicit_flush', '1');
-            while (ob_get_level() > 0) {
-                @ob_end_flush();
-            }
+        $streamStartedAt = microtime(true);
+
+        return response()->stream(function () use ($user, $chat, $data, $academicData, $cartData, $availableCourses, $geminiService, $isNewChat, $dailyLimit, $usage, $usageKey, $responseCacheKey, $streamStartedAt) {
+            $this->disableOutputBuffering();
 
             $send = function (string $event, array $payload) {
                 echo "event: {$event}\n";
@@ -729,6 +1085,22 @@ class AiAdvisorController extends Controller
             $send('open', ['chat_id' => $chat->id]);
 
             try {
+                // Progress events are additive and flagged: an older frontend simply
+                // ignores an SSE event type it does not know, and with the flag off
+                // none are emitted at all.
+                // Time-to-first-token is measured here rather than inferred from the
+                // total: it is the number that decides whether streaming feels fast.
+                $firstTokenMs = null;
+                $emitEvents = (bool) config('ai.features.stream_events');
+                $onStage = function (string $event, array $payload = []) use ($send, $emitEvents, $streamStartedAt, &$firstTokenMs) {
+                    if ($event === 'response_started' && $firstTokenMs === null) {
+                        $firstTokenMs = (int) ((microtime(true) - $streamStartedAt) * 1000);
+                    }
+                    if ($emitEvents) {
+                        $send($event, $payload);
+                    }
+                };
+
                 $payload = $this->runAdvisorPipeline(
                     $user,
                     $chat,
@@ -737,7 +1109,8 @@ class AiAdvisorController extends Controller
                     $cartData,
                     $availableCourses,
                     $geminiService,
-                    fn (string $delta) => $send('delta', ['text' => $delta])
+                    fn (string $delta) => $send('delta', ['text' => $delta]),
+                    $onStage
                 );
 
                 $stored = [
@@ -767,9 +1140,26 @@ class AiAdvisorController extends Controller
 
                 Cache::put($responseCacheKey, $stored, now()->addHours(2));
 
+                \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logRequest($user, 'stream', [
+                    'chat_id' => $chat->id,
+                    'intent' => $payload['intent'] ?? null,
+                    'confidence' => $payload['confidence'] ?? null,
+                    'validation' => $payload['validation'] ?? null,
+                    'tools_called' => $payload['tools_called'] ?? [],
+                    'response_time_ms' => (int) ((microtime(true) - $streamStartedAt) * 1000),
+                    'time_to_first_token_ms' => $firstTokenMs,
+                ]));
+
                 $send('done', array_merge($stored, [
                     'status' => 'success',
                     'refresh_cart' => $payload['refresh_cart'],
+                    'intent' => $payload['intent'] ?? null,
+                    'tools_called' => $payload['tools_called'] ?? [],
+                    'tool_sources' => $payload['tool_sources'] ?? [],
+                    'sources' => $payload['sources'] ?? [],
+                    'confidence' => $payload['confidence'] ?? null,
+                    'validation' => $payload['validation'] ?? null,
+                    'widgets' => $payload['widgets'] ?? [],
                     'chat_id' => $chat->id,
                     'chat_title' => $isNewChat ? $chat->title : null,
                     'daily_messages_remaining' => $newRemaining,
@@ -784,8 +1174,19 @@ class AiAdvisorController extends Controller
                     'line' => $e->getLine(),
                 ]);
 
+                \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logRequest($user, 'stream', [
+                    'chat_id' => $chat->id,
+                    'fallback_used' => true,
+                    'fallback_reason' => 'stream_failed',
+                    'provider_error_type' => get_class($e),
+                    'response_time_ms' => (int) ((microtime(true) - $streamStartedAt) * 1000),
+                ]));
+
                 // The user message is already stored; the frontend retries against
                 // the blocking endpoint, which owns the local-fallback path.
+                if (config('ai.features.stream_events')) {
+                    $send('fallback', ['reason' => 'stream_failed']);
+                }
                 $send('error', ['chat_id' => $chat->id, 'reason' => 'stream_failed']);
             }
         }, 200, [
@@ -796,10 +1197,44 @@ class AiAdvisorController extends Controller
         ]);
     }
 
+    /**
+     * Anything that buffers or compresses output would hold the whole reply back
+     * to the end and defeat the point of streaming.
+     *
+     * Skipped under the test runner only: tearing down every output buffer also
+     * tears down the one TestResponse::streamedContent() captures the stream
+     * with, which would make the SSE contract untestable. Behaviour over HTTP is
+     * unchanged.
+     */
+    private function disableOutputBuffering(): void
+    {
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        @ini_set('zlib.output_compression', '0');
+        @ini_set('output_buffering', '0');
+        @ini_set('implicit_flush', '1');
+
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
+    }
+
+    /**
+     * Answer the student's last question again.
+     *
+     * `mode` shapes the retry instead of repeating it verbatim: a shorter answer, a
+     * fuller explanation, a different angle, or the same question against freshly
+     * re-read academic data. The request is marked as a regeneration so chat() does
+     * not serve the previous answer back out of its two-hour response cache — which
+     * is what used to make this button a no-op that still cost a daily message.
+     */
     public function regenerate(Request $request)
     {
         $data = $request->validate([
             'chat_id' => ['required', 'integer', 'exists:chats,id'],
+            'mode' => ['nullable', 'string', 'in:shorten,explain_more,alternative,refresh_data'],
         ]);
 
         $chat = Chat::findOrFail($data['chat_id']);
@@ -826,7 +1261,75 @@ class AiAdvisorController extends Controller
             'difficulty' => $request->input('difficulty'),
             'critical_path' => $request->input('critical_path'),
             'wants_code' => $request->input('wants_code'),
+            'regenerate' => true,
+            'regenerate_mode' => $data['mode'] ?? null,
         ]));
+    }
+
+    /**
+     * Execute an action the student confirmed in the chat.
+     *
+     * A separate endpoint on purpose: the advisor's answer only ever PROPOSES an
+     * action, and nothing is written until the student comes back here by pressing
+     * the button. The executor re-reads their academic state and re-validates
+     * before touching anything, so a confirmation from a page that has been open
+     * for an hour cannot apply a stale decision.
+     */
+    public function action(Request $request)
+    {
+        $data = $request->validate([
+            'action' => ['required', 'string', 'max:64'],
+            'course_ids' => ['nullable', 'array', 'max:10'],
+            'course_ids.*' => ['integer'],
+            'course_id' => ['nullable', 'integer'],
+            'place_id' => ['nullable', 'integer'],
+            'message_id' => ['nullable', 'integer', 'exists:messages,id'],
+        ]);
+
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        if (!config('ai.features.actions')) {
+            return response()->json(['status' => 'error', 'message' => 'هذه الميزة غير مفعّلة حالياً.'], 404);
+        }
+
+        // A message id is accepted so the action can be tied to the reply that
+        // proposed it — but only if that reply belongs to this student.
+        if (!empty($data['message_id'])) {
+            $message = Message::find($data['message_id']);
+            if (!$message || $message->chat?->user_id !== $user->id) {
+                return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+            }
+        }
+
+        $result = app(\App\Services\AiActionExecutor::class)->execute($user, $data['action'], $data);
+        \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logAction($user, $data['action'], $result['ok']));
+
+        if (!$result['ok'] && ($result['errors'][0]['code'] ?? null) === 'action_not_allowed') {
+            return response()->json(array_merge(['status' => 'error'], $result), 422);
+        }
+
+        return response()->json(array_merge(['status' => $result['ok'] ? 'success' : 'error'], $result));
+    }
+
+    /**
+     * Clear the advisor's saved preferences for this student.
+     *
+     * Always available, even when the memory feature is off, so a student can
+     * remove what was stored while it was on.
+     */
+    public function forgetMemory()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
+        }
+
+        app(\App\Services\AiMemoryService::class)->forget($user);
+
+        return response()->json(['status' => 'cleared']);
     }
 
     public function feedback(Request $request)
@@ -835,6 +1338,9 @@ class AiAdvisorController extends Controller
             'message_id' => ['required', 'integer', 'exists:messages,id'],
             'rating' => ['required', 'in:up,down'],
             'comment' => ['nullable', 'string', 'max:500'],
+            // Optional, and only meaningful on a thumbs-down: it turns "this was
+            // wrong" into something that can be grouped and acted on.
+            'reason' => ['nullable', 'string', 'in:incorrect_information,misunderstood_question,unsuitable_recommendation,too_long,action_failed'],
         ]);
 
         $message = Message::findOrFail($data['message_id']);
@@ -844,15 +1350,25 @@ class AiAdvisorController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
+        $row = [
+            'rating' => $data['rating'],
+            'comment' => $data['comment'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        // Guarded so the endpoint keeps working on an environment where the
+        // migration has not run yet.
+        if (Schema::hasColumn('ai_feedbacks', 'reason')) {
+            $row['reason'] = $data['reason'] ?? null;
+        }
+
         DB::table('ai_feedbacks')->updateOrInsert(
             ['message_id' => $message->id, 'user_id' => Auth::id()],
-            [
-                'rating' => $data['rating'],
-                'comment' => $data['comment'] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
+            $row
         );
+
+        \App\Services\AiRequestLogger::safely(fn () => app(\App\Services\AiRequestLogger::class)->logFeedbackReason(Auth::user(), $data['reason'] ?? null));
 
         return response()->json(['status' => 'saved']);
     }
@@ -942,6 +1458,95 @@ class AiAdvisorController extends Controller
                 ->get(),
             'feedback_stats' => $feedbackStats,
         ]);
+    }
+
+    /**
+     * Operational health of the advisor over the last 30 days.
+     *
+     * Reads only ai_request_logs, so it costs the conversation tables nothing and
+     * degrades to an empty payload when observability is off or the table is not
+     * there yet — the admin page keeps rendering either way.
+     */
+    public function getQualityMetrics()
+    {
+        $user = Auth::user();
+        if (!$user || !method_exists($user, 'isAdminOrOwner') || !$user->isAdminOrOwner()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        return response()->json(Cache::remember('admin_ai_quality_metrics', 300, function () {
+            if (!Schema::hasTable('ai_request_logs')) {
+                return ['available' => false];
+            }
+
+            $since = now()->subDays(30);
+            $logs = DB::table('ai_request_logs')->where('created_at', '>=', $since);
+
+            $answers = (clone $logs)->whereIn('route_used', ['chat', 'stream', 'regenerate']);
+            $total = (clone $answers)->count();
+
+            $timings = (clone $answers)->whereNotNull('response_time_ms')->selectRaw(
+                'AVG(response_time_ms) as avg_ms, MAX(response_time_ms) as max_ms, AVG(time_to_first_token_ms) as avg_ttft_ms'
+            )->first();
+
+            // Tool usage lives in a JSON column, so it is counted in PHP rather than
+            // with a driver-specific JSON query (sqlite in tests, MySQL in prod).
+            $toolCounts = [];
+            foreach ((clone $answers)->whereNotNull('tools_called')->pluck('tools_called') as $encoded) {
+                foreach ((array) json_decode((string) $encoded, true) as $tool) {
+                    $toolCounts[$tool] = ($toolCounts[$tool] ?? 0) + 1;
+                }
+            }
+            arsort($toolCounts);
+
+            $actions = (clone $logs)->where('route_used', 'action');
+            $actionTotal = (clone $actions)->count();
+
+            return [
+                'available' => true,
+                'window_days' => 30,
+                'total_answers' => $total,
+                'top_intents' => (clone $answers)->whereNotNull('intent')
+                    ->select('intent', DB::raw('count(*) as count'))
+                    ->groupBy('intent')->orderByDesc('count')->limit(8)->get(),
+                'fallback_rate' => $total > 0
+                    ? round(((clone $answers)->where('fallback_used', true)->count() / $total) * 100, 1)
+                    : 0.0,
+                'cached_rate' => $total > 0
+                    ? round(((clone $answers)->where('was_cached', true)->count() / $total) * 100, 1)
+                    : 0.0,
+                'validation_failure_rate' => $total > 0
+                    ? round(((clone $answers)->where('validation_failed', true)->count() / $total) * 100, 1)
+                    : 0.0,
+                'dropped_ids_total' => (int) (clone $answers)->sum('dropped_ids'),
+                'avg_response_ms' => (int) round((float) ($timings->avg_ms ?? 0)),
+                'max_response_ms' => (int) ($timings->max_ms ?? 0),
+                'avg_time_to_first_token_ms' => (int) round((float) ($timings->avg_ttft_ms ?? 0)),
+                'confidence_levels' => (clone $answers)->whereNotNull('confidence_level')
+                    ->select('confidence_level', DB::raw('count(*) as count'))
+                    ->groupBy('confidence_level')->get(),
+                'tools_used' => array_map(
+                    fn ($tool, $count) => ['tool' => $tool, 'count' => $count],
+                    array_keys($toolCounts),
+                    array_values($toolCounts)
+                ),
+                'actions' => [
+                    'total' => $actionTotal,
+                    'success_rate' => $actionTotal > 0
+                        ? round(((clone $actions)->where('action_result', 'success')->count() / $actionTotal) * 100, 1)
+                        : 0.0,
+                    'by_name' => (clone $actions)->whereNotNull('action_name')
+                        ->select('action_name', DB::raw('count(*) as count'))
+                        ->groupBy('action_name')->orderByDesc('count')->get(),
+                ],
+                'feedback_reasons' => (clone $logs)->whereNotNull('feedback_reason')
+                    ->select('feedback_reason', DB::raw('count(*) as count'))
+                    ->groupBy('feedback_reason')->orderByDesc('count')->get(),
+                'provider_errors' => (clone $logs)->whereNotNull('provider_error_type')
+                    ->select('provider_error_type', DB::raw('count(*) as count'))
+                    ->groupBy('provider_error_type')->orderByDesc('count')->limit(5)->get(),
+            ];
+        }));
     }
 
     private function resolveChat($user, ?int $chatId, string $message): Chat
@@ -1757,7 +2362,13 @@ class AiAdvisorController extends Controller
             'follow_up_suggestions' => $decoded['follow_up_suggestions'] ?? [],
             'interactive_widget' => $decoded['interactive_widget'] ?? null,
             'suggested_course_ids' => $this->extractCourseIds($decoded['suggested_course_ids'] ?? null),
-            'remove_course_ids' => $this->extractCourseIds($decoded['remove_course_ids'] ?? null),
+            // responseSchema names this `remove_course_ids`, but config/ai.php used
+            // to document `courses_to_remove` to the model, and salvaged/partial
+            // envelopes are not schema-constrained at all. Accept either name so a
+            // removal suggestion is never silently dropped.
+            'remove_course_ids' => $this->extractCourseIds(
+                $decoded['remove_course_ids'] ?? $decoded['courses_to_remove'] ?? null
+            ),
             'courses_to_add' => $this->extractCourseIds($decoded['courses_to_add'] ?? null),
         ];
     }
@@ -2255,10 +2866,13 @@ class AiAdvisorController extends Controller
         return mb_strtolower(trim($text), 'UTF-8');
     }
 
-    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = [], $difficulty = null, $criticalPath = null): string
+    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = [], $difficulty = null, $criticalPath = null, ?string $regenerateMode = null): string
     {
         $payload = [
             'message' => $this->normalizeArabic(mb_strtolower(trim($message))),
+            // A shortened answer and a fuller one to the same question are different
+            // answers, so they must not share a cache entry.
+            'regenerate_mode' => $regenerateMode,
             'filters' => $filters,
             'difficulty' => $difficulty,
             'critical_path' => $criticalPath,

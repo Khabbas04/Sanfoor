@@ -365,7 +365,9 @@ class DeterministicWidgetEngine
             }
         }
 
-        foreach (['تمت اضافتها', 'تمت الاضافه', 'قمت باضافه', 'قمت باضافتها', 'اضفت لك', 'اضفتها لك', 'اضفتها', 'تم اضافه', 'اضفت مادة', 'اضفت ماده'] as $claim) {
+        // "تمت إضافة <اسم المادة>" is the most natural phrasing of the claim and was
+        // missing here, so exactly the wording the model prefers went uncorrected.
+        foreach (['تمت اضافتها', 'تمت الاضافه', 'تمت اضافه', 'تمت إضافه', 'قمت باضافه', 'قمت باضافتها', 'اضفت لك', 'اضفتها لك', 'اضفتها', 'تم اضافه', 'تم اضافتها', 'اضفت مادة', 'اضفت ماده'] as $claim) {
             if (str_contains($r, $claim)) {
                 return true;
             }

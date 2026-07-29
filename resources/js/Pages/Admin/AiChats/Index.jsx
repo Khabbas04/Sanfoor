@@ -256,6 +256,123 @@ const translations = {
     },
 };
 
+const INTENT_LABELS = {
+    course_question: 'سؤال عن مادة',
+    course_recommendation: 'توصية بمواد',
+    semester_planning: 'تخطيط فصل',
+    graduation_planning: 'تخطيط تخرج',
+    prerequisite_check: 'فحص متطلبات',
+    gpa_analysis: 'تحليل معدل',
+    gpa_goal: 'هدف معدل',
+    calendar_question: 'التقويم الأكاديمي',
+    instructor_question: 'سؤال عن مدرّس',
+    section_question: 'سؤال عن شعبة',
+    campus_location: 'موقع في الحرم',
+    compare_courses: 'مقارنة مواد',
+    cart_review: 'مراجعة التسجيل',
+    academic_policy: 'قوانين وتعليمات',
+    general_question: 'سؤال عام',
+    unknown: 'غير مفهوم',
+};
+
+const FEEDBACK_LABELS = {
+    incorrect_information: 'معلومة خاطئة',
+    misunderstood_question: 'ما فهم السؤال',
+    unsuitable_recommendation: 'توصية غير مناسبة',
+    too_long: 'طويل زيادة',
+    action_failed: 'إجراء فشل',
+};
+
+/**
+ * Advisor health over the last 30 days.
+ *
+ * Fetched client-side rather than added to the page props: it is a diagnostic
+ * panel, and a slow aggregate query should not delay the conversation list.
+ */
+const QualityMetrics = ({ isDark }) => {
+    const [data, setData] = useState(null);
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch(route('admin.reports.ai_quality'), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
+            .then((payload) => { if (!cancelled) setData(payload); })
+            .catch(() => { if (!cancelled) setFailed(true); });
+
+        return () => { cancelled = true; };
+    }, []);
+
+    if (failed || !data?.available) return null;
+
+    const card = isDark ? 'bg-slate-900/50 border-slate-700/50' : 'bg-white border-slate-200/60';
+    const muted = isDark ? 'text-slate-400' : 'text-slate-500';
+    const strong = isDark ? 'text-white' : 'text-slate-900';
+
+    const tiles = [
+        ['ردود (30 يوم)', data.total_answers, ''],
+        ['نسبة الحل البديل', data.fallback_rate, '%'],
+        ['فشل التحقق', data.validation_failure_rate, '%'],
+        ['متوسط زمن الرد', data.avg_response_ms, 'ms'],
+        ['أول حرف (تدفق)', data.avg_time_to_first_token_ms, 'ms'],
+        ['نجاح الإجراءات', data.actions?.success_rate ?? 0, '%'],
+    ];
+
+    return (
+        <div className={`mb-6 shrink-0 rounded-[2rem] border p-5 shadow-sm ${card}`}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className={`text-sm font-black ${strong}`}>📈 جودة المرشد الذكي — آخر {data.window_days} يوم</h2>
+                <span className={`text-[10px] font-bold ${muted}`}>
+                    {data.dropped_ids_total} معرّف مادة مرفوض · {data.cached_rate}% من الردود مخزّنة
+                </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+                {tiles.map(([label, value, unit]) => (
+                    <div key={label} className={`rounded-2xl border p-3 ${isDark ? 'border-slate-700/50 bg-slate-800/40' : 'border-slate-100 bg-slate-50/70'}`}>
+                        <p className={`text-[9.5px] font-black ${muted}`}>{label}</p>
+                        <p className={`mt-0.5 text-lg font-black ${strong}`}>
+                            {value ?? 0}<span className={`text-[10px] font-bold ${muted}`}>{unit}</span>
+                        </p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <MetricList title="أكثر النوايا" isDark={isDark} rows={(data.top_intents || []).map((row) => [INTENT_LABELS[row.intent] || row.intent, row.count])} />
+                <MetricList title="الأدوات المستخدمة" isDark={isDark} rows={(data.tools_used || []).map((row) => [row.tool, row.count])} />
+                <MetricList
+                    title="أسباب التقييم السلبي"
+                    isDark={isDark}
+                    rows={(data.feedback_reasons || []).map((row) => [FEEDBACK_LABELS[row.feedback_reason] || row.feedback_reason, row.count])}
+                />
+            </div>
+        </div>
+    );
+};
+
+const MetricList = ({ title, rows, isDark }) => {
+    const muted = isDark ? 'text-slate-400' : 'text-slate-500';
+
+    return (
+        <div>
+            <p className={`text-[10px] font-black ${muted}`}>{title}</p>
+            {rows.length === 0 ? (
+                <p className={`mt-1 text-[10px] font-bold ${muted}`}>لا توجد بيانات بعد.</p>
+            ) : (
+                <ul className="mt-1.5 space-y-1">
+                    {rows.map(([label, count]) => (
+                        <li key={label} className={`flex items-center justify-between gap-2 rounded-lg border px-2 py-1 ${isDark ? 'border-slate-700/50 bg-slate-800/40' : 'border-slate-100 bg-slate-50/70'}`}>
+                            <span className={`truncate text-[10.5px] font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{label}</span>
+                            <span className="shrink-0 rounded-full bg-indigo-500/10 px-2 text-[10px] font-black text-indigo-500">{count}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
+};
+
 export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], selectedChat = null, messages = [], filters = {} }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
@@ -314,6 +431,11 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
                         <StatBadge label={t.todayChats} value={summary.today_chats || 0} isDark={isDark} color="amber" />
                     </div>
                 </div>
+
+                {/* Advisor quality metrics. Loaded on demand from the separate
+                    ai_request_logs table, so this page renders exactly as before
+                    when observability is off or nothing has been logged yet. */}
+                <QualityMetrics isDark={isDark} />
 
                 {/* Main Chat Interface */}
                 <div className={`flex-1 flex flex-col lg:flex-row gap-6 lg:overflow-hidden min-h-0`}>

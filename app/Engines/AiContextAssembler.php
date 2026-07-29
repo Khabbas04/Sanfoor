@@ -11,7 +11,7 @@ class AiContextAssembler
      * (versioned via ai.prompt_version) so they can be tuned without touching code and
      * so every reply can be correlated with the prompt version that produced it.
      */
-    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = [], string $memoryBlock = ''): array
+    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = [], string $memoryBlock = '', array $toolFacts = []): array
     {
         $systemPrompt = trim((string) config('ai.advisor.persona')) . "\n\n";
 
@@ -46,6 +46,20 @@ class AiContextAssembler
             $systemPrompt .= "المحرك التنبؤي اكتشف المخاطر التالية في جدول الطالب. **يجب عليك تنبيه الطالب لهذه المخاطر بلهجة حازمة واحترافية:**\n";
             foreach ($riskWarnings as $warning) {
                 $systemPrompt .= "- {$warning}\n";
+            }
+            $systemPrompt .= "\n";
+        }
+
+        // 1.7 Verified tool results.
+        //
+        // These were computed by the application, not by the model, so they
+        // outrank anything the model would otherwise infer — including its own
+        // arithmetic. Placed before the course catalogue so they are read first.
+        if (!empty($toolFacts)) {
+            $systemPrompt .= "=== 🔧 نتائج موثوقة من أدوات النظام ===\n";
+            $systemPrompt .= "هذه الأرقام والحقائق محسوبة من بيانات الطالب الفعلية بواسطة النظام نفسه. **اعتمد عليها حرفياً ولا تحسب بدلاً منها ولا تخالفها.** وإذا كان أحد السطور يقول إنه لا يوجد مصدر بيانات، فلا تجب من معرفتك العامة إطلاقاً — أَحِل الطالب للجهة المختصة بلطف:\n";
+            foreach ($toolFacts as $fact) {
+                $systemPrompt .= $fact . "\n";
             }
             $systemPrompt .= "\n";
         }

@@ -403,6 +403,16 @@ Route::middleware('auth')->group(function () {
         ->name('ai.advisor.regenerate');
     Route::post('/ai-advisor/feedback', [AiAdvisorController::class, 'feedback'])->name('ai.advisor.feedback');
 
+    // Clears the advisor's saved academic preferences for the current student.
+    Route::delete('/ai-advisor/memory', [AiAdvisorController::class, 'forgetMemory'])->name('ai.advisor.memory.forget');
+
+    // Executes an action the student confirmed in the chat (add/remove cart courses,
+    // apply a proposed plan, open a page). Gated by ai.features.actions; nothing is
+    // written without this explicit second request.
+    Route::post('/ai-advisor/action', [AiAdvisorController::class, 'action'])
+        ->middleware('throttle:30,1')
+        ->name('ai.advisor.action');
+
     // New AI generation routes for the Tree planner
     Route::post('/ai/tree/analyze-course', [AiAdvisorController::class, 'analyzeCourseInTree'])->name('ai.tree.analyze_course')->middleware('throttle:15,1');
     Route::post('/ai/full-plan', [AiAdvisorController::class, 'generateFullPlan'])->name('ai.full_plan')->middleware('throttle:15,1');
@@ -452,6 +462,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/maintenance', [AdminController::class, 'updateMaintenanceMode'])->name('settings.maintenance');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
+
+        // Advisor quality metrics, read from the separate ai_request_logs table.
+        Route::get('/reports/ai-quality', [AiAdvisorController::class, 'getQualityMetrics'])->name('reports.ai_quality');
         Route::get('/api/ai-key-status', [AiAdvisorController::class, 'getApiKeyStatus'])->name('api.ai_key_status');
 
             // 🔥 Live online users polling and session management

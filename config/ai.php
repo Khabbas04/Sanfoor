@@ -15,7 +15,52 @@
 
 return [
 
-    'prompt_version' => env('AI_PROMPT_VERSION', '2026.07-advisor-11'),
+    // 2026.07-advisor-12: the documented removal field was `courses_to_remove`,
+    // which the enforced responseSchema does not allow the model to emit — it can
+    // only send `remove_course_ids`. The prompt now names the field the model is
+    // actually able to use (the parser accepts both).
+    'prompt_version' => env('AI_PROMPT_VERSION', '2026.07-advisor-12'),
+
+    /*
+    |----------------------------------------------------------------------
+    | Feature flags
+    |----------------------------------------------------------------------
+    |
+    | Each enhancement to the advisor sits behind its own flag and defaults to
+    | OFF, so merging one changes nothing in production until it is switched on
+    | deliberately. Every call site wraps the enhanced path in a try/catch that
+    | falls back to the legacy behaviour, so a failing enhancement degrades to
+    | "exactly as before" instead of to an error.
+    |
+    | Read through config() only (never env() directly) so the flags survive
+    | `php artisan config:cache`. After changing one on the server, run
+    | `php artisan optimize:clear` and reload PHP-FPM, otherwise OPcache keeps
+    | serving the old value.
+    |
+    */
+    'features' => [
+        // Intent detection in front of the existing pipeline. Also feeds the
+        // ranking engine the intent + course shape it actually expects.
+        'intent_router' => (bool) env('AI_INTENT_ROUTER_ENABLED', false),
+
+        // One extra model round-trip to classify genuinely ambiguous questions.
+        // Off by default: on the lite model the local rules are close enough and
+        // an extra call costs a slot from the per-key RPM budget.
+        'intent_ai_fallback' => (bool) env('AI_INTENT_AI_FALLBACK_ENABLED', false),
+
+        'enhanced_rag' => (bool) env('AI_ENHANCED_RAG_ENABLED', false),
+        'tool_registry' => (bool) env('AI_TOOL_REGISTRY_ENABLED', false),
+        'sources' => (bool) env('AI_SOURCES_ENABLED', false),
+        'actions' => (bool) env('AI_ACTIONS_ENABLED', false),
+        'memory' => (bool) env('AI_MEMORY_ENABLED', false),
+        'new_widgets' => (bool) env('AI_NEW_WIDGETS_ENABLED', false),
+        'stream_events' => (bool) env('AI_STREAM_EVENTS_ENABLED', false),
+
+        // Defaults ON, unlike the rest: it only writes to its own table and cannot
+        // change a single reply, and without it none of the other flags can be
+        // evaluated in production.
+        'observability' => (bool) env('AI_OBSERVABILITY_ENABLED', true),
+    ],
 
     // Generation parameters for the main advisor call.
     // Temperature raised from 0.25 -> 0.55 so replies read like a natural
@@ -105,7 +150,7 @@ return [
           "reply": "نص الإجابة هنا (يدعم Markdown)",
           "suggested_course_ids": [123, 456], // اختياري: قائمة بـ IDs المواد لاقتراحها (من المواد المقترحة فقط)
           "courses_to_add": [123], // اختياري: IDs مواد يريد الطالب إضافتها فعلياً لسلته
-          "courses_to_remove": [789], // اختياري: قائمة بـ IDs المواد للحذف من السلة
+          "remove_course_ids": [789], // اختياري: قائمة بـ IDs المواد للحذف من السلة
           "follow_up_suggestions": ["سؤال مقترح 1 على لسان الطالب", "سؤال مقترح 2 على لسان الطالب"], // أسئلة مقترحة للطالب
           "interactive_widget": null // اختياري: أداة تفاعلية واحدة فقط، بأحد الأشكال التالية:
         }

@@ -5,8 +5,14 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Swal from 'sweetalert2';
+import AiWidgets, { ConfidenceNotice, MemoryPanel } from '@/Components/AiWidgets';
 const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 const AiCharts = React.lazy(() => import('@/Components/AiCharts'));
+
+// Respect the OS-level "reduce motion" setting: the typewriter is decoration, and
+// for a student who asked for less movement it is the first thing to drop.
+const prefersReducedMotion = () =>
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 // Resolve the deployment URL once for canonical metadata and stable links.
 const siteUrl = (import.meta.env.VITE_APP_URL || 'https://sanfoor.me').replace(/\/$/, '');
 
@@ -209,7 +215,13 @@ const Typewriter = ({ content, isAnimating, onComplete, onScroll }) => {
     const idx = useRef(0), raf = useRef(null), done = useRef(false);
     const safeContent = sanitizeReply(content);
     useEffect(() => {
-        if (!isAnimating) { setTxt(safeContent); done.current = true; return; }
+        // Reduced motion: show the finished reply at once instead of typing it out.
+        if (!isAnimating || prefersReducedMotion()) {
+            setTxt(safeContent);
+            done.current = true;
+            if (isAnimating) onComplete?.();
+            return;
+        }
 
         idx.current = 0; setTxt(''); done.current = false;
         const go = () => {
@@ -489,23 +501,90 @@ const Widget = ({ widget, addedCourses, onToggleCourse, loadingCourseId, onSubmi
     return <C widget={widget} addedCourses={addedCourses} onToggleCourse={onToggleCourse} loadingCourseId={loadingCourseId} onSubmit={onSubmit} />;
 };
 
+// Why an answer was unhelpful. Optional — a plain thumbs-down still posts, and the
+// endpoint accepts it without a reason exactly as before.
+const FEEDBACK_REASONS = [
+    ['incorrect_information', '❌ معلومة خاطئة'],
+    ['misunderstood_question', '🤔 ما فهم سؤالي'],
+    ['unsuitable_recommendation', '🎯 التوصية ما تناسبني'],
+    ['too_long', '📏 طويل زيادة'],
+    ['action_failed', '⚙️ الإجراء ما نُفّذ'],
+];
+
+// What to change on a retry. Sent as `mode`; omitting it is the old behaviour.
+const REGEN_MODES = [
+    ['shorten', '📏 أقصر'],
+    ['explain_more', '🔍 وضّح أكثر'],
+    ['alternative', '🔄 خيار آخر'],
+    ['refresh_data', '♻️ حدّث بياناتي'],
+];
+
 // ========== MessageActions ==========
 const Actions = ({ msg, onRegen, onFeedback, isLast }) => {
     const [fb, setFb] = useState(null);
     const [cp, setCp] = useState(false);
+    const [askReason, setAskReason] = useState(false);
+    const [askMode, setAskMode] = useState(false);
+
     return (
-        <div className="flex items-center gap-0.5 mt-2 pt-2 border-t border-slate-100/50 opacity-0 group-hover/m:opacity-100 transition-opacity">
-            <button onClick={() => { navigator.clipboard.writeText(msg.content); setCp(true); setTimeout(() => setCp(false), 2e3); }} className="sfr-action-btn" title="نسخ">{cp ? '✓' : '📋'}</button>
-            {isLast && <button onClick={onRegen} className="sfr-action-btn" title="إعادة">🔄</button>}
-            <span className="w-px h-4 bg-slate-200 mx-1" />
-            <button onClick={() => { if (!fb) { setFb('up'); onFeedback(msg.id, 'up'); } }} className={`sfr-action-btn ${fb === 'up' ? 'bg-emerald-100 text-emerald-600' : ''}`}>👍</button>
-            <button onClick={() => { if (!fb) { setFb('down'); onFeedback(msg.id, 'down'); } }} className={`sfr-action-btn ${fb === 'down' ? 'bg-red-100 text-red-600' : ''}`}>👎</button>
+        <div className="mt-2 border-t border-slate-100/50 pt-2">
+            <div className="flex items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover/m:opacity-100">
+                <button onClick={() => { navigator.clipboard.writeText(msg.content); setCp(true); setTimeout(() => setCp(false), 2e3); }} className="sfr-action-btn" title="نسخ">{cp ? '✓' : '📋'}</button>
+                {isLast && <button onClick={() => setAskMode(v => !v)} className="sfr-action-btn" title="إعادة التوليد">🔄</button>}
+                <span className="mx-1 h-4 w-px bg-slate-200" />
+                <button onClick={() => { if (!fb) { setFb('up'); onFeedback(msg.id, 'up'); } }} className={`sfr-action-btn ${fb === 'up' ? 'bg-emerald-100 text-emerald-600' : ''}`}>👍</button>
+                <button onClick={() => { if (!fb) { setFb('down'); onFeedback(msg.id, 'down'); setAskReason(true); } }} className={`sfr-action-btn ${fb === 'down' ? 'bg-red-100 text-red-600' : ''}`}>👎</button>
+            </div>
+
+            {/* The rating is already recorded; the reason only sharpens it. */}
+            {askReason && (
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+                    <p className="text-[10px] font-black text-slate-500">وش كان الخطأ؟ (اختياري)</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {FEEDBACK_REASONS.map(([value, label]) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => { onFeedback(msg.id, 'down', value); setAskReason(false); }}
+                                className="min-h-[36px] rounded-full border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {askMode && (
+                <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50/70 p-2">
+                    <p className="text-[10px] font-black text-slate-500">أعيد الجواب كيف؟</p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {REGEN_MODES.map(([value, label]) => (
+                            <button
+                                key={value}
+                                type="button"
+                                onClick={() => { setAskMode(false); onRegen(value); }}
+                                className="min-h-[36px] rounded-full border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                            >
+                                {label}
+                            </button>
+                        ))}
+                        <button
+                            type="button"
+                            onClick={() => { setAskMode(false); onRegen(null); }}
+                            className="min-h-[36px] rounded-full border border-slate-200 bg-white px-2.5 text-[10px] font-bold text-slate-600"
+                        >
+                            ↩️ نفس السؤال
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 // ========== ChatMessage ==========
-const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRegen, onFb, onFollow }) => {
+const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRegen, onFb, onFollow, onAction, actionStates }) => {
     const u = msg.role === 'user';
 
     // A course must appear exactly once per reply. The interactive widget is the
@@ -544,6 +623,18 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
                             {settled && suggest.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-blue-600">✨ مواد مقترحة</p><div className="space-y-1.5">{suggest.map(c => <CourseButton key={c.id} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} />)}</div></div>}
                             {settled && remove.some(c => added[c.id]) && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-rose-600">⚠️ تخفيف العبء</p><div className="space-y-1.5">{remove.map(c => <CourseButton key={`r-${c.id}`} course={c} isAdded={!!added[c.id]} isLoading={loading === c.id} onToggle={onToggle} variant="remove" />)}</div></div>}
                             {settled && msg.interactive_widget && <Widget widget={msg.interactive_widget} addedCourses={added} onToggleCourse={onToggle} loadingCourseId={loading} onSubmit={onFollow} />}
+                            {/* Additive: the legacy widget above still renders, and these
+                                come alongside it. An older stored message has none. */}
+                            {settled && (
+                                <AiWidgets
+                                    widgets={msg.widgets}
+                                    onSubmit={onFollow}
+                                    onAction={onAction}
+                                    actionStates={actionStates}
+                                    renderChart={(forecast) => <ChartWidget widget={forecast} />}
+                                />
+                            )}
+                            {settled && <ConfidenceNotice confidence={msg.confidence} />}
                             {settled && msg.follow_up_suggestions?.length > 0 && <div className="sfr-attach sfr-fade-up"><p className="sfr-attach__label text-slate-500">💬 أسئلة متابعة</p><div className="flex flex-wrap gap-1.5">{msg.follow_up_suggestions.map((q, i) => <button key={i} onClick={() => onFollow(q)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10.5px] font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all active:scale-95">{q}</button>)}</div></div>}
                             {settled && msg.id !== 'welcome' && <Actions msg={msg} isLast={isLast} onRegen={onRegen} onFeedback={onFb} />}
                         </div>
@@ -672,7 +763,7 @@ const WelcomeChat = ({ st }) => {
 // 🧠 MAIN
 // ======================================================================
 export default function Advisor() {
-    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive, proactiveInsights } = usePage().props;
+    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive, proactiveInsights, aiMemory } = usePage().props;
 
     const [remaining, setRemaining] = useState(initialHasDailyLimit ? (initialRemaining ?? 5) : null);
     const [hasDailyLimit, setHasDailyLimit] = useState(initialHasDailyLimit ?? true);
@@ -1002,7 +1093,10 @@ export default function Advisor() {
                 let c = m.content, sc = [], cr = [], fu = [], iw = null;
                 if (m.role === 'ai') { try { const p = JSON.parse(m.content); if (p.reply) { c = p.reply; sc = p.suggested_courses || []; cr = p.courses_to_remove || []; fu = p.follow_up_suggestions || []; iw = p.interactive_widget || null; } } catch { } }
                 const safeText = typeof c === 'string' ? c : String(c ?? '');
-                return { id: m.id, role: m.role, content: safeText || 'ما وصلني رد واضح لهذه الرسالة.', suggested_courses: sc, courses_to_remove: cr, follow_up_suggestions: fu, interactive_widget: iw, isAnimating: false };
+                // Stored envelopes hold the original five keys only, so a reloaded
+                // conversation carries no extra widgets — by design: those panels
+                // describe the state at the time of the answer, which has moved on.
+                return { id: m.id, role: m.role, content: safeText || 'ما وصلني رد واضح لهذه الرسالة.', suggested_courses: sc, courses_to_remove: cr, follow_up_suggestions: fu, interactive_widget: iw, widgets: [], confidence: null, isAnimating: false };
             }));
         } catch { setMsgs([{ id: 'err', role: 'ai', content: 'خطأ بتحميل المحادثة.', isAnimating: false }]); }
         finally { setLoadingChat(false); setTimeout(scroll, 150); }
@@ -1141,6 +1235,9 @@ export default function Advisor() {
                             courses_to_remove: data.courses_to_remove || [],
                             follow_up_suggestions: data.follow_up_suggestions || [],
                             interactive_widget: data.interactive_widget || null,
+                            // Optional enhancement fields: absent on an older reply.
+                            widgets: data.widgets || [],
+                            confidence: data.confidence || null,
                             isAnimating: false,
                             isStreaming: false,
                         };
@@ -1202,6 +1299,8 @@ export default function Advisor() {
                 courses_to_remove: data.courses_to_remove || [],
                 follow_up_suggestions: data.follow_up_suggestions || [],
                 interactive_widget: data.interactive_widget || null,
+                widgets: data.widgets || [],
+                confidence: data.confidence || null,
                 isAnimating: true
             }]);
         } catch (err) {
@@ -1221,23 +1320,83 @@ export default function Advisor() {
     };
     const stop = useCallback(() => finish(), [finish]);
 
-    const regen = useCallback(async () => {
+    // `mode` shapes the retry (shorter / fuller / a different angle / fresh data).
+    // Passing nothing keeps the previous behaviour of simply asking again.
+    const regen = useCallback(async (mode = null) => {
         if (!activeId || regenning || generating) return; setRegenning(true);
         setMsgs(p => { const c = [...p]; if (c.length > 0 && c[c.length - 1].role === 'ai') c.pop(); return c; }); setTyping(true);
         try {
-            const r = await axios.post(route('ai.advisor.regenerate'), { chat_id: activeId, filters: selectedFilters, difficulty, critical_path: criticalPath, wants_code: wantsCode });
+            const r = await axios.post(route('ai.advisor.regenerate'), { chat_id: activeId, mode, filters: selectedFilters, difficulty, critical_path: criticalPath, wants_code: wantsCode });
             if (r.data.status === 'success') {
                 const safeReply = typeof r.data.reply === 'string' && r.data.reply.trim()
                     ? r.data.reply
                     : 'ما وصلني رد واضح هذه المرة. جرّب إعادة السؤال.';
                 setGenerating(true);
-                setMsgs(p => [...p, { id: `r-${Date.now()}`, role: 'ai', content: safeReply, suggested_courses: r.data.suggested_courses || [], courses_to_remove: r.data.courses_to_remove || [], follow_up_suggestions: r.data.follow_up_suggestions || [], interactive_widget: r.data.interactive_widget || null, isAnimating: true }]);
+                if (r.data.daily_messages_remaining !== undefined) setRemaining(r.data.daily_messages_remaining);
+                setMsgs(p => [...p, { id: `r-${Date.now()}`, role: 'ai', content: safeReply, suggested_courses: r.data.suggested_courses || [], courses_to_remove: r.data.courses_to_remove || [], follow_up_suggestions: r.data.follow_up_suggestions || [], interactive_widget: r.data.interactive_widget || null, widgets: r.data.widgets || [], confidence: r.data.confidence || null, isAnimating: true }]);
             }
         } catch { setMsgs(p => [...p, { id: `e-${Date.now()}`, role: 'ai', content: 'فشلت إعادة التوليد.', isAnimating: false }]); }
         finally { setTyping(false); setRegenning(false); }
-    }, [activeId, regenning, generating]);
+    }, [activeId, regenning, generating, selectedFilters, difficulty, criticalPath, wantsCode]);
 
-    const fb = useCallback(async (mid, r) => { try { await axios.post(route('ai.advisor.feedback'), { message_id: mid, rating: r }); } catch { } }, []);
+    // `reason` is optional: a bare thumbs-up/down posts exactly as it always did.
+    const fb = useCallback(async (mid, r, reason = null) => {
+        try {
+            await axios.post(route('ai.advisor.feedback'), { message_id: mid, rating: r, ...(reason ? { reason } : {}) });
+        } catch { }
+    }, []);
+
+    // Per-widget-type state for confirmed actions, so a plan panel can show its own
+    // progress without the page re-rendering every message.
+    const [actionStates, setActionStates] = useState({});
+
+    const forgetMemory = useCallback(async () => {
+        await axios.delete(route('ai.advisor.memory.forget'));
+    }, []);
+
+    // Collapse the grown textarea once it has been cleared (send, new chat, switch).
+    useEffect(() => {
+        if (input === '' && inputRef.current) inputRef.current.style.height = 'auto';
+    }, [input]);
+
+    /**
+     * Run an action the student confirmed.
+     *
+     * The server re-reads their academic state and re-validates before writing, so
+     * this only reports the outcome — it never decides it.
+     */
+    const runAction = useCallback(async (payload) => {
+        if (!payload?.action) return;
+        const key = payload.action === 'apply_semester_plan' ? 'semester_plan' : payload.action;
+
+        setActionStates(p => ({ ...p, [key]: { pending: true } }));
+
+        try {
+            const r = await axios.post(route('ai.advisor.action'), payload);
+            const data = r.data;
+
+            if (data.target?.route) {
+                // Navigation actions carry a route NAME, never a URL.
+                setActionStates(p => ({ ...p, [key]: {} }));
+                router.visit(route(data.target.route, data.target.params || {}));
+                return;
+            }
+
+            if (data.refresh_cart) router.reload({ only: ['initialCartIds', 'studentStats'] });
+
+            setActionStates(p => ({
+                ...p,
+                [key]: data.status === 'success'
+                    ? { done: data.message || 'تمّت العملية.' }
+                    : { error: data.message || 'لم يُنفَّذ الإجراء.' },
+            }));
+        } catch (err) {
+            const message = err?.response?.status === 404
+                ? 'هذه الميزة غير مفعّلة حالياً.'
+                : 'تعذّر تنفيذ الإجراء. لم يتغيّر شيء في تسجيلك.';
+            setActionStates(p => ({ ...p, [key]: { error: message } }));
+        }
+    }, []);
 
     const maxCartHours = Math.min(18, st?.max_allowed_hours ?? 18);
 
@@ -1601,6 +1760,10 @@ export default function Advisor() {
                             <span className="group-hover:rotate-12 transition-transform">✨</span> محادثة جديدة
                         </button>
 
+                        {/* What the advisor remembers, with a clear button. Renders
+                            nothing when the memory feature is off or empty. */}
+                        <MemoryPanel memory={aiMemory} onForget={forgetMemory} />
+
                         {/* Student Info Card / Briefing */}
                         {proactiveInsights ? (
                             <ProactiveBriefing insights={proactiveInsights} />
@@ -1683,7 +1846,7 @@ export default function Advisor() {
                                     {!activeId && msgs.length === 1 && msgs[0].id === 'welcome' && (
                                         <WelcomeChat insights={proactiveInsights} st={st} onQuick={send} />
                                     )}
-                                    {msgs.map(m => (!activeId && msgs.length === 1 && m.id === 'welcome') ? null : <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} />)}
+                                    {msgs.map(m => (!activeId && msgs.length === 1 && m.id === 'welcome') ? null : <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} onAction={runAction} actionStates={actionStates} />)}
                                     {typing && <div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover" /></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot" />{regenning && <span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}<span className="text-[12px] font-bold text-slate-500 animate-pulse transition-opacity duration-500 mr-2">{thinkingPhrases[thinkingIndex]}</span></div></div>}
                                 </div>)}<div className="h-2" />
                         </div>
@@ -1784,13 +1947,34 @@ export default function Advisor() {
                                     </button>
 
                                     <div className="relative min-w-0 flex-1">
-                                        <input
+                                        {/* A textarea rather than an input: a long question used to
+                                            scroll sideways inside a one-line field on a phone. It grows
+                                            with the text up to a cap, then scrolls internally. */}
+                                        <textarea
                                             ref={inputRef}
-                                            type="text"
+                                            rows={1}
                                             value={input}
+                                            onKeyDown={e => {
+                                                // Enter sends, Shift+Enter breaks the line. On a phone the
+                                                // virtual keyboard's return key inserts a newline instead,
+                                                // which is what the send button is for.
+                                                if (e.key === 'Enter' && !e.shiftKey && !isMobileViewport) {
+                                                    e.preventDefault();
+                                                    if (input.trim() && !typing && !loadingChat && !generating && !limitReached) {
+                                                        stopListening();
+                                                        send(input);
+                                                    }
+                                                }
+                                            }}
                                             onChange={e => {
                                                 const val = e.target.value;
                                                 setInput(val);
+
+                                                // Grow to fit, capped so the input never eats the chat.
+                                                const el = e.target;
+                                                el.style.height = 'auto';
+                                                el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+
                                                 if (val.startsWith('/')) {
                                                     setShowCommandMenu(true);
                                                     setCommandFilter(val.slice(1));
@@ -1803,12 +1987,15 @@ export default function Advisor() {
                                             placeholder={limitReached ? (isMobileViewport ? '⚠️ انتهت محاولاتك اليوم' : '⚠️ لقد استهلكت محاولاتك اليومية المتاحة. عد غداً ⏳') : isListening ? 'جاري الاستماع...' : (isMobileViewport ? 'اسأل سنفور أي شيء...' : 'اسأل سنفور أي شيء، أو اكتب / للأوامر السريعة...')}
                                             // text-[16px] on mobile is deliberate: iOS Safari zooms the whole page when a
                                             // focused input is under 16px, which knocks the chat layout sideways.
-                                            className={`w-full min-w-0 ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl sm:rounded-2xl py-3 pr-3 sm:py-3.5 sm:pr-4 pl-[100px] focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[16px] sm:text-[13px] shadow-inner`}
+                                            className={`w-full min-w-0 resize-none overflow-y-auto ${limitReached ? 'bg-red-50/50 border-red-200/50 text-red-800 placeholder-red-400' : 'bg-slate-50/70 border-slate-200/50 text-slate-800 placeholder-slate-400/60'} border-2 rounded-xl sm:rounded-2xl py-3 pr-3 sm:py-3.5 sm:pr-4 pl-[100px] focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 focus:bg-white transition-all font-bold text-[16px] sm:text-[13px] shadow-inner leading-relaxed`}
+                                            style={{ maxHeight: '120px' }}
                                             disabled={typing || loadingChat || generating || limitReached}
                                             enterKeyHint="send"
                                             autoComplete="off"
                                         />
-                                        <div className="absolute left-1 top-1/2 flex -translate-y-1/2 items-center gap-1 sm:left-1.5">
+                                        {/* Anchored to the bottom, not vertically centred: the field
+                                            grows upward as the question gets longer. */}
+                                        <div className="absolute bottom-[7px] left-1 flex items-center gap-1 sm:bottom-[9px] sm:left-1.5">
                                             <button type="button" onClick={toggleListening} disabled={typing || loadingChat || generating || limitReached} className={`flex h-11 w-11 items-center justify-center rounded-lg border shadow-sm transition-all active:scale-[0.93] ${isListening ? 'border-red-300 bg-red-50 text-red-600 ring-2 ring-red-200 motion-safe:animate-pulse' : 'bg-white/80 text-slate-500 hover:bg-slate-200 hover:text-blue-600 border-slate-200/60'}`} title={isListening ? 'إيقاف الاستماع' : 'تحدث بالصوت'} aria-label={isListening ? 'إيقاف الاستماع' : 'بدء الإدخال الصوتي'} aria-pressed={isListening}>
                                                 {isListening ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z" /><path d="M6 10.5a.75.75 0 0 1 .75.75v1.5a5.25 5.25 0 1 0 10.5 0v-1.5a.75.75 0 0 1 1.5 0v1.5a6.751 6.751 0 0 1-6 6.709v2.291h3a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5h3v-2.291a6.751 6.751 0 0 1-6-6.709v-1.5A.75.75 0 0 1 6 10.5Z" /></svg>

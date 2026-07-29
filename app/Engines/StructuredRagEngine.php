@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Cache;
 
 class StructuredRagEngine
 {
+    /** Locked courses the student did not ask about are context, not the answer. */
+    private const LOCKED_POOL_LIMIT = 8;
+
     /**
      * Gather all structured academic data for the user.
      */
@@ -28,6 +31,196 @@ class StructuredRagEngine
             'available_courses' => $coursesData['available'],
             'locked_courses' => $coursesData['locked'],
         ];
+    }
+
+    /**
+     * Intent-aware retrieval on top of gather().
+     *
+     * gather() stays byte-for-byte what it was — every existing caller keeps its
+     * behaviour — and this method shapes the SAME data for a specific question:
+     * courses the student actually named come first, the pool is trimmed to what
+     * the intent can use, and the result says where each part came from and how
+     * complete it is.
+     *
+     * No extra queries: gather() is cached, and everything here is post-processing.
+     *
+     * @param array{
+     *     intent?: string,
+     *     entities?: array{course_ids?: int[]},
+     *     top_k?: int,
+     *     include_locked?: bool
+     * } $options
+     */
+    public function gatherFor(User $user, array $options = []): array
+    {
+        $base = $this->gather($user);
+
+        $intent = (string) ($options['intent'] ?? 'unknown');
+        $entityIds = array_map('intval', $options['entities']['course_ids'] ?? []);
+        $topK = (int) ($options['top_k'] ?? $this->topKFor($intent));
+
+        // Major and study-plan isolation is enforced by the query in
+        // getAvailableCourses(); this is a second, cheap assertion of it so a
+        // future change there cannot silently widen what the model sees.
+        $planVersion = (int) ($user->study_plan_version ?? 12);
+        $available = $this->isolate($base['available_courses'], $user, $planVersion);
+        $locked = $this->isolate($base['locked_courses'], $user, $planVersion);
+
+        // Courses the student named are the point of the question: they lead, and
+        // they are never trimmed away by the top-K cut.
+        $named = [];
+        $rest = [];
+        foreach ($available as $course) {
+            if (in_array((int) $course['id'], $entityIds, true)) {
+                $named[] = $course;
+            } else {
+                $rest[] = $course;
+            }
+        }
+
+        $pool = array_merge($named, array_slice($rest, 0, max(0, $topK - count($named))));
+
+        // A locked course the student asked about explains itself ("why can't I
+        // take this?"), so it is surfaced even though it is not registrable.
+        $namedLocked = array_values(array_filter(
+            $locked,
+            fn ($course) => in_array((int) $course['id'], $entityIds, true)
+        ));
+
+        return array_merge($base, [
+            'intent' => $intent,
+            'available_courses' => $pool,
+            'locked_courses' => ($options['include_locked'] ?? true)
+                ? array_merge($namedLocked, array_slice(
+                    array_values(array_filter($locked, fn ($c) => !in_array((int) $c['id'], $entityIds, true))),
+                    0,
+                    self::LOCKED_POOL_LIMIT
+                ))
+                : $namedLocked,
+            'named_courses' => $named,
+            'named_locked_courses' => $namedLocked,
+            'total_available_count' => count($available),
+            'truncated' => count($available) > count($pool),
+            'sources' => $this->sourcesFor($intent, $base, $pool),
+            'completeness' => $this->completenessFor($base, $intent),
+        ]);
+    }
+
+    /** How many candidate courses this kind of question can actually use. */
+    private function topKFor(string $intent): int
+    {
+        return match ($intent) {
+            'course_recommendation', 'semester_planning' => 12,
+            'graduation_planning' => 14,
+            'compare_courses', 'course_question', 'prerequisite_check' => 8,
+            'cart_review', 'gpa_analysis', 'gpa_goal' => 6,
+            'academic_policy', 'campus_location', 'calendar_question',
+            'instructor_question', 'section_question', 'general_question' => 3,
+            default => 10,
+        };
+    }
+
+    /**
+     * Keep only courses belonging to this student's plan.
+     *
+     * The pool arrives already scoped; entries without the scoping fields (the
+     * shape gather() returns does not carry them) are kept, because dropping them
+     * would silently empty the pool.
+     */
+    private function isolate(array $courses, User $user, int $planVersion): array
+    {
+        $collegeId = $user->major?->college_id;
+
+        return array_values(array_filter($courses, function ($course) use ($user, $collegeId, $planVersion) {
+            if (!is_array($course)) {
+                return false;
+            }
+            if (array_key_exists('study_plan_version', $course) && (int) $course['study_plan_version'] !== $planVersion) {
+                return false;
+            }
+            if (array_key_exists('major_id', $course) && $course['major_id'] !== null) {
+                return (int) $course['major_id'] === (int) $user->major_id;
+            }
+            if (array_key_exists('college_id', $course) && $course['college_id'] !== null && $collegeId !== null) {
+                return (int) $course['college_id'] === (int) $collegeId;
+            }
+
+            return true;
+        }));
+    }
+
+    /**
+     * Where the answer's facts come from, as data the UI can cite.
+     *
+     * Only sources that actually contributed are listed — an empty cart produces
+     * no cart source — so "no sources" is meaningful rather than decorative.
+     */
+    private function sourcesFor(string $intent, array $base, array $pool): array
+    {
+        $sources = [];
+
+        if ($pool !== []) {
+            $sources[] = [
+                'type' => 'study_plan',
+                'label' => 'خطتك الدراسية',
+                'entity_ids' => array_map(fn ($course) => (int) $course['id'], $pool),
+            ];
+        }
+
+        if (!empty($base['cart']['ids'])) {
+            $sources[] = [
+                'type' => 'cart',
+                'label' => 'تسجيلك التجريبي',
+                'entity_ids' => array_map('intval', $base['cart']['ids']),
+            ];
+        }
+
+        if (!empty($base['profile']['passed_course_ids'])) {
+            $sources[] = [
+                'type' => 'transcript',
+                'label' => 'سجلك الأكاديمي',
+                'entity_ids' => array_map('intval', $base['profile']['passed_course_ids']),
+            ];
+        }
+
+        if (in_array($intent, ['gpa_analysis', 'gpa_goal', 'semester_planning', 'graduation_planning'], true)) {
+            $sources[] = [
+                'type' => 'academic_rules',
+                'label' => 'أنظمة الساعات والحدود',
+                'entity_ids' => [],
+            ];
+        }
+
+        return $sources;
+    }
+
+    /**
+     * What is known and what is missing.
+     *
+     * This deployment has no academic-calendar, sections/instructors or campus
+     * directory tables, so questions about them cannot be grounded. Saying so is
+     * the point: the alternative is the model answering from general knowledge.
+     */
+    private function completenessFor(array $base, string $intent): array
+    {
+        $completeness = [
+            'has_academic_records' => (bool) ($base['profile']['has_academic_records'] ?? false),
+            'has_cart' => !empty($base['cart']['ids'] ?? []),
+            'available_course_count' => count($base['available_courses'] ?? []),
+            'has_calendar_data' => false,
+            'has_section_data' => false,
+            'has_directory_data' => false,
+        ];
+
+        $completeness['grounded'] = match ($intent) {
+            'calendar_question' => $completeness['has_calendar_data'],
+            'section_question', 'instructor_question' => $completeness['has_section_data'],
+            'gpa_analysis', 'gpa_goal' => $completeness['has_academic_records'],
+            'cart_review' => $completeness['has_cart'],
+            default => true,
+        };
+
+        return $completeness;
     }
 
     private function getStudentAcademicData(User $user): array
