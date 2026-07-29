@@ -3796,36 +3796,13 @@ export default function Tree({
 
             {/* ═══ HEADER ═══ */}
             {!isFullScreen && (
-                <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-2 space-y-2' : 'py-3.5 space-y-3'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
-                    {/* The centred hero costs ~200px of a viewport-height shell and repeats what
-                        the navbar right above it already says. Phones get the compact title that
-                        landscape already used, and the canvas keeps that space instead. */}
-                    {isMobile ? (
-                        <div className="px-1">
-                            <h1 className="text-xl sm:text-2xl font-[900] text-slate-900 tracking-tight">الخطة الشجرية</h1>
-                        </div>
-                    ) : (
-                        <section className="relative overflow-hidden py-4 sm:py-6 text-center">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none select-none z-0">
-                                {/* On a phone the 4rem watermark was wider than the viewport and
-                                    bigger than the title it sits behind, so its clipped edges read
-                                    as a rendering glitch rather than a backdrop. */}
-                                <span className={`text-[2.25rem] sm:text-[6rem] md:text-[8rem] font-black tracking-tighter whitespace-nowrap ${isDark ? 'text-white/[0.02]' : 'text-slate-900/[0.03]'}`}>
-                                    STUDY TREE
-                                </span>
-                            </div>
-                            <div className="relative z-10 flex flex-col items-center justify-center">
-                                <div className="flex items-center gap-3">
-                                    <h1 className={`text-2xl md:text-3xl font-[900] mb-2 tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                        الخطة الشجرية
-                                    </h1>
-                                </div>
-                                <p className={`text-sm md:text-base font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                    استعرض متطلبات المواد وخطط تسجيل فصولك
-                                </p>
-                            </div>
-                        </section>
-                    )}
+                <div className={`bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 md:px-6 ${isLandscapeMobile ? 'py-1.5 space-y-1' : 'py-2 space-y-2'} shadow-[0_1px_3px_rgba(0,0,0,0.03)] z-20 relative`}>
+                    {/* Compact header — single row on desktop, title-only on mobile.
+                        The old centred hero cost ~200px. This inline layout reclaims that
+                        for the tree canvas and sidebar. */}
+                    <div className="px-1">
+                        <h1 className={`text-xl sm:text-2xl font-[900] tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>الخطة الشجرية</h1>
+                    </div>
 
                     <div className="flex justify-between items-center gap-3 flex-wrap w-full">
                         <div className="flex items-center gap-3 flex-wrap">
