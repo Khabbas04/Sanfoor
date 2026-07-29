@@ -461,6 +461,12 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/academic-period', [AdminController::class, 'updateAcademicPeriod'])->name('settings.academic_period');
         Route::put('/settings/maintenance', [AdminController::class, 'updateMaintenanceMode'])->name('settings.maintenance');
         Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
+        // Gemini infrastructure monitor: per key AND per model quotas, tokens,
+        // latency and errors. The legacy api.ai_key_status endpoint below is left
+        // in place for the existing settings tab.
+        Route::get('/ai-monitor', [\App\Http\Controllers\Admin\GeminiMonitorController::class, 'index'])->name('ai_monitor');
+        Route::get('/ai-monitor/metrics', [\App\Http\Controllers\Admin\GeminiMonitorController::class, 'metrics'])->name('ai_monitor.metrics');
+
         Route::get('/reports/ai-insights', [AiAdvisorController::class, 'getAdminReports'])->name('reports.ai_insights');
 
         // Advisor quality metrics, read from the separate ai_request_logs table.

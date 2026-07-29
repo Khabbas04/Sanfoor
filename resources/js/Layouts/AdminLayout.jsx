@@ -26,6 +26,7 @@ export default function AdminLayout({ children }) {
             issues: 'بلاغات الطلاب',
             contactMessages: 'طلبات التواصل',
             aiChats: 'محادثات AI',
+            aiMonitor: 'مراقبة Gemini',
             demand: 'تحليل طلب المواد',
             courses: 'الشجرة والمواد',
             chapters: 'إدارة الشابترز',
@@ -60,6 +61,7 @@ export default function AdminLayout({ children }) {
                 'admin.issues.index': 'بلاغات الطلاب',
                 'admin.contact_messages.index': 'طلبات التواصل',
                 'admin.ai_chats': 'محادثات AI',
+                'admin.ai_monitor': 'مراقبة Gemini',
                 'admin.reports.demand': 'تحليل طلب المواد',
                 'admin.admins.index': 'إدارة الأدمنز',
                 'schedule_reviews.index': 'مراجعة الخطط',
@@ -78,6 +80,7 @@ export default function AdminLayout({ children }) {
             issues: 'Student Reports',
             contactMessages: 'Contact Requests',
             aiChats: 'AI Chats',
+            aiMonitor: 'Gemini Monitor',
             demand: 'Course Demand',
             courses: 'Tree & Courses',
             chapters: 'Manage Chapters',
@@ -112,6 +115,7 @@ export default function AdminLayout({ children }) {
                 'admin.issues.index': 'Student Reports',
                 'admin.contact_messages.index': 'Contact Requests',
                 'admin.ai_chats': 'AI Chats',
+                'admin.ai_monitor': 'Gemini Monitor',
                 'admin.reports.demand': 'Course Demand Analysis',
                 'admin.admins.index': 'Manage Admins',
                 'schedule_reviews.index': 'Plan Reviews',
@@ -153,6 +157,7 @@ export default function AdminLayout({ children }) {
                 'admin.logs': '/admin/logs',
                 'admin.settings': '/admin/settings',
                 'admin.ai_chats': '/admin/ai-chats',
+                'admin.ai_monitor': '/admin/ai-monitor',
                 'schedule_reviews.index': '/schedule-reviews',
             };
             return map[name] || '#';
@@ -212,6 +217,7 @@ export default function AdminLayout({ children }) {
             label: lang === 'ar' ? 'النظام' : 'System',
             items: [
                 { icon: '📜', name: t.logs, route: 'admin.logs', pattern: 'admin.logs' },
+                { icon: '⚡', name: t.aiMonitor, route: 'admin.ai_monitor', pattern: 'admin.ai_monitor' },
                 { icon: '⚙️', name: t.settings, route: 'admin.settings', pattern: 'admin.settings' },
             ],
         },

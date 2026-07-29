@@ -12,6 +12,39 @@ class GeminiService
 
     public string $workingApiKey = '';
 
+    /**
+     * Register a completed call with the usage recorder.
+     *
+     * Wrapped so accounting can never break generation: a lost row costs a point
+     * on a chart, a thrown exception would cost a student their answer.
+     */
+    private function recordUsage(string $apiKey, array $call): void
+    {
+        try {
+            app(GeminiUsageRecorder::class)->record($apiKey, $this->getApiKeys(), $call);
+        } catch (\Throwable $e) {
+            Log::warning('Gemini usage recording skipped: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Token counts as reported by the API itself.
+     *
+     * Estimating tokens from string length would be wrong for Arabic by a wide
+     * margin, so only what `usageMetadata` actually returns is recorded; a
+     * response without it is logged with zeros rather than a guess.
+     *
+     * @return array{input_tokens: int, output_tokens: int, total_tokens: int}
+     */
+    private function tokensFrom(?array $usageMetadata): array
+    {
+        $input = (int) ($usageMetadata['promptTokenCount'] ?? 0);
+        $output = (int) ($usageMetadata['candidatesTokenCount'] ?? 0);
+        $total = (int) ($usageMetadata['totalTokenCount'] ?? ($input + $output));
+
+        return ['input_tokens' => $input, 'output_tokens' => $output, 'total_tokens' => $total];
+    }
+
     public function getApiKeys(): array
     {
         $keys = [];
@@ -93,6 +126,35 @@ class GeminiService
         return array_column($scored, 'key');
     }
 
+    /**
+     * What kind of call this is, for the usage breakdown.
+     *
+     * Passed by callers that know ('embed', 'stream', 'classify'…); anything else
+     * is a normal generative request.
+     */
+    private function requestType(array $options, string $fallback = 'chat'): string
+    {
+        return (string) ($options['request_type'] ?? $fallback);
+    }
+
+    /**
+     * Record a rejected request against the key that was rejected.
+     *
+     * Without this the dashboard could show that something failed but not which
+     * key is unhealthy — which is the only fact that makes a key list actionable.
+     */
+    private function recordHttpFailure(string $apiKey, string $model, array $options, float $startedAt, int $status, string $type): void
+    {
+        $this->recordUsage($apiKey, [
+            'model' => $model,
+            'request_type' => $this->requestType($options),
+            'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+            'success' => false,
+            'error_message' => "HTTP {$status}",
+            'error_type' => $type,
+        ]);
+    }
+
     public function callGeminiAPI(array $contents, array $options = [], array $apiKeys = null): string
     {
         if ($apiKeys === null) {
@@ -128,6 +190,8 @@ class GeminiService
                 $requestContents = $contents;
                 $fullText = '';
                 $backoffMs = 120;
+                $startedAt = microtime(true);
+                $usage = ['input_tokens' => 0, 'output_tokens' => 0, 'total_tokens' => 0];
 
                 for ($pass = 0; $pass <= 2; $pass++) {
                     for ($retryCount = 0; $retryCount < 2; $retryCount++) {
@@ -158,18 +222,21 @@ class GeminiService
                             if ($status === 429) {
                                 $this->setCooldown($apiKey, 60, 'rate_limited_429');
                                 $lastError = "key#" . ($keyIndex + 1) . ": HTTP 429 (rate limited, cooldown 60s)";
+                                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, 429, 'rate_limited');
                                 continue 3;
                             }
 
                             if (in_array($status, [401, 403])) {
                                 $this->setCooldown($apiKey, 600, 'invalid_key_' . $status);
                                 $lastError = "key#" . ($keyIndex + 1) . ": HTTP {$status} (invalid/blocked, cooldown 10min)";
+                                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, $status, 'invalid_key');
                                 continue 3;
                             }
 
                             if ($status === 400) {
                                 $this->setCooldown($apiKey, 120, 'bad_request_400');
                                 $lastError = "key#" . ($keyIndex + 1) . ": HTTP 400 (bad request, cooldown 2min)";
+                                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, 400, 'bad_request');
                                 continue 3;
                             }
 
@@ -181,11 +248,13 @@ class GeminiService
                                 }
                                 $this->setCooldown($apiKey, 30, 'server_overloaded_503');
                                 $lastError = "key#" . ($keyIndex + 1) . ": HTTP 503 (overloaded, cooldown 30s)";
+                                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, 503, 'overloaded');
                                 continue 3;
                             }
 
                             if (!$response->successful()) {
                                 $lastError = "key#" . ($keyIndex + 1) . ": HTTP {$status}";
+                                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, $status, 'http_error');
                                 continue 3;
                             }
 
@@ -202,9 +271,22 @@ class GeminiService
 
                     $this->incrementKeyRpm($apiKey);
 
+                    // Token counts are cumulative across continuation passes.
+                    $passUsage = $this->tokensFrom($response->json('usageMetadata'));
+                    foreach ($passUsage as $metric => $value) {
+                        $usage[$metric] += $value;
+                    }
+
                     $candidate = $response->json('candidates.0');
-                    
+
                     if (isset($candidate['content']['parts'][0]['functionCall'])) {
+                        $this->recordUsage($apiKey, array_merge($usage, [
+                            'model' => $model,
+                            'request_type' => $this->requestType($options, 'tool_call'),
+                            'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                            'success' => true,
+                        ]));
+
                         return json_encode([
                             'functionCall' => $candidate['content']['parts'][0]['functionCall']
                         ]);
@@ -240,6 +322,14 @@ class GeminiService
                         $this->workingApiKey = $apiKey;
                         $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
                         Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
+
+                        $this->recordUsage($apiKey, array_merge($usage, [
+                            'model' => $model,
+                            'request_type' => $this->requestType($options),
+                            'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                            'success' => true,
+                        ]));
+
                         return $fullText;
                     }
 
@@ -251,10 +341,30 @@ class GeminiService
                     $this->workingApiKey = $apiKey;
                     $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
                     Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
+
+                    $this->recordUsage($apiKey, array_merge($usage, [
+                        'model' => $model,
+                        'request_type' => $this->requestType($options),
+                        'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                        'success' => true,
+                    ]));
+
                     return $fullText;
                 }
             } catch (\Throwable $e) {
                 $lastError = "key#" . ($keyIndex + 1) . ": {$e->getMessage()}";
+
+                // A key that threw is recorded as a failure against that key, which is
+                // how the dashboard can show WHICH key is unhealthy rather than only
+                // that something failed.
+                $this->recordUsage($apiKey, [
+                    'model' => $model,
+                    'request_type' => $this->requestType($options),
+                    'latency_ms' => (int) ((microtime(true) - ($startedAt ?? microtime(true))) * 1000),
+                    'success' => false,
+                    'error_message' => $e->getMessage(),
+                    'error_type' => class_basename($e),
+                ]);
             }
         }
 
@@ -316,6 +426,10 @@ class GeminiService
             $errorBody = '';
             $fullText = '';
             $previewEmitted = 0; // chars of the in-flight frame already handed over
+            $startedAt = microtime(true);
+            // Gemini reports token usage in the SSE frames, cumulatively; the last
+            // one seen is authoritative.
+            $streamUsage = ['input_tokens' => 0, 'output_tokens' => 0, 'total_tokens' => 0];
 
             $ch = curl_init($url);
             curl_setopt_array($ch, [
@@ -332,7 +446,7 @@ class GeminiService
                     }
                     return strlen($line);
                 },
-                CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$status, &$buffer, &$errorBody, &$fullText, &$previewEmitted, $onChunk) {
+                CURLOPT_WRITEFUNCTION => function ($ch, $data) use (&$status, &$buffer, &$errorBody, &$fullText, &$previewEmitted, &$streamUsage, $onChunk) {
                     // A non-200 body is an error document, not content.
                     if ($status !== 200) {
                         $errorBody .= $data;
@@ -340,6 +454,7 @@ class GeminiService
                     }
 
                     $this->consumeStreamWrite($data, $buffer, $fullText, $previewEmitted, $onChunk);
+                    $this->captureStreamUsage($data, $streamUsage);
 
                     return strlen($data);
                 },
@@ -357,20 +472,24 @@ class GeminiService
             if ($status === 429) {
                 $this->setCooldown($apiKey, 60, 'stream_rate_limited_429');
                 $lastError = 'HTTP 429';
+                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, 429, 'rate_limited');
                 continue;
             }
             if (in_array($status, [401, 403], true)) {
                 $this->setCooldown($apiKey, 600, 'stream_invalid_key_' . $status);
                 $lastError = "HTTP {$status}";
+                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, $status, 'invalid_key');
                 continue;
             }
             if ($status === 503) {
                 $this->setCooldown($apiKey, 30, 'stream_overloaded_503');
                 $lastError = 'HTTP 503';
+                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, 503, 'overloaded');
                 continue;
             }
             if ($status !== 200) {
                 $lastError = "HTTP {$status}: " . mb_substr(trim($errorBody), 0, 200, 'UTF-8');
+                $this->recordHttpFailure($apiKey, $model, $options, $startedAt, $status, 'http_error');
                 continue;
             }
 
@@ -393,6 +512,13 @@ class GeminiService
             $this->workingApiKey = $apiKey;
             $dailyKey = 'gemini_key_usage_' . md5($apiKey) . '_' . date('Y-m-d');
             Cache::put($dailyKey, (int) Cache::get($dailyKey, 0) + 1, now()->endOfDay());
+
+            $this->recordUsage($apiKey, array_merge($streamUsage, [
+                'model' => $model,
+                'request_type' => 'stream',
+                'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                'success' => true,
+            ]));
 
             return $fullText;
         }
@@ -440,6 +566,32 @@ class GeminiService
         if ($previewLength > $previewEmitted) {
             $onChunk(mb_substr($preview, $previewEmitted, $previewLength - $previewEmitted, 'UTF-8'));
             $previewEmitted = $previewLength;
+        }
+    }
+
+    /**
+     * Pull token usage out of a streaming write.
+     *
+     * Gemini repeats `usageMetadata` in its SSE frames with running totals, so the
+     * last one seen wins rather than being summed — adding them up would multiply
+     * the token count by the number of frames.
+     */
+    private function captureStreamUsage(string $data, array &$usage): void
+    {
+        if (!str_contains($data, 'usageMetadata')) {
+            return;
+        }
+
+        foreach (explode("\n", $data) as $line) {
+            $line = ltrim($line);
+            if (!str_starts_with($line, 'data:')) {
+                continue;
+            }
+
+            $decoded = json_decode(trim(substr($line, 5)), true);
+            if (is_array($decoded) && isset($decoded['usageMetadata'])) {
+                $usage = $this->tokensFrom($decoded['usageMetadata']);
+            }
         }
     }
 
@@ -612,6 +764,7 @@ class GeminiService
             }
 
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:embedContent?key={$apiKey}";
+            $startedAt = microtime(true);
 
             try {
                 $response = Http::withoutVerifying()
@@ -628,15 +781,18 @@ class GeminiService
                 if ($status === 429) {
                     $this->setCooldown($apiKey, 60, 'embed_rate_limited_429');
                     $lastError = 'HTTP 429';
+                    $this->recordHttpFailure($apiKey, $model, ['request_type' => 'embed'], $startedAt, 429, 'rate_limited');
                     continue;
                 }
                 if (in_array($status, [401, 403], true)) {
                     $this->setCooldown($apiKey, 600, 'embed_invalid_key_' . $status);
                     $lastError = "HTTP {$status}";
+                    $this->recordHttpFailure($apiKey, $model, ['request_type' => 'embed'], $startedAt, $status, 'invalid_key');
                     continue;
                 }
                 if (!$response->successful()) {
                     $lastError = "HTTP {$status}";
+                    $this->recordHttpFailure($apiKey, $model, ['request_type' => 'embed'], $startedAt, $status, 'http_error');
                     continue;
                 }
 
@@ -644,11 +800,32 @@ class GeminiService
                 $values = $response->json('embedding.values');
                 if (is_array($values) && !empty($values)) {
                     $this->workingApiKey = $apiKey;
+
+                    // Embedding responses report only the prompt tokens, which is the
+                    // whole cost of the call.
+                    $this->recordUsage($apiKey, array_merge(
+                        $this->tokensFrom($response->json('usageMetadata')),
+                        [
+                            'model' => $model,
+                            'request_type' => 'embed',
+                            'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                            'success' => true,
+                        ]
+                    ));
+
                     return $values;
                 }
                 $lastError = 'empty embedding payload';
             } catch (\Throwable $e) {
                 $lastError = $e->getMessage();
+                $this->recordUsage($apiKey, [
+                    'model' => $model,
+                    'request_type' => 'embed',
+                    'latency_ms' => (int) ((microtime(true) - $startedAt) * 1000),
+                    'success' => false,
+                    'error_message' => $e->getMessage(),
+                    'error_type' => class_basename($e),
+                ]);
             }
         }
 
