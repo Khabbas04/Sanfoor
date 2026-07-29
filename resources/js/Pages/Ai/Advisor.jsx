@@ -6,7 +6,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Swal from 'sweetalert2';
 import AiWidgets, { ConfidenceNotice, MemoryPanel } from '@/Components/AiWidgets';
-const VideoPlayer = React.lazy(() => import('@/Components/VideoPlayer'));
 const AiCharts = React.lazy(() => import('@/Components/AiCharts'));
 
 // Respect the OS-level "reduce motion" setting: the typewriter is decoration, and
@@ -1018,7 +1017,6 @@ export default function Advisor() {
     const [sidebar, setSidebar] = useState(false);
     const [regenning, setRegenning] = useState(false);
     const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
-    const [showVideo, setShowVideo] = useState(false);
 
     // 🆕 State الساعات الديناميكية
     const [cartHours, setCartHours] = useState(st?.cart_hours || 0);
