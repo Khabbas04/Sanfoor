@@ -264,7 +264,7 @@ class AdvisorNewWidgetsTest extends AdvisorTestCase
         $this->assertSame(3, $widget['cart_hours']);
         $this->assertSame(6, $widget['proposed_hours'], 'Only the remaining allowance may be proposed.');
         $this->assertSame(9, $widget['total_hours']);
-        $this->assertSame(9, $widget['hour_limit']);
+        $this->assertSame((int) config('academic_terms.limits.summer'), $widget['hour_limit']);
         // And the course already registered is not proposed again.
         $this->assertNotContains($inCart->id, array_column($widget['courses'], 'course_id'));
 

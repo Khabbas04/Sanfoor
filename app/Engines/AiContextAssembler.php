@@ -37,7 +37,14 @@ class AiContextAssembler
         $systemPrompt .= "- حالة الإنذار: " . ($rules['is_probation'] ? "نعم (طالب على إنذار أكاديمي)" : "لا") . "\n";
         $systemPrompt .= "- خريج هذا الفصل: " . ($rules['is_graduating'] ? "نعم" : "لا") . "\n";
         $systemPrompt .= "- نوع الفصل الحالي: {$termType}\n";
-        $systemPrompt .= "- 🚦 الحد الأقصى للساعات المسموح به هذا الفصل: {$rules['effective_limit']} ساعة. **ممنوع منعاً باتاً اقتراح أو الموافقة على مجموع ساعات يتجاوز هذا الحد.**" . (!empty($rules['is_summer']) ? " (الفصل صيفي: الحد ٩ ساعات، ويصل ٩ فقط؛ ولا يُسمح بـ ١٠ إلا إذا كانت إحدى المواد مختبراً بساعة واحدة وبموافقة دائرة القبول والتسجيل.)" : "") . "\n";
+        // The number comes from the rules engine, which reads config/academic_terms.php.
+        // It is never restated as a literal here: the prompt used to say "٩ ساعات" for
+        // the summer term while the engine computed something else.
+        $summerLimit = (int) config('academic_terms.limits.summer', 10);
+        $systemPrompt .= "- 🚦 الحد الأقصى للساعات المسموح به هذا الفصل: {$rules['effective_limit']} ساعة. **ممنوع منعاً باتاً اقتراح أو الموافقة على مجموع ساعات يتجاوز هذا الحد.**"
+            . (!empty($rules['is_summer']) ? " (الفصل الحالي صيفي: الحد الأقصى فيه {$summerLimit} ساعات.)" : '')
+            . "\n";
+        $systemPrompt .= "- تسلسل الفصول: {$rules['term_sequence_note']}\n";
         $systemPrompt .= "- السلة الحالية: {$rules['cart_hours']} ساعات. (تجاوز الحد: " . ($rules['cart_exceeds_limit'] ? 'نعم' : 'لا') . ")\n\n";
 
         // 1.5 Risk Warnings

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use App\Support\AcademicCache;
 use App\Support\CourseEligibility;
 use Inertia\Inertia;
 
@@ -25,6 +26,9 @@ class AiAdvisorController extends Controller
     private const MAX_WIDGET_ITEMS = 8;
     private const MAX_AVAILABLE_CONTEXT_COURSES = 28;
     private const MAX_LOCKED_CONTEXT_COURSES = 12;
+    // Fallbacks only. The authority is config/academic_terms.php, read through
+    // AcademicPeriod::maxHoursFor(); these are what a malformed payload falls back
+    // to, never what the registration limit is decided from.
     private const MAX_HOURS_NORMAL = 18;
     private const MAX_HOURS_PROBATION = 12;
     private const ENABLE_SMART_TITLE = false;
@@ -86,7 +90,7 @@ class AiAdvisorController extends Controller
                 'total_plan_hours' => $totalPlanHours,
                 'progress_percent' => $progressPercent,
                 'cart_hours' => $cartHours,
-                'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
+                'max_allowed_hours' => \App\Models\AcademicPeriod::maxHoursFor(\App\Models\AcademicPeriod::current()?->academic_term, $isProbation),
                 'is_probation' => $isProbation,
                 'has_academic_records' => $hasAcademicRecords,
             ],
@@ -1671,8 +1675,8 @@ class AiAdvisorController extends Controller
 
     private function clearStudentCache(int $userId): void
     {
-        Cache::forget("student_academic_data_{$userId}");
-        Cache::forget("student_cart_data_{$userId}");
+        Cache::forget(AcademicCache::key("student_academic_data_{$userId}"));
+        Cache::forget(AcademicCache::key("student_cart_data_{$userId}"));
     }
 
     private function getDailyMessageLimitForUser($user): ?int
@@ -1684,23 +1688,30 @@ class AiAdvisorController extends Controller
         return self::DAILY_LIMIT;
     }
 
+    /**
+     * The registration ceiling for the current term.
+     *
+     * Delegates to AcademicPeriod, which reads config/academic_terms.php — the same
+     * source the rules engine, the planner and the prompt use. This method used to
+     * hardcode `9` for the summer term while the engine used 9-or-10 and the prompt
+     * said something else again.
+     */
     private function getRegistrationLimits(?AcademicPeriod $currentPeriod, bool $isProbation): array
     {
-        $isSummer = $currentPeriod ? (int) $currentPeriod->academic_term === 3 : false;
-        $termLimit = $isSummer ? 9 : 18;
-        $academicLimit = $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL;
+        $limits = (array) config('academic_terms.limits');
+        $isSummer = $currentPeriod?->isSummer() ?? false;
 
         return [
             'is_summer' => $isSummer,
-            'term_limit' => $termLimit,
-            'academic_limit' => $academicLimit,
-            'effective_limit' => min($termLimit, $academicLimit),
+            'term_limit' => (int) ($isSummer ? $limits['summer'] : $limits['regular']),
+            'academic_limit' => $isProbation ? (int) $limits['probation'] : (int) $limits['regular'],
+            'effective_limit' => AcademicPeriod::maxHoursFor($currentPeriod?->academic_term, $isProbation),
         ];
     }
 
     private function getStudentAcademicData($user): array
     {
-        $cacheKey = "student_academic_data_{$user->id}";
+        $cacheKey = AcademicCache::key("student_academic_data_{$user->id}");
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing(['major', 'passedCourses', 'cartCourses']);
             
@@ -1723,7 +1734,7 @@ class AiAdvisorController extends Controller
                 'passed_courses_names' => $actuallyPassedCourses->pluck('name')->implode('، '),
                 'total_passed_hours' => $actuallyPassedCourses->sum('credit_hours'),
                 'total_plan_hours' => $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : 132,
-                'max_allowed_hours' => $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL,
+                'max_allowed_hours' => \App\Models\AcademicPeriod::maxHoursFor(\App\Models\AcademicPeriod::current()?->academic_term, $isProbation),
                 'passed_university_req' => $actuallyPassedCourses->where('type', 'university_req')->sum('credit_hours'),
                 'passed_compulsory' => $actuallyPassedCourses->where('type', 'compulsory')->sum('credit_hours'),
                 'passed_elective' => $actuallyPassedCourses->where('type', 'elective')->sum('credit_hours'),
@@ -1734,7 +1745,7 @@ class AiAdvisorController extends Controller
 
     private function getCartData($user): array
     {
-        $cacheKey = "student_cart_data_{$user->id}";
+        $cacheKey = AcademicCache::key("student_cart_data_{$user->id}");
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing('cartCourses');
             $map = $user->cartCourses->pluck('name', 'id')->toArray();
@@ -1767,7 +1778,7 @@ class AiAdvisorController extends Controller
         $currentPeriod = \App\Models\AcademicPeriod::current();
 
         $passedHash = md5(implode(',', $passedCourseIds) . '|' . implode(',', $cartCourseIds));
-        $cacheKey = "ai_available_courses:{$user->id}:{$user->major_id}:{$user->study_plan_version}:{$passedHash}";
+        $cacheKey = AcademicCache::key("ai_available_courses:{$user->id}:{$user->major_id}:{$user->study_plan_version}:{$passedHash}");
 
         return Cache::remember($cacheKey, 300, function () use ($passedCourseIds, $cartCourseIds, $user, $currentPeriod) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
@@ -2986,7 +2997,7 @@ class AiAdvisorController extends Controller
             'advisor_rule_version' => 'first_semester_online_req_v4',
         ];
 
-        return 'ai_response_' . $userId . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return AcademicCache::key('ai_response_' . $userId) . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
     private function generateSmartTitle(string $userMessage, string $aiReply): string

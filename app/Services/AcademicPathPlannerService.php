@@ -70,6 +70,9 @@ class AcademicPathPlannerService
 
         $currentPeriod = AcademicPeriod::current();
         $currentTerm = (int) ($currentPeriod?->academic_term ?: 1);
+        // The real sequence of terms ahead (1 → 2 → summer → next year), so a
+        // predicted semester can be named instead of only being "the one after".
+        $upcomingTerms = $currentPeriod?->upcomingTerms(max(0, (int) config('academic_path_planner.roadmap_semesters', 3))) ?? [];
         $rules = $this->rulesEngine->evaluate(
             $user,
             ['total_passed_hours' => $initialPassedHours],
@@ -83,8 +86,12 @@ class AcademicPathPlannerService
         $semesterCount = (int) config('academic_path_planner.roadmap_semesters', 3);
 
         for ($sequence = 1; $sequence <= $semesterCount && $remaining->isNotEmpty(); $sequence++) {
-            $term = (($currentTerm - 1 + ($sequence - 1)) % 3) + 1;
-            $isSummer = $term === 3;
+            // Sequence 1 is the current term; the rest follow the configured order.
+            $upcoming = $sequence === 1 ? null : ($upcomingTerms[$sequence - 2] ?? null);
+            $term = $sequence === 1
+                ? $currentTerm
+                : (int) ($upcoming['academic_term'] ?? ((($currentTerm - 1 + ($sequence - 1)) % 3) + 1));
+            $isSummer = AcademicPeriod::termType($term) === 'summer';
             $hourLimit = $sequence === 1
                 ? (int) $rules['effective_limit']
                 : $this->futureHourLimit($goalConfig, $isSummer, (bool) ($rules['is_probation'] ?? false));
@@ -124,8 +131,15 @@ class AcademicPathPlannerService
 
             $semesters[] = [
                 'sequence' => $sequence,
-                'label' => $sequence === 1 ? 'أفضل مواد لهذا الفصل' : ($sequence === 2 ? 'الفصل القادم' : 'الفصل الذي يليه'),
+                // Named, not positional: "الفصل الصيفي 2026/2027" tells the student
+                // that the 10-hour cap applies there; "الفصل الذي يليه" does not.
+                'label' => $sequence === 1
+                    ? 'أفضل مواد لهذا الفصل'
+                    : trim(AcademicPeriod::termLabel($term) . ' ' . (string) ($upcoming['academic_year'] ?? '')),
                 'academic_term' => $term,
+                'academic_year' => $sequence === 1
+                    ? (string) ($currentPeriod?->academic_year ?? '')
+                    : (string) ($upcoming['academic_year'] ?? ''),
                 'is_summer' => $isSummer,
                 'is_prediction' => $sequence > 1,
                 'total_hours' => $semesterHours,
@@ -570,9 +584,8 @@ class AcademicPathPlannerService
 
     private function targetHours(array $goalConfig, int $limit, bool $isSummer): int
     {
-        $base = $isSummer
-            ? (int) config('academic_path_planner.default_summer_hours', 9)
-            : (int) config('academic_path_planner.default_regular_hours', 15);
+        // The aim, not the ceiling — from the same config the limits come from.
+        $base = (int) config('academic_terms.target_hours.' . ($isSummer ? 'summer' : 'regular'), $isSummer ? 9 : 15);
 
         return match ($goalConfig['target_load']) {
             'maximum' => $limit,
@@ -582,12 +595,14 @@ class AcademicPathPlannerService
         };
     }
 
+    /**
+     * The ceiling for a PREDICTED term, which may be a different kind of term than
+     * the current one — the roadmap walks 1 → 2 → summer, and the summer cap is not
+     * the regular cap. Read from config/academic_terms.php like everything else.
+     */
     private function futureHourLimit(array $goalConfig, bool $isSummer, bool $isProbation): int
     {
-        if ($isProbation) {
-            return $isSummer ? 9 : 12;
-        }
-        return $isSummer ? 9 : 18;
+        return AcademicPeriod::maxHoursFor($isSummer ? 3 : 1, $isProbation);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Engines;
 use App\Models\User;
 use App\Models\Course;
 use App\Models\AcademicPeriod;
+use App\Support\AcademicCache;
 use Illuminate\Support\Facades\Cache;
 
 class StructuredRagEngine
@@ -225,7 +226,7 @@ class StructuredRagEngine
 
     private function getStudentAcademicData(User $user): array
     {
-        $cacheKey = "student_academic_data_{$user->id}";
+        $cacheKey = AcademicCache::key("student_academic_data_{$user->id}");
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing(['major', 'passedCourses', 'cartCourses']);
             
@@ -259,7 +260,7 @@ class StructuredRagEngine
 
     private function getCartData(User $user): array
     {
-        $cacheKey = "student_cart_data_{$user->id}";
+        $cacheKey = AcademicCache::key("student_cart_data_{$user->id}");
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing('cartCourses');
             $map = $user->cartCourses->pluck('name', 'id')->toArray();
@@ -277,7 +278,7 @@ class StructuredRagEngine
     {
         $currentPeriod = AcademicPeriod::current();
         $passedHash = md5(implode(',', $passedCourseIds) . '|' . implode(',', $cartCourseIds));
-        $cacheKey = "rag_available_courses:{$user->id}:{$user->major_id}:{$user->study_plan_version}:{$passedHash}";
+        $cacheKey = AcademicCache::key("rag_available_courses:{$user->id}:{$user->major_id}:{$user->study_plan_version}:{$passedHash}");
 
         return Cache::remember($cacheKey, 300, function () use ($passedCourseIds, $cartCourseIds, $user, $passedHours) {
             $planVersion = (int) ($user->study_plan_version ?? 12);

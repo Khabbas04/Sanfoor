@@ -136,7 +136,7 @@ class AdvisorMemoryTest extends AdvisorTestCase
         $this->assertStringContainsString('رفع المعدل التراكمي', $prompt);
         $this->assertStringContainsString('18 ساعة', $prompt);
         // A remembered 18-hour preference must not be allowed to beat the 9-hour cap.
-        $this->assertStringContainsString('9 ساعة', $prompt);
+        $this->assertStringContainsString(config('academic_terms.limits.summer') . ' ساعة', $prompt);
         $this->assertStringContainsString('تسبق هذه التفضيلات', $prompt);
     }
 

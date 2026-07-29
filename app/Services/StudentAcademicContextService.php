@@ -6,6 +6,7 @@ use App\Engines\AcademicRulesEngine;
 use App\Engines\StructuredRagEngine;
 use App\Models\AcademicPeriod;
 use App\Models\User;
+use App\Support\AcademicCache;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -98,9 +99,9 @@ class StudentAcademicContextService
     {
         $id = $user instanceof User ? $user->id : $user;
 
-        Cache::forget("ai_student_context_{$id}");
-        Cache::forget("student_academic_data_{$id}");
-        Cache::forget("student_cart_data_{$id}");
+        Cache::forget(AcademicCache::key("ai_student_context_{$id}"));
+        Cache::forget(AcademicCache::key("student_academic_data_{$id}"));
+        Cache::forget(AcademicCache::key("student_cart_data_{$id}"));
     }
 
     /**
@@ -155,8 +156,13 @@ class StudentAcademicContextService
         ];
     }
 
+    /**
+     * Keyed to the academic generation: switching the current term retires every
+     * cached snapshot at once, so the new hour limit applies immediately instead of
+     * after this TTL expires.
+     */
     private function cacheKey(User $user): string
     {
-        return "ai_student_context_{$user->id}";
+        return AcademicCache::key("ai_student_context_{$user->id}");
     }
 }

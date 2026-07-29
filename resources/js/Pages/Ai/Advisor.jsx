@@ -1424,7 +1424,10 @@ export default function Advisor() {
         }
     }, []);
 
-    const maxCartHours = Math.min(18, st?.max_allowed_hours ?? 18);
+    // The server owns this number: it comes from config/academic_terms.php via the
+    // current term, so the summer cap applies in summer. Clamping it to a literal 18
+    // here used to override a lower term limit.
+    const maxCartHours = Number(st?.max_allowed_hours) > 0 ? Number(st.max_allowed_hours) : 18;
 
     // 🆕 تحديث دالة الـ Toggle لتدعم الساعات الديناميكية
     const toggle = useCallback(async (cid, cn, chours = 0) => {

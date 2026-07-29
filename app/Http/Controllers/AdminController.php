@@ -299,6 +299,26 @@ class AdminController extends Controller
         });
 
         return Inertia::render('Admin/Settings', [
+            // What the chosen term actually enforces across the site, so the admin can
+            // see the consequence of the setting instead of having to know it.
+            'academicTermRules' => [
+                'limits' => config('academic_terms.limits'),
+                'terms' => collect(config('academic_terms.terms'))
+                    ->map(fn ($definition, $term) => [
+                        'term' => (int) $term,
+                        'label' => $definition['label'],
+                        'type' => $definition['type'],
+                        'max_hours' => AcademicPeriod::maxHoursFor((int) $term),
+                        'max_hours_probation' => AcademicPeriod::maxHoursFor((int) $term, isProbation: true),
+                        'next' => AcademicPeriod::termLabel((int) $definition['next']),
+                    ])
+                    ->values(),
+                'current' => $currentAcademicPeriod === null ? null : [
+                    'max_hours' => $currentAcademicPeriod->maxHours(),
+                    'is_summer' => $currentAcademicPeriod->isSummer(),
+                    'next' => $currentAcademicPeriod->nextTerm(),
+                ],
+            ],
             'currentAcademicPeriod' => $currentAcademicPeriod ? [
                 'id' => $currentAcademicPeriod->id,
                 'academic_year' => $currentAcademicPeriod->academic_year,

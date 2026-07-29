@@ -201,7 +201,7 @@ function roleBadge(role, isDark) {
     return isDark ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/60' : 'bg-emerald-100 text-emerald-700 border-emerald-200';
 }
 
-export default function Settings({ stats = {}, onlineUsers = [], currentAcademicPeriod = null, siteMaintenance = null }) {
+export default function Settings({ stats = {}, onlineUsers = [], currentAcademicPeriod = null, siteMaintenance = null, academicTermRules = null }) {
     const { isDark } = useTheme();
     const { lang } = useLanguage();
     const { auth } = usePage().props;
@@ -544,6 +544,46 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                         />
                                     </div>
                                 </div>
+
+                                {/* What this choice enforces. The term selector silently
+                                    changes the registration ceiling everywhere — the cart,
+                                    the planner, the advisor's answers — so the consequence
+                                    is shown here rather than left to be remembered. */}
+                                {academicTermRules?.terms?.length > 0 && (
+                                    <div className={`mt-4 rounded-xl border p-3 ${isDark ? 'border-slate-700 bg-slate-900/60' : 'border-slate-200 bg-white'}`}>
+                                        <p className={`text-[11px] font-black ${subtext}`}>الحدود المطبَّقة على كل الموقع</p>
+                                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                                            {academicTermRules.terms.map((term) => {
+                                                const isSelected = String(term.term) === String(academicForm.academic_term);
+
+                                                return (
+                                                    <div
+                                                        key={term.term}
+                                                        className={`rounded-lg border p-2.5 transition-colors ${
+                                                            isSelected
+                                                                ? 'border-indigo-400 bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-950/40'
+                                                                : isDark ? 'border-slate-700 bg-slate-800/40' : 'border-slate-100 bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        <p className={`text-[11px] font-black ${heading}`}>
+                                                            {term.label}{isSelected && ' ✓'}
+                                                        </p>
+                                                        <p className={`mt-0.5 font-mono text-[13px] font-black ${isSelected ? 'text-indigo-600 dark:text-indigo-400' : heading}`}>
+                                                            {term.max_hours} ساعة
+                                                        </p>
+                                                        <p className={`text-[9.5px] font-bold ${subtext}`}>
+                                                            على إنذار: {term.max_hours_probation} · يليه {term.next}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className={`mt-2 text-[10px] font-bold leading-relaxed ${subtext}`}>
+                                            تغيير الفصل يُطبَّق فوراً على التسجيل التجريبي، والخطة المقترحة، وحدود المرشد الذكي.
+                                            الأرقام نفسها تُعدَّل من <span className="font-mono">config/academic_terms.php</span>.
+                                        </p>
+                                    </div>
+                                )}
 
                                 <button
                                     onClick={saveAcademicPeriod}

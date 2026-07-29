@@ -7,23 +7,49 @@ use App\Models\AcademicPeriod;
 
 class AcademicRulesEngine
 {
-    // Constants for University Rules
+    /*
+     * The numbers themselves now live in config/academic_terms.php — one place for a
+     * regulation that used to be duplicated here, in AiAdvisorController, in the
+     * planner config, in the advisor prompt and as a literal in the frontend. The
+     * accessors below are kept so existing callers keep working.
+     */
+    public static function maxHoursNormal(): int
+    {
+        return (int) config('academic_terms.limits.regular', 18);
+    }
+
+    public static function maxHoursProbation(): int
+    {
+        return (int) config('academic_terms.limits.probation', 12);
+    }
+
+    public static function maxHoursSummer(): int
+    {
+        return (int) config('academic_terms.limits.summer', 10);
+    }
+
+    /** @deprecated Read config('academic_terms.limits') instead. */
     public const MAX_HOURS_NORMAL = 18;
+    /** @deprecated */
     public const MAX_HOURS_PROBATION = 12;
+    /** @deprecated */
     public const MAX_HOURS_SUMMER_NORMAL = 9;
+    /** @deprecated */
     public const MAX_HOURS_SUMMER_WITH_LAB = 10;
-    
-    // Graduating student exceptions
+    /** @deprecated */
     public const MAX_HOURS_GRADUATING_NORMAL = 21;
+    /** @deprecated */
     public const MAX_HOURS_GRADUATING_SUMMER = 12;
+    /** @deprecated */
     public const GRADUATING_THRESHOLD_HOURS = 21;
+    /** @deprecated */
     public const GRADUATING_SUMMER_THRESHOLD_HOURS = 12;
 
     public function evaluate(User $user, array $passedCoursesData, int $cartHours): array
     {
         $currentPeriod = AcademicPeriod::current();
         
-        $isSummer = $currentPeriod ? ((int) $currentPeriod->academic_term === 3) : false;
+        $isSummer = $currentPeriod?->isSummer() ?? false;
         $periodLabel = $currentPeriod ? "{$currentPeriod->academic_year} - الفصل {$currentPeriod->academic_term}" : 'غير محدد';
         
         $gpaData = $user->calculateGPA();
@@ -38,29 +64,20 @@ class AcademicRulesEngine
         $remainingHours = max(0, $totalPlanHours - $totalPassedHours);
         
         // Graduation Status Check
-        $isGraduatingNormal = !$isSummer && $remainingHours <= self::GRADUATING_THRESHOLD_HOURS;
-        $isGraduatingSummer = $isSummer && $remainingHours <= self::GRADUATING_SUMMER_THRESHOLD_HOURS;
-        $isGraduating = $isGraduatingNormal || $isGraduatingSummer;
+        $thresholds = (array) config('academic_terms.graduating_threshold');
+        $isGraduating = $remainingHours <= (int) ($isSummer ? $thresholds['summer'] : $thresholds['regular']);
 
-        // Base Academic Limit
-        $academicLimit = $isProbation ? self::MAX_HOURS_PROBATION : self::MAX_HOURS_NORMAL;
-        
-        // Base Term Limit
-        $termLimit = $isSummer ? self::MAX_HOURS_SUMMER_NORMAL : self::MAX_HOURS_NORMAL;
-        
-        // Calculate Effective Limit with Exceptions
-        $effectiveLimit = min($academicLimit, $termLimit);
-        
-        if ($isGraduating) {
-            $effectiveLimit = $isSummer ? self::MAX_HOURS_GRADUATING_SUMMER : self::MAX_HOURS_GRADUATING_NORMAL;
-        }
+        $limits = (array) config('academic_terms.limits');
+        $academicLimit = $isProbation ? (int) $limits['probation'] : (int) $limits['regular'];
+        $termLimit = (int) ($isSummer ? $limits['summer'] : $limits['regular']);
 
-        // Summer lab exception (if not graduating)
-        if ($isSummer && !$isGraduating && $cartHours == self::MAX_HOURS_SUMMER_WITH_LAB) {
-            // NOTE: In a full implementation, we'd check if the cart actually contains a 1-hour lab course
-            // For now, if the cart is exactly 10 in summer, we allow the UI to reflect it as a possible exception
-            $effectiveLimit = self::MAX_HOURS_SUMMER_WITH_LAB;
-        }
+        // One authority for the ceiling, so the engine, the controller, the planner
+        // and the prompt can never disagree about it again.
+        $effectiveLimit = AcademicPeriod::maxHoursFor(
+            $currentPeriod?->academic_term,
+            $isProbation,
+            $isGraduating
+        );
 
         $cartExceedsLimit = $cartHours > $effectiveLimit;
         
@@ -70,9 +87,21 @@ class AcademicRulesEngine
         
         $isFirstSemester = $totalPassedHours === 0;
 
+        // What comes next, so the advisor can plan beyond this term without guessing
+        // the order — and knows the next term may carry a different ceiling.
+        $nextTerm = $currentPeriod?->nextTerm();
+        $nextLimit = $nextTerm === null
+            ? null
+            : AcademicPeriod::maxHoursFor($nextTerm['academic_term'], $isProbation, $isGraduating);
+
         return [
             'period_label' => $periodLabel,
             'is_summer' => $isSummer,
+            'next_term' => $nextTerm,
+            'next_term_limit' => $nextLimit,
+            'term_sequence_note' => $nextTerm === null
+                ? 'الفصل الحالي غير محدد في النظام.'
+                : "الفصل الحالي {$periodLabel}، والذي يليه {$nextTerm['label']} {$nextTerm['academic_year']} وحده الأقصى {$nextLimit} ساعة.",
             'gpa_percentage' => $gpaData['percentage'] ?? 0,
             'total_passed_hours' => $totalPassedHours,
             'total_plan_hours' => $totalPlanHours,

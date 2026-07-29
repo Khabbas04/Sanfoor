@@ -254,7 +254,7 @@ class AdvisorValidationTest extends AdvisorTestCase
             ->assertOk();
 
         $prompt = $fake->lastSystemInstruction();
-        $this->assertStringContainsString('9 ساعة', $prompt);
+        $this->assertStringContainsString(config('academic_terms.limits.summer') . ' ساعة', $prompt);
         $this->assertStringContainsString('صيفي', $prompt);
     }
 

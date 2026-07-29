@@ -204,7 +204,11 @@ class AdvisorIntentIntegrationTest extends AdvisorTestCase
         $context = app(StudentAcademicContextService::class)->for($user->fresh(), true);
 
         $this->assertSame(18, $context['rules']['academic_limit']);
-        $this->assertSame(9, $context['rules']['effective_limit'], 'Summer caps the term at 9 hours.');
+        $this->assertSame(
+            (int) config('academic_terms.limits.summer'),
+            $context['rules']['effective_limit'],
+            'The summer term uses the configured summer cap.'
+        );
         $this->assertTrue($context['period']['is_summer']);
         $this->assertSame(3, $context['cart']['hours']);
         $this->assertTrue($context['completeness']['has_academic_records']);
@@ -234,12 +238,12 @@ class AdvisorIntentIntegrationTest extends AdvisorTestCase
         $service = app(StudentAcademicContextService::class);
         $service->for($user, true);
 
-        $this->assertNotNull(\Illuminate\Support\Facades\Cache::get("ai_student_context_{$user->id}"));
+        $this->assertNotNull(\Illuminate\Support\Facades\Cache::get(\App\Support\AcademicCache::key("ai_student_context_{$user->id}")));
 
         $service->invalidate($user);
 
-        $this->assertNull(\Illuminate\Support\Facades\Cache::get("ai_student_context_{$user->id}"));
-        $this->assertNull(\Illuminate\Support\Facades\Cache::get("student_academic_data_{$user->id}"));
-        $this->assertNull(\Illuminate\Support\Facades\Cache::get("student_cart_data_{$user->id}"));
+        $this->assertNull(\Illuminate\Support\Facades\Cache::get(\App\Support\AcademicCache::key("ai_student_context_{$user->id}")));
+        $this->assertNull(\Illuminate\Support\Facades\Cache::get(\App\Support\AcademicCache::key("student_academic_data_{$user->id}")));
+        $this->assertNull(\Illuminate\Support\Facades\Cache::get(\App\Support\AcademicCache::key("student_cart_data_{$user->id}")));
     }
 }
