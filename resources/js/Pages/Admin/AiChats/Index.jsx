@@ -295,7 +295,11 @@ const QualityMetrics = ({ isDark }) => {
 
     useEffect(() => {
         let cancelled = false;
-        fetch(route('admin.reports.ai_quality'), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+
+        // A fixed path rather than route(): Ziggy throws when its route list is
+        // stale (a cached route file from before this endpoint existed), and a
+        // diagnostics panel must never be able to blank the whole admin page.
+        fetch('/admin/reports/ai-quality', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
             .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
             .then((payload) => { if (!cancelled) setData(payload); })
             .catch(() => { if (!cancelled) setFailed(true); });
