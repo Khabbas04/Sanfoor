@@ -34,7 +34,7 @@ class AiWidgetBuilder
      * @param array $context       ['rules' => array, 'completeness' => array]
      * @return list<array{type: string}>
      */
-    public function build(User $user, ?array $routed, array $toolResults, array $sources = [], array $context = []): array
+    public function build(User $user, ?array $routed, array $toolResults, array $sources = [], array $context = [], ?array $prebuiltPlan = null): array
     {
         if ($routed === null) {
             return [];
@@ -52,8 +52,15 @@ class AiWidgetBuilder
             $widgets[] = $widget;
         }
 
-        foreach ($this->fromPlanner($user, $intent) as $widget) {
-            $widgets[] = $widget;
+        // The plan is normally built BEFORE the model is called (so the reply can be
+        // written around it instead of proposing a competing list) and handed back
+        // here. Building it now is the fallback for callers that did not.
+        if ($prebuiltPlan !== null) {
+            $widgets[] = $prebuiltPlan;
+        } else {
+            foreach ($this->planFor($user, $intent, $context) as $widget) {
+                $widgets[] = $widget;
+            }
         }
 
         $widgets = array_slice(array_values(array_filter($widgets)), 0, self::MAX_WIDGETS);
@@ -112,10 +119,17 @@ class AiWidgetBuilder
     }
 
     /**
-     * Plans come from AcademicPathPlannerService, which already validates every
-     * roadmap it produces against the prerequisite simulation.
+     * The plan panel for this question, if the question calls for one.
+     *
+     * Plans come from AcademicPathPlannerService, which validates every roadmap it
+     * produces against a prerequisite simulation. What is added here is the
+     * student's CURRENT cart: the planner proposes a full term from scratch, so
+     * without this it would offer a 9-hour summer plan to a student who already has
+     * 3 hours registered — and applying it would immediately breach their limit.
+     *
+     * @return list<array>
      */
-    private function fromPlanner(User $user, string $intent): array
+    public function planFor(User $user, string $intent, array $context = []): array
     {
         $goal = match ($intent) {
             'semester_planning' => 'balanced',
@@ -127,8 +141,26 @@ class AiWidgetBuilder
             return [];
         }
 
+        $rules = $context['rules'] ?? [];
+        $cartIds = array_map('intval', $context['cart']['ids'] ?? []);
+        $cartHours = (int) ($context['cart']['hours'] ?? 0);
+        $limit = (int) ($rules['effective_limit'] ?? 18);
+
+        // Nothing left to plan: the student is already at their ceiling.
+        $allowance = $limit - $cartHours;
+        if ($allowance < 1) {
+            return [];
+        }
+
         try {
-            $path = $this->planner->generate($user, $goal);
+            // The FULL limit is requested, not the remaining allowance: the planner
+            // does not know about the cart, so it may well propose a course the
+            // student has already registered. Asking for the whole term and then
+            // removing the cart courses (and trimming to the real allowance in
+            // semesterPlan()) leaves the student with a full term either way —
+            // asking for the allowance alone produced a half-empty plan whenever a
+            // cart course happened to be picked.
+            $path = $this->planner->generate($user, $goal, false, $limit);
         } catch (\Throwable $e) {
             // A blocked or unvalidatable plan is not shown at all: a wrong roadmap
             // is worse for a student than no roadmap.
@@ -141,9 +173,17 @@ class AiWidgetBuilder
             return [];
         }
 
-        return $intent === 'graduation_planning'
-            ? [$this->graduationRoadmap($path)]
-            : [$this->semesterPlan($path)];
+        $widget = $intent === 'graduation_planning'
+            ? $this->graduationRoadmap($path)
+            : $this->semesterPlan($path, $cartIds, $cartHours, $limit);
+
+        // Every proposed course was already in the cart, so the panel would repeat
+        // the student's own schedule back at them.
+        if ($intent === 'semester_planning' && $widget['courses'] === []) {
+            return [];
+        }
+
+        return [$widget];
     }
 
     private function courseCard(array $course): array
@@ -211,30 +251,58 @@ class AiWidgetBuilder
         ];
     }
 
-    private function semesterPlan(array $path): array
+    private function semesterPlan(array $path, array $cartIds, int $cartHours, int $limit): array
     {
         $semester = $path['current_semester'];
+
+        $courses = [];
+        $proposedHours = 0;
+
+        foreach ($semester['courses'] ?? [] as $course) {
+            $id = (int) $course['id'];
+            $hours = (int) $course['credit_hours'];
+
+            // Already registered, so it is not a proposal.
+            if (in_array($id, $cartIds, true)) {
+                continue;
+            }
+            // A zero-hour entry adds nothing and only makes the panel noisier.
+            if ($hours < 1) {
+                continue;
+            }
+            // Never propose past the student's real remaining allowance.
+            if ($cartHours + $proposedHours + $hours > $limit) {
+                continue;
+            }
+
+            $proposedHours += $hours;
+            $courses[] = [
+                'course_id' => $id,
+                'name' => (string) $course['name'],
+                'credit_hours' => $hours,
+                'difficulty' => (int) ($course['difficulty_level'] ?? 3),
+                'priority' => $course['priority'] ?? null,
+                'reason' => $course['reason'] ?? null,
+            ];
+        }
 
         return [
             'type' => 'semester_plan',
             'title' => (string) ($semester['label'] ?? 'خطة الفصل المقترحة'),
-            'total_hours' => (int) ($semester['total_hours'] ?? 0),
-            'hour_limit' => (int) ($semester['hour_limit'] ?? 0),
+            'proposed_hours' => $proposedHours,
+            'cart_hours' => $cartHours,
+            // The total the student would end up on, which is the number that has to
+            // sit under the limit — not the proposal in isolation.
+            'total_hours' => $cartHours + $proposedHours,
+            'hour_limit' => $limit,
             'workload_level' => $semester['workload_level'] ?? null,
-            'courses' => array_values(array_map(fn ($course) => [
-                'course_id' => (int) $course['id'],
-                'name' => (string) $course['name'],
-                'credit_hours' => (int) $course['credit_hours'],
-                'difficulty' => (int) ($course['difficulty_level'] ?? 3),
-                'priority' => $course['priority'] ?? null,
-                'reason' => $course['reason'] ?? null,
-            ], $semester['courses'] ?? [])),
+            'courses' => $courses,
             'summary' => $path['summary']['message'] ?? null,
             // The action the student may take on this plan; execution still goes
-            // through confirmation and re-validation.
+            // through confirmation and re-validation against fresh data.
             'apply_action' => [
                 'action' => 'apply_semester_plan',
-                'course_ids' => array_map(fn ($course) => (int) $course['id'], $semester['courses'] ?? []),
+                'course_ids' => array_column($courses, 'course_id'),
             ],
         ];
     }

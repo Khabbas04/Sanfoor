@@ -152,6 +152,14 @@ const SemesterPlanWidget = ({ widget, onAction, actionState }) => {
                     </Chip>
                 </div>
 
+                {/* The split matters: a student with courses already registered needs
+                    to see that the total includes them, not just the proposal. */}
+                {widget.cart_hours > 0 && (
+                    <p className="mt-1 text-[10px] font-bold text-slate-500">
+                        عندك {widget.cart_hours} ساعة مسجّلة + {widget.proposed_hours} ساعة مقترحة
+                    </p>
+                )}
+
                 <div className="mt-2 space-y-1.5">
                     {widget.courses?.map((course) => (
                         <div key={course.course_id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">
@@ -175,7 +183,8 @@ const SemesterPlanWidget = ({ widget, onAction, actionState }) => {
                 ) : confirming ? (
                     <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-2.5">
                         <p className="text-[11.5px] font-black leading-relaxed text-amber-800">
-                            سيتم إضافة {widget.courses?.length} مواد ({widget.total_hours} ساعة) إلى تسجيلك التجريبي. متأكد؟
+                            سيتم إضافة {widget.courses?.length} مواد ({widget.proposed_hours ?? widget.total_hours} ساعة)
+                            إلى تسجيلك التجريبي، ليصبح المجموع {widget.total_hours} من {widget.hour_limit} ساعة. متأكد؟
                         </p>
                         <div className="mt-2 flex gap-2">
                             <button

@@ -192,6 +192,131 @@ class AdvisorNewWidgetsTest extends AdvisorTestCase
         );
     }
 
+    /**
+     * One recommendation per reply.
+     *
+     * The plan panel and the model's own suggestion chips used to arrive together
+     * proposing DIFFERENT courses, which left the student with two lists and no way
+     * to tell which one to act on.
+     */
+    public function test_the_plan_panel_is_the_only_recommendation(): void
+    {
+        [$user, $major] = $this->student();
+        $other = $this->course($major, ['name' => 'مادة اقترحها النموذج']);
+        foreach (range(1, 4) as $index) {
+            $this->course($major, ['name' => "مادة خطة {$index}"]);
+        }
+        $this->currentPeriod();
+
+        // The model proposes its own list on the side.
+        $this->fakeGemini([$this->envelope(['suggested_course_ids' => [$other->id]])]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai.advisor.chat'), ['message' => 'رتب لي جدول الفصل القادم'])
+            ->assertOk();
+
+        $this->assertNotNull(collect($response->json('widgets'))->firstWhere('type', 'semester_plan'));
+        $this->assertSame([], $response->json('suggested_courses'), 'The panel owns the recommendation.');
+    }
+
+    /** The model is told what the panel shows, so its prose cannot contradict it. */
+    public function test_the_model_is_told_exactly_what_the_panel_shows(): void
+    {
+        [$user, $major] = $this->student();
+        foreach (range(1, 4) as $index) {
+            $this->course($major, ['name' => "مادة خطة {$index}"]);
+        }
+        $this->currentPeriod();
+        $fake = $this->fakeGemini([$this->envelope()]);
+
+        $this->actingAs($user)
+            ->postJson(route('ai.advisor.chat'), ['message' => 'رتب لي جدول الفصل القادم'])
+            ->assertOk();
+
+        $prompt = $fake->lastSystemInstruction();
+        $this->assertStringContainsString('لوحة «خطة الفصل» معروضة للطالب', $prompt);
+        $this->assertStringContainsString('ممنوع أن تقترح قائمة مواد مختلفة', $prompt);
+        $this->assertStringContainsString('مادة خطة 1', $prompt);
+    }
+
+    /**
+     * The plan must account for what is already registered. A summer student with
+     * 3 of 9 hours taken may only be offered 6 more.
+     */
+    public function test_the_plan_respects_the_hours_already_in_the_cart(): void
+    {
+        [$user, $major] = $this->student();
+        $inCart = $this->course($major, ['name' => 'مادة مسجّلة', 'credit_hours' => 3]);
+        foreach (range(1, 6) as $index) {
+            $this->course($major, ['name' => "مادة متاحة {$index}", 'credit_hours' => 3]);
+        }
+        $this->addToCart($user, $inCart);
+        $this->currentPeriod(3, '2026/2027'); // summer: 9 hours
+        $this->fakeGemini([$this->envelope()]);
+
+        $response = $this->actingAs($user->fresh())
+            ->postJson(route('ai.advisor.chat'), ['message' => 'رتب لي جدول الفصل القادم'])
+            ->assertOk();
+
+        $widget = collect($response->json('widgets'))->firstWhere('type', 'semester_plan');
+
+        $this->assertNotNull($widget);
+        $this->assertSame(3, $widget['cart_hours']);
+        $this->assertSame(6, $widget['proposed_hours'], 'Only the remaining allowance may be proposed.');
+        $this->assertSame(9, $widget['total_hours']);
+        $this->assertSame(9, $widget['hour_limit']);
+        // And the course already registered is not proposed again.
+        $this->assertNotContains($inCart->id, array_column($widget['courses'], 'course_id'));
+
+        // Applying it must therefore succeed in full.
+        config()->set('ai.features.actions', true);
+        $this->actingAs($user->fresh())
+            ->postJson(route('ai.advisor.action'), $widget['apply_action'])
+            ->assertOk()
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('skipped', []);
+    }
+
+    /** A student already at their ceiling gets no plan panel at all. */
+    public function test_no_plan_is_offered_when_the_cart_is_already_full(): void
+    {
+        [$user, $major] = $this->student();
+        foreach (range(1, 3) as $index) {
+            $this->addToCart($user, $this->course($major, ['name' => "مادة سلة {$index}", 'credit_hours' => 3]));
+        }
+        $this->course($major, ['name' => 'مادة متاحة']);
+        $this->currentPeriod(3, '2026/2027'); // summer: 9 hours, already taken
+        $this->fakeGemini([$this->envelope()]);
+
+        $response = $this->actingAs($user->fresh())
+            ->postJson(route('ai.advisor.chat'), ['message' => 'رتب لي جدول الفصل القادم'])
+            ->assertOk();
+
+        $this->assertNull(collect($response->json('widgets'))->firstWhere('type', 'semester_plan'));
+    }
+
+    /** Zero-hour entries are noise in a plan panel. */
+    public function test_zero_hour_courses_are_not_listed_in_the_plan(): void
+    {
+        [$user, $major] = $this->student();
+        $this->course($major, ['name' => 'مادة بلا ساعات', 'credit_hours' => 0]);
+        foreach (range(1, 3) as $index) {
+            $this->course($major, ['name' => "مادة عادية {$index}", 'credit_hours' => 3]);
+        }
+        $this->currentPeriod();
+        $this->fakeGemini([$this->envelope()]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai.advisor.chat'), ['message' => 'رتب لي جدول الفصل القادم'])
+            ->assertOk();
+
+        $widget = collect($response->json('widgets'))->firstWhere('type', 'semester_plan');
+
+        foreach ($widget['courses'] as $course) {
+            $this->assertGreaterThan(0, $course['credit_hours']);
+        }
+    }
+
     public function test_a_graduation_question_produces_a_roadmap(): void
     {
         [$user, $major] = $this->student();
@@ -281,9 +406,14 @@ class AdvisorNewWidgetsTest extends AdvisorTestCase
         $this->app->bind(\App\Services\AiWidgetBuilder::class, fn () => new class extends \App\Services\AiWidgetBuilder {
             public function __construct() {}
 
-            public function build(\App\Models\User $user, ?array $routed, array $toolResults, array $sources = [], array $context = []): array
+            public function build(\App\Models\User $user, ?array $routed, array $toolResults, array $sources = [], array $context = [], ?array $prebuiltPlan = null): array
             {
                 throw new \RuntimeException('builder exploded');
+            }
+
+            public function planFor(\App\Models\User $user, string $intent, array $context = []): array
+            {
+                throw new \RuntimeException('planner exploded');
             }
         });
 

@@ -594,6 +594,15 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
     const { suggest, remove } = useMemo(() => {
         const w = msg.interactive_widget;
         const owned = new Set([...(w?.courses || []), ...(w?.items || [])].map(c => c?.id).filter(Boolean));
+
+        // A course listed inside one of the new panels (plan, roadmap, card) is
+        // already presented there with its own action, so it must not also appear
+        // as a loose suggestion chip above it.
+        (msg.widgets || []).forEach(widget => {
+            (widget.courses || []).forEach(c => c?.course_id && owned.add(c.course_id));
+            (widget.semesters || []).forEach(s => (s.courses || []).forEach(c => c?.course_id && owned.add(c.course_id)));
+            if (widget.course_id) owned.add(widget.course_id);
+        });
         const seen = new Set();
         const take = (list) => (list || []).filter(c => {
             if (!c?.id || owned.has(c.id) || seen.has(c.id)) return false;
@@ -601,7 +610,7 @@ const Msg = ({ msg, name, added, loading, onToggle, onDone, scroll, isLast, onRe
             return true;
         });
         return { suggest: take(msg.suggested_courses), remove: take(msg.courses_to_remove) };
-    }, [msg.suggested_courses, msg.courses_to_remove, msg.interactive_widget]);
+    }, [msg.suggested_courses, msg.courses_to_remove, msg.interactive_widget, msg.widgets]);
 
     // Appended blocks (courses, widgets, actions) only make sense once the reply is
     // complete — mid-stream they would pop in against a half-written answer.
@@ -1914,7 +1923,13 @@ export default function Advisor() {
                                     </div>
                                 </div>
                             )}
-                            <div className="relative z-50 max-w-full overflow-x-hidden px-2 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:p-3">
+                            {/* NOT overflow-x-hidden: setting overflow-x alone makes the
+                                browser compute overflow-y as `auto`, which turns this into
+                                a scroll container and CLIPS the settings popup that opens
+                                above it — the popup rendered but was invisible. Horizontal
+                                overflow is prevented by min-w-0/max-w-full on the children
+                                instead. */}
+                            <div className="relative z-50 max-w-full px-2 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] md:p-3">
                                 {/* The popup overlay */}
                                 {showFiltersPopup && (
                                     <div className="absolute bottom-[calc(100%+10px)] right-3 sm:right-6 w-[calc(100%-24px)] sm:w-[360px] bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-slate-200/80 p-2 z-50 sfr-slide-up origin-bottom-right">

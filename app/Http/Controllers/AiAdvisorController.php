@@ -599,6 +599,31 @@ class AiAdvisorController extends Controller
             }
         }
 
+        // 3.8 The plan panel is decided BEFORE the model is called.
+        //
+        // Otherwise the student gets two different recommendations in one reply: the
+        // model's own list in prose plus a planner panel underneath proposing other
+        // courses. Building it first lets the model be told exactly what is on screen
+        // so it explains that plan instead of competing with it.
+        $planWidget = null;
+
+        if ($intent !== null && config('ai.features.new_widgets')) {
+            try {
+                $planWidget = app(\App\Services\AiWidgetBuilder::class)->planFor(
+                    $user,
+                    $intent['intent'],
+                    ['rules' => $rules, 'cart' => $ragData['cart']]
+                )[0] ?? null;
+
+                if ($planWidget !== null) {
+                    $toolFacts[] = $this->describePlanWidget($planWidget);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Plan panel skipped: ' . $e->getMessage());
+                $planWidget = null;
+            }
+        }
+
         // 4. Ai Context Assembler (+ rolling memory of older turns)
         $memory = app(\App\Engines\ConversationMemoryEngine::class);
         $assembler = app(\App\Engines\AiContextAssembler::class);
@@ -824,12 +849,20 @@ class AiAdvisorController extends Controller
                     $intent,
                     $toolResults,
                     $sources,
-                    ['rules' => $rules, 'completeness' => $completeness]
+                    ['rules' => $rules, 'completeness' => $completeness, 'cart' => $ragData['cart']],
+                    $planWidget
                 );
             } catch (\Throwable $e) {
                 Log::warning('Widget builder failed; answering without extra widgets: ' . $e->getMessage());
                 $widgets = [];
             }
+        }
+
+        // The plan panel IS the recommendation. Leaving the model's own suggestion
+        // chips next to it gave the student two competing lists and no way to tell
+        // which one to follow.
+        if ($planWidget !== null && ($planWidget['type'] ?? '') === 'semester_plan') {
+            $suggestedIds = [];
         }
 
         return [
@@ -870,6 +903,38 @@ class AiAdvisorController extends Controller
             'refresh_data' => "=== ♻️ إعادة صياغة مطلوبة ===\nتم تحديث بيانات الطالب الآن. أعد الجواب اعتماداً على الأرقام الواردة في هذا السياق حصراً، وإذا تغيّر شيء عن جوابك السابق فصرّح بذلك بجملة قصيرة.",
             default => null,
         };
+    }
+
+    /**
+     * The plan panel, described to the model as something already on the screen.
+     *
+     * Phrased as an instruction rather than as data: the failure this prevents is a
+     * reply that lists a different set of courses than the panel below it, leaving
+     * the student with two recommendations and no way to choose.
+     */
+    private function describePlanWidget(array $widget): string
+    {
+        if (($widget['type'] ?? '') === 'graduation_roadmap') {
+            $semesters = array_map(
+                fn ($semester) => ($semester['label'] ?? '') . ': ' . implode('، ', array_column($semester['courses'] ?? [], 'name')),
+                $widget['semesters'] ?? []
+            );
+
+            return "- [plan_panel] ⚠️ لوحة «مسار التخرج» معروضة للطالب الآن أسفل ردك بهذا المحتوى بالضبط: "
+                . implode(' | ', $semesters)
+                . ". **اشرح هذا المسار ولا تقترح مساراً مختلفاً، ولا تُعِد سرد المواد كقائمة ثانية** — اكتفِ بتفسير المنطق ونصيحة واحدة.";
+        }
+
+        $courses = array_map(
+            fn ($course) => "{$course['name']} ({$course['credit_hours']}س)",
+            $widget['courses'] ?? []
+        );
+
+        return "- [plan_panel] ⚠️ لوحة «خطة الفصل» معروضة للطالب الآن أسفل ردك بهذه المواد بالضبط: "
+            . implode('، ', $courses)
+            . ". المجموع بعد التطبيق: {$widget['total_hours']} من {$widget['hour_limit']} ساعة"
+            . ($widget['cart_hours'] > 0 ? " (منها {$widget['cart_hours']} ساعة موجودة مسبقاً في سلته)" : '')
+            . ". **ممنوع أن تقترح قائمة مواد مختلفة عن هذه، وممنوع أن تُعيد سردها كقائمة في نصك** — اشرح لماذا هذه الخطة مناسبة له بأسطر قصيرة، وذكّره أن أمامه زر لتطبيقها بنفسه.";
     }
 
     /** How many course ids the model proposed, across all three lists. */
