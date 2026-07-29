@@ -12,13 +12,12 @@ export default defineConfig({
     ],
     build: {
         sourcemap: false,
-        chunkSizeWarningLimit: 2000,
+        chunkSizeWarningLimit: 1000,
         rollupOptions: {
             output: {
                 manualChunks: {
                     react_vendor: ['react', 'react-dom', '@inertiajs/react'],
-                    chart_vendor: ['recharts', 'reactflow', 'dagre'],
-                    mapbox_vendor: ['mapbox-gl']
+                    chart_vendor: ['recharts', 'reactflow', 'dagre']
                 }
             }
         }

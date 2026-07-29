@@ -376,11 +376,6 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('campus.directory');
 
-    // Interactive 3D campus map powered by Mapbox GL JS.
-    Route::get('/campus-map', function () {
-        return Inertia::render('Campus/Map');
-    })->name('campus.map');
-
     // Course chapters browsing for students.
     Route::get('/chapters', [ChapterController::class, 'index'])->name('chapters.index');
     Route::post('/chapters/pin', [ChapterController::class, 'togglePin'])->name('chapters.pin');
