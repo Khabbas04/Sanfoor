@@ -779,39 +779,46 @@ export default function Welcome({ auth }) {
                         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.03),transparent_40%)] rounded-b-[inherit] pointer-events-none" />
                     </div>
 
-                    {/* Decorative Orbs - Toned down */}
-                    <div className="absolute hidden md:block w-[220px] h-[220px] bg-sky-400/5 blur-[60px] top-[2%] right-[6%] pointer-events-none z-0" />
-                    <div className="absolute hidden md:block w-[200px] h-[200px] bg-cyan-300/5 blur-[60px] bottom-[6%] left-[6%] pointer-events-none z-0" />
+                    {/* Decorative Orbs */}
+                    <div className="absolute hidden md:block w-[220px] h-[220px] bg-sky-400/10 blur-[80px] top-[2%] right-[6%] pointer-events-none z-0" />
+                    <div className="absolute hidden md:block w-[200px] h-[200px] bg-cyan-300/10 blur-[80px] bottom-[6%] left-[6%] pointer-events-none z-0" />
 
                     {/* Content */}
                     <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full mt-8">
 
-                        {/* Professional Badge */}
+                        {/* Premium AI Badge */}
                         <div className="hero-animate mb-10 flex justify-center" style={{ animationDelay: '0.1s' }}>
-                            <div className="inline-flex items-center gap-2.5 px-5 py-1.5 bg-white/5 border border-white/10 rounded-full backdrop-blur-md shadow-sm">
-                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                                <span className="font-[800] text-[12px] tracking-wide text-slate-200">
-                                    النظام الذكي الأول في الجامعات
-                                </span>
+                            <div className="relative inline-flex p-[1px] rounded-full overflow-hidden shadow-[0_0_35px_rgba(56,189,248,0.25)] group cursor-default select-none">
+                                <span className="absolute inset-[-1000%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#bae6fd_0%,#3b82f6_50%,#bae6fd_100%)] opacity-80 group-hover:opacity-100 transition-opacity duration-500" />
+                                <div className="inline-flex items-center gap-2.5 h-full w-full px-6 py-2 bg-[#020617]/90 rounded-full backdrop-blur-xl relative z-10">
+                                    <div className="flex items-center justify-center text-sky-300 animate-pulse">
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2L14.1 9.9L22 12L14.1 14.1L12 22L9.9 14.1L2 12L9.9 9.9L12 2Z" />
+                                        </svg>
+                                    </div>
+                                    <span className="font-[900] text-[13px] tracking-wide text-transparent bg-clip-text bg-gradient-to-l from-sky-200 via-white to-white drop-shadow-sm">
+                                        النظام الذكي الأول في الجامعات
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Floating Logo - Toned down glows */}
+                        {/* 🔥 Floating Animated Logo (تم تكبيره بشكل ضخم) 🔥 */}
                         <div className="hero-animate relative inline-flex justify-center items-center mb-10 mt-2" style={{ animationDelay: '0.3s' }}>
-                            <div className="absolute inset-0 bg-sky-400/5 rounded-full blur-xl"></div>
-                            <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56">
-                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-xl" />
+                            <div className="absolute inset-0 bg-sky-400/12 rounded-full blur-2xl"></div>
+                            <div className="relative w-36 h-36 sm:w-48 sm:h-48 md:w-56 md:h-56 animate-float">
+                                <img src="/images/sanfoor.png" alt="Sanfoor Logo" className="w-full h-full object-contain drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)]" />
                             </div>
                         </div>
 
-                        {/* Heading - Cleaned up shadows */}
+                        {/* Heading */}
                         <h1 className="hero-animate mb-4" style={{ animationDelay: '0.65s' }}>
-                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-md">
+                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-white drop-shadow-[0_10px_25px_rgba(0,0,0,0.9)]">
                                 دليلك الذكي نحو
                             </span>
                         </h1>
                         <h1 className="hero-animate mb-8" style={{ animationDelay: '0.85s' }}>
-                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-cyan-300 drop-shadow-md">
+                            <span className="block text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black leading-[1.1] tracking-tight text-cyan-200 drop-shadow-[0_10px_25px_rgba(0,0,0,0.95)]">
                                 التفوق الأكاديمي.
                             </span>
                         </h1>
