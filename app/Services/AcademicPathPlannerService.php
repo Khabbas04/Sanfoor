@@ -9,12 +9,16 @@ use App\Models\Course;
 use App\Models\User;
 use App\Support\CourseAdvantages;
 use App\Support\CourseEligibility;
+use App\Support\CourseLoad;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class AcademicPathPlannerService
 {
+    /** Real per-course failure statistics, fetched once per request. */
+    private ?array $loadStatistics = null;
+
     public function __construct(
         private readonly AcademicRulesEngine $rulesEngine,
         private readonly ValidationEngine $validationEngine,
@@ -100,7 +104,7 @@ class AcademicPathPlannerService
                 ->map(fn (Course $course) => $this->rankCourse($course, $remaining, $goalConfig))
                 ->sortByDesc('score')
                 ->values();
-            $selected = $this->selectSemester($ranked, $targetHours, (int) $goalConfig['max_hard_courses']);
+            $selected = $this->selectSemester($ranked, $targetHours, (int) $goalConfig['max_hard_courses'], $goalConfig);
 
             if ($selected->isEmpty()) {
                 $blocked = true;
@@ -116,6 +120,7 @@ class AcademicPathPlannerService
                 ->all();
             $semesterHours = (int) $selected->sum(fn (array $item) => $item['course']->credit_hours);
             $hardCount = $selected->filter(fn (array $item) => $this->isHard($item['course']))->count();
+            $semesterLoad = round((float) $selected->sum(fn (array $item) => $this->courseLoad($item['course'])), 2);
 
             $semesters[] = [
                 'sequence' => $sequence,
@@ -125,7 +130,21 @@ class AcademicPathPlannerService
                 'is_prediction' => $sequence > 1,
                 'total_hours' => $semesterHours,
                 'hour_limit' => $hourLimit,
-                'workload_level' => $this->workloadLabel($semesterHours, $hardCount, $isSummer),
+                'workload_level' => CourseLoad::label($semesterLoad, (float) ($goalConfig['max_load'] ?? 0))
+                    ?: $this->workloadLabel($semesterHours, $hardCount, $isSummer),
+                // The load is reported, not just used: when the budget had to be
+                // relaxed for a student whose plan is all heavy, they should see that
+                // the term is intense rather than discover it in week three.
+                'load' => [
+                    'score' => $semesterLoad,
+                    'budget' => (float) ($goalConfig['max_load'] ?? 0),
+                    'demanding_courses' => $hardCount,
+                    'is_over_budget' => ($goalConfig['max_load'] ?? 0) > 0 && $semesterLoad > (float) $goalConfig['max_load'],
+                    // A term that stops well short of the hour limit looks like a bug
+                    // unless the reason is stated. It is a decision, so it is said out
+                    // loud — together with the goal that would change it.
+                    'note' => $this->loadNote($semesterHours, $hourLimit, $hardCount, (int) $goalConfig['max_hard_courses'], $goal),
+                ],
                 'courses' => $semesterCourses,
             ];
 
@@ -277,11 +296,17 @@ class AcademicPathPlannerService
         return array_map('intval', array_keys($ids));
     }
 
-    private function selectSemester(Collection $ranked, int $targetHours, int $maxHardCourses): Collection
+    private function selectSemester(Collection $ranked, int $targetHours, int $maxHardCourses, array $goalConfig = []): Collection
     {
         $selected = collect();
         $hours = 0;
         $hardCount = 0;
+
+        // The real ceiling on how demanding a term may be. Counting "hard courses"
+        // never worked here because difficulty_level is the default 3 almost
+        // everywhere; this budget is measured from signals that exist.
+        $loadBudget = (float) ($goalConfig['max_load'] ?? 0);
+        $load = 0.0;
 
         // Reserve the university requirements FIRST.
         //
@@ -294,6 +319,7 @@ class AcademicPathPlannerService
             $selected->push($item);
             $hours += (int) $item['course']->credit_hours;
             $hardCount += $this->isHard($item['course']) ? 1 : 0;
+            $load += $this->courseLoad($item['course']);
         }
 
         $reservedIds = $selected->map(fn (array $item) => (int) $item['course']->id)->all();
@@ -301,6 +327,12 @@ class AcademicPathPlannerService
         // The rule cuts both ways: a term of five online requirements is no more a
         // plan than a term of five specialisation courses.
         $maxUniversity = max(1, (int) config('academic_path_planner.balance.max_university_courses', 2));
+
+        // Courses held back because the term is already demanding enough. They are
+        // remembered, not discarded: the two caps below are preferences, and a
+        // student whose remaining plan is all heavy still has to register a real
+        // term rather than be sent away with six hours.
+        $deferred = [];
 
         foreach ($ranked as $item) {
             $course = $item['course'];
@@ -311,10 +343,20 @@ class AcademicPathPlannerService
             $courseHours = (int) $course->credit_hours;
             $hard = $this->isHard($course);
             $isUniversity = $this->isUniversityCourse($course);
+            $courseLoad = $this->courseLoad($course);
 
+            // Hours and the university cap are hard limits: the first is a
+            // regulation, the second would otherwise turn the term into filler.
             if ($hours + $courseHours > $targetHours
-                || ($hard && $hardCount >= $maxHardCourses)
                 || ($isUniversity && $universityCount >= $maxUniversity)) {
+                continue;
+            }
+
+            $tooManyDemanding = $hard && $hardCount >= $maxHardCourses;
+            $overBudget = $loadBudget > 0 && $selected->isNotEmpty() && $load + $courseLoad > $loadBudget;
+
+            if ($tooManyDemanding || $overBudget) {
+                $deferred[] = $item;
                 continue;
             }
 
@@ -322,6 +364,33 @@ class AcademicPathPlannerService
             $hours += $courseHours;
             $hardCount += $hard ? 1 : 0;
             $universityCount += $isUniversity ? 1 : 0;
+            $load += $courseLoad;
+        }
+
+        // Only now, and only to reach a term worth registering.
+        //
+        // The load BUDGET may be exceeded here, but `max_hard_courses` may not: that
+        // is the goal's actual promise. A student who chose "reduce pressure" asked
+        // for a lighter term, so handing them a fourth demanding course to fill hours
+        // would be ignoring the only instruction they gave.
+        $minimumHours = min($targetHours, (int) config('academic_path_planner.load.min_hours_before_relaxing', 9));
+        foreach ($deferred as $item) {
+            if ($hours >= $minimumHours) {
+                break;
+            }
+
+            $course = $item['course'];
+            $courseHours = (int) $course->credit_hours;
+            $hard = $this->isHard($course);
+
+            if ($hours + $courseHours > $targetHours || ($hard && $hardCount >= $maxHardCourses)) {
+                continue;
+            }
+
+            $selected->push($item);
+            $hours += $courseHours;
+            $hardCount += $hard ? 1 : 0;
+            $load += $this->courseLoad($course);
         }
 
         if ($selected->isEmpty() && $ranked->isNotEmpty()) {
@@ -378,6 +447,51 @@ class AcademicPathPlannerService
         return $reserved;
     }
 
+    /**
+     * How demanding this course is, using the real failure statistics.
+     *
+     * The statistics are fetched once per request by CourseLoad and cached, so this
+     * stays cheap even though the roadmap calls it for every candidate in every
+     * semester.
+     */
+    private function courseLoad(Course $course): float
+    {
+        $this->loadStatistics ??= CourseLoad::statistics();
+
+        return CourseLoad::intensity([
+            'type' => $course->type,
+            'credit_hours' => (int) $course->credit_hours,
+            'difficulty_level' => (int) ($course->difficulty_level ?: 3),
+            'course_semester' => $course->semester,
+            'code' => $course->code,
+            'prereq_count' => $course->prerequisites->count(),
+        ], $this->loadStatistics[$course->id] ?? []);
+    }
+
+    /**
+     * Why the term is lighter than the hour limit, when it is.
+     *
+     * Silence here reads as a failure to fill the schedule. Naming the cause — and
+     * the goal that would lift it — turns it back into advice.
+     */
+    private function loadNote(int $hours, int $hourLimit, int $hardCount, int $maxHardCourses, string $goal): ?string
+    {
+        // Two hours of slack is just how course sizes divide; not worth explaining.
+        if ($hours >= $hourLimit - 2) {
+            return null;
+        }
+
+        if ($hardCount < $maxHardCourses) {
+            return null; // room was left by availability, not by a decision here
+        }
+
+        $note = "أبقيت الفصل على {$hours} ساعة من {$hourLimit}: ما تبقّى متاحاً لك مواد ثقيلة، وتحميلك أكثر من {$maxHardCourses} منها في فصل واحد يرفع خطر التعثّر.";
+
+        return $goal === 'fastest_graduation'
+            ? $note
+            : $note . ' إن كنت مستعداً لضغط أعلى، جرّب هدف «التخرج بأسرع وقت».';
+    }
+
     private function isUniversityCourse(Course $course): bool
     {
         return in_array(
@@ -398,6 +512,9 @@ class AcademicPathPlannerService
         // What makes THIS course worth taking, in terms the student can compare.
         // The old list said "مادة أساسية ضمن الخطة" about half the plan, which is
         // true and useless — it cannot help anyone choose between two options.
+        $this->loadStatistics ??= CourseLoad::statistics();
+        $stats = $this->loadStatistics[$course->id] ?? [];
+
         $advantages = CourseAdvantages::for([
             'name' => $course->name,
             'type' => $course->type,
@@ -407,6 +524,9 @@ class AcademicPathPlannerService
             'path_unlocks' => $path,
             'unlocks_courses' => $course->children->take(3)->pluck('name')->all(),
             'course_semester' => $course->semester,
+            // Real institutional history, so "heavy" is evidence rather than a guess.
+            'fail_rate' => $stats['fail_rate'] ?? null,
+            'fail_sample' => $stats['sample'] ?? 0,
         ], ['student_semester' => $item['student_semester'] ?? 0]);
 
         $reasons = array_map(fn (array $advantage) => $advantage['text'], $advantages);
@@ -419,6 +539,8 @@ class AcademicPathPlannerService
             'difficulty_level' => (int) ($course->difficulty_level ?: 3),
             'priority' => $priority,
             'priority_score' => $item['score'],
+            'load' => $this->courseLoad($course),
+            'fail_rate' => ($stats['sample'] ?? 0) >= CourseLoad::MIN_SAMPLE ? $stats['fail_rate'] : null,
             'reason' => $reasons[0],
             'reasons' => array_slice($reasons, 0, 3),
             // Same facts with their icons, for a UI that shows them as chips rather
@@ -468,9 +590,19 @@ class AcademicPathPlannerService
         return $isSummer ? 9 : 18;
     }
 
+    /**
+     * A course heavy enough that two of them make a full term.
+     *
+     * `fail_rate` is read here for the tree page's query, which selects it as an
+     * alias; on a plain model it is absent, which is why this used to be decided by
+     * `difficulty_level` alone — and that is the default 3 nearly everywhere. The
+     * derived load is the reliable signal, so it decides now.
+     */
     private function isHard(Course $course): bool
     {
-        return (int) ($course->difficulty_level ?: 3) >= 4 || (float) ($course->fail_rate ?? 18) >= 30;
+        return (int) ($course->difficulty_level ?: 3) >= 4
+            || (float) ($course->fail_rate ?? 18) >= 30
+            || $this->courseLoad($course) >= (float) config('academic_path_planner.load.demanding_threshold', 1.5);
     }
 
     private function workloadLabel(int $hours, int $hardCount, bool $isSummer): string

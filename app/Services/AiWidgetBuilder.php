@@ -299,6 +299,8 @@ class AiWidgetBuilder
             'total_hours' => $cartHours + $proposedHours,
             'hour_limit' => $limit,
             'workload_level' => $semester['workload_level'] ?? null,
+            // How demanding the term is, and whether it had to exceed the budget.
+            'load' => $semester['load'] ?? null,
             'courses' => $courses,
             'summary' => $path['summary']['message'] ?? null,
             // The action the student may take on this plan; execution still goes

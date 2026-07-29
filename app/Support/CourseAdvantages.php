@@ -78,7 +78,20 @@ class CourseAdvantages
 
         $isUniversity = in_array($type, (array) config('academic_path_planner.balance.university_types', []), true);
 
-        // 3. Effort, stated plainly in both directions. Skipped for university
+        // 3. Real failure history, when enough students have a grade on record.
+        //    This is the fact a student most wants before committing to a term, and
+        //    it is the one nobody tells them.
+        $failRate = $course['fail_rate'] ?? null;
+        $sample = (int) ($course['fail_sample'] ?? 0);
+        if ($failRate !== null && $sample >= CourseLoad::MIN_SAMPLE && $failRate >= 25) {
+            $advantages[] = [
+                'key' => 'heavy',
+                'icon' => '📉',
+                'text' => 'نسبة التعثّر فيها ' . round((float) $failRate) . '% (من ' . $sample . ' حالة) — خُذها مع مواد أخفّ',
+            ];
+        }
+
+        // 4. Effort, stated plainly in both directions. Skipped for university
         //    requirements: saying "online requirement" and "low difficulty" about
         //    the same course spends two of three lines on one fact.
         if ($difficulty <= 2 && !$isUniversity) {
@@ -95,7 +108,7 @@ class CourseAdvantages
             ];
         }
 
-        // 4. University requirements are delivered online here, which is exactly
+        // 5. University requirements are delivered online here, which is exactly
         //    why they balance a term full of specialisation courses.
         if ($isUniversity) {
             $advantages[] = [
@@ -105,7 +118,7 @@ class CourseAdvantages
             ];
         }
 
-        // 5. A one-hour course is cheap progress and worth naming as such.
+        // 6. A one-hour course is cheap progress and worth naming as such.
         if ($hours === 1) {
             $advantages[] = [
                 'key' => 'light_load',

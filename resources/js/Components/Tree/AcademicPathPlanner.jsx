@@ -304,15 +304,50 @@ function ResultView({ path, onApply, applying, onRestart }) {
                     <div className="mt-3 space-y-3">
                         {path.roadmap.map((semester) => (
                             <div key={semester.sequence} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="flex flex-wrap items-center justify-between gap-3">
                                     <h4 className="font-black text-slate-800 dark:text-white">{semester.label}</h4>
-                                    <span className="text-xs font-black text-slate-400">{semester.total_hours} ساعة</span>
+                                    <div className="flex items-center gap-2">
+                                        {/* Hours are not the load: five advanced courses and
+                                            five online requirements are both 15 hours. */}
+                                        {semester.workload_level && (
+                                            <span className={`rounded-lg px-2 py-1 text-[10px] font-black ${
+                                                semester.load?.is_over_budget
+                                                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                                    : semester.workload_level === 'مكثف'
+                                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                                        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                            }`}>
+                                                {semester.workload_level}
+                                            </span>
+                                        )}
+                                        <span className="text-xs font-black text-slate-400">{semester.total_hours} ساعة</span>
+                                    </div>
                                 </div>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                     {semester.courses.map((course) => (
-                                        <span key={course.id} className="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{course.name}</span>
+                                        <span
+                                            key={course.id}
+                                            className={`rounded-lg px-2.5 py-1.5 text-xs font-bold ${
+                                                course.fail_rate >= 25
+                                                    ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200'
+                                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                                            }`}
+                                            title={course.fail_rate >= 25 ? `نسبة التعثّر ${Math.round(course.fail_rate)}%` : undefined}
+                                        >
+                                            {course.fail_rate >= 25 && '📉 '}{course.name}
+                                        </span>
                                     ))}
                                 </div>
+                                {semester.load?.note && (
+                                    <p className="mt-2 rounded-xl bg-amber-50 p-2.5 text-[11px] font-bold leading-6 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+                                        💡 {semester.load.note}
+                                    </p>
+                                )}
+                                {semester.load?.is_over_budget && !semester.load?.note && (
+                                    <p className="mt-2 text-[11px] font-bold leading-6 text-rose-600 dark:text-rose-400">
+                                        ⚠️ ما تبقّى في هذه المرحلة كله مواد ثقيلة — الفصل مكثّف حتى مع أفضل توزيع ممكن.
+                                    </p>
+                                )}
                             </div>
                         ))}
                     </div>

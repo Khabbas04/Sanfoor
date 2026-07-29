@@ -160,6 +160,30 @@ const SemesterPlanWidget = ({ widget, onAction, actionState }) => {
                     </p>
                 )}
 
+                {/* Hours alone do not describe a term: five advanced courses and five
+                    online requirements are both 15 hours and nothing alike. */}
+                {widget.workload_level && (
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-slate-500">
+                        <span>ثقل الفصل:</span>
+                        <Chip tone={widget.load?.is_over_budget ? 'rose' : widget.workload_level === 'مكثف' ? 'amber' : 'emerald'}>
+                            {widget.workload_level}
+                        </Chip>
+                        {widget.load?.demanding_courses > 0 && (
+                            <span>({widget.load.demanding_courses} مادة ثقيلة)</span>
+                        )}
+                    </p>
+                )}
+                {widget.load?.note && (
+                    <p className="mt-1 rounded-lg bg-amber-50 p-2 text-[10px] font-bold leading-relaxed text-amber-800">
+                        💡 {widget.load.note}
+                    </p>
+                )}
+                {widget.load?.is_over_budget && !widget.load?.note && (
+                    <p className="mt-1 text-[10px] font-bold leading-relaxed text-rose-600">
+                        ⚠️ ما تبقّى من خطتك كله مواد ثقيلة، فالفصل مكثّف حتى مع أفضل توزيع — وازن وقتك من البداية.
+                    </p>
+                )}
+
                 <div className="mt-2 space-y-1.5">
                     {widget.courses?.map((course) => (
                         <div key={course.course_id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">

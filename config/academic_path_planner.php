@@ -18,6 +18,26 @@ return [
     | carry a lighter workload, so at least one is reserved per semester whenever
     | one is actually available.
     */
+    /*
+    | Semester load.
+    |
+    | `max_hard_courses` counts courses with difficulty ≥ 4 — and in this database
+    | virtually every course still carries the default 3, so that cap never fired and
+    | three or four advanced specialisation courses could share one term. The budget
+    | below is measured in App\Support\CourseLoad units (one ordinary 3-hour
+    | first-year course ≈ 1.0) and is derived from real signals: the actual failure
+    | rate from course_user, the course level, its prerequisite depth, its hours and
+    | whether it is an online requirement.
+    |
+    | `min_hours_before_relaxing` stops the cap from producing a 6-hour term for a
+    | student whose remaining plan is simply all heavy: below that many hours the
+    | budget yields and the term is filled anyway, with the load reported honestly.
+    */
+    'load' => [
+        'demanding_threshold' => 1.5,
+        'min_hours_before_relaxing' => 9,
+    ],
+
     'balance' => [
         'university_types' => ['university_req', 'university_elective'],
         'min_university_courses' => (int) env('PLANNER_MIN_UNIVERSITY_COURSES', 1),
@@ -30,6 +50,7 @@ return [
             'label' => 'التخرج بأسرع وقت',
             'target_load' => 'maximum',
             'max_hard_courses' => 4,
+            'max_load' => 5.6,
             'weights' => [
                 'direct_unlocks' => 8,
                 'path_unlocks' => 5,
@@ -43,6 +64,7 @@ return [
             'label' => 'رفع المعدل',
             'target_load' => 'moderate',
             'max_hard_courses' => 2,
+            'max_load' => 3.4,
             'weights' => [
                 'direct_unlocks' => 3,
                 'path_unlocks' => 2,
@@ -56,6 +78,7 @@ return [
             'label' => 'تقليل الضغط الدراسي',
             'target_load' => 'light',
             'max_hard_courses' => 1,
+            'max_load' => 2.8,
             'weights' => [
                 'direct_unlocks' => 3,
                 'path_unlocks' => 2,
@@ -69,6 +92,7 @@ return [
             'label' => 'موازنة المعدل وسرعة التخرج',
             'target_load' => 'balanced',
             'max_hard_courses' => 2,
+            'max_load' => 4.2,
             'weights' => [
                 'direct_unlocks' => 6,
                 'path_unlocks' => 4,
