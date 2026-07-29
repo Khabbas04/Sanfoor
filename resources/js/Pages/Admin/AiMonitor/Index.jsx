@@ -519,6 +519,19 @@ export default function AiMonitorIndex({ auth, initialMetrics }) {
                     </Card>
                 )}
 
+                {/* The server could not build the payload. Showing why beats an
+                    error page that says nothing. */}
+                {metrics?.unavailable && (
+                    <Card className="mb-4 border-red-200 bg-red-50 dark:border-red-900/60 dark:bg-red-950/30">
+                        <p className="text-[11.5px] font-black text-red-700 dark:text-red-400">تعذّر حساب المقاييس</p>
+                        <p className="mt-1 font-mono text-[10px] font-bold text-red-600 dark:text-red-400">{metrics.error}</p>
+                        <p className="mt-2 text-[10px] font-bold text-red-600/80 dark:text-red-400/80">
+                            تأكّد من تنفيذ <span className="font-mono">php artisan migrate</span> ثم
+                            <span className="font-mono"> optimize:clear</span>.
+                        </p>
+                    </Card>
+                )}
+
                 {metrics && !metrics.logging_enabled && (
                     <Card className="mb-4 border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30">
                         <p className="text-[11px] font-black text-amber-800 dark:text-amber-400">
@@ -604,7 +617,7 @@ export default function AiMonitorIndex({ auth, initialMetrics }) {
                 </Card>
 
                 {/* Overview + health */}
-                {!metrics ? (
+                {!metrics || !metrics.overview ? (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                         {Array.from({ length: 12 }, (_, i) => <Skeleton key={i} className="h-[76px]" />)}
                     </div>

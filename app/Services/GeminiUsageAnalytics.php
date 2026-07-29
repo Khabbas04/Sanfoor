@@ -113,9 +113,9 @@ class GeminiUsageAnalytics
 
         $today = ApiKeyUsageLog::whereDate('created_at', today())
             ->selectRaw('COUNT(*) as requests')
-            ->selectRaw('SUM(CASE WHEN success = 0 OR success = false THEN 1 ELSE 0 END) as failed')
+            ->selectRaw('SUM(CASE WHEN success THEN 0 ELSE 1 END) as failed')
             ->selectRaw('SUM(total_tokens) as tokens')
-            ->selectRaw('AVG(CASE WHEN success = 1 OR success = true THEN latency_ms END) as avg_latency')
+            ->selectRaw('AVG(CASE WHEN success THEN latency_ms ELSE NULL END) as avg_latency')
             ->first();
 
         return [
@@ -207,8 +207,8 @@ class GeminiUsageAnalytics
             ->selectRaw('SUM(total_tokens) as tokens')
             ->selectRaw('SUM(input_tokens) as input_tokens')
             ->selectRaw('SUM(output_tokens) as output_tokens')
-            ->selectRaw('SUM(CASE WHEN success = 1 OR success = true THEN 1 ELSE 0 END) as ok')
-            ->selectRaw('AVG(CASE WHEN success = 1 OR success = true THEN latency_ms END) as avg_latency')
+            ->selectRaw('SUM(CASE WHEN success THEN 1 ELSE 0 END) as ok')
+            ->selectRaw('AVG(CASE WHEN success THEN latency_ms ELSE NULL END) as avg_latency')
             ->first();
 
         $requests = (int) ($row->requests ?? 0);
@@ -324,8 +324,8 @@ class GeminiUsageAnalytics
             $today = (clone $base)->whereDate('created_at', today())
                 ->selectRaw('COUNT(*) as requests')
                 ->selectRaw('SUM(total_tokens) as tokens')
-                ->selectRaw('SUM(CASE WHEN success = 1 OR success = true THEN 1 ELSE 0 END) as ok')
-                ->selectRaw('AVG(CASE WHEN success = 1 OR success = true THEN latency_ms END) as avg_latency')
+                ->selectRaw('SUM(CASE WHEN success THEN 1 ELSE 0 END) as ok')
+                ->selectRaw('AVG(CASE WHEN success THEN latency_ms ELSE NULL END) as avg_latency')
                 ->first();
 
             $requests = (int) ($today->requests ?? 0);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\GeminiUsageAnalytics;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 /**
@@ -27,7 +28,7 @@ class GeminiMonitorController extends Controller
         return Inertia::render('Admin/AiMonitor/Index', [
             // The first paint ships with data so the page is useful before the
             // polling loop has had a chance to run.
-            'initialMetrics' => app(GeminiUsageAnalytics::class)->dashboard($this->filters($request)),
+            'initialMetrics' => $this->safeDashboard($request),
         ]);
     }
 
@@ -36,7 +37,46 @@ class GeminiMonitorController extends Controller
     {
         $this->authorizeAdmin();
 
-        return response()->json(app(GeminiUsageAnalytics::class)->dashboard($this->filters($request)));
+        return response()->json($this->safeDashboard($request));
+    }
+
+    /**
+     * Build the payload, or report why it could not be built.
+     *
+     * A monitoring page that returns 500 is the one page you cannot afford to
+     * lose: it is where an admin looks when something else is already broken. So a
+     * failure here becomes a message inside the dashboard, with the reason, rather
+     * than an error page with none.
+     */
+    private function safeDashboard(Request $request): array
+    {
+        $filters = $this->filters($request);
+
+        try {
+            return app(GeminiUsageAnalytics::class)->dashboard($filters);
+        } catch (\Throwable $e) {
+            Log::error('Gemini monitor metrics failed: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
+            return [
+                'unavailable' => true,
+                'error' => class_basename($e) . ': ' . mb_substr($e->getMessage(), 0, 300),
+                'logging_enabled' => (bool) config('gemini.usage_logging', true),
+                'has_history' => false,
+                'generated_at' => now()->toISOString(),
+                'thresholds' => config('gemini.thresholds'),
+                'filters' => $filters,
+                'available_models' => [],
+                'overview' => null,
+                'health' => null,
+                'models' => [],
+                'keys' => [],
+                'charts' => null,
+            ];
+        }
     }
 
     /**

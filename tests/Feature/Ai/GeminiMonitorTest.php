@@ -441,6 +441,54 @@ class GeminiMonitorTest extends AdvisorTestCase
         $this->assertTrue(ApiKeyUsageLog::firstOrFail()->created_at->gt(now()->subDays(30)));
     }
 
+    /**
+     * The aggregates must run on Postgres too.
+     *
+     * Production is pgsql while the suite runs on sqlite, and `success = 1` — legal
+     * in MySQL and SQLite — makes Postgres abort with "operator does not exist:
+     * boolean = integer", which took the whole page down with a 500. A bare boolean
+     * column is a valid condition on all three, so the comparison must not come back.
+     */
+    public function test_boolean_aggregates_stay_portable_across_drivers(): void
+    {
+        $source = file_get_contents(app_path('Services/GeminiUsageAnalytics.php'));
+
+        $this->assertDoesNotMatchRegularExpression(
+            '/success\s*=\s*(0|1|true|false)/i',
+            $source,
+            'Compare the boolean column directly (CASE WHEN success …) instead of against a literal.'
+        );
+    }
+
+    /** A monitoring page must report a failure, not become one. */
+    public function test_a_metrics_failure_degrades_into_a_message(): void
+    {
+        [$admin] = $this->student('admin@example.com', ['role' => 'admin']);
+
+        $this->app->bind(GeminiUsageAnalytics::class, fn () => new class extends GeminiUsageAnalytics {
+            public function __construct() {}
+
+            public function dashboard(array $filters = []): array
+            {
+                throw new \RuntimeException('boolean = integer');
+            }
+        });
+
+        $response = $this->actingAs($admin)
+            ->getJson(route('admin.ai_monitor.metrics'))
+            ->assertOk();
+
+        $this->assertTrue($response->json('unavailable'));
+        $this->assertStringContainsString('boolean = integer', $response->json('error'));
+        $this->assertNull($response->json('overview'));
+
+        // And the page itself still renders.
+        $this->actingAs($admin)
+            ->get(route('admin.ai_monitor'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('initialMetrics.unavailable', true));
+    }
+
     /** The legacy endpoint the settings tab uses must keep working. */
     public function test_the_legacy_key_status_endpoint_still_works(): void
     {
