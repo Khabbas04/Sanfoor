@@ -2174,66 +2174,6 @@ export default function Advisor() {
                 </div>
             )}
 
-            {/* Floating Video Help Button */}
-            <button
-                onClick={() => setShowVideo(true)}
-                className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 group flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-emerald-600 text-white rounded-full shadow-[0_10px_25px_-5px_rgba(16,185,129,0.5)] hover:shadow-[0_15px_35px_-5px_rgba(16,185,129,0.6)] hover:scale-110 hover:-translate-y-1 transition-all duration-300"
-                style={{ direction: 'rtl' }}
-            >
-                <div className="absolute inset-0 rounded-full bg-emerald-400 blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300"></div>
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5 relative z-10" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z" /></svg>
-                
-                {/* Tooltip */}
-                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-slate-900 text-white text-[11px] sm:text-sm font-bold rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap translate-x-2 group-hover:translate-x-0 shadow-xl hidden sm:block">
-                    كيف تستخدم الذكاء الاصطناعي؟
-                    <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
-                </div>
-            </button>
-
-            {/* Video Modal */}
-            {showVideo && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 font-t" style={{ direction: 'rtl' }}>
-                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onClick={() => setShowVideo(false)}></div>
-                    <div className="relative z-10 w-full max-w-5xl bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-700 overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900">
-                            <h3 className="text-lg font-black text-white">دليل المرشد الذكي</h3>
-                            <button onClick={() => setShowVideo(false)} className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
-                        <div className="p-4 sm:p-6 bg-black" dir="ltr">
-                            <React.Suspense fallback={<div className="h-64 flex items-center justify-center bg-slate-900"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-                                <VideoPlayer
-                                    source={{
-                                        type: 'video',
-                                        title: 'AI Tutorial',
-                                        sources: [
-                                            {
-                                                src: '/videos/ai-demo.mp4',
-                                                type: 'video/mp4',
-                                            }
-                                        ],
-                                        tracks: [
-                                            {
-                                                kind: 'chapters',
-                                                label: 'Chapters',
-                                                srclang: 'ar',
-                                                src: '/videos/ai-chapters.vtt',
-                                                default: true,
-                                            }
-                                        ]
-                                    }}
-                                    chapters={[
-                                        { title: 'كيف اعمل جدول ؟', startTime: 0 },
-                                        { title: 'تقييم الجدول', startTime: 33 }
-                                    ]}
-                                />
-                            </React.Suspense>
-                        </div>
-                    </div>
-                </div>
-            )}
-
         </MainLayout>
     );
 }
