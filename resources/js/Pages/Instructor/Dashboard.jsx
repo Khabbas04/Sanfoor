@@ -149,11 +149,9 @@ export default function InstructorDashboard({
 
                         <div className="relative z-10 p-6 sm:p-8 lg:p-10">
                             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-                                <div className="relative group shrink-0">
-                                    <div className="absolute -inset-2 rounded-[1.4rem] opacity-0 group-hover:opacity-100" style={{ background: 'linear-gradient(135deg, #14b8a6, #06b6d4)', filter: 'blur(18px)', animation: 'sn-glow 3s ease-in-out infinite', transition: 'opacity 700ms ease' }} />
-                                    <div className="relative w-[78px] h-[78px] sm:w-[90px] sm:h-[90px] rounded-[1.3rem] p-[3px] overflow-hidden">
-                                        <div className="absolute inset-0" style={{ background: 'conic-gradient(from 0deg, #14b8a6, #06b6d4, #2dd4bf, #14b8a6)', animation: 'sn-rotate-border 5s linear infinite' }} />
-                                        <div className="relative w-full h-full bg-[#064e3b] rounded-[calc(1.3rem-3px)] flex items-center justify-center text-2xl sm:text-3xl font-[900] z-10 select-none overflow-hidden">
+                                <div className="relative shrink-0">
+                                    <div className="relative w-[78px] h-[78px] sm:w-[90px] sm:h-[90px] rounded-[1.3rem] overflow-hidden border-2 border-white/20 shadow-md">
+                                        <div className="relative w-full h-full bg-[#064e3b] flex items-center justify-center text-2xl sm:text-3xl font-[900] z-10 select-none">
                                             {auth.user?.avatar ? (
                                                 <img src={auth.user.avatar} alt={auth.user.name} className="w-full h-full object-cover" />
                                             ) : (
