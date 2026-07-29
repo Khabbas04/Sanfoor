@@ -7,6 +7,7 @@ use App\Engines\ValidationEngine;
 use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Models\User;
+use App\Support\CourseAdvantages;
 use App\Support\CourseEligibility;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -106,7 +107,13 @@ class AcademicPathPlannerService
                 break;
             }
 
-            $semesterCourses = $selected->map(fn (array $item) => $this->courseResult($item))->values()->all();
+            // The student's own position in the plan, so a course can be described
+            // as late relative to where they actually are.
+            $studentSemester = (int) ($rules['student_semester'] ?? 0);
+            $semesterCourses = $selected
+                ->map(fn (array $item) => $this->courseResult($item + ['student_semester' => $studentSemester]))
+                ->values()
+                ->all();
             $semesterHours = (int) $selected->sum(fn (array $item) => $item['course']->credit_hours);
             $hardCount = $selected->filter(fn (array $item) => $this->isHard($item['course']))->count();
 
@@ -276,16 +283,45 @@ class AcademicPathPlannerService
         $hours = 0;
         $hardCount = 0;
 
+        // Reserve the university requirements FIRST.
+        //
+        // Taking purely by score fills the term with specialisation courses, since
+        // those unlock the most and therefore rank highest — and a semester of five
+        // major courses is the schedule that breaks a student. University
+        // requirements here are online and lighter, so they go in before the greedy
+        // pass rather than competing with courses that will always outscore them.
+        foreach ($this->reserveUniversityCourses($ranked, $targetHours) as $item) {
+            $selected->push($item);
+            $hours += (int) $item['course']->credit_hours;
+            $hardCount += $this->isHard($item['course']) ? 1 : 0;
+        }
+
+        $reservedIds = $selected->map(fn (array $item) => (int) $item['course']->id)->all();
+        $universityCount = count($reservedIds);
+        // The rule cuts both ways: a term of five online requirements is no more a
+        // plan than a term of five specialisation courses.
+        $maxUniversity = max(1, (int) config('academic_path_planner.balance.max_university_courses', 2));
+
         foreach ($ranked as $item) {
             $course = $item['course'];
-            $courseHours = (int) $course->credit_hours;
-            $hard = $this->isHard($course);
-            if ($hours + $courseHours > $targetHours || ($hard && $hardCount >= $maxHardCourses)) {
+            if (in_array((int) $course->id, $reservedIds, true)) {
                 continue;
             }
+
+            $courseHours = (int) $course->credit_hours;
+            $hard = $this->isHard($course);
+            $isUniversity = $this->isUniversityCourse($course);
+
+            if ($hours + $courseHours > $targetHours
+                || ($hard && $hardCount >= $maxHardCourses)
+                || ($isUniversity && $universityCount >= $maxUniversity)) {
+                continue;
+            }
+
             $selected->push($item);
             $hours += $courseHours;
             $hardCount += $hard ? 1 : 0;
+            $universityCount += $isUniversity ? 1 : 0;
         }
 
         if ($selected->isEmpty() && $ranked->isNotEmpty()) {
@@ -298,6 +334,59 @@ class AcademicPathPlannerService
         return $selected;
     }
 
+    /**
+     * The best-scoring university requirements that fit inside the term.
+     *
+     * Only what actually exists is reserved: a student with none left in their plan
+     * gets an unchanged, purely score-ranked semester rather than an empty slot.
+     *
+     * @return list<array>
+     */
+    private function reserveUniversityCourses(Collection $ranked, int $targetHours): array
+    {
+        $balance = (array) config('academic_path_planner.balance', []);
+        $minimum = (int) ($balance['min_university_courses'] ?? 0);
+
+        if ($minimum < 1) {
+            return [];
+        }
+
+        $types = (array) ($balance['university_types'] ?? []);
+        $maximum = max($minimum, (int) ($balance['max_university_courses'] ?? $minimum));
+
+        $reserved = [];
+        $hours = 0;
+
+        foreach ($ranked as $item) {
+            if (count($reserved) >= min($minimum, $maximum)) {
+                break;
+            }
+            if (!in_array((string) $item['course']->type, $types, true)) {
+                continue;
+            }
+
+            $courseHours = (int) $item['course']->credit_hours;
+            // A single requirement must never consume the whole term on its own.
+            if ($courseHours < 1 || $hours + $courseHours > $targetHours) {
+                continue;
+            }
+
+            $reserved[] = $item;
+            $hours += $courseHours;
+        }
+
+        return $reserved;
+    }
+
+    private function isUniversityCourse(Course $course): bool
+    {
+        return in_array(
+            (string) $course->type,
+            (array) config('academic_path_planner.balance.university_types', []),
+            true
+        );
+    }
+
     private function courseResult(array $item): array
     {
         /** @var Course $course */
@@ -305,19 +394,22 @@ class AcademicPathPlannerService
         $direct = $item['direct_unlocks'];
         $path = $item['path_unlocks'];
         $priority = $path >= 5 || $direct >= 4 ? 'critical' : ($path >= 3 || $direct >= 2 ? 'high' : 'normal');
-        $reasons = [];
-        if ($direct > 0) {
-            $reasons[] = "تفتح {$direct} مواد مباشرة";
-        }
-        if ($path > $direct) {
-            $reasons[] = "تؤثر في مسار يصل إلى {$path} مواد";
-        }
-        if (in_array($course->type, ['compulsory', 'supporting'], true)) {
-            $reasons[] = 'مادة أساسية ضمن الخطة';
-        }
-        if (!$reasons) {
-            $reasons[] = 'متاحة الآن ومناسبة لتقدمك الحالي';
-        }
+
+        // What makes THIS course worth taking, in terms the student can compare.
+        // The old list said "مادة أساسية ضمن الخطة" about half the plan, which is
+        // true and useless — it cannot help anyone choose between two options.
+        $advantages = CourseAdvantages::for([
+            'name' => $course->name,
+            'type' => $course->type,
+            'credit_hours' => (int) $course->credit_hours,
+            'difficulty_level' => (int) ($course->difficulty_level ?: 3),
+            'unlocks' => $direct,
+            'path_unlocks' => $path,
+            'unlocks_courses' => $course->children->take(3)->pluck('name')->all(),
+            'course_semester' => $course->semester,
+        ], ['student_semester' => $item['student_semester'] ?? 0]);
+
+        $reasons = array_map(fn (array $advantage) => $advantage['text'], $advantages);
 
         return [
             'id' => (int) $course->id,
@@ -329,6 +421,9 @@ class AcademicPathPlannerService
             'priority_score' => $item['score'],
             'reason' => $reasons[0],
             'reasons' => array_slice($reasons, 0, 3),
+            // Same facts with their icons, for a UI that shows them as chips rather
+            // than hiding them behind an expander.
+            'advantages' => $advantages,
             'unlocks' => [
                 'direct_count' => $direct,
                 'total_path_count' => $path,

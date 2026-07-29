@@ -283,6 +283,9 @@ class AiWidgetBuilder
                 'difficulty' => (int) ($course['difficulty_level'] ?? 3),
                 'priority' => $course['priority'] ?? null,
                 'reason' => $course['reason'] ?? null,
+                // What sets this course apart, so the student can compare the rows
+                // instead of trusting the order they are in.
+                'advantages' => $course['advantages'] ?? [],
             ];
         }
 

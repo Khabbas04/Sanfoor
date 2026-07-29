@@ -142,8 +142,9 @@ class AdvisorIntentIntegrationTest extends AdvisorTestCase
             $pivotalAt,
             'A course that unlocks four others must be ranked above an isolated elective.'
         );
-        // The unlock count itself is now visible to the model.
-        $this->assertStringContainsString('يفتح 4 مواد', $prompt);
+        // The unlock count itself is now visible to the model, by name.
+        $this->assertStringContainsString('تفتح لك 4 مواد لاحقة', $prompt);
+        $this->assertStringContainsString('مادة لاحقة 1', $prompt);
     }
 
     /** The GPA intents steer the ranking toward lighter courses. */

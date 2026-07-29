@@ -8,6 +8,23 @@ return [
     'default_summer_hours' => 9,
     'ai_analysis_enabled' => env('ACADEMIC_PATH_AI_ENABLED', true),
 
+    /*
+    | Semester balance.
+    |
+    | Ranking alone produces an all-major-courses semester, because major courses
+    | unlock the most and score highest — which is exactly the schedule an advisor
+    | would refuse: five specialisation courses at once is how a student loses a
+    | term. University requirements at this university are delivered online and
+    | carry a lighter workload, so at least one is reserved per semester whenever
+    | one is actually available.
+    */
+    'balance' => [
+        'university_types' => ['university_req', 'university_elective'],
+        'min_university_courses' => (int) env('PLANNER_MIN_UNIVERSITY_COURSES', 1),
+        // Never let the balance rule eat a whole light semester.
+        'max_university_courses' => 2,
+    ],
+
     'goals' => [
         'fastest_graduation' => [
             'label' => 'التخرج بأسرع وقت',

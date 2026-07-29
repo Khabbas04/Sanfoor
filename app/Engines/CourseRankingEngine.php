@@ -85,15 +85,62 @@ class CourseRankingEngine
                 'name' => $course['name'],
                 'score' => $score,
                 'course' => $course, // Keep original data
-                'reason' => $this->generateRankingReason($score, $unlocks, $type)
+                // The model needs material to differentiate with. A generic "خيار
+                // جيد جداً" on six courses gives it nothing to say beyond repeating
+                // the score, so the concrete advantages go into the prompt instead.
+                'reason' => \App\Support\CourseAdvantages::summary($course, [
+                    'student_semester' => (int) ($academicRules['student_semester'] ?? 0),
+                ]) ?: $this->generateRankingReason($score, $unlocks, $type),
+                'advantages' => \App\Support\CourseAdvantages::for($course, [
+                    'student_semester' => (int) ($academicRules['student_semester'] ?? 0),
+                ]),
             ];
         }
 
         // Sort by score descending
         usort($scoredCourses, fn($a, $b) => $b['score'] <=> $a['score']);
-        
-        // Return top N
-        return array_slice($scoredCourses, 0, $limit);
+
+        return $this->withBalancedMix(array_slice($scoredCourses, 0, $limit), $scoredCourses);
+    }
+
+    /**
+     * Make sure the shortlist is not all specialisation courses.
+     *
+     * Major courses unlock the most and score highest, so the top of the list is
+     * always specialisation — and a model handed nothing else can only propose an
+     * unbalanced term. University requirements here are online and lighter, so one
+     * is swapped in for the weakest entry when the shortlist has none.
+     *
+     * @param array $shortlist the top-N about to be shown
+     * @param array $all       every scored candidate
+     */
+    private function withBalancedMix(array $shortlist, array $all): array
+    {
+        $types = (array) config('academic_path_planner.balance.university_types', ['university_req', 'university_elective']);
+
+        $hasUniversity = fn (array $list) => collect($list)
+            ->contains(fn (array $entry) => in_array((string) ($entry['course']['type'] ?? ''), $types, true));
+
+        if ($shortlist === [] || $hasUniversity($shortlist)) {
+            return $shortlist;
+        }
+
+        $candidate = collect($all)->first(
+            fn (array $entry) => in_array((string) ($entry['course']['type'] ?? ''), $types, true)
+        );
+
+        if ($candidate === null) {
+            return $shortlist; // the student has none left to take
+        }
+
+        // Replace the weakest entry rather than growing the list: the prompt budget
+        // is fixed, and a longer list is not a better one.
+        array_pop($shortlist);
+        $shortlist[] = array_merge($candidate, [
+            'reason' => 'متطلب جامعة (أونلاين) — يوازن حمل الفصل مع مواد التخصص',
+        ]);
+
+        return $shortlist;
     }
     
     private function generateRankingReason(int $score, int $unlocks, string $type): string

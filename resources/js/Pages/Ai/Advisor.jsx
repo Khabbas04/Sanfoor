@@ -252,21 +252,38 @@ const CourseButton = ({ course, isAdded, isLoading, onToggle, variant = 'add' })
     if (!course || !course.id) return null;
     if (rm && !isAdded) return null;
     const tone = rm ? 'sfr-crow--remove' : isAdded ? 'sfr-crow--added' : 'sfr-crow--add';
+    // Only on the "add" side: what makes this course worth picking. On the remove
+    // side the student is dropping it, so its advantages are beside the point.
+    const advantages = !rm && Array.isArray(course.advantages) ? course.advantages : [];
+
     return (
-        <button
-            type="button"
-            onClick={() => onToggle(course.id, course.name, course.credit_hours)}
-            disabled={isLoading}
-            className={`sfr-crow ${tone} ${isLoading ? 'is-loading' : ''} sfr-fade-up`}
-            title={rm ? 'إزالة من التسجيل التجريبي' : isAdded ? 'إزالة من التسجيل التجريبي' : 'إضافة للتسجيل التجريبي'}
-        >
-            <span className="sfr-crow__mark">
-                {isLoading ? <span className="sfr-spin" /> : rm ? '🗑' : isAdded ? '✓' : '+'}
-            </span>
-            <span className="sfr-crow__name">{course.name}</span>
-            {course.credit_hours != null && <span className="sfr-crow__hours">{course.credit_hours} س</span>}
-            <span className="sfr-crow__cta">{rm ? 'إزالة' : isAdded ? 'في خطتك · إزالة' : 'إضافة'}</span>
-        </button>
+        <div className="sfr-fade-up">
+            <button
+                type="button"
+                onClick={() => onToggle(course.id, course.name, course.credit_hours)}
+                disabled={isLoading}
+                className={`sfr-crow ${tone} ${isLoading ? 'is-loading' : ''}`}
+                title={rm ? 'إزالة من التسجيل التجريبي' : isAdded ? 'إزالة من التسجيل التجريبي' : 'إضافة للتسجيل التجريبي'}
+            >
+                <span className="sfr-crow__mark">
+                    {isLoading ? <span className="sfr-spin" /> : rm ? '🗑' : isAdded ? '✓' : '+'}
+                </span>
+                <span className="sfr-crow__name">{course.name}</span>
+                {course.credit_hours != null && <span className="sfr-crow__hours">{course.credit_hours} س</span>}
+                <span className="sfr-crow__cta">{rm ? 'إزالة' : isAdded ? 'في خطتك · إزالة' : 'إضافة'}</span>
+            </button>
+
+            {advantages.length > 0 && (
+                <ul className="mb-1 mt-1 space-y-0.5 pe-2 ps-8">
+                    {advantages.map((advantage) => (
+                        <li key={advantage.key} className="flex items-start gap-1 text-[10px] font-bold leading-relaxed text-slate-500">
+                            <span className="shrink-0" aria-hidden="true">{advantage.icon}</span>
+                            <span>{advantage.text}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     );
 };
 

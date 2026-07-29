@@ -868,7 +868,7 @@ class AiAdvisorController extends Controller
         return [
             'reply' => $replyText,
             'suggested_courses' => !empty($suggestedIds)
-                ? Course::whereIn('id', $suggestedIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                ? $this->describeSuggestedCourses($suggestedIds, $ragData, $rules)
                 : [],
             'courses_to_remove' => !empty($removeIds)
                 ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
@@ -935,6 +935,38 @@ class AiAdvisorController extends Controller
             . ". المجموع بعد التطبيق: {$widget['total_hours']} من {$widget['hour_limit']} ساعة"
             . ($widget['cart_hours'] > 0 ? " (منها {$widget['cart_hours']} ساعة موجودة مسبقاً في سلته)" : '')
             . ". **ممنوع أن تقترح قائمة مواد مختلفة عن هذه، وممنوع أن تُعيد سردها كقائمة في نصك** — اشرح لماذا هذه الخطة مناسبة له بأسطر قصيرة، وذكّره أن أمامه زر لتطبيقها بنفسه.";
+    }
+
+    /**
+     * The suggested courses, each with the advantages that set it apart.
+     *
+     * A list of names and hours asks the student to trust the order; the point of
+     * advice is to give them the facts to choose with. The advantages come from
+     * their own plan data (what the course unlocks, whether it is late, how heavy
+     * it is), so the explanation cannot be invented.
+     *
+     * @param int[] $suggestedIds
+     */
+    private function describeSuggestedCourses(array $suggestedIds, array $ragData, array $rules): array
+    {
+        $courses = Course::whereIn('id', $suggestedIds)
+            ->select('id', 'name', 'code', 'credit_hours', 'description')
+            ->get()
+            ->toArray();
+
+        // The retrieval pool already carries the derived fields (unlock counts and
+        // names, plan semester), so no extra queries are needed here.
+        $pool = collect($ragData['available_courses'] ?? [])->keyBy('id');
+        $context = ['student_semester' => (int) ($rules['student_semester'] ?? 0)];
+
+        foreach ($courses as &$course) {
+            $details = $pool->get($course['id']);
+            $course['advantages'] = $details === null
+                ? []
+                : \App\Support\CourseAdvantages::for((array) $details, $context);
+        }
+
+        return $courses;
     }
 
     /** How many course ids the model proposed, across all three lists. */

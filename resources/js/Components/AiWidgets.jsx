@@ -165,7 +165,21 @@ const SemesterPlanWidget = ({ widget, onAction, actionState }) => {
                         <div key={course.course_id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-100 bg-slate-50/60 p-2">
                             <div className="min-w-0">
                                 <p className="truncate text-[11.5px] font-black text-slate-800">{course.name}</p>
-                                {course.reason && <p className="mt-0.5 text-[10px] font-bold leading-relaxed text-slate-500">{course.reason}</p>}
+                                {/* Why this course and not another one. Shown, not hidden
+                                    behind a tap: a list the student cannot compare is a
+                                    list they have to take on trust. */}
+                                {course.advantages?.length > 0 ? (
+                                    <ul className="mt-1 space-y-0.5">
+                                        {course.advantages.map((advantage) => (
+                                            <li key={advantage.key} className="flex items-start gap-1 text-[10px] font-bold leading-relaxed text-slate-500">
+                                                <span className="shrink-0">{advantage.icon}</span>
+                                                <span>{advantage.text}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    course.reason && <p className="mt-0.5 text-[10px] font-bold leading-relaxed text-slate-500">{course.reason}</p>
+                                )}
                             </div>
                             <div className="flex shrink-0 flex-col items-end gap-1">
                                 <Chip>{course.credit_hours}س</Chip>

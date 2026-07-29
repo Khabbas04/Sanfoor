@@ -142,7 +142,28 @@ function CourseCard({ course, index }) {
                         <span className={`rounded-lg px-2 py-1 text-[10px] font-black ${priorityClass}`}>أولوية {priorityLabel[course.priority]}</span>
                     </div>
                     <p className="mt-1 text-xs font-bold text-slate-400" dir="ltr">{course.code} · {course.credit_hours} ساعات</p>
-                    <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">{course.ai_explanation || course.reason}</p>
+
+                    {/* The advantages are shown up front rather than only inside the
+                        expander below: the student is choosing between these courses,
+                        and a difference they have to click to find does not inform
+                        the choice. */}
+                    {course.advantages?.length > 0 ? (
+                        <ul className="mt-2 space-y-1">
+                            {course.advantages.map((advantage) => (
+                                <li key={advantage.key} className="flex items-start gap-1.5 text-xs font-bold leading-6 text-slate-600 dark:text-slate-300">
+                                    <span className="shrink-0" aria-hidden="true">{advantage.icon}</span>
+                                    <span>{advantage.text}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="mt-2 text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">{course.ai_explanation || course.reason}</p>
+                    )}
+
+                    {/* Sanfoor's own take stays separate from the computed facts. */}
+                    {course.advantages?.length > 0 && course.ai_explanation && (
+                        <p className="mt-2 text-xs font-bold leading-6 text-violet-700 dark:text-violet-300">💡 {course.ai_explanation}</p>
+                    )}
                 </div>
             </div>
 
