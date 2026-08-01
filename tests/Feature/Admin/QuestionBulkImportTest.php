@@ -5,11 +5,97 @@ namespace Tests\Feature\Admin;
 use App\Models\Chapter;
 use App\Models\Question;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Tests\Feature\Ai\AdvisorTestCase;
+use Tests\Support\FakeGeminiService;
 
 class QuestionBulkImportTest extends AdvisorTestCase
 {
+    public function test_structured_text_is_parsed_locally_even_when_gemini_is_unavailable(): void
+    {
+        [$student, $major] = $this->student('question-local-parser@example.com');
+        $course = $this->course($major, ['is_quiz_only' => true, 'name' => 'شبكات الحاسوب', 'code' => 'NET101']);
+        $chapter = Chapter::create(['course_id' => $course->id, 'title' => 'طبقات الشبكة', 'order' => 1, 'is_active' => true]);
+        $admin = $this->admin('question-local-parser-admin@example.com');
+        $fake = $this->fakeGemini([FakeGeminiService::FAIL]);
+
+        $source = <<<'TEXT'
+1. ما وظيفة طبقة النقل؟
+A) عرض الصور
+B) نقل البيانات بين التطبيقات
+C) تخزين الملفات
+D) تشغيل الشاشة
+الإجابة: B
+الشرح: توفّر طبقة النقل اتصالاً بين تطبيقات الطرفين.
+
+2. Which protocol resolves domain names?
+A) HTTP
+B) FTP
+C) DNS
+D) SMTP
+Answer: C
+Difficulty: medium
+TEXT;
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.questions.bulk.analyze'), [
+                'chapter_id' => $chapter->id,
+                'source_text' => $source,
+            ])
+            ->assertOk()
+            ->assertJsonPath('analysis.mode', 'local')
+            ->assertJsonPath('analysis.provider_required', false)
+            ->assertJsonCount(2, 'questions')
+            ->assertJsonPath('questions.0.correct_option', 'a')
+            ->assertJsonPath('questions.0.option_a', 'نقل البيانات بين التطبيقات')
+            ->assertJsonPath('questions.1.correct_option', 'c')
+            ->assertJsonPath('questions.1.option_c', 'DNS');
+
+        $this->assertCount(0, $fake->calls);
+    }
+
+    public function test_unstructured_source_returns_recoverable_format_guidance_when_ai_fails(): void
+    {
+        [$student, $major] = $this->student('question-local-recovery@example.com');
+        $course = $this->course($major, ['is_quiz_only' => true]);
+        $chapter = Chapter::create(['course_id' => $course->id, 'title' => 'مصدر غامض', 'order' => 1, 'is_active' => true]);
+        $admin = $this->admin('question-local-recovery-admin@example.com');
+        $this->fakeGemini([FakeGeminiService::FAIL]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.questions.bulk.analyze'), [
+                'chapter_id' => $chapter->id,
+                'source_text' => 'هذه ملاحظات عامة بلا أسئلة أو إجابات محددة.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'لم تتعرف الخوارزمية المحلية على أسئلة مكتملة، والتحليل الذكي غير متاح حالياً. استخدم لكل سؤال: النص، ثم A/B/C/D، ثم «الإجابة: B»؛ أو ارفع CSV/JSON بالأعمدة الموضحة.');
+    }
+
+    public function test_csv_with_arabic_headers_is_mapped_by_the_local_parser(): void
+    {
+        [$student, $major] = $this->student('question-local-csv@example.com');
+        $course = $this->course($major, ['is_quiz_only' => true]);
+        $chapter = Chapter::create(['course_id' => $course->id, 'title' => 'CSV', 'order' => 1, 'is_active' => true]);
+        $admin = $this->admin('question-local-csv-admin@example.com');
+        $fake = $this->fakeGemini([FakeGeminiService::FAIL]);
+        $csv = "السؤال;الخيار أ;الخيار ب;الخيار ج;الخيار د;الإجابة الصحيحة;الشرح;الصعوبة\n"
+            .'ما ناتج 3 + 3؟;5;6;7;8;ب;لأن مجموع العددين يساوي ستة.;سهل';
+
+        $this->actingAs($admin)
+            ->post(route('admin.questions.bulk.analyze'), [
+                'chapter_id' => $chapter->id,
+                'file' => UploadedFile::fake()->createWithContent('questions.csv', $csv),
+            ], ['Accept' => 'application/json'])
+            ->assertOk()
+            ->assertJsonPath('analysis.mode', 'local')
+            ->assertJsonPath('questions.0.correct_option', 'a')
+            ->assertJsonPath('questions.0.option_a', '6')
+            ->assertJsonPath('questions.0.difficulty', 'easy');
+
+        $this->assertCount(0, $fake->calls);
+    }
+
     public function test_ai_analysis_builds_an_editable_balanced_preview_and_excludes_duplicates(): void
     {
         [$student, $major] = $this->student('question-source@example.com');

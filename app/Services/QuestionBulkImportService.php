@@ -15,15 +15,37 @@ class QuestionBulkImportService
 
     private const OPTION_KEYS = ['a', 'b', 'c', 'd'];
 
-    public function __construct(private readonly GeminiService $gemini) {}
+    public function __construct(
+        private readonly GeminiService $gemini,
+        private readonly QuestionSourceParser $localParser,
+    ) {}
 
     /**
-     * @return array{questions: array<int, array<string, mixed>>, warnings: array<int, string>, summary: array<string, int>}
+     * @return array{questions: array<int, array<string, mixed>>, warnings: array<int, string>, summary: array<string, int>, analysis: array<string, mixed>}
      */
     public function analyze(Chapter $chapter, ?UploadedFile $file, ?string $sourceText): array
     {
         $chapter->loadMissing('course:id,name,code,is_quiz_only');
         abort_unless($chapter->course && $chapter->course->is_quiz_only, 422, 'الشابتر المحدد لا يتبع مادة مفعلة للاختبارات.');
+
+        $local = $this->localParser->parse($file, $sourceText);
+        if ($local['questions'] !== []) {
+            $preview = $this->preparePreview($chapter, [
+                'questions' => $local['questions'],
+                'warnings' => array_merge([
+                    'تم التحليل بالخوارزمية المحلية دون الاعتماد على Gemini. راجع المعاينة ثم احفظ ما يناسبك.',
+                ], $local['warnings']),
+            ]);
+
+            return array_merge($preview, [
+                'analysis' => [
+                    'mode' => 'local',
+                    'label' => 'تحليل محلي',
+                    'provider_required' => false,
+                    'source_type' => $local['source_type'],
+                ],
+            ]);
+        }
 
         $parts = [['text' => $this->analysisPrompt($chapter)]];
         $trimmedText = trim((string) $sourceText);
@@ -69,7 +91,11 @@ class QuestionBulkImportService
             ]);
         } catch (\Throwable $e) {
             report($e);
-            throw new RuntimeException('تعذر تحليل الملف بالذكاء الاصطناعي حالياً. تحقق من مفاتيح Gemini أو جرّب ملفاً أصغر.', previous: $e);
+            $recovery = $local['attempted']
+                ? 'لم تتعرف الخوارزمية المحلية على أسئلة مكتملة، والتحليل الذكي غير متاح حالياً. استخدم لكل سؤال: النص، ثم A/B/C/D، ثم «الإجابة: B»؛ أو ارفع CSV/JSON بالأعمدة الموضحة.'
+                : 'تعذر التحليل البصري حالياً. جرّب PDF يحتوي نصاً قابلاً للتحديد، أو الصق نص الأسئلة مع A/B/C/D و«الإجابة: B» ليعمل التحليل المحلي دون Gemini.';
+
+            throw new RuntimeException($recovery, previous: $e);
         }
 
         $parsed = $this->gemini->parseJsonResponse($raw);
@@ -77,7 +103,16 @@ class QuestionBulkImportService
             throw new RuntimeException('لم يستطع النظام استخراج أسئلة واضحة. استخدم نموذجاً يحتوي على السؤال والإجابة بشكل صريح.');
         }
 
-        return $this->preparePreview($chapter, $parsed);
+        $preview = $this->preparePreview($chapter, $parsed);
+
+        return array_merge($preview, [
+            'analysis' => [
+                'mode' => 'ai',
+                'label' => 'تحليل ذكي',
+                'provider_required' => true,
+                'source_type' => $local['source_type'],
+            ],
+        ]);
     }
 
     /**

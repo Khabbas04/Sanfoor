@@ -116,7 +116,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-slate-200';
     const heading = isDark ? 'text-slate-100' : 'text-slate-800';
     const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
-    const inputCls = `w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition-all focus:ring-2 focus:ring-indigo-500/30 ${isDark ? 'bg-slate-900/60 border-slate-700 text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`;
+    const inputCls = `min-h-11 w-full rounded-xl border px-4 py-3 text-base font-bold outline-none transition-all focus:ring-2 focus:ring-indigo-500/30 sm:text-sm ${isDark ? 'bg-slate-900/60 border-slate-700 text-white placeholder:text-slate-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`;
 
     const { data, setData, post, put, processing, reset, errors } = useForm({
         course_name: '',
@@ -212,7 +212,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                     {[
                         { label: t.totalQuestions, value: stats.total || 0, colorClass: 'text-indigo-500', Icon: ListChecks },
                         { label: t.easy, value: stats.easy || 0, colorClass: 'text-emerald-500', Icon: Sprout },
@@ -229,7 +229,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
                 {/* Filters */}
                 <div className={`rounded-2xl border p-4 ${card}`}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         <select value={filters.course_id || ''} onChange={e => applyFilter({ course_id: e.target.value })} className={inputCls}>
                             <option value="">{t.selectCourse}</option>
                             {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -255,23 +255,23 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
                 {/* Create / Edit Form */}
                 {showForm && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm overflow-y-auto">
-                        <div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl my-8 transition-all scale-100 ${card}`}>
+                    <div className="fixed inset-0 z-50 flex min-h-dvh items-stretch justify-center overflow-y-auto bg-slate-950/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+                        <div className={`my-0 min-h-dvh w-full max-w-2xl rounded-none border p-4 shadow-2xl transition-all sm:my-8 sm:min-h-0 sm:rounded-2xl sm:p-6 ${card}`}>
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="flex items-center justify-between">
                                     <h3 className={`flex items-center gap-2 text-[15px] font-[900] ${heading}`}>{editingId ? <Pencil className="size-4" /> : <Plus className="size-4" />}{editingId ? t.update : t.addQuestion}</h3>
                                     <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="flex size-11 cursor-pointer items-center justify-center rounded-xl opacity-60 transition hover:bg-slate-100 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:hover:bg-white/5" aria-label={t.cancel}><X className="size-5" /></button>
                                 </div>
                                 {Object.keys(errors).length > 0 && (
-                                    <div className="bg-rose-500/10 border border-rose-500/50 text-rose-500 p-4 rounded-xl text-xs font-bold font-mono text-left" dir="ltr">
-                                        <p className="mb-2 uppercase text-rose-600">Validation Errors:</p>
-                                        <pre className="whitespace-pre-wrap">{JSON.stringify(errors, null, 2)}</pre>
+                                    <div role="alert" className="rounded-xl border border-rose-500/50 bg-rose-500/10 p-4 text-xs font-bold text-rose-600">
+                                        <p className="mb-2 font-black">راجع الحقول التالية:</p>
+                                        <ul className="list-inside list-disc space-y-1">{Object.values(errors).map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
                                     </div>
                                 )}
 
                         {/* Course selection toggle */}
                         {!editingId && courses.length > 0 && (
-                            <div className="flex gap-3 mb-2 px-1">
+                            <div className="mb-2 grid grid-cols-1 gap-2 px-1 sm:grid-cols-2">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -280,7 +280,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                         setData('course_code', '');
                                         setData('college_id', '');
                                     }}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                    className={`min-h-11 px-4 py-2 rounded-xl text-xs font-black transition-all ${!isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                                 >
                                     {lang === 'ar' ? 'اختر مادة موجودة' : 'Select Existing Course'}
                                 </button>
@@ -292,7 +292,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                         setData('course_code', '');
                                         setData('college_id', '');
                                     }}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
+                                    className={`min-h-11 px-4 py-2 rounded-xl text-xs font-black transition-all ${isNewCourse ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white shadow-md' : (isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')}`}
                                 >
                                     {lang === 'ar' ? 'إنشاء مادة جديدة' : 'Create New Course'}
                                 </button>
@@ -300,7 +300,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         )}
 
                         {/* Row 1: Course Name, Course Code, Chapter Title, Difficulty */}
-                        <div className={`grid grid-cols-1 sm:grid-cols-4 gap-4`}>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <div className="sm:col-span-1">
                                 <label className={`text-[11px] font-black block mb-1.5 ${subtext}`}>{t.course} *</label>
                                 {!isNewCourse && !editingId ? (
@@ -382,7 +382,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                     {['easy', 'medium', 'hard'].map(d => {
                                         const b = diffBadge(d);
                                         return (
-                                            <button key={d} type="button" onClick={() => setData('difficulty', d)} className={`flex-1 py-2.5 rounded-xl text-[11px] font-[800] border transition-all ${data.difficulty === d ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white border-sky-400 shadow-md' : (isDark ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200')}`}>
+                                            <button key={d} type="button" onClick={() => setData('difficulty', d)} className={`min-h-11 flex-1 py-2.5 rounded-xl text-[11px] font-[800] border transition-all ${data.difficulty === d ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white border-sky-400 shadow-md' : (isDark ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200')}`}>
                                                 <span className="inline-flex items-center justify-center gap-1.5"><b.Icon className="size-3.5" /> {b.label}</span>
                                             </button>
                                         );
@@ -405,8 +405,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 {['a', 'b', 'c', 'd'].map(opt => (
                                     <div key={opt} className={`flex gap-2 items-center p-1 rounded-xl border transition-all ${data.correct_option === opt ? (isDark ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-emerald-400 bg-emerald-50/50') : (isDark ? 'border-slate-700' : 'border-slate-200')}`}>
                                         <span className={`w-8 text-center text-[12px] font-[900] shrink-0 ${data.correct_option === opt ? 'text-emerald-500' : subtext}`}>{optionLabels[opt]}</span>
-                                        <input type="text" value={data[`option_${opt}`]} onChange={e => setData(`option_${opt}`, e.target.value)} className={`flex-1 bg-transparent border-0 outline-none text-sm font-bold py-2 ${heading}`} required placeholder={`${t[`option${opt.toUpperCase()}`]}...`} />
-                                        <button type="button" onClick={() => setData('correct_option', opt)} title={t.markCorrect} className={`w-9 h-9 rounded-lg shrink-0 text-[13px] font-[900] transition-all ${data.correct_option === opt ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' : (isDark ? 'bg-slate-800 text-slate-500 hover:bg-emerald-500/20' : 'bg-slate-100 text-slate-400 hover:bg-emerald-100')}`}>
+                                        <input type="text" value={data[`option_${opt}`]} onChange={e => setData(`option_${opt}`, e.target.value)} className={`min-w-0 flex-1 bg-transparent border-0 outline-none text-base font-bold py-2 sm:text-sm ${heading}`} required placeholder={`${t[`option${opt.toUpperCase()}`]}...`} />
+                                        <button type="button" onClick={() => setData('correct_option', opt)} title={t.markCorrect} aria-label={`${t.markCorrect}: ${optionLabels[opt]}`} className={`size-11 rounded-lg shrink-0 text-[13px] font-[900] transition-all ${data.correct_option === opt ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' : (isDark ? 'bg-slate-800 text-slate-500 hover:bg-emerald-500/20' : 'bg-slate-100 text-slate-400 hover:bg-emerald-100')}`}>
                                             ✓
                                         </button>
                                     </div>
@@ -421,7 +421,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         </div>
 
                         {/* Active toggle + Submit */}
-                        <div className="flex items-center justify-between pt-1">
+                        <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
                             <label className="flex items-center gap-3 cursor-pointer select-none">
                                 <button type="button" onClick={() => setData('is_active', !data.is_active)} className={`w-12 h-7 rounded-full transition-all p-0.5 ${data.is_active ? 'bg-emerald-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}>
                                     <span className={`block w-6 h-6 rounded-full bg-white shadow-md transition-transform ${data.is_active ? (lang === 'ar' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0'}`} />
@@ -429,9 +429,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 <span className={`text-[12px] font-bold ${subtext}`}>{t.active}</span>
                             </label>
 
-                                <div className="flex gap-3">
-                                    <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`px-6 py-2.5 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.cancel}</button>
-                                    <button type="submit" disabled={processing} className="px-7 py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50">{editingId ? t.update : t.save}</button>
+                                <div className="grid grid-cols-2 gap-3 sm:flex">
+                                    <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className={`min-h-11 px-6 py-2.5 rounded-xl font-[800] text-[12px] border transition-all ${isDark ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{t.cancel}</button>
+                                    <button type="submit" disabled={processing} className="min-h-11 px-7 py-2.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-xl font-[800] text-[12px] shadow-md disabled:opacity-50">{editingId ? t.update : t.save}</button>
                                 </div>
                             </div>
                         </form>
@@ -454,10 +454,10 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             return (
                                 <div key={question.id} className={`rounded-2xl border transition-all ${card} ${isExpanded ? (isDark ? 'ring-1 ring-indigo-500/30' : 'ring-1 ring-indigo-200') : ''}`}>
                                     {/* Question summary row */}
-                                    <button onClick={() => setExpandedQ(isExpanded ? null : question.id)} className={`w-full text-right px-5 py-4 flex items-start gap-3.5`}>
+                                    <button onClick={() => setExpandedQ(isExpanded ? null : question.id)} aria-expanded={isExpanded} className="flex min-h-11 w-full items-start gap-3 px-3 py-4 text-right sm:px-5 sm:gap-3.5">
                                         <span className={`shrink-0 mt-0.5 rounded-lg p-1.5 ${db.cls}`} title={db.label}><db.Icon className="size-3.5" /></span>
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-[13px] font-[800] leading-relaxed line-clamp-2 ${heading}`}>{question.question_text}</p>
+                                            <p className={`line-clamp-2 text-sm font-[800] leading-relaxed sm:text-[13px] ${heading}`}>{question.question_text}</p>
                                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                                                 <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'}`}>{question.course?.code}</span>
                                                 {question.chapter && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-50 text-indigo-700'}`}>{question.chapter.title}</span>}
@@ -470,8 +470,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
 
                                     {/* Expanded details */}
                                     {isExpanded && (
-                                        <div className={`px-5 pb-5 border-t ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
-                                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                        <div className={`border-t px-3 pb-4 sm:px-5 sm:pb-5 ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                                            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                                                 {['a', 'b', 'c', 'd'].map(opt => (
                                                     <div key={opt} className={`px-3.5 py-2.5 rounded-xl border text-[12px] font-bold ${question.correct_option === opt ? (isDark ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-emerald-50 border-emerald-300 text-emerald-800') : (isDark ? 'bg-slate-900/40 border-slate-700 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600')}`}>
                                                         <span className="font-[900] opacity-50">{optionLabels[opt]}.</span> {question[`option_${opt}`]}
@@ -483,9 +483,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                                     <span className="flex items-start gap-2"><Lightbulb className="mt-0.5 size-4 shrink-0" />{question.explanation}</span>
                                                 </div>
                                             )}
-                                            <div className="flex items-center gap-2 mt-4 justify-end">
-                                                <button onClick={() => openEdit(question)} className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-[800] transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-indigo-500/15 text-indigo-400 hover:bg-indigo-600 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}><Pencil className="size-3.5" /> {t.edit}</button>
-                                                <button onClick={() => handleDelete(question.id)} className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-[800] transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 ${isDark ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white'}`}><Trash2 className="size-3.5" /> {t.delete}</button>
+                                            <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end">
+                                                <button onClick={() => openEdit(question)} className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-[800] transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-indigo-500/15 text-indigo-400 hover:bg-indigo-600 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}><Pencil className="size-3.5" /> {t.edit}</button>
+                                                <button onClick={() => handleDelete(question.id)} className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-[800] transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 ${isDark ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white'}`}><Trash2 className="size-3.5" /> {t.delete}</button>
                                             </div>
                                         </div>
                                     )}
