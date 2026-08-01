@@ -37,14 +37,46 @@ class DemandReportManagementTest extends AdvisorTestCase
                 ->where('courseDemand.0.cart_users_count', 2)
                 ->where('courseDemand.1.id', $secondCourse->id)
                 ->where('courseDemand.1.cart_users_count', 1)
+                ->where('summary.total_registered_students', 3)
                 ->where('summary.total_students', 2)
+                ->where('summary.participation_rate', 66.7)
                 ->where('summary.total_selections', 3)
+                ->where('summary.catalog_courses', 2)
                 ->where('summary.demanded_courses', 2)
                 ->where('summary.average_courses_per_student', 1.5)
                 ->where('summary.average_hours_per_student', 5)
                 ->where('report.period.academic_term', 1)
                 ->where('report.period.max_hours', 18)
             );
+    }
+
+    public function test_report_keeps_catalog_courses_visible_when_registered_students_have_no_trial_selections(): void
+    {
+        [$student, $major] = $this->student('registered-without-demand@example.com');
+        $admin = $this->admin('empty-demand-admin@example.com');
+        $this->currentPeriod(1, '2027');
+        $course = $this->course($major, ['code' => 'CS101']);
+        $this->course($major, ['code' => 'QUIZ101', 'is_quiz_only' => true]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports.demand'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Reports/Demand')
+                ->has('courseDemand', 1)
+                ->where('courseDemand.0.id', $course->id)
+                ->where('courseDemand.0.cart_users_count', 0)
+                ->where('courseDemand.0.recommended_sections', 0)
+                ->where('summary.total_registered_students', 1)
+                ->where('summary.total_students', 0)
+                ->where('summary.participation_rate', 0)
+                ->where('summary.total_selections', 0)
+                ->where('summary.catalog_courses', 1)
+                ->where('summary.demanded_courses', 0)
+                ->where('summary.estimated_sections', 0)
+            );
+
+        $this->assertDatabaseHas('users', ['id' => $student->id, 'role' => 'student']);
     }
 
     public function test_admin_can_open_the_students_behind_a_course_demand_number(): void

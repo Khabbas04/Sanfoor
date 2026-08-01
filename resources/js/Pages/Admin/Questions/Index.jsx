@@ -3,6 +3,8 @@ import { Head, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useTheme } from '@/Contexts/ThemeContext';
 import { useLanguage } from '@/Contexts/LanguageContext';
+import { ChevronDown, Flame, Gauge, HelpCircle, Lightbulb, ListChecks, Pencil, Plus, Search, Sprout, Trash2, WandSparkles, X } from 'lucide-react';
+import BulkQuestionImport from '@/Components/Admin/BulkQuestionImport';
 
 export default function AdminQuestions({ questions = [], courses = [], chapters = [], colleges = [], filters = {}, stats = {} }) {
     const { isDark } = useTheme();
@@ -17,6 +19,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     stats = stats || {};
 
     const [showForm, setShowForm] = useState(false);
+    const [showBulkImport, setShowBulkImport] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [localSearch, setLocalSearch] = useState(filters.search || '');
     const [expandedQ, setExpandedQ] = useState(null);
@@ -27,6 +30,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const t = lang === 'ar' ? {
         title: 'إدارة الأسئلة',
         addQuestion: 'إضافة سؤال',
+        bulkImport: 'إضافة دفعة بالذكاء الاصطناعي',
 
         major: 'التخصص',
         chapter: 'الشابتر',
@@ -58,6 +62,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         course: 'اسم المادة',
         courseCode: 'رقم المادة',
         selectCourse: 'ابحث عن مادة...',
+        selectChapter: 'اختر الشابتر...',
         newCourse: 'مادة جديدة',
         allDifficulties: 'كل الصعوبات',
         correct: 'الصحيحة',
@@ -68,6 +73,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     } : {
         title: 'Manage Questions',
         addQuestion: 'Add Question',
+        bulkImport: 'AI Bulk Import',
 
         major: 'Major',
         chapter: 'Chapter',
@@ -99,6 +105,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
         course: 'Course Name',
         courseCode: 'Course Code',
         selectCourse: 'Search course...',
+        selectChapter: 'Select chapter...',
         newCourse: 'New Course',
         allDifficulties: 'All difficulties',
         correct: 'Correct',
@@ -174,9 +181,9 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
     const handleSearchSubmit = (e) => { e.preventDefault(); applyFilter({ search: localSearch }); };
 
     const diffBadge = (d) => {
-        if (d === 'easy') return { cls: isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700', icon: '🌿', label: t.easy };
-        if (d === 'hard') return { cls: isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-700', icon: '🔥', label: t.hard };
-        return { cls: isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-700', icon: '⚖️', label: t.medium };
+        if (d === 'easy') return { cls: isDark ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700', Icon: Sprout, label: t.easy };
+        if (d === 'hard') return { cls: isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-700', Icon: Flame, label: t.hard };
+        return { cls: isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-50 text-amber-700', Icon: Gauge, label: t.medium };
     };
 
     const optionLabels = { a: 'A', b: 'B', c: 'C', d: 'D' };
@@ -190,26 +197,31 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h2 className={`text-2xl font-[900] flex items-center gap-3 ${heading}`}>
-                            <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center text-lg text-white shadow-lg">❓</span>
+                            <span className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-pink-600 flex items-center justify-center text-white shadow-lg"><HelpCircle className="size-5" /></span>
                             {t.title}
                         </h2>
                     </div>
-                    <button onClick={openCreate} className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-sky-400 to-blue-500 text-white rounded-xl font-[800] text-[12px] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all active:scale-[0.97]">
-                        <span className="text-lg">+</span> {t.addQuestion}
-                    </button>
+                    <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row">
+                        <button onClick={openCreate} className={`inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-4 text-xs font-black transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 ${isDark ? 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+                            <Plus className="size-4" /> {t.addQuestion}
+                        </button>
+                        <button onClick={() => setShowBulkImport(true)} className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-xs font-black text-white shadow-lg shadow-violet-600/20 transition-colors hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2">
+                            <WandSparkles className="size-4" /> {t.bulkImport}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-3">
                     {[
-                        { label: t.totalQuestions, value: stats.total || 0, color: 'indigo', icon: '📝' },
-                        { label: t.easy, value: stats.easy || 0, color: 'emerald', icon: '🌿' },
-                        { label: t.medium, value: stats.medium || 0, color: 'amber', icon: '⚖️' },
-                        { label: t.hard, value: stats.hard || 0, color: 'rose', icon: '🔥' },
+                        { label: t.totalQuestions, value: stats.total || 0, colorClass: 'text-indigo-500', Icon: ListChecks },
+                        { label: t.easy, value: stats.easy || 0, colorClass: 'text-emerald-500', Icon: Sprout },
+                        { label: t.medium, value: stats.medium || 0, colorClass: 'text-amber-500', Icon: Gauge },
+                        { label: t.hard, value: stats.hard || 0, colorClass: 'text-rose-500', Icon: Flame },
                     ].map((s, i) => (
                         <div key={i} className={`rounded-2xl border p-3.5 text-center ${card}`}>
-                            <span className="text-lg">{s.icon}</span>
-                            <p className={`text-xl font-[900] mt-0.5 text-${s.color}-500`}>{s.value}</p>
+                            <s.Icon className={`mx-auto size-5 ${s.colorClass}`} />
+                            <p className={`text-xl font-[900] mt-0.5 ${s.colorClass}`}>{s.value}</p>
                             <p className={`text-[9px] font-bold ${subtext}`}>{s.label}</p>
                         </div>
                     ))}
@@ -230,12 +242,12 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         </select>
                         <select value={filters.difficulty || ''} onChange={e => applyFilter({ difficulty: e.target.value })} className={inputCls}>
                             <option value="">{t.allDifficulties}</option>
-                            <option value="easy">🌿 {t.easy}</option>
-                            <option value="medium">⚖️ {t.medium}</option>
-                            <option value="hard">🔥 {t.hard}</option>
+                            <option value="easy">{t.easy}</option>
+                            <option value="medium">{t.medium}</option>
+                            <option value="hard">{t.hard}</option>
                         </select>
                         <form onSubmit={handleSearchSubmit} className="relative">
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-40">🔍</span>
+                            <Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
                             <input type="text" value={localSearch} onChange={e => setLocalSearch(e.target.value)} placeholder={t.searchPlaceholder} className={`${inputCls} pr-9`} />
                         </form>
                     </div>
@@ -247,8 +259,8 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                         <div className={`w-full max-w-2xl rounded-2xl border p-6 shadow-2xl my-8 transition-all scale-100 ${card}`}>
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="flex items-center justify-between">
-                                    <h3 className={`text-[15px] font-[900] ${heading}`}>{editingId ? `✏️ ${t.update}` : `➕ ${t.addQuestion}`}</h3>
-                                    <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="text-lg opacity-50 hover:opacity-100 transition-opacity">✕</button>
+                                    <h3 className={`flex items-center gap-2 text-[15px] font-[900] ${heading}`}>{editingId ? <Pencil className="size-4" /> : <Plus className="size-4" />}{editingId ? t.update : t.addQuestion}</h3>
+                                    <button type="button" onClick={() => { setShowForm(false); reset(); setEditingId(null); }} className="flex size-11 cursor-pointer items-center justify-center rounded-xl opacity-60 transition hover:bg-slate-100 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:hover:bg-white/5" aria-label={t.cancel}><X className="size-5" /></button>
                                 </div>
                                 {Object.keys(errors).length > 0 && (
                                     <div className="bg-rose-500/10 border border-rose-500/50 text-rose-500 p-4 rounded-xl text-xs font-bold font-mono text-left" dir="ltr">
@@ -371,7 +383,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                         const b = diffBadge(d);
                                         return (
                                             <button key={d} type="button" onClick={() => setData('difficulty', d)} className={`flex-1 py-2.5 rounded-xl text-[11px] font-[800] border transition-all ${data.difficulty === d ? 'bg-gradient-to-r from-sky-400 to-blue-500 text-white border-sky-400 shadow-md' : (isDark ? 'bg-slate-900 text-slate-400 border-slate-700' : 'bg-white text-slate-500 border-slate-200')}`}>
-                                                {b.icon} {b.label}
+                                                <span className="inline-flex items-center justify-center gap-1.5"><b.Icon className="size-3.5" /> {b.label}</span>
                                             </button>
                                         );
                                     })}
@@ -430,7 +442,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                 {/* Questions List */}
                 {questions.length === 0 ? (
                     <div className={`rounded-2xl border p-16 text-center ${card}`}>
-                        <div className="text-5xl mb-4 opacity-20">❓</div>
+                        <HelpCircle className="mx-auto mb-4 size-12 text-slate-300" />
                         <p className={`text-base font-[800] ${heading}`}>{t.noQuestions}</p>
                         <p className={`text-[12px] font-bold mt-1 ${subtext}`}>{t.noQuestionsDesc}</p>
                     </div>
@@ -443,7 +455,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                 <div key={question.id} className={`rounded-2xl border transition-all ${card} ${isExpanded ? (isDark ? 'ring-1 ring-indigo-500/30' : 'ring-1 ring-indigo-200') : ''}`}>
                                     {/* Question summary row */}
                                     <button onClick={() => setExpandedQ(isExpanded ? null : question.id)} className={`w-full text-right px-5 py-4 flex items-start gap-3.5`}>
-                                        <span className={`shrink-0 mt-0.5 text-[10px] font-[900] px-2 py-1 rounded-lg ${db.cls}`}>{db.icon}</span>
+                                        <span className={`shrink-0 mt-0.5 rounded-lg p-1.5 ${db.cls}`} title={db.label}><db.Icon className="size-3.5" /></span>
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-[13px] font-[800] leading-relaxed line-clamp-2 ${heading}`}>{question.question_text}</p>
                                             <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -453,7 +465,7 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                                 {!question.is_active && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isDark ? 'bg-rose-500/15 text-rose-400' : 'bg-rose-50 text-rose-700'}`}>{t.hidden}</span>}
                                             </div>
                                         </div>
-                                        <span className={`text-sm shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''} ${subtext}`}>▾</span>
+                                        <ChevronDown className={`size-4 shrink-0 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''} ${subtext}`} />
                                     </button>
 
                                     {/* Expanded details */}
@@ -468,12 +480,12 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                                             </div>
                                             {question.explanation && (
                                                 <div className={`mt-3 p-3 rounded-xl border text-[11px] font-bold leading-relaxed ${isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-indigo-50 border-indigo-200 text-indigo-700'}`}>
-                                                    💡 {question.explanation}
+                                                    <span className="flex items-start gap-2"><Lightbulb className="mt-0.5 size-4 shrink-0" />{question.explanation}</span>
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-2 mt-4 justify-end">
-                                                <button onClick={() => openEdit(question)} className={`px-4 py-2 rounded-lg text-[11px] font-[800] transition-all ${isDark ? 'bg-indigo-500/15 text-indigo-400 hover:bg-indigo-600 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}>✏️ {t.edit}</button>
-                                                <button onClick={() => handleDelete(question.id)} className={`px-4 py-2 rounded-lg text-[11px] font-[800] transition-all ${isDark ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white'}`}>🗑️ {t.delete}</button>
+                                                <button onClick={() => openEdit(question)} className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-[800] transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDark ? 'bg-indigo-500/15 text-indigo-400 hover:bg-indigo-600 hover:text-white' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white'}`}><Pencil className="size-3.5" /> {t.edit}</button>
+                                                <button onClick={() => handleDelete(question.id)} className={`inline-flex min-h-10 cursor-pointer items-center gap-1.5 px-4 py-2 rounded-lg text-[11px] font-[800] transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 ${isDark ? 'bg-rose-500/15 text-rose-400 hover:bg-rose-600 hover:text-white' : 'bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white'}`}><Trash2 className="size-3.5" /> {t.delete}</button>
                                             </div>
                                         </div>
                                     )}
@@ -481,6 +493,19 @@ export default function AdminQuestions({ questions = [], courses = [], chapters 
                             );
                         })}
                     </div>
+                )}
+
+                {showBulkImport && (
+                    <BulkQuestionImport
+                        courses={courses}
+                        chapters={chapters}
+                        initialCourseId={filters.course_id || ''}
+                        onClose={() => setShowBulkImport(false)}
+                        onSaved={() => {
+                            setShowBulkImport(false);
+                            router.reload({ only: ['questions', 'stats'], preserveScroll: true });
+                        }}
+                    />
                 )}
             </div>
         </AdminLayout>

@@ -588,6 +588,10 @@ Route::middleware('auth')->group(function () {
         // Question management for admin.
         Route::get('/questions', [AdminQuestionController::class, 'index'])->name('questions.index');
         Route::post('/questions', [AdminQuestionController::class, 'store'])->name('questions.store');
+        Route::post('/questions/bulk/analyze', [AdminQuestionController::class, 'analyzeBulk'])
+            ->middleware('throttle:10,1')
+            ->name('questions.bulk.analyze');
+        Route::post('/questions/bulk', [AdminQuestionController::class, 'storeBulk'])->name('questions.bulk.store');
         Route::put('/questions/{question}', [AdminQuestionController::class, 'update'])->name('questions.update');
         Route::delete('/questions/{question}', [AdminQuestionController::class, 'destroy'])->name('questions.destroy');
     });

@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminLog;
-use App\Models\College;
 use App\Models\Chapter;
+use App\Models\College;
 use App\Models\Course;
-use App\Models\Major;
 use App\Models\Question;
+use App\Services\QuestionBulkImportService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,9 +41,9 @@ class AdminQuestionController extends Controller
 
         $questions = Question::query()
             ->with('course:id,name,code,college_id,major_id', 'chapter:id,title')
-            ->when($courseId, fn($q) => $q->where('course_id', $courseId))
-            ->when($chapterId, fn($q) => $q->where('chapter_id', $chapterId))
-            ->when($difficulty, fn($q) => $q->where('difficulty', $difficulty))
+            ->when($courseId, fn ($q) => $q->where('course_id', $courseId))
+            ->when($chapterId, fn ($q) => $q->where('chapter_id', $chapterId))
+            ->when($difficulty, fn ($q) => $q->where('difficulty', $difficulty))
             ->when($search, function ($q) use ($search) {
                 $q->where('question_text', 'like', "%{$search}%");
             })
@@ -51,7 +51,9 @@ class AdminQuestionController extends Controller
             ->get();
 
         $courses = Course::where('is_quiz_only', 1)->select('id', 'name', 'code', 'college_id')->orderBy('name')->get();
-        $chapters = Chapter::whereHas('course', function($q) { $q->where('is_quiz_only', 1); })->select('id', 'title', 'course_id')->orderBy('order')->get();
+        $chapters = Chapter::whereHas('course', function ($q) {
+            $q->where('is_quiz_only', 1);
+        })->select('id', 'title', 'course_id')->orderBy('order')->get();
         $colleges = College::select('id', 'name')->orderBy('name')->get();
 
         return Inertia::render('Admin/Questions/Index', [
@@ -97,10 +99,10 @@ class AdminQuestionController extends Controller
 
         // Find or create course non-destructively
         $course = Course::where('name', $data['course_name'])
-            ->when(!empty($data['college_id']), fn($q) => $q->where('college_id', $data['college_id']))
+            ->when(! empty($data['college_id']), fn ($q) => $q->where('college_id', $data['college_id']))
             ->where('is_quiz_only', 1)
             ->first();
-        if (!$course) {
+        if (! $course) {
             $course = Course::create([
                 'name' => $data['course_name'],
                 'code' => $data['course_code'],
@@ -108,13 +110,13 @@ class AdminQuestionController extends Controller
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
-                'semester' => 1
+                'semester' => 1,
             ]);
         }
 
         // Find or create chapter if title provided
         $chapterId = null;
-        if (!empty($data['chapter_title'])) {
+        if (! empty($data['chapter_title'])) {
             $chapter = Chapter::firstOrCreate(
                 ['course_id' => $course->id, 'title' => $data['chapter_title']],
                 ['is_active' => true, 'order' => 0]
@@ -142,6 +144,70 @@ class AdminQuestionController extends Controller
     }
 
     /**
+     * Analyze a pasted document or uploaded file without writing to the database.
+     */
+    public function analyzeBulk(Request $request, QuestionBulkImportService $importer): JsonResponse
+    {
+        $data = $request->validate([
+            'chapter_id' => ['required', 'integer', 'exists:chapters,id'],
+            'source_text' => ['nullable', 'string', 'max:100000', 'required_without:file'],
+            'file' => ['nullable', 'file', 'max:8192', 'mimes:pdf,txt,csv,json,jpg,jpeg,png,webp', 'required_without:source_text'],
+        ]);
+
+        $chapter = Chapter::query()->with('course:id,name,code,is_quiz_only')->findOrFail($data['chapter_id']);
+
+        try {
+            $preview = $importer->analyze($chapter, $request->file('file'), $data['source_text'] ?? null);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(array_merge($preview, [
+            'destination' => [
+                'chapter_id' => $chapter->id,
+                'chapter_title' => $chapter->title,
+                'course_id' => $chapter->course_id,
+                'course_name' => $chapter->course?->name,
+                'course_code' => $chapter->course?->code,
+            ],
+        ]));
+    }
+
+    /**
+     * Commit an admin-reviewed preview as one atomic batch.
+     */
+    public function storeBulk(Request $request, QuestionBulkImportService $importer): JsonResponse
+    {
+        $data = $request->validate([
+            'chapter_id' => ['required', 'integer', 'exists:chapters,id'],
+            'questions' => ['required', 'array', 'min:1', 'max:60'],
+            'questions.*.question_text' => ['required', 'string', 'max:5000'],
+            'questions.*.option_a' => ['required', 'string', 'max:1000'],
+            'questions.*.option_b' => ['required', 'string', 'max:1000'],
+            'questions.*.option_c' => ['required', 'string', 'max:1000'],
+            'questions.*.option_d' => ['required', 'string', 'max:1000'],
+            'questions.*.correct_option' => ['required', 'in:a,b,c,d'],
+            'questions.*.explanation' => ['nullable', 'string', 'max:3000'],
+            'questions.*.difficulty' => ['required', 'in:easy,medium,hard'],
+            'questions.*.is_active' => ['required', 'boolean'],
+        ]);
+
+        $chapter = Chapter::query()->with('course:id,name,code,is_quiz_only')->findOrFail($data['chapter_id']);
+        $result = $importer->store($chapter, $data['questions']);
+
+        $this->logAction(
+            'BULK_IMPORT_QUESTIONS',
+            "تم استيراد {$result['created']} سؤال دفعة واحدة إلى {$chapter->course?->name} / {$chapter->title}"
+        );
+
+        return response()->json([
+            'message' => "تم حفظ {$result['created']} سؤال بنجاح.",
+            'created' => $result['created'],
+            'skipped_duplicates' => $result['skipped_duplicates'],
+        ]);
+    }
+
+    /**
      * Update an existing question.
      */
     public function update(Request $request, Question $question): RedirectResponse
@@ -164,10 +230,10 @@ class AdminQuestionController extends Controller
 
         // Find or create course non-destructively
         $course = Course::where('name', $data['course_name'])
-            ->when(!empty($data['college_id']), fn($q) => $q->where('college_id', $data['college_id']))
+            ->when(! empty($data['college_id']), fn ($q) => $q->where('college_id', $data['college_id']))
             ->where('is_quiz_only', 1)
             ->first();
-        if (!$course) {
+        if (! $course) {
             $course = Course::create([
                 'name' => $data['course_name'],
                 'code' => $data['course_code'],
@@ -175,13 +241,13 @@ class AdminQuestionController extends Controller
                 'is_quiz_only' => 1,
                 'credit_hours' => 3,
                 'type' => 'compulsory',
-                'semester' => 1
+                'semester' => 1,
             ]);
         }
 
         // Find or create chapter
         $chapterId = null;
-        if (!empty($data['chapter_title'])) {
+        if (! empty($data['chapter_title'])) {
             $chapter = Chapter::firstOrCreate(
                 ['course_id' => $course->id, 'title' => $data['chapter_title']],
                 ['is_active' => true, 'order' => 0]

@@ -44,10 +44,10 @@ class DemandReportController extends Controller
                 'college:id,name',
                 'prerequisites:id',
             ])
-            ->whereHas('cartUsers', function ($query) use ($periodYear, $periodTerm) {
-                $query->where('users.role', 'student');
-                $this->applyPeriodToRelation($query, $periodYear, $periodTerm);
-            })
+            // Keep the full academic catalogue visible even before the first
+            // student builds a trial schedule. A demand report with zero activity
+            // must say "zero demand", not make it look as though courses vanished.
+            ->where('courses.is_quiz_only', false)
             ->withCount(['cartUsers as cart_users_count' => function ($query) use ($periodYear, $periodTerm) {
                 $query->where('users.role', 'student');
                 $this->applyPeriodToRelation($query, $periodYear, $periodTerm);
@@ -85,7 +85,7 @@ class DemandReportController extends Controller
                     'description' => $course->description,
                     'prerequisite_ids' => $course->prerequisites->pluck('id')->map(fn ($id) => (int) $id)->values(),
                     'cart_users_count' => $count,
-                    'recommended_sections' => max(1, (int) ceil($count / self::SECTION_CAPACITY)),
+                    'recommended_sections' => $count > 0 ? (int) ceil($count / self::SECTION_CAPACITY) : 0,
                 ];
             });
 
@@ -93,8 +93,14 @@ class DemandReportController extends Controller
         $totalSelections = (clone $registrations)->count();
         $totalStudents = (clone $registrations)->distinct()->count('user_carts.user_id');
         $totalHours = (int) (clone $registrations)->sum('courses.credit_hours');
+        $totalRegisteredStudents = User::query()
+            ->where('role', 'student')
+            ->when($filters['college_id'] ?? null, fn ($query, $collegeId) => $query->whereHas('major', fn ($major) => $major->where('college_id', $collegeId)))
+            ->when($filters['major_id'] ?? null, fn ($query, $majorId) => $query->where('major_id', $majorId))
+            ->count();
 
         $typeDistribution = $courseDemand
+            ->where('cart_users_count', '>', 0)
             ->groupBy('type')
             ->map(fn ($courses, $type) => [
                 'type' => $type,
@@ -106,9 +112,12 @@ class DemandReportController extends Controller
         return Inertia::render('Admin/Reports/Demand', [
             'courseDemand' => $courseDemand,
             'summary' => [
+                'total_registered_students' => $totalRegisteredStudents,
                 'total_students' => $totalStudents,
+                'participation_rate' => $totalRegisteredStudents > 0 ? round(($totalStudents / $totalRegisteredStudents) * 100, 1) : 0,
                 'total_selections' => $totalSelections,
-                'demanded_courses' => $courseDemand->count(),
+                'catalog_courses' => $courseDemand->count(),
+                'demanded_courses' => $courseDemand->where('cart_users_count', '>', 0)->count(),
                 'average_courses_per_student' => $totalStudents > 0 ? round($totalSelections / $totalStudents, 1) : 0,
                 'average_hours_per_student' => $totalStudents > 0 ? round($totalHours / $totalStudents, 1) : 0,
                 'estimated_sections' => $courseDemand->sum('recommended_sections'),

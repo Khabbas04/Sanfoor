@@ -304,8 +304,9 @@ export default function Demand({
 
     const totalPages = Math.max(1, Math.ceil(filteredCourses.length / pageSize));
     const pageCourses = filteredCourses.slice((page - 1) * pageSize, page * pageSize);
-    const topCourses = courseDemand.slice(0, 10);
-    const topCourse = courseDemand[0] || null;
+    const demandedCourses = courseDemand.filter((course) => Number(course.cart_users_count) > 0);
+    const topCourses = demandedCourses.slice(0, 10);
+    const topCourse = demandedCourses[0] || null;
     const currentCollegeName = selectedCollege ? colleges.find((item) => String(item.id) === selectedCollege)?.name : 'جميع الكليات';
     const currentMajorName = selectedMajor ? majors.find((item) => String(item.id) === selectedMajor)?.name : 'جميع التخصصات';
     const periodLabel = report?.period?.label || 'الفصل الحالي';
@@ -456,9 +457,9 @@ export default function Demand({
                         </header>
 
                         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                            <MetricCard icon={UsersRound} label="الطلاب الفاعلون" value={formatNumber(summary.total_students)} helper="طلاب لديهم تسجيل تجريبي" tone="indigo" />
+                            <MetricCard icon={UsersRound} label="الطلاب المسجلون" value={formatNumber(summary.total_registered_students)} helper={`${formatNumber(summary.total_students)} استخدموا التسجيل التجريبي (${formatDecimal(summary.participation_rate)}%)`} tone="indigo" />
                             <MetricCard icon={ClipboardList} label="إجمالي الاختيارات" value={formatNumber(summary.total_selections)} helper={`${formatDecimal(summary.average_courses_per_student)} مادة لكل طالب`} tone="teal" />
-                            <MetricCard icon={BookOpen} label="المواد المطلوبة" value={formatNumber(summary.demanded_courses)} helper="مواد عليها طلب فعلي" tone="violet" />
+                            <MetricCard icon={BookOpen} label="المواد المطلوبة" value={formatNumber(summary.demanded_courses)} helper={`من أصل ${formatNumber(summary.catalog_courses)} مادة في الكتالوج`} tone="violet" />
                             <MetricCard icon={GraduationCap} label="متوسط العبء" value={`${formatDecimal(summary.average_hours_per_student)} س`} helper={`من أصل ${formatNumber(report?.period?.max_hours)} ساعة نظامية`} tone="amber" />
                             <MetricCard icon={Layers3} label="الشعب المقدّرة" value={formatNumber(summary.estimated_sections)} helper={`على سعة ${formatNumber(summary.section_capacity)} طالب`} tone="rose" />
                         </div>
@@ -523,7 +524,7 @@ export default function Demand({
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
-                                ) : <EmptyState text="لا توجد تسجيلات تجريبية ضمن النطاق المحدد." />}
+                                ) : <EmptyState text={`يوجد ${formatNumber(summary.total_registered_students)} طالب مسجل، لكن لم يضف أي منهم مواد للتسجيل التجريبي في هذا الفصل بعد.`} />}
                             </section>
 
                             <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900 xl:col-span-4">
@@ -549,7 +550,7 @@ export default function Demand({
                                             ))}
                                         </div>
                                     </>
-                                ) : <EmptyState text="لا توجد بيانات توزيع حالياً." />}
+                                ) : <EmptyState text="سيظهر توزيع الطلب حسب النوع بعد أول اختيار لمادة في التسجيل التجريبي." />}
                                 {topCourse && (
                                     <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/10">
                                         <p className="text-[11px] font-black text-indigo-700 dark:text-indigo-300">قرار تشغيلي مقترح</p>
@@ -579,8 +580,8 @@ export default function Demand({
                                                         <td className="px-5 py-4"><div className="flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-black text-slate-500 dark:bg-white/5">{course.rank}</span><div><p className="text-sm font-black text-slate-950 dark:text-white">{course.name}</p><p className="mt-1 text-[11px] font-black text-indigo-600" dir="ltr">{course.code} · {formatNumber(course.credit_hours)} ساعات</p></div></div></td>
                                                         <td className="px-4 py-4"><p className="max-w-48 truncate text-xs font-black text-slate-700 dark:text-slate-200">{course.major_name}</p><p className="mt-1 max-w-48 truncate text-[10px] font-bold text-slate-400">{course.college_name} · خطة {course.study_plan_version}</p></td>
                                                         <td className="px-4 py-4 text-center"><span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-700 dark:bg-white/5 dark:text-slate-300">{TYPE_LABELS[course.type] || course.type}</span></td>
-                                                        <td className="px-4 py-4 text-center"><button onClick={() => openStudents(course)} className="cursor-pointer text-lg font-black text-indigo-700 underline-offset-4 transition hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-indigo-300">{formatNumber(course.cart_users_count)}</button><p className="text-[10px] font-bold text-slate-400">طالب</p></td>
-                                                        <td className="px-4 py-4"><div className="mx-auto w-28"><div className="mb-1 flex justify-between text-[10px] font-black text-slate-500"><span>{formatDecimal(percentage)}%</span><span>{formatNumber(course.cart_users_count)}/{formatNumber(summary.total_students)}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"><div className="h-full rounded-full bg-indigo-600" style={{ width: `${Math.max(3, Math.min(100, percentage))}%` }} /></div></div></td>
+                                                        <td className="px-4 py-4 text-center"><button onClick={() => openStudents(course)} className="cursor-pointer text-lg font-black text-indigo-700 underline-offset-4 transition hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-indigo-300">{formatNumber(course.cart_users_count)}</button><p className="text-[10px] font-bold text-slate-400">{Number(course.cart_users_count) > 0 ? 'طالب' : 'لا يوجد طلب'}</p></td>
+                                                        <td className="px-4 py-4"><div className="mx-auto w-28"><div className="mb-1 flex justify-between text-[10px] font-black text-slate-500"><span>{formatDecimal(percentage)}%</span><span>{formatNumber(course.cart_users_count)}/{formatNumber(summary.total_students)}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"><div className="h-full rounded-full bg-indigo-600" style={{ width: percentage > 0 ? `${Math.min(100, percentage)}%` : '0%' }} /></div></div></td>
                                                         <td className="px-4 py-4 text-center"><span className="text-base font-black text-slate-900 dark:text-white">{formatNumber(course.recommended_sections)}</span><p className="text-[10px] font-bold text-slate-400">تقديري</p></td>
                                                         <td className="px-5 py-4"><div className="flex justify-end gap-2"><button onClick={() => openStudents(course)} className="admin-demand-action text-indigo-700 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10" title="عرض الطلاب"><UsersRound className="size-4" /><span>الطلاب</span></button><button onClick={() => openEdit(course)} className="admin-demand-action text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-500/10" title="تعديل المادة"><Edit3 className="size-4" /><span className="sr-only">تعديل</span></button><button onClick={() => deleteCourse(course)} className="admin-demand-action text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-500/10" title="حذف المادة"><Trash2 className="size-4" /><span className="sr-only">حذف</span></button></div></td>
                                                     </tr>
@@ -650,7 +651,7 @@ function PrintReport({ mode, report, summary, courses, students, selectedCourse,
             {!isStudents ? (
                 <>
                     <div className="mb-6 grid grid-cols-5 gap-2">
-                        {[['الطلاب الفاعلون', summary.total_students], ['الاختيارات', summary.total_selections], ['المواد المطلوبة', summary.demanded_courses], ['متوسط الساعات', summary.average_hours_per_student], ['الشعب المقدرة', summary.estimated_sections]].map(([label, value]) => <div key={label} className="rounded border border-slate-300 bg-slate-50 p-3"><p className="text-[8px] font-bold text-slate-500">{label}</p><p className="mt-1 text-lg font-black">{formatDecimal(value)}</p></div>)}
+                        {[['الطلاب المسجلون', summary.total_registered_students], ['المشاركون فعلياً', summary.total_students], ['الاختيارات', summary.total_selections], ['المواد المطلوبة', summary.demanded_courses], ['الشعب المقدرة', summary.estimated_sections]].map(([label, value]) => <div key={label} className="rounded border border-slate-300 bg-slate-50 p-3"><p className="text-[8px] font-bold text-slate-500">{label}</p><p className="mt-1 text-lg font-black">{formatDecimal(value)}</p></div>)}
                     </div>
                     <table className="demand-print-table">
                         <thead><tr><th>#</th><th>رمز المادة</th><th>اسم المادة</th><th>التخصص</th><th>النوع</th><th>الساعات</th><th>الطلاب</th><th>نسبة الطلب</th><th>الشعب المقدرة</th></tr></thead>
