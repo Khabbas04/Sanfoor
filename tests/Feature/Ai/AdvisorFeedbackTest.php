@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Ai;
 
+use App\Models\AiRequestLog;
 use App\Models\Message;
 use Illuminate\Support\Facades\DB;
 
@@ -241,6 +242,15 @@ class AdvisorFeedbackTest extends AdvisorTestCase
         $foreign = $other->chats()->create(['title' => 'محادثة غيري']);
         $foreign->messages()->create(['role' => 'user', 'content' => 'سؤال']);
 
+        foreach ([$first, $second, $foreign] as $chat) {
+            AiRequestLog::create([
+                'user_id' => $chat->user_id,
+                'chat_id' => $chat->id,
+                'route_used' => 'chat',
+                'intent' => 'semester_planning',
+            ]);
+        }
+
         $this->actingAs($user)
             ->deleteJson(route('ai.advisor.delete', ['chat_id' => $foreign->id]))
             ->assertForbidden();
@@ -252,6 +262,8 @@ class AdvisorFeedbackTest extends AdvisorTestCase
 
         $this->assertDatabaseMissing('chats', ['id' => $first->id]);
         $this->assertSame(0, Message::where('chat_id', $first->id)->count());
+        $this->assertDatabaseMissing('ai_request_logs', ['chat_id' => $first->id]);
+        $this->assertDatabaseHas('ai_request_logs', ['chat_id' => $second->id]);
 
         $this->actingAs($user)
             ->deleteJson(route('ai.advisor.delete.all'))
@@ -259,8 +271,10 @@ class AdvisorFeedbackTest extends AdvisorTestCase
             ->assertJsonPath('status', 'all_deleted');
 
         $this->assertSame(0, $user->chats()->count());
+        $this->assertDatabaseMissing('ai_request_logs', ['chat_id' => $second->id]);
         // Another student's history is untouched.
         $this->assertDatabaseHas('chats', ['id' => $foreign->id]);
         $this->assertSame(1, Message::where('chat_id', $foreign->id)->count());
+        $this->assertDatabaseHas('ai_request_logs', ['chat_id' => $foreign->id]);
     }
 }

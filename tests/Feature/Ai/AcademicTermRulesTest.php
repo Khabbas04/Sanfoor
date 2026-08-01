@@ -3,6 +3,7 @@
 namespace Tests\Feature\Ai;
 
 use App\Engines\AcademicRulesEngine;
+use App\Engines\ProactiveInsightsEngine;
 use App\Models\AcademicPeriod;
 use App\Services\AcademicPathPlannerService;
 use App\Support\AcademicCache;
@@ -68,6 +69,25 @@ class AcademicTermRulesTest extends AdvisorTestCase
             ->assertOk();
 
         $this->assertStringContainsString('7 ساعة', $fake->lastSystemInstruction());
+    }
+
+    public function test_proactive_registration_warning_uses_the_current_term_limit(): void
+    {
+        config()->set('academic_terms.limits.regular', 6);
+
+        [$user, $major] = $this->student();
+        foreach (range(1, 3) as $index) {
+            $this->addToCart($user, $this->course($major, ['name' => "مادة السلة {$index}"]));
+        }
+        $this->currentPeriod(1, '2026/2027');
+
+        $insights = app(ProactiveInsightsEngine::class)->generate($user->fresh());
+        $warning = collect($insights['highlights'])->firstWhere('type', 'risk');
+
+        $this->assertNotNull($warning);
+        $this->assertStringContainsString('9 ساعة', $warning['text']);
+        $this->assertStringContainsString('6 ساعة', $warning['text']);
+        $this->assertStringContainsString('3 ساعة', $warning['text']);
     }
 
     /** The summer cap the admin asked for. */

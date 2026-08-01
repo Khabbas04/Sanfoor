@@ -140,6 +140,12 @@ Route::get('/dashboard', function () {
     $gpaData = $hasCourseUser
         ? $user->calculateGPA()
         : ['percentage' => 0, 'gpa4' => '0.00', 'completed_hours' => 0, 'has_records' => false];
+    $cartHours = $hasUserCarts ? (int) $user->cartCourses->sum('credit_hours') : 0;
+    $registrationRules = app(\App\Engines\AcademicRulesEngine::class)->evaluate(
+        $user,
+        ['total_passed_hours' => (int) $passedHours],
+        $cartHours
+    );
 
     $layoutMajorId = (int) ($user->major_id ?? 0);
     $planVersion = (int) ($user->study_plan_version ?? 12);
@@ -260,6 +266,14 @@ Route::get('/dashboard', function () {
         'total_hours' => 132,
         'gpa' => isset($gpaData['percentage']) ? number_format((float) $gpaData['percentage'], 2) : '0.00',
         'has_academic_records' => !empty($gpaData['has_records']),
+        'registration_rules' => [
+            'period_label' => $registrationRules['period_label'],
+            'is_summer' => (bool) $registrationRules['is_summer'],
+            'term_limit' => (int) $registrationRules['term_limit'],
+            'effective_limit' => (int) $registrationRules['effective_limit'],
+            'is_probation' => (bool) $registrationRules['is_probation'],
+            'is_graduating' => (bool) $registrationRules['is_graduating'],
+        ],
         'passed_courses' => $passedCourses,
         'cart_courses' => $hasUserCarts ? $user->cartCourses : collect(),
         'ai_skills' => $hasCourseUser ? $user->getSkillsFromPassedCourses() : collect(),

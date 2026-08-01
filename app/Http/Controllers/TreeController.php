@@ -82,6 +82,11 @@ class TreeController extends Controller
         $passed_course_ids = $user->passedCourses->pluck('id')->all();
         $totalPassedHours = (int) $user->passedCourses->sum('credit_hours');
         $cart_course_ids = $user->cartCourses->pluck('id')->all();
+        $registrationRules = app(AcademicRulesEngine::class)->evaluate(
+            $user,
+            ['total_passed_hours' => $totalPassedHours],
+            (int) $user->cartCourses->sum('credit_hours')
+        );
         $approvedPlan = GraduationPlan::query()
             ->where('user_id', $user->id)
             ->first();
@@ -97,6 +102,14 @@ class TreeController extends Controller
             'initial_cart_ids' => $cart_course_ids,
             'passed_courses' => $passedCourses,
             'total_passed_hours' => $totalPassedHours,
+            'registration_rules' => [
+                'period_label' => $registrationRules['period_label'],
+                'is_summer' => (bool) $registrationRules['is_summer'],
+                'term_limit' => (int) $registrationRules['term_limit'],
+                'effective_limit' => (int) $registrationRules['effective_limit'],
+                'is_probation' => (bool) $registrationRules['is_probation'],
+                'is_graduating' => (bool) $registrationRules['is_graduating'],
+            ],
             'student_name' => $user->name ?? 'طالب',
             'major_name' => $majorName,
             'current_major_id' => $selectedMajorId,

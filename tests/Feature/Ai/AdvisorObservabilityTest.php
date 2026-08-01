@@ -289,4 +289,36 @@ class AdvisorObservabilityTest extends AdvisorTestCase
         $this->assertEquals(0, $response->json('fallback_rate'));
         $this->assertSame([], $response->json('tools_used'));
     }
+
+    public function test_deleting_a_chat_removes_it_from_the_database_and_cached_metrics(): void
+    {
+        [$admin, $major] = $this->student('admin@example.com', ['role' => 'admin']);
+        $this->addToCart($admin, $this->course($major, ['credit_hours' => 3]));
+        $this->currentPeriod();
+        $this->fakeGemini([$this->envelope()]);
+
+        $chatId = $this->actingAs($admin->fresh())
+            ->postJson(route('ai.advisor.chat'), ['message' => 'راجع تسجيلي'])
+            ->assertOk()
+            ->json('chat_id');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.reports.ai_quality'))
+            ->assertOk()
+            ->assertJsonPath('total_answers', 1);
+
+        $this->actingAs($admin)
+            ->deleteJson(route('ai.advisor.delete', ['chat_id' => $chatId]))
+            ->assertOk();
+
+        $this->assertDatabaseMissing('chats', ['id' => $chatId]);
+        $this->assertDatabaseMissing('messages', ['chat_id' => $chatId]);
+        $this->assertDatabaseMissing('ai_request_logs', ['chat_id' => $chatId]);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.reports.ai_quality'))
+            ->assertOk()
+            ->assertJsonPath('total_answers', 0)
+            ->assertJsonPath('top_intents', []);
+    }
 }

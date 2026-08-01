@@ -52,6 +52,7 @@ export default function Dashboard({
     total_hours = 132,
     gpa = "0.00",
     has_academic_records = false,
+    registration_rules = null,
     passed_courses = [],
     cart_courses = [],
     ai_skills = [],
@@ -149,6 +150,9 @@ export default function Dashboard({
     }, []);
 
     const academicPeriodLabel = academicPeriod?.display_label || [academicPeriod?.academic_year, academicPeriod?.academic_term].filter(Boolean).join(' ');
+    const maxRegistrationHours = Number(registration_rules?.effective_limit) > 0
+        ? Number(registration_rules.effective_limit)
+        : 18;
 
     const processedCourses = useMemo(() => {
         return passed_courses.map(c => {
@@ -864,13 +868,13 @@ export default function Dashboard({
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                                                <span className="text-xl">🛒</span> خطة الفصل القادم
+                                                <span className="text-xl">🛒</span> تسجيل الفصل الحالي
                                             </h3>
-                                            <p className="text-[10px] font-bold text-slate-500 mt-1">مواد التسجيل التجريبي الخاصة بك</p>
+                                            <p className="text-[10px] font-bold text-slate-500 mt-1">مواد التسجيل التجريبي{academicPeriodLabel ? ` — ${academicPeriodLabel}` : ''}</p>
                                         </div>
                                         <div className="bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-sm text-center">
                                             <span className="block text-[10px] font-black text-amber-500 uppercase">إجمالي الساعات</span>
-                                            <span className={`text-lg font-[900] ${cartTotalHours > 18 ? 'text-rose-600' : 'text-amber-600'}`}>{cartTotalHours}</span>
+                                            <span className={`text-lg font-[900] ${cartTotalHours > maxRegistrationHours ? 'text-rose-600' : 'text-amber-600'}`}>{cartTotalHours} / {maxRegistrationHours}</span>
                                         </div>
                                     </div>
                                 </div>

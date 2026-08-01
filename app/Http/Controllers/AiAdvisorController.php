@@ -1481,8 +1481,19 @@ class AiAdvisorController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $chat->messages()->delete();
-        $chat->delete();
+        DB::transaction(function () use ($chat) {
+            // Keep this explicit as well as the database cascade so deployments
+            // that have not run the newest migration never leave analytics rows
+            // pointing at a conversation the student deleted.
+            if (Schema::hasTable('ai_request_logs')) {
+                DB::table('ai_request_logs')->where('chat_id', $chat->id)->delete();
+            }
+
+            $chat->messages()->delete();
+            $chat->delete();
+        });
+
+        $this->forgetAdminAiCaches();
 
         return response()->json(['status' => 'deleted']);
     }
@@ -1495,10 +1506,26 @@ class AiAdvisorController extends Controller
         }
 
         $chatIds = $user->chats()->pluck('id');
-        Message::whereIn('chat_id', $chatIds)->delete();
-        $user->chats()->delete();
+
+        DB::transaction(function () use ($user, $chatIds) {
+            if (Schema::hasTable('ai_request_logs') && $chatIds->isNotEmpty()) {
+                DB::table('ai_request_logs')->whereIn('chat_id', $chatIds)->delete();
+            }
+
+            Message::whereIn('chat_id', $chatIds)->delete();
+            $user->chats()->delete();
+        });
+
+        $this->forgetAdminAiCaches();
 
         return response()->json(['status' => 'all_deleted']);
+    }
+
+    private function forgetAdminAiCaches(): void
+    {
+        Cache::forget('admin_ai_reports');
+        Cache::forget('admin_ai_quality_metrics_v2');
+        Cache::forget('admin_ai_quality_metrics_v3');
     }
 
     public function getAdminReports()
@@ -1575,7 +1602,9 @@ class AiAdvisorController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        return response()->json(Cache::remember('admin_ai_quality_metrics_v2', 300, function () {
+        // v3 intentionally retires any cached v2 payload that may still contain
+        // cards for conversations deleted before cascade cleanup was introduced.
+        return response()->json(Cache::remember('admin_ai_quality_metrics_v3', 300, function () {
             if (!Schema::hasTable('ai_request_logs')) {
                 return ['available' => false];
             }
@@ -1583,7 +1612,19 @@ class AiAdvisorController extends Controller
             $since = now()->subDays(30);
             $logs = DB::table('ai_request_logs')->where('created_at', '>=', $since);
 
-            $answers = (clone $logs)->whereIn('route_used', ['chat', 'stream', 'regenerate']);
+            $answers = (clone $logs)
+                ->whereIn('route_used', ['chat', 'stream', 'regenerate'])
+                // Old deployments may already contain orphan rows. Keep genuine
+                // pre-chat failures (null chat_id), but exclude a non-null id when
+                // its conversation no longer exists.
+                ->where(function ($query) {
+                    $query->whereNull('chat_id')
+                        ->orWhereExists(function ($chatQuery) {
+                            $chatQuery->selectRaw('1')
+                                ->from('chats')
+                                ->whereColumn('chats.id', 'ai_request_logs.chat_id');
+                        });
+                });
             $total = (clone $answers)->count();
 
             $timings = (clone $answers)->whereNotNull('response_time_ms')->selectRaw(
@@ -1602,7 +1643,9 @@ class AiAdvisorController extends Controller
 
             $actions = (clone $logs)->where('route_used', 'action');
             $actionTotal = (clone $actions)->count();
-            $topIntents = (clone $answers)->whereNotNull('intent')
+            $topIntents = (clone $answers)
+                ->whereNotNull('chat_id')
+                ->whereNotNull('intent')
                 ->select('intent', DB::raw('count(*) as count'))
                 ->groupBy('intent')
                 ->orderByDesc('count')
@@ -1670,7 +1713,9 @@ class AiAdvisorController extends Controller
     {
         $events = DB::table('ai_request_logs as logs')
             ->leftJoin('users', 'users.id', '=', 'logs.user_id')
-            ->leftJoin('chats', 'chats.id', '=', 'logs.chat_id')
+            // An inner join is deliberate: a deleted chat must never become a
+            // clickable "محادثة غير متوفرة" card in the admin drill-down.
+            ->join('chats', 'chats.id', '=', 'logs.chat_id')
             ->where('logs.created_at', '>=', $since)
             ->whereIn('logs.route_used', ['chat', 'stream', 'regenerate'])
             ->where('logs.intent', $intent)
@@ -2253,8 +2298,8 @@ class AiAdvisorController extends Controller
             "- 📝 تنسيق الرد عن مادة محددة (اجعله واضحاً واحترافياً ومختصراً): سطر باسم المادة ورمزها وساعاتها، ثم سطر بحالتها (✅ متاحة / 🔒 مقفلة + السبب)، ثم نصيحة قصيرة أو نبذة. تجنّب الردود المبهمة أو الطويلة بلا فائدة.\n" .
             "- عامود (Sched) يحتوي على أوقات وأيام وقاعات الشُعب المطروحة واسم **المحاضر/المدرس**، اقرأه جيداً واستخدم هذه المعلومات إذا سألك الطالب عن المدرسين أو تفاصيل المحاضرات.\n" .
             "- اذكر الفصل، الحد الفعلي، ثم قيّم الحالة. الفصل الحالي: {$currentPeriodLabel}. حد الترم: {$currentTermLimit}س. الحد الأكاديمي: {$academicLimit}س. الحد المطبق: {$effectiveLimit}س.\n" .
-            "- 🚨 قيود الساعات الذكية (هام جداً): الحد الطبيعي للفصل العادي 18 وللصيفي 9. الاستثناءات: (1) الخريج بالفصل العادي (باقي 21 ساعة أو أقل) مسموح له 21 ساعة. (2) الخريج بالصيفي (باقي 12 ساعة أو أقل) مسموح له 12 ساعة. (3) الصيفي في حال احتوى على مادة مختبر (ساعة واحدة) مسموح له 10 ساعات.\n" .
-            ($isSummer ? "- (الفصل صيفي). ركز على المواد المطروحة في الصيفي إن وجدت.\n" : "- (ليس صيفياً).\n") .
+            "- 🚨 قيود الساعات الذكية (هام جداً): لا تعتمد على رقم محفوظ أو ثابت. حد الفصل الحالي من البيانات هو {$currentTermLimit} ساعة، والحد الفعلي لهذا الطالب هو {$effectiveLimit} ساعة. إذا خططت لفصول لاحقة فالتزم بحد كل فصل كما يظهر في تسلسل الفصول.\n" .
+            ($isSummer ? "- الفصل الحالي صيفي؛ استخدم المواد المطروحة والحد الفعلي الواردين في بيانات هذا الفصل فقط.\n" : "- الفصل الحالي اعتيادي؛ لا تعرضه أو تصفه كفصل صيفي.\n") .
             "- لا تخمّن الساعات. تجنب كلمات 'خريف/ربيع' واستخدم 'الفصل الأول/الثاني/الصيفي'.\n" .
             $filterInstructions .
             $firstSemesterRule .
@@ -2265,7 +2310,7 @@ class AiAdvisorController extends Controller
             "- مباني: أ.ب(الفاروق - تكنولوجيا المعلومات، الآداب، الشريعة)، ت(طبية/تقنية)، د.هـ(الخوارزمي - التمريض، الصيدلة، العلوم)، ل(هندسة/فنون)، ص(صحافة/حقوق)، ق(الشهيد معاذ الكساسبة - اقتصاد)، ط(أسنان). الطوابق: 100=أول، 200=ثاني.\n" .
             "🚨 أدوات ذكية (WIDGETS): يجب تفعيلها في JSON عند الحاجة:\n" .
             "1. إذا سأل 'كم ساعة أسجل؟' -> أرسل: `{\"type\":\"hours_slider\",\"current_cart_hours\":{$cartData['hours']}}`\n" .
-            "2. إذا سأل 'راجع/قيّم جدولي' -> أرسل: `{\"type\":\"cart_review\",\"courses\":[{\"id\":123,\"name\":\"اسم\",\"code\":\"101\",\"credit_hours\":3,\"verdict\":\"keep|remove|warning\",\"reason\":\"...\"}],\"summary\":{\"recommendation\":\"...\",\"max_hours\":18,\"overall_difficulty\":\"متوسط\"}}`\n\n" .
+            "2. إذا سأل 'راجع/قيّم جدولي' -> أرسل: `{\"type\":\"cart_review\",\"courses\":[{\"id\":123,\"name\":\"اسم\",\"code\":\"101\",\"credit_hours\":3,\"verdict\":\"keep|remove|warning\",\"reason\":\"...\"}],\"summary\":{\"recommendation\":\"...\",\"max_hours\":{$effectiveLimit},\"overall_difficulty\":\"متوسط\"}}`\n\n" .
             "سياق RAG:\n" . ($ragContext ?: 'لا يوجد سياق إضافي حالياً.') . "\n\n" .
             $calendarText .
             "بيانات الطالب المختصرة: {$user->name} | {$academicData['major_name']} | سنة {$studentYearLabel} | معدل {$gpa}%\n" .
@@ -3093,6 +3138,7 @@ class AiAdvisorController extends Controller
         $normalized = $this->normalizeArabic($message);
         $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي');
         $effectiveLimit = (int) ($academicData['effective_registration_limit'] ?? self::MAX_HOURS_NORMAL);
+        $currentTermLimit = (int) ($academicData['current_term_limit'] ?? $effectiveLimit);
         $cartHours = (int) ($cartData['hours'] ?? 0);
         $remainingHours = max(0, $effectiveLimit - $cartHours);
         $isSummer = !empty($academicData['current_period_is_summer']);
@@ -3107,24 +3153,24 @@ class AiAdvisorController extends Controller
         usort($availableDetails, fn(array $a, array $b) => ((int) ($a['credit_hours'] ?? 0)) <=> ((int) ($b['credit_hours'] ?? 0)));
 
         $suggestedIds = [];
-        $followUps = ['كم ساعة مسموح لي؟', 'ما المواد المناسبة لي؟'];
+        $followUps = ['ما الحد الفعلي لساعاتي هذا الفصل؟', 'ما أفضل مواد متاحة لي وفق المتطلبات؟'];
 
-        $reply = "أنت الآن في **{$currentPeriodLabel}**. الحد الفعلي للتسجيل: **{$effectiveLimit} ساعة**";
+        $reply = "### 📚 ملخص الفصل الحالي\nأنت الآن في **{$currentPeriodLabel}**، والحد الفعلي لتسجيلك هو **{$effectiveLimit} ساعة**";
         if ($isSummer) {
-            $reply .= "، وفي الفصل الصيفي الحد الأساسي هو **9 ساعات**.";
+            $reply .= "، وحد هذا الفصل حسب الإعدادات الحالية هو **{$currentTermLimit} ساعة**.";
         }
-        $reply .= "\nساعاتك الحالية: **{$cartHours}** | المتبقي: **{$remainingHours}**.";
+        $reply .= "\n\n📋 تسجيلك التجريبي الحالي: **{$cartHours} ساعة**، والسعة المتبقية: **{$remainingHours} ساعة**.";
 
         if (preg_match('/(ساع|ساعات|تسجيل|الجدول|فصل|الصيف|summer|limit|كم مسموح)/u', $normalized)) {
-            $reply .= "\n\nأفضل اختيار الآن هو الالتزام بالحد أعلاه وعدم تجاوزه.";
+            $reply .= "\n\n### 💡 التوصية\nالتزم بالحد الفعلي أعلاه، ثم قيّم توازن المواد والمتطلبات قبل استهلاك السعة المتبقية.";
         } elseif (preg_match('/(معدل|gpa|انذار|إنذار|رفع|تراكمي|probation)/u', $normalized)) {
-            $reply .= "\n\nلرفع المعدل، اختر مواد أخف عبئاً ومناسبة للحد الحالي.";
-            $followUps = ['ما تأثير هذه المواد على معدلي؟', 'كيف أخفف عبء الجدول؟'];
+            $reply .= "\n\n### 🎯 التوصية\nاربط عدد الساعات بهدف معدل واقعي، واختر مزيجاً متوازناً من المواد بدل الاعتماد على وصف «سهل» وحده.";
+            $followUps = ['احسب ما أحتاجه للوصول إلى معدل أعلى', 'راجع عبء تسجيلي واقترح تعديلات مناسبة'];
         } elseif (preg_match('/(تخرج|خطة|مسار|فتح|متطلبات|استراتي|graduat|plan)/u', $normalized)) {
-            $reply .= "\n\nركّز على المواد التي تفتح مواد أخرى أو تكمل متطلبات الخطة.";
-            $followUps = ['ما أفضل ترتيب للفصل القادم؟', 'أي المواد تعطل التخرج لو تأخرت؟'];
+            $reply .= "\n\n### 🧭 التوصية\nابدأ بالمواد المتاحة التي تفتح متطلبات لاحقة أو تغلق فجوة أساسية في الخطة، ثم وازنها بمادة أخف عند الحاجة.";
+            $followUps = ['رتّب المواد المتبقية ضمن خطة تخرج', 'حدد المواد الحرجة التي قد تؤخر تخرجي'];
         } else {
-            $reply .= "\n\nأقدر ألخص لك الخطة أو أرشح مواد مناسبة إذا سألتني بصيغة أقصر.";
+            $reply .= "\n\n### 🤖 ما يمكنني مساعدتك به\nأستطيع مراجعة التسجيل، اقتراح المواد المتاحة، فحص المتطلبات، حساب هدف المعدل، وترتيب خطة التخرج وفق بياناتك الحالية.";
         }
 
         if ($this->isFirstSemesterStudent($academicData)) {

@@ -54,9 +54,30 @@ class AcademicPeriodTransitionTest extends AdvisorTestCase
         $this->actingAs($student)
             ->get(route('ai.advisor'))
             ->assertInertia(fn ($page) => $page
+                ->where('academic_period.academic_term', 1)
                 ->where('studentStats.cart_hours', 0)
                 ->where('studentStats.max_allowed_hours', 18)
                 ->where('initialCartIds', [])
+            );
+
+        $this->actingAs($student)
+            ->get(route('tree.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('academic_period.academic_term', 1)
+                ->where('registration_rules.is_summer', false)
+                ->where('registration_rules.term_limit', 18)
+                ->where('registration_rules.effective_limit', 18)
+                ->where('initial_cart_ids', [])
+            );
+
+        $this->actingAs($student)
+            ->get(route('dashboard'))
+            ->assertInertia(fn ($page) => $page
+                ->where('academic_period.academic_term', 1)
+                ->where('registration_rules.is_summer', false)
+                ->where('registration_rules.term_limit', 18)
+                ->where('registration_rules.effective_limit', 18)
+                ->where('cart_courses', [])
             );
 
         $fake = $this->fakeGemini([$this->envelope()]);

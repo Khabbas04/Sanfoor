@@ -49,6 +49,7 @@ class ProactiveInsightsEngine
         $remaining = max(0, $totalPlan - $passedHours);
         $progress = (int) round($passedHours / $totalPlan * 100);
         $cartHours = (int) $user->cartCourses->sum('credit_hours');
+        $registrationLimit = AcademicPeriod::maxHoursFor(AcademicPeriod::current()?->academic_term, $isProbation);
 
         $rawName = trim((string) ($user->name ?? ''));
         $firstName = $rawName !== '' ? (preg_split('/\s+/', $rawName)[0] ?? '') : '';
@@ -75,7 +76,7 @@ class ProactiveInsightsEngine
         $pivotal = $this->findPivotalCourse($user, $passedIds);
 
         // --- Risks ---
-        $risks = $this->detectRisks($user, $gpaPct, $isProbation, $cartHours, $passedIds);
+        $risks = $this->detectRisks($gpaPct, $isProbation, $cartHours, $registrationLimit);
 
         // --- Build headline + highlight chips ---
         [$headline, $highlights, $quickActions] = $this->composeNarrative(
@@ -139,7 +140,7 @@ class ProactiveInsightsEngine
         return null;
     }
 
-    private function detectRisks(User $user, float $gpaPct, bool $isProbation, int $cartHours, array $passedIds): array
+    private function detectRisks(float $gpaPct, bool $isProbation, int $cartHours, int $registrationLimit): array
     {
         $risks = [];
 
@@ -149,8 +150,9 @@ class ProactiveInsightsEngine
             $risks[] = 'معدلك قريب من حد الإنذار — احذر التحميل الزائد هذا الفصل.';
         }
 
-        if ($cartHours > 18) {
-            $risks[] = "تسجيلك التجريبي {$cartHours} ساعة ويتجاوز الحد المسموح.";
+        if ($cartHours > $registrationLimit) {
+            $excess = $cartHours - $registrationLimit;
+            $risks[] = "تسجيلك التجريبي {$cartHours} ساعة ويتجاوز حدّك الحالي ({$registrationLimit} ساعة) بمقدار {$excess} ساعة.";
         }
 
         return $risks;
@@ -166,6 +168,10 @@ class ProactiveInsightsEngine
         $highlights = [];
         $quickActions = [];
 
+        foreach ($risks as $risk) {
+            $highlights[] = ['type' => 'risk', 'icon' => '⚠️', 'text' => $risk];
+        }
+
         if (!$hasRecords) {
             $headline = 'أهلاً بك في بداية رحلتك الجامعية! 🚀';
             $highlights[] = ['type' => 'opportunity', 'icon' => '🌱', 'text' => 'ما عندك مواد منجزة بعد — خلّينا نرتّب لك بداية قوية وصحيحة.'];
@@ -174,17 +180,15 @@ class ProactiveInsightsEngine
             $headline = "أنجزت {$progress}% من خطتك — " . ($progress >= 80 ? 'قربت تتخرج! 🎓' : ($progress >= 40 ? 'ماشي بخطى ثابتة 💪' : 'البداية موفّقة، كمّل! ✨'));
 
             if ($isProbation) {
-                $highlights[] = ['type' => 'risk', 'icon' => '🚨', 'text' => "معدلك {$gpaPct}% وأنت تحت الإنذار — خلّينا نبني خطة إنقاذ لرفع معدلك."];
-                $quickActions[] = 'اعمل لي خطة إنقاذ لرفع معدلي';
-                $quickActions[] = 'اقترح لي مواد سهلة ترفع معدلي';
+                $quickActions[] = 'حلّل أسباب الإنذار وابنِ لي خطة لرفع معدلي';
+                $quickActions[] = 'اقترح مواد متوازنة تناسب وضعي الأكاديمي';
             } elseif ($gpaPct > 0 && $gpaPct < 65) {
-                $highlights[] = ['type' => 'warning', 'icon' => '⚠️', 'text' => "معدلك {$gpaPct}% — قريب من الإنذار، ركّز على مواد متوازنة."];
-                $quickActions[] = 'شو أفضل مواد ترفع معدلي هذا الفصل؟';
+                $quickActions[] = 'ما أفضل خطة متوازنة لرفع معدلي هذا الفصل؟';
             }
 
             if ($progress >= 80) {
                 $highlights[] = ['type' => 'opportunity', 'icon' => '🎓', 'text' => "باقيلك {$remaining} ساعة فقط — خلّينا ننهيها بأقصر طريق."];
-                $quickActions[] = 'رتّب لي المواد المتبقية للتخرج';
+                $quickActions[] = 'رتّب المواد المتبقية ضمن خطة تخرج واقعية';
             }
         }
 
@@ -213,14 +217,14 @@ class ProactiveInsightsEngine
 
         // Cart nudge.
         if ($cartHours === 0 && $hasRecords) {
-            $quickActions[] = 'اقترح لي مواد أضيفها لتسجيلي هذا الفصل';
+            $quickActions[] = 'اقترح مواد متاحة لي وفق المتطلبات ضمن حد الفصل الحالي';
         } elseif ($cartHours > 0) {
-            $quickActions[] = 'راجع تسجيلي التجريبي وقيّمه';
+            $quickActions[] = 'راجع تسجيلي التجريبي مادةً مادة';
         }
 
         // Always-useful defaults, de-duplicated, capped at 4.
-        $quickActions[] = 'كم ساعة أقدر أسجّل هذا الفصل؟';
-        $quickActions[] = 'مين دكاترة المواد المطروحة؟';
+        $quickActions[] = 'ما الحد الفعلي لساعاتي هذا الفصل؟';
+        $quickActions[] = 'اعرض الشُعب والمدرّسين المتوفرين للمواد المقترحة';
         $quickActions = array_values(array_slice(array_unique($quickActions), 0, 4));
 
         // Cap highlights at 4, most important first (risks already prepended above).

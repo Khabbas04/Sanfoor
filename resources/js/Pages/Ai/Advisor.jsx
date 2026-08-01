@@ -741,13 +741,16 @@ const ProactiveBriefing = ({ insights }) => {
 // ======================================================================
 // 🧠 Welcome Chat
 // ======================================================================
-const WelcomeChat = ({ st }) => {
+const WelcomeChat = ({ st, academicPeriod }) => {
+    const periodLabel = academicPeriod?.display_label || academicPeriod?.label || 'الفصل الحالي';
+    const maxAllowedHours = Number(st?.max_allowed_hours) > 0 ? Number(st.max_allowed_hours) : 18;
     const capabilities = [
-        { icon: '📊', title: 'تحليل دقيق لوضعك', desc: 'بحلل معدلك وساعاتك وموقعك من التخرج بذكاء' },
-        { icon: '🎯', title: 'اقتراح أفضل المواد', desc: 'ببني لك جدول مخصص يرفع معدلك ويناسب خطتك' },
-        { icon: '📋', title: 'تقييم تسجيلك الحالي', desc: 'براجع موادك التجريبية وبنصحك تحذف أو تخفف العبء' },
-        { icon: '⚖️', title: 'مقارنة المواد', desc: 'بساعدك تختار بين مادتين وتعرف تأثير كل مادة' },
-        { icon: '📅', title: 'قوانين وتقويم جامعي', desc: 'بجاوبك عن مواعيد التسجيل، الامتحانات، وأي قانون' },
+        { icon: '📊', title: 'تحليل الوضع الأكاديمي', desc: 'قراءة المعدل والساعات والتقدم، وحساب ما يلزم للوصول إلى هدفك' },
+        { icon: '🎯', title: 'خطة تسجيل مخصصة', desc: 'اقتراح مواد متاحة لك وفق المتطلبات وضمن حد الفصل، مع سبب واضح لكل اختيار' },
+        { icon: '📋', title: 'مراجعة التسجيل التجريبي', desc: 'تقييم كل مادة، كشف المخاطر والتعارضات، واقتراح تعديلات عملية' },
+        { icon: '🧭', title: 'خطة التخرج والمتطلبات', desc: 'ترتيب المواد المتبقية وتحديد المواد الحرجة وما تفتحه لاحقاً' },
+        { icon: '⚖️', title: 'مقارنة الخيارات', desc: 'مقارنة المواد والصعوبة والعبء وأثر كل خيار على خطتك ومعدلك' },
+        { icon: '🏫', title: 'الجداول والخدمات الجامعية', desc: 'الشُعب والمواعيد والمدرّسون والتقويم والقوانين ومواقع مرافق الجامعة' },
     ];
 
     return (
@@ -757,9 +760,13 @@ const WelcomeChat = ({ st }) => {
             </div>
             <h2 className="text-lg md:text-xl font-black text-slate-800 mb-1">أهلاً بك {st?.name?.split(' ')[0] || ''}! 👋</h2>
             <p className="text-[12px] font-bold text-slate-500 mb-4 max-w-lg leading-relaxed px-2">
-                أنا دكتور سنفور، مستشارك الأكاديمي الذكي. 🤖<br/>
-                هنا مساحتك الخاصة لتسألني وتستشيرني عن أي شيء يخص مسيرتك الأكاديمية!
+                أنا سنفور، مرشدك الأكاديمي الذكي. أقدّم لك توصيات مبنية على خطتك وبياناتك الأكاديمية. 🤖
             </p>
+
+            <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-[10px] font-black">
+                <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-blue-700">📚 {periodLabel}</span>
+                <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-700">حتى {maxAllowedHours} ساعة</span>
+            </div>
             
             <div className="w-full max-w-3xl bg-white border border-blue-100 rounded-3xl p-4 md:p-5 shadow-sm">
                 <h3 className="text-[12px] md:text-[13px] font-black text-blue-700 mb-3 flex items-center justify-center gap-2">
@@ -767,7 +774,7 @@ const WelcomeChat = ({ st }) => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 text-right">
                     {capabilities.map((cap, i) => (
-                        <div key={i} className={`p-3 rounded-2xl border border-slate-100 bg-slate-50 flex items-start gap-2.5 transition-transform hover:-translate-y-1 hover:shadow-md hover:border-blue-200 ${i === 4 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
+                        <div key={i} className="p-3 rounded-2xl border border-slate-100 bg-slate-50 flex items-start gap-2.5 transition-transform hover:-translate-y-1 hover:shadow-md hover:border-blue-200">
                             <span className="text-xl md:text-2xl mt-0.5">{cap.icon}</span>
                             <div>
                                 <h4 className="font-black text-[11px] md:text-[12px] text-slate-700 mb-0.5">{cap.title}</h4>
@@ -788,7 +795,7 @@ const WelcomeChat = ({ st }) => {
 // 🧠 MAIN
 // ======================================================================
 export default function Advisor() {
-    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive, proactiveInsights, aiMemory } = usePage().props;
+    const { studentStats: st, chats: initChats, initialCartIds, dailyMessagesRemaining: initialRemaining, hasDailyLimit: initialHasDailyLimit, isAiActive: initialIsAiActive, proactiveInsights, aiMemory, academic_period: academicPeriod } = usePage().props;
 
     const [remaining, setRemaining] = useState(initialHasDailyLimit ? (initialRemaining ?? 5) : null);
     const [hasDailyLimit, setHasDailyLimit] = useState(initialHasDailyLimit ?? true);
@@ -799,7 +806,7 @@ export default function Advisor() {
     const limitReached = hasDailyLimit && remaining !== null && remaining <= 0;
 
     const welcome = useMemo(() => {
-        const name = st?.name || 'بطل';
+        const name = st?.name?.trim()?.split(/\s+/)?.[0] || 'صديقي';
         const gpa = parseFloat(st?.gpa) || 0;
         const hours = st?.hours_completed || 0;
         const totalHours = st?.total_plan_hours || 132;
@@ -807,39 +814,41 @@ export default function Advisor() {
         const cartHoursDb = st?.cart_hours || 0;
         const hasAcademicRecords = hours > 0;
         const isProbation = st?.is_probation || false;
+        const maxAllowedHours = Number(st?.max_allowed_hours) > 0 ? Number(st.max_allowed_hours) : 18;
+        const periodLabel = academicPeriod?.display_label || academicPeriod?.label || 'الفصل الحالي';
 
-        let greeting = `مرحباً **${name}**! 👋\n\nأنا **سنفور**، مرشدك الأكاديمي الذكي.\n\n`;
+        let greeting = `مرحباً **${name}** 👋\n\nأنا **سنفور**، مرشدك الأكاديمي الذكي. قرأت بياناتك لـ **${periodLabel}**، وحدّ تسجيلك الحالي **${maxAllowedHours} ساعة**.\n\n`;
         let personalMsg = '';
         let suggestedActions = [];
 
         // تحليل حالة الطالب
         if (!hasAcademicRecords) {
-            personalMsg = `✅ **وضعك طبيعي حالياً.** ما عندك مواد منجزة بعد، لذلك ما في معدل فعلي ولا إنذار.\nابدأ بإضافة أول موادك وأنا بساعدك تخطط بشكل صحيح.\n\n`;
-            suggestedActions = ['اقترح لي أول مواد مناسبة', 'كم ساعة أسجل هالفصل؟', 'رتّب لي خطة بداية بسيطة'];
+            personalMsg = `🌱 **هذه بداية خطتك الأكاديمية.** لا توجد ساعات منجزة بعد، لذلك سأبني اقتراحاتي من مواد البداية والمتطلبات المتاحة لك.\n\n`;
+            suggestedActions = ['اقترح لي أول تسجيل متوازن ضمن الحد الحالي', 'تحقق من متطلبات مواد الفصل الأول', 'رتّب لي خطة بداية واضحة'];
         } else if (isProbation) {
-            personalMsg = `⚠️ **تنبيه:** معدلك حالياً **${gpa}%** وأنت تحت الإنذار الأكاديمي.\nلا تقلق — خليني أساعدك تبني خطة إنقاذ لرفع معدلك!\n\n`;
-            suggestedActions = ['أريد خطة إنقاذ لرفع معدلي', 'اقترح مواد سهلة لرفع المعدل', 'كم ساعة أسجل وأنا بالإنذار؟'];
+            personalMsg = `⚠️ **معدلك الحالي ${gpa}% وتظهر بياناتك أنك تحت الإنذار الأكاديمي.** يمكنني إعداد خطة تسجيل محسوبة لرفع المعدل وتخفيف المخاطر.\n\n`;
+            suggestedActions = ['حلّل أسباب الإنذار وابنِ لي خطة لرفع معدلي', 'اقترح مواد متوازنة تناسب وضعي الأكاديمي', 'ما الحد الفعلي لساعاتي وأنا تحت الإنذار؟'];
         } else if (progress >= 80) {
-            personalMsg = `🎓 **أنت قريب من التخرج!** أنجزت **${progress}%** من خطتك (${hours}/${totalHours} ساعة).\nخليني أساعدك تنهي آخر المواد بأفضل طريقة.\n\n`;
-            suggestedActions = ['رتّب لي المواد المتبقية', 'كم فصل باقي على التخرج؟', 'راجع التسجيل التجريبي وقيّمه'];
+            personalMsg = `🎓 **أنت قريب من التخرج.** أنجزت **${progress}%** من خطتك (${hours}/${totalHours} ساعة)، ويمكنني ترتيب المتبقي حسب الأولوية والمتطلبات السابقة.\n\n`;
+            suggestedActions = ['رتّب المواد المتبقية ضمن خطة تخرج', 'احسب كم فصل أحتاج للتخرج', 'راجع تسجيلي التجريبي مادةً مادة'];
         } else if (cartHoursDb > 0) {
             personalMsg = `📋 **التسجيل التجريبي عندك فيه ${cartHoursDb} ساعة.** `;
-            if (cartHoursDb > 18) {
-                personalMsg += `⚠️ هذا أكثر من الحد المسموح!\n\n`;
-                suggestedActions = ['العبء كبير، شو أحذف؟', 'راجع التسجيل التجريبي وقيّمه', 'قارن لي أفضل المواد'];
-            } else if (cartHoursDb < 12) {
-                personalMsg += `ممكن تضيف مواد ثانية — عندك مساحة.\n\n`;
-                suggestedActions = ['اقترح مواد أضيفها للتسجيل التجريبي', 'قارن لي أفضل المواد', 'كم معدلي حالياً؟'];
+            if (cartHoursDb > maxAllowedHours) {
+                personalMsg += `⚠️ يتجاوز حدّك الحالي بمقدار **${cartHoursDb - maxAllowedHours} ساعة** ويحتاج إلى تعديل.\n\n`;
+                suggestedActions = ['راجع تسجيلي وحدد ما يجب حذفه مع الأسباب', 'أعد بناء التسجيل ضمن الحد المسموح', 'قارن بين المواد قبل أن أحذف إحداها'];
+            } else if (cartHoursDb < maxAllowedHours) {
+                personalMsg += `هو ضمن الحد الحالي، وتبقى لديك سعة قصوى قدرها **${maxAllowedHours - cartHoursDb} ساعة**؛ سأتحقق أولاً إن كانت الإضافة مناسبة أكاديمياً.\n\n`;
+                suggestedActions = ['راجع تسجيلي التجريبي مادةً مادة', 'اقترح مادة متاحة لي إذا كانت الإضافة مناسبة', 'حلّل أثر هذا التسجيل على معدلي'];
             } else {
-                personalMsg += `عبء متوازن! بس خليني أتأكد إنه مناسب.\n\n`;
-                suggestedActions = ['راجع التسجيل التجريبي وقيّمه', 'هل الجدول مناسب لمعدلي؟', 'اقترح تعديلات على التسجيل التجريبي'];
+                personalMsg += `وصل إلى الحد الأعلى تماماً؛ أي إضافة جديدة تتطلب إزالة مادة أولاً.\n\n`;
+                suggestedActions = ['راجع تسجيلي التجريبي مادةً مادة', 'هل عبء التسجيل مناسب لمعدلي؟', 'اقترح تعديلات تحافظ على نفس عدد الساعات'];
             }
         } else if (gpa > 0 && gpa < 60) {
-            personalMsg = `📊 معدلك **${gpa}%** — في مجال للتحسين!\nخليني أساعدك تختار مواد ترفع معدل الفصل الجاي.\n\n`;
-            suggestedActions = ['أريد مواد سهلة لرفع معدلي', 'اقترح لي خطة متوازنة', 'كم ساعة أسجل هالفصل؟'];
+            personalMsg = `📊 **معدلك الحالي ${gpa}% ويحتاج إلى خطة محسوبة.** سأوازن بين فرصة رفع المعدل والتقدم في الخطة دون تحميل زائد.\n\n`;
+            suggestedActions = ['احسب ما أحتاجه للوصول إلى معدل أعلى', 'اقترح لي تسجيلاً متوازناً لرفع المعدل', 'ما عدد الساعات الأنسب لوضعي؟'];
         } else {
-            personalMsg = `أقدر أساعدك بـ:\n* 📊 تحليل معدلك وساعاتك\n* 🛒 اقتراح مواد وإضافتها بضغطة\n* 📅 عرض التقويم الجامعي ومواعيد الامتحانات\n* ⏰ معرفة أوقات الشُعب المطروحة وأسماء الدكاترة\n* 📋 مراجعة التسجيل التجريبي وتخفيف العبء\n\n`;
-            suggestedActions = ['اقترح لي مواد تفتح مواد أخرى', 'ما هو التقويم الجامعي هالفصل؟', 'مين دكاترة المواد المطروحة؟'];
+            personalMsg = `يمكنني الآن مراجعة تسجيلك، اقتراح مواد متاحة لك وفق المتطلبات، حساب هدف المعدل، ترتيب خطة التخرج، ومساعدتك في الشُعب والتقويم والقوانين ومواقع الجامعة.\n\n`;
+            suggestedActions = ['اقترح لي مواد تفتح مواد لاحقة', 'اعرض أهم مواعيد التقويم لهذا الفصل', 'اعرض الشُعب والمدرّسين المتوفرين للمواد المقترحة'];
         }
 
         return {
@@ -852,7 +861,7 @@ export default function Advisor() {
             follow_up_suggestions: suggestedActions,
             interactive_widget: null,
         };
-    }, [st]);
+    }, [st, academicPeriod]);
 
     const [chats, setChats] = useState(initChats || []);
     const [activeId, setActiveId] = useState(null);
@@ -1043,15 +1052,18 @@ export default function Advisor() {
 
     const magicCommands = [
         // أوامر الجدول
-        { cmd: '/جدول', label: '🗓️ بناء جدول متكامل', message: 'ابنِ لي جدول متكامل للفصل الحالي يناسب معدلي', icon: '🗓️' },
-        { cmd: '/صيفي', label: '☀️ اقتراح للصيفي', message: 'بناءً على المواد المطروحة هالفصل، شو أحسن مواد أنزلها؟', icon: '☀️' },
-        { cmd: '/مواعيد', label: '⏰ مواعيد المواد', message: 'أعطني مواعيد المواد المطروحة التي يمكنني تسجيلها وهل هناك تعارض؟', icon: '⏰' },
+        { cmd: '/جدول', label: '🗓️ بناء جدول متكامل', message: 'ابنِ لي تسجيلاً متوازناً للفصل الحالي ضمن الحد المسموح، واشرح سبب اختيار كل مادة', icon: '🗓️' },
+        { cmd: '/اقتراح', label: '🎯 اقتراح مواد الفصل', message: 'حلّل المواد المطروحة واقترح أفضل مواد متاحة لي وفق المتطلبات في الفصل الحالي، مرتبة حسب الأولوية', icon: '🎯' },
+        { cmd: '/مواعيد', label: '⏰ الشُعب والمواعيد', message: 'اعرض الشُعب والمواعيد والقاعات والمدرّسين المتوفرين للمواد التي أستطيع تسجيلها، ونبّهني إلى أي تعارض', icon: '⏰' },
         { cmd: '/تقويم', label: '📅 التقويم الجامعي', message: 'أعطني التقويم الجامعي للفصل الحالي ومواعيد السحب والإضافة والامتحانات', icon: '📅' },
-        { cmd: '/رفع-معدل', label: '🚀 مواد لرفع المعدل', message: 'اقترح لي أسهل المواد المتاحة لرفع معدلي التراكمي', icon: '🚀' },
-        { cmd: '/تجريبي', label: '🛒 تقييم الجدول التجريبي', message: 'راجع التسجيل التجريبي الحالي وقيّمه واقترح تعديلات عليه', icon: '🛒' },
-        { cmd: '/حرج', label: '🚨 المسار الحرج', message: 'ما هي المواد الحرجة التي تفتح مواد أخرى ويجب أن أسجلها الآن؟', icon: '🚨' },
-        { cmd: '/تخفيف', label: '😮‍💨 تخفيف العبء', message: 'حاسس العبء كبير، شو أحذف من التسجيل التجريبي؟', icon: '😮‍💨' },
-        { cmd: '/تخرج', label: '🎓 خطة التخرج', message: 'كم فصل باقي على تخرجي وما هي المواد المتبقية؟', icon: '🎓' },
+        { cmd: '/رفع-معدل', label: '🚀 خطة رفع المعدل', message: 'حلّل معدلي واحسب هدفاً واقعياً، ثم اقترح تسجيلاً متوازناً يساعدني على التحسن', icon: '🚀' },
+        { cmd: '/تجريبي', label: '🛒 مراجعة التسجيل التجريبي', message: 'راجع تسجيلي التجريبي مادةً مادة، وحدد الملائم والمخاطر والتعديلات المقترحة', icon: '🛒' },
+        { cmd: '/متطلبات', label: '🔗 فحص المتطلبات', message: 'تحقق من المتطلبات السابقة للمواد التي أفكر بها، ووضح ما هو متاح وما هو مغلق وسببه', icon: '🔗' },
+        { cmd: '/قارن', label: '⚖️ مقارنة مواد', message: 'قارن بين المواد الأنسب لي من حيث الأولوية والصعوبة والساعات وما تفتحه لاحقاً', icon: '⚖️' },
+        { cmd: '/حرج', label: '🚨 المسار الحرج', message: 'حدد المواد الحرجة التي تفتح مواد أخرى وقد تؤخر تخرجي إذا أجلتها', icon: '🚨' },
+        { cmd: '/تخفيف', label: '🧩 موازنة العبء', message: 'حلّل عبء تسجيلي التجريبي واقترح ما يمكن تعديله لتقليل الضغط دون تأخير الخطة', icon: '🧩' },
+        { cmd: '/تخرج', label: '🎓 خطة التخرج', message: 'رتّب المواد المتبقية في خطة تخرج واقعية، مع مراعاة المتطلبات وحد كل فصل', icon: '🎓' },
+        { cmd: '/موقع', label: '📍 مواقع الجامعة', message: 'ساعدني في العثور على موقع الكلية أو المبنى أو المرفق الجامعي الذي أبحث عنه', icon: '📍' },
         
         // أوامر القوانين
         { cmd: '/غياب', label: '⏰ قوانين الغياب والحرمان', message: 'كم غياب مسموح لي قبل ما أنحرم من المادة؟ وما هي الأعذار المقبولة؟', icon: '⏰' },
@@ -1484,11 +1496,16 @@ export default function Advisor() {
 
     const allCommandsBank = useMemo(() => [
         // أوامر الجداول والتسجيل (الأساسية)
-        { text: "ابنِ لي جدول متكامل للفصل الحالي", icon: "🗓️", desc: "جدول ذكي", color: "blue" },
-        { text: "بناءً على المطروح، شو أسجل للصيفي؟", icon: "☀️", desc: "مواد الصيفي", color: "amber" },
-        { text: "اقترح لي أسهل مواد لرفع المعدل", icon: "🚀", desc: "رفع المعدل", color: "emerald" },
-        { text: "راجع التسجيل التجريبي وقيّمه", icon: "🛒", desc: "تقييم التسجيل", color: "slate" },
-        { text: "ما هي المواد الحرجة التي يجب تسجيلها الآن؟", icon: "🚨", desc: "المسار الحرج", color: "rose" },
+        { text: "ابنِ لي تسجيلاً متوازناً للفصل الحالي ضمن الحد المسموح", icon: "🗓️", desc: "خطة الفصل", color: "blue" },
+        { text: "اقترح أفضل مواد متاحة لي وفق المتطلبات من المطروح حالياً", icon: "🎯", desc: "اقتراح مواد", color: "amber" },
+        { text: "حلّل معدلي وابنِ لي خطة واقعية لرفعه", icon: "🚀", desc: "هدف المعدل", color: "emerald" },
+        { text: "راجع تسجيلي التجريبي مادةً مادة", icon: "🛒", desc: "مراجعة التسجيل", color: "slate" },
+        { text: "تحقق من المتطلبات السابقة للمواد التي أفكر بها", icon: "🔗", desc: "فحص المتطلبات", color: "cyan" },
+        { text: "قارن بين أفضل المواد المتاحة لي ووضح الأنسب", icon: "⚖️", desc: "مقارنة مواد", color: "violet" },
+        { text: "حدد المواد الحرجة التي قد تؤخر تخرجي إذا أجلتها", icon: "🚨", desc: "المسار الحرج", color: "rose" },
+        { text: "اعرض الشُعب والمواعيد والمدرّسين المتوفرين للمواد المقترحة", icon: "⏰", desc: "الشُعب والمواعيد", color: "sky" },
+        { text: "رتّب المواد المتبقية ضمن خطة تخرج واقعية", icon: "🎓", desc: "خطة التخرج", color: "fuchsia" },
+        { text: "ساعدني في العثور على موقع مرفق داخل الجامعة", icon: "📍", desc: "دليل الجامعة", color: "teal" },
         
         // أسئلة من القوانين والأنظمة
         { text: "كم غياب مسموح لي قبل ما أنحرم من المادة؟", icon: "⏰", desc: "قوانين الغياب", color: "indigo" },
@@ -1504,7 +1521,7 @@ export default function Advisor() {
     const cmds = useMemo(() => {
         const shuffled = [...allCommandsBank].sort(() => 0.5 - Math.random());
         // نضمن دائماً ظهور خيار "بناء جدول" أو خيار متعلق بالتسجيل لتشجيع استخدام الودجت
-        const coreCommand = shuffled.find(c => c.desc === "جدول ذكي" || c.desc === "تقييم التسجيل") || shuffled[0];
+        const coreCommand = shuffled.find(c => c.desc === "خطة الفصل" || c.desc === "مراجعة التسجيل") || shuffled[0];
         const others = shuffled.filter(c => c !== coreCommand).slice(0, 3);
         return [coreCommand, ...others].sort(() => 0.5 - Math.random());
     }, [allCommandsBank, activeId]); // Update random suggestions whenever a chat is opened/closed
@@ -1871,7 +1888,7 @@ export default function Advisor() {
                             {loadingChat ? <div className="h-full flex flex-col items-center justify-center text-blue-400"><div className="w-7 h-7 border-[3px] border-blue-100 border-t-blue-600 rounded-full animate-spin mb-2" /><p className="font-bold text-[10px]">جاري التحميل...</p></div> : (
                                 <div className="space-y-3">
                                     {!activeId && msgs.length === 1 && msgs[0].id === 'welcome' && (
-                                        <WelcomeChat insights={proactiveInsights} st={st} onQuick={send} />
+                                        <WelcomeChat insights={proactiveInsights} st={st} academicPeriod={academicPeriod} onQuick={send} />
                                     )}
                                     {msgs.map(m => (!activeId && msgs.length === 1 && m.id === 'welcome') ? null : <Msg key={m.id} msg={m} name={st?.name} added={added} loading={loadId} onToggle={toggle} onDone={finish} scroll={scroll} isLast={m.id === lastAi} onRegen={regen} onFb={fb} onFollow={send} onAction={runAction} actionStates={actionStates} />)}
                                     {typing && <div className="flex justify-start items-end gap-2 sfr-slide-up"><div className="w-8 h-8 rounded-full bg-white border border-blue-100 flex items-center justify-center shrink-0 shadow-sm ring-2 ring-blue-50"><img src="/images/aiwidget.png?v=2" alt="AI Widget" className="w-full h-full object-cover" /></div><div className="bg-white border border-slate-200/50 p-3.5 rounded-2xl rounded-ss-sm shadow-sm flex gap-1.5 items-center"><div className="w-1.5 h-1.5 bg-blue-600 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-blue-400 rounded-full typing-dot" /><div className="w-1.5 h-1.5 bg-sky-300 rounded-full typing-dot" />{regenning && <span className="text-[8px] text-slate-400 font-bold mr-1.5">يعيد...</span>}<span className="text-[12px] font-bold text-slate-500 animate-pulse transition-opacity duration-500 mr-2">{thinkingPhrases[thinkingIndex]}</span></div></div>}
@@ -2106,11 +2123,12 @@ export default function Advisor() {
                                 <p className="text-[11px] text-slate-600 font-bold mb-3 leading-relaxed">فقط اكتب علامة السلاش <kbd className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-mono mx-1">/</kbd> في صندوق المحادثة لفتح قائمة من الأوامر السريعة الجاهزة مثل:</p>
                                 <div className="flex flex-wrap gap-2">
                                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/جدول</span>
-                                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/صيفي</span>
+                                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/اقتراح</span>
                                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/مواعيد</span>
                                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/تقويم</span>
                                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/رفع-معدل</span>
                                     <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/تخرج</span>
+                                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-1 rounded-lg text-[10px] font-black">/متطلبات</span>
                                 </div>
                             </div>
 

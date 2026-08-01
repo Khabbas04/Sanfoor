@@ -342,6 +342,7 @@ export default function Tree({
     study_plan_version = 12,
     passed_courses = [],
     total_passed_hours = 0,
+    registration_rules = null,
     approved_plan = null,
     is_instructor = false,
     available_majors = [],
@@ -1541,20 +1542,13 @@ export default function Tree({
         return calculated > 0 ? calculated : Number(total_passed_hours || 0);
     }, [courses, passedIds, total_passed_hours]);
 
+    // The server evaluates the current term, probation and graduation exceptions
+    // through AcademicRulesEngine. The tree only renders that decision; it no
+    // longer maintains a second set of summer/regular numbers in JavaScript.
     const maxTrialHours = useMemo(() => {
-        let base = isSummerTerm ? 9 : 18;
-        if (isSummerTerm && totalPassedCredits >= 120) {
-            base = 12;
-        } else if (!isSummerTerm && totalPassedCredits >= 111) {
-            base = 21;
-        } else if (isSummerTerm) {
-            const hasLabInCart = courses.some(c => cartIds.includes(c.id) && c.credit_hours == 1);
-            if (hasLabInCart) {
-                base = 10;
-            }
-        }
-        return base;
-    }, [isSummerTerm, totalPassedCredits, cartIds, courses]);
+        const effectiveLimit = Number(registration_rules?.effective_limit);
+        return effectiveLimit > 0 ? effectiveLimit : 18;
+    }, [registration_rules]);
 
     const isLockedByHours = useCallback((course) => {
         const required = Number(course?.minimum_passed_hours || 0);
@@ -2812,10 +2806,7 @@ export default function Tree({
             .filter(c => cartIds.includes(c.id))
             .reduce((sum, c) => sum + (c.credit_hours || 0), 0);
 
-        let dynamicLimit = maxTrialHours;
-        if (isSummerTerm && maxTrialHours === 9 && course.credit_hours == 1) {
-            dynamicLimit = 10;
-        }
+        const dynamicLimit = maxTrialHours;
 
         if (currentCartHours + course.credit_hours > dynamicLimit) {
             Swal.fire({
