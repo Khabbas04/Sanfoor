@@ -3,46 +3,47 @@
 namespace App\Http\Controllers;
 
 use App\Models\AcademicPeriod;
-use App\Models\Chat;
-use App\Models\Course;
-use App\Models\Message;
-use App\Models\Major;
-use App\Models\College;
-use App\Models\User;
 use App\Models\AdminLog;
 use App\Models\AdminNote;
-use App\Models\IssueReport;
 use App\Models\Chapter;
+use App\Models\Chat;
+use App\Models\College;
 use App\Models\ContactMessage;
+use App\Models\Course;
+use App\Models\IssueReport;
 use App\Models\Landmark;
+use App\Models\Major;
+use App\Models\Message;
 use App\Models\Question;
 use App\Models\QuizAttempt;
 use App\Models\SiteMaintenance;
 use App\Models\StudentAiPreference;
+use App\Models\User;
+use App\Services\CourseBulkImportService;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class AdminController extends Controller
 {
     /**
      * تسجيل حركات الأدمن في قاعدة البيانات
      */
-    private function logAction($action, $details) {
+    private function logAction($action, $details)
+    {
         AdminLog::create([
             'user_id' => Auth::id(),
             'action' => $action,
             'details' => $details,
             'ip_address' => request()->ip(),
             'meta' => [
-                'user_agent' => request()->header('User-Agent')
-            ]
+                'user_agent' => request()->header('User-Agent'),
+            ],
         ]);
     }
 
@@ -59,31 +60,33 @@ class AdminController extends Controller
 
         $demandReport = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_demand_report', 300, function () use ($currentPeriod, $hasPeriodColumns) {
             return Course::whereHas('cartUsers', function ($query) use ($currentPeriod, $hasPeriodColumns) {
-                    if ($currentPeriod && $hasPeriodColumns) {
-                        $query->where('user_carts.academic_year', $currentPeriod->academic_year)
-                              ->where('user_carts.academic_term', $currentPeriod->academic_term);
-                    }
-                })
+                if ($currentPeriod && $hasPeriodColumns) {
+                    $query->where('user_carts.academic_year', $currentPeriod->academic_year)
+                        ->where('user_carts.academic_term', $currentPeriod->academic_term);
+                }
+            })
                 ->withCount(['cartUsers' => function ($query) use ($currentPeriod, $hasPeriodColumns) {
                     if ($currentPeriod && $hasPeriodColumns) {
                         $query->where('user_carts.academic_year', $currentPeriod->academic_year)
-                              ->where('user_carts.academic_term', $currentPeriod->academic_term);
+                            ->where('user_carts.academic_term', $currentPeriod->academic_term);
                     }
                 }])
                 ->get()
-                ->groupBy(function($course) {
+                ->groupBy(function ($course) {
                     $name = mb_strtolower(trim($course->name));
                     $name = preg_replace('/\s+/u', '', $name);
                     $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
                     $name = str_replace('ة', 'ه', $name);
                     $name = str_replace('ى', 'ي', $name);
+
                     return $name;
                 })
-                ->map(function($group) {
+                ->map(function ($group) {
                     $first = $group->first();
                     $first->cart_users_count = $group->sum('cart_users_count');
-                    $bestNameCourse = $group->sortByDesc(fn($c) => strlen($c->name))->first();
+                    $bestNameCourse = $group->sortByDesc(fn ($c) => strlen($c->name))->first();
                     $first->name = $bestNameCourse->name;
+
                     return $first;
                 })
                 ->sortByDesc('cart_users_count')
@@ -102,12 +105,12 @@ class AdminController extends Controller
 
         // 🔥 حساب النشطين حالياً (آخر 30 دقيقة)
         $thirtyMinutesAgoStr = now()->subMinutes(30)->toDateTimeString();
-        
+
         $activeStudentIds = User::where('role', 'student')
             ->whereNotNull('last_seen_at')
             ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
             ->pluck('id');
-        
+
         $activeAdminIds = User::whereRaw('LOWER(role) = ?', ['admin'])
             ->whereNotNull('last_seen_at')
             ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
@@ -179,8 +182,8 @@ class AdminController extends Controller
             'stats' => $stats,
             'onlineUsers' => $onlineUsers,
             'platform' => $platform,
-            'colleges' => \Illuminate\Support\Facades\Cache::remember('admin_colleges', 1800, fn() => College::select('id', 'name')->orderBy('name')->get()),
-            'majors' => \Illuminate\Support\Facades\Cache::remember('admin_majors', 1800, fn() => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get()),
+            'colleges' => \Illuminate\Support\Facades\Cache::remember('admin_colleges', 1800, fn () => College::select('id', 'name')->orderBy('name')->get()),
+            'majors' => \Illuminate\Support\Facades\Cache::remember('admin_majors', 1800, fn () => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get()),
             'demandReport' => $demandReport,
             'issueSummary' => $issueSummary,
             'recentIssues' => IssueReport::with('user:id,name,email')->latest()->take(6)->get(),
@@ -189,13 +192,14 @@ class AdminController extends Controller
             'adminNotes' => $adminNotes,
             'myAdminNote' => $myAdminNote,
             'notesEnabled' => $notesEnabled,
-            'demoGuests' => function() {
+            'demoGuests' => function () {
                 $query = \App\Models\User::with(['major.college'])->where('role', 'guest')->latest();
                 if (request()->has('guest_date') && request()->guest_date) {
                     $query->whereDate('created_at', request()->guest_date);
                 } else {
                     $query->take(50);
                 }
+
                 return $query->get();
             },
             'filters' => [
@@ -211,7 +215,6 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
-
 
         $data = $request->validate([
             'note' => ['required', 'string', 'max:1500'],
@@ -250,7 +253,7 @@ class AdminController extends Controller
     {
         abort_unless(Auth::user() && Auth::user()->isAdminOrOwner(), 403);
         abort_unless($guest->role === 'guest', 403, 'يمكن حذف الضيوف فقط.');
-        
+
         $guest->delete();
 
         return redirect()->back()->with([
@@ -266,7 +269,7 @@ class AdminController extends Controller
     {
         $currentAcademicPeriod = AcademicPeriod::current();
         $thirtyMinutesAgoStr = now()->subMinutes(30)->toDateTimeString();
-        
+
         $onlineUsers = \Illuminate\Support\Facades\Cache::remember('admin_dashboard_online_users', 30, function () use ($thirtyMinutesAgoStr) {
             return User::whereNotNull('last_seen_at')
                 ->where('last_seen_at', '>=', $thirtyMinutesAgoStr)
@@ -353,10 +356,10 @@ class AdminController extends Controller
 
         if ($search !== '') {
             $chatsQuery->where(function ($query) use ($search) {
-                $query->where('title', 'like', '%' . $search . '%')
+                $query->where('title', 'like', '%'.$search.'%')
                     ->orWhereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('email', 'like', '%' . $search . '%');
+                        $userQuery->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('email', 'like', '%'.$search.'%');
                     });
 
                 if (ctype_digit($search)) {
@@ -393,7 +396,7 @@ class AdminController extends Controller
             $selectedChat = Chat::with('user:id,name,email')->find($selectedChatId);
         }
 
-        if (!$selectedChat && $chats->isNotEmpty()) {
+        if (! $selectedChat && $chats->isNotEmpty()) {
             $selectedChat = Chat::with('user:id,name,email')->find($chats->first()['id']);
         }
 
@@ -455,7 +458,6 @@ class AdminController extends Controller
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
 
-
         $validated = $request->validate([
             'academic_year' => ['required', 'string', 'max:20'],
             'academic_term' => ['required', 'integer', 'in:1,2,3'],
@@ -480,7 +482,7 @@ class AdminController extends Controller
 
             // Keep supporting installations that have a period row but predate the
             // is_current flag. The chosen row is locked before its identity is read.
-            if (!$currentPeriod) {
+            if (! $currentPeriod) {
                 $currentPeriod = AcademicPeriod::query()
                     ->orderByDesc('updated_at')
                     ->orderByDesc('id')
@@ -544,12 +546,12 @@ class AdminController extends Controller
             $this->logAction(
                 'RESET_ALL_CARTS',
                 "تم بدء فصل أكاديمي جديد وتصفير {$transition['cleared_carts']} مادة من التسجيل التجريبي"
-                . " و{$transition['cleared_ai_plans']} خطة فصلية محفوظة في ذاكرة المرشد."
+                ." و{$transition['cleared_ai_plans']} خطة فصلية محفوظة في ذاكرة المرشد."
             );
         }
 
         $updatedPeriod = AcademicPeriod::current();
-        $this->logAction('UPDATE_ACADEMIC_PERIOD', 'تم تحديث الفصل الأكاديمي الحالي إلى: ' . ($updatedPeriod?->displayLabel() ?? 'غير محدد'));
+        $this->logAction('UPDATE_ACADEMIC_PERIOD', 'تم تحديث الفصل الأكاديمي الحالي إلى: '.($updatedPeriod?->displayLabel() ?? 'غير محدد'));
 
         $maxHours = $updatedPeriod?->maxHours() ?? AcademicPeriod::maxHoursFor($newTerm);
         $message = $transition['changed']
@@ -569,7 +571,6 @@ class AdminController extends Controller
     {
         $user = Auth::user();
         abort_unless($user && $user->isAdminOrOwner(), 403);
-
 
         $validated = $request->validate([
             'is_enabled' => ['required', 'boolean'],
@@ -606,7 +607,7 @@ class AdminController extends Controller
         $current = SiteMaintenance::current();
         $this->logAction(
             (bool) $validated['is_enabled'] ? 'ENABLE_SITE_MAINTENANCE' : 'DISABLE_SITE_MAINTENANCE',
-            'تم ' . ((bool) $validated['is_enabled'] ? 'تفعيل' : 'إيقاف') . ' وضع الصيانة' . ($current?->title ? ' - ' . $current->title : '')
+            'تم '.((bool) $validated['is_enabled'] ? 'تفعيل' : 'إيقاف').' وضع الصيانة'.($current?->title ? ' - '.$current->title : '')
         );
 
         return redirect()->back()->with([
@@ -617,7 +618,7 @@ class AdminController extends Controller
 
     private function formatMaintenancePayload(?SiteMaintenance $maintenance): ?array
     {
-        if (!$maintenance) {
+        if (! $maintenance) {
             return null;
         }
 
@@ -813,7 +814,7 @@ class AdminController extends Controller
             // 🔥 تم إزالة universities بناءً على طلبك 🔥
             'colleges' => College::select('id', 'name')->orderBy('name')->get(),
             'majors' => Major::select('id', 'name', 'code', 'college_id')->orderBy('name')->get(),
-            'logs' => AdminLog::with('user')->latest()->take(50)->get()
+            'logs' => AdminLog::with('user')->latest()->take(50)->get(),
         ]);
     }
 
@@ -922,7 +923,7 @@ class AdminController extends Controller
     public function updateCollege(Request $request, College $college)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:colleges,name,' . $college->id,
+            'name' => 'required|string|max:255|unique:colleges,name,'.$college->id,
         ]);
 
         $college->update($validated);
@@ -958,7 +959,7 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|unique:majors,code,' . $major->id,
+            'code' => 'required|string|unique:majors,code,'.$major->id,
             'college_id' => 'required|exists:colleges,id',
         ]);
 
@@ -984,8 +985,8 @@ class AdminController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'            => 'required|string|max:255',
-            'code'            => [
+            'name' => 'required|string|max:255',
+            'code' => [
                 'required',
                 'string',
                 Rule::unique('courses')->where(function ($query) use ($request) {
@@ -1000,21 +1001,21 @@ class AdminController extends Controller
                     }
                 }),
             ],
-            'credit_hours'    => 'required|integer',
+            'credit_hours' => 'required|integer',
             'difficulty_level' => 'nullable|integer|min:1|max:5',
             'minimum_passed_hours' => 'nullable|integer|min:1|max:200',
-            'type'            => 'required|in:compulsory,elective,supporting,university_req',
-            'major_id'        => 'nullable|exists:majors,id',
+            'type' => 'required|in:compulsory,elective,supporting,university_req',
+            'major_id' => 'nullable|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
-            'semester'        => 'required|integer|min:1|max:12',
+            'semester' => 'required|integer|min:1|max:12',
             'prerequisite_id' => 'nullable|integer|exists:courses,id',
             'prerequisite_ids' => 'nullable|array',
             'prerequisite_ids.*' => 'integer|exists:courses,id',
-            'description'     => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         $prerequisiteIds = $validated['prerequisite_ids'] ?? [];
-        if (!empty($validated['prerequisite_id'])) {
+        if (! empty($validated['prerequisite_id'])) {
             $prerequisiteIds[] = $validated['prerequisite_id'];
         }
         $prerequisiteIds = collect($prerequisiteIds)
@@ -1036,16 +1037,16 @@ class AdminController extends Controller
         }
 
         $course = Course::create([
-            'name'         => $validated['name'],
-            'code'         => $validated['code'],
+            'name' => $validated['name'],
+            'code' => $validated['code'],
             'credit_hours' => $validated['credit_hours'],
             'difficulty_level' => $validated['difficulty_level'] ?? 3,
             'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
-            'type'         => $validated['type'],
-            'major_id'     => $validated['major_id'],
+            'type' => $validated['type'],
+            'major_id' => $validated['major_id'],
             'study_plan_version' => $validated['study_plan_version'],
-            'semester'     => $validated['semester'],
-            'description'  => $validated['description'],
+            'semester' => $validated['semester'],
+            'description' => $validated['description'],
         ]);
 
         if ($prerequisiteIds->isNotEmpty()) {
@@ -1054,14 +1055,22 @@ class AdminController extends Controller
 
         $this->logAction('ADD_COURSE', "تم إضافة المادة وربط المتطلب: {$course->name} ({$course->code})");
         TreeController::flushCourseTreeCache();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'تم حفظ المادة وإضافتها إلى الشجرة.',
+                'course' => $course->load(['major', 'prerequisites']),
+            ], 201);
+        }
+
         return redirect()->back()->with('success', 'تم حفظ المادة بنجاح وتفعيل نظام المتطلبات! 🎉');
     }
 
     public function update(Request $request, Course $course)
     {
         $validated = $request->validate([
-            'name'            => 'required|string',
-            'code'            => [
+            'name' => 'required|string',
+            'code' => [
                 'required',
                 'string',
                 Rule::unique('courses')->ignore($course->id)->where(function ($query) use ($request) {
@@ -1076,21 +1085,21 @@ class AdminController extends Controller
                     }
                 }),
             ],
-            'credit_hours'    => 'required|integer',
+            'credit_hours' => 'required|integer',
             'difficulty_level' => 'nullable|integer|min:1|max:5',
             'minimum_passed_hours' => 'nullable|integer|min:1|max:200',
-            'type'            => 'required|in:compulsory,elective,supporting,university_req',
-            'major_id'        => 'nullable|exists:majors,id',
+            'type' => 'required|in:compulsory,elective,supporting,university_req',
+            'major_id' => 'nullable|exists:majors,id',
             'study_plan_version' => 'required|integer|in:11,12',
-            'semester'        => 'required|integer|min:1|max:12',
+            'semester' => 'required|integer|min:1|max:12',
             'prerequisite_id' => 'nullable|integer|exists:courses,id',
             'prerequisite_ids' => 'nullable|array',
             'prerequisite_ids.*' => 'integer|exists:courses,id',
-            'description'     => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         $prerequisiteIds = $validated['prerequisite_ids'] ?? [];
-        if (!empty($validated['prerequisite_id'])) {
+        if (! empty($validated['prerequisite_id'])) {
             $prerequisiteIds[] = $validated['prerequisite_id'];
         }
         $prerequisiteIds = collect($prerequisiteIds)
@@ -1118,26 +1127,34 @@ class AdminController extends Controller
         }
 
         $course->update([
-            'name'         => $validated['name'],
-            'code'         => $validated['code'],
+            'name' => $validated['name'],
+            'code' => $validated['code'],
             'credit_hours' => $validated['credit_hours'],
             'difficulty_level' => $validated['difficulty_level'] ?? 3,
             'minimum_passed_hours' => $validated['minimum_passed_hours'] ?? null,
-            'type'         => $validated['type'],
-            'major_id'     => $validated['major_id'],
+            'type' => $validated['type'],
+            'major_id' => $validated['major_id'],
             'study_plan_version' => $validated['study_plan_version'],
-            'semester'     => $validated['semester'],
-            'description'  => $validated['description'],
+            'semester' => $validated['semester'],
+            'description' => $validated['description'],
         ]);
 
         if ($prerequisiteIds->isNotEmpty()) {
             $course->prerequisites()->sync($prerequisiteIds->all());
         } else {
-            $course->prerequisites()->detach(); 
+            $course->prerequisites()->detach();
         }
 
         $this->logAction('UPDATE_COURSE', "تم تعديل المادة: {$course->name}");
         TreeController::flushCourseTreeCache();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'تم تحديث المادة.',
+                'course' => $course->load(['major', 'prerequisites']),
+            ]);
+        }
+
         return redirect()->back()->with('success', 'تم تعديل المادة بنجاح!');
     }
 
@@ -1149,28 +1166,32 @@ class AdminController extends Controller
 
         $this->logAction('DELETE_COURSE', "تم حذف المادة: {$courseName}");
         TreeController::flushCourseTreeCache();
+
         return redirect()->back()->with('success', 'تم الحذف بنجاح');
     }
 
     public function bulkDelete(Request $request)
     {
         $ids = $request->input('ids');
-        if (!empty($ids)) {
+        if (! empty($ids)) {
             $count = Course::whereIn('id', $ids)->delete();
             DB::table('course_prerequisites')->whereIn('course_id', $ids)->orWhereIn('prerequisite_id', $ids)->delete();
             $this->logAction('BULK_DELETE', "تم حذف $count مادة مع كافة علاقاتها الشجرية.");
             TreeController::flushCourseTreeCache();
-            return redirect()->back()->with('success', "تم حذف المواد بنجاح.");
+
+            return redirect()->back()->with('success', 'تم حذف المواد بنجاح.');
         }
+
         return redirect()->back()->with('error', 'لم يتم تحديد أي مادة.');
     }
 
     public function export()
     {
-        $fileName = 'Academic_Tree_Plan_' . date('Y-m-d') . '.csv';
+        $fileName = 'Academic_Tree_Plan_'.date('Y-m-d').'.csv';
+
         return response()->streamDownload(function () {
             $handle = fopen('php://output', 'w');
-            fputs($handle, "\xEF\xBB\xBF");
+            fwrite($handle, "\xEF\xBB\xBF");
             fputcsv($handle, ['Code', 'Name', 'Credits', 'Type', 'Major', 'Plan Version', 'Semester', 'Prerequisites', 'Description']);
 
             $courses = Course::with(['major', 'prerequisites'])->get();
@@ -1181,7 +1202,7 @@ class AdminController extends Controller
                     $course->study_plan_version,
                     $course->semester,
                     $course->prerequisites->pluck('code')->implode(', '),
-                    $course->description
+                    $course->description,
                 ]);
             }
             fclose($handle);
@@ -1233,7 +1254,7 @@ class AdminController extends Controller
             }
         }
 
-        if (function_exists('mb_check_encoding') && !mb_check_encoding($value, 'UTF-8')) {
+        if (function_exists('mb_check_encoding') && ! mb_check_encoding($value, 'UTF-8')) {
             if (function_exists('iconv')) {
                 $converted = @iconv('Windows-1256', 'UTF-8//IGNORE', $value);
                 if ($converted !== false) {
@@ -1284,7 +1305,7 @@ class AdminController extends Controller
 
     private function getCsvCell(array $row, int $index): string
     {
-        if ($index < 0 || !array_key_exists($index, $row)) {
+        if ($index < 0 || ! array_key_exists($index, $row)) {
             return '';
         }
 
@@ -1334,7 +1355,7 @@ class AdminController extends Controller
         $type = $normalize($rawType);
         $category = $normalize($rawCategory);
         $deliveryMode = $normalize($rawDeliveryMode);
-        $combined = trim($type . ' ' . $category);
+        $combined = trim($type.' '.$category);
 
         $containsAny = function (string $haystack, array $needles): bool {
             foreach ($needles as $needle) {
@@ -1373,26 +1394,54 @@ class AdminController extends Controller
         return trim($rawCode, " \t\n\r\0\x0B\"'");
     }
 
-    public function import(Request $request)
+    public function import(Request $request, CourseBulkImportService $importer)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'csv_file' => 'nullable|file|mimes:csv,txt|max:10240',
-                'rows_payload' => 'nullable|array',
+                'rows_payload' => 'nullable|array|max:2000',
+                'rows_payload.*' => 'array',
                 'major_id' => 'required|exists:majors,id',
                 'study_plan_version' => 'required|integer|in:11,12',
+                'import_mode' => 'nullable|in:upsert,replace',
             ]);
 
             $file = $request->file('csv_file');
-            $rowsPayload = $request->input('rows_payload', []);
-            $selectedMajorId = $request->input('major_id');
-            $selectedPlanVersion = (int) $request->input('study_plan_version');
+            $rowsPayload = $validated['rows_payload'] ?? [];
+            $selectedMajorId = (int) $validated['major_id'];
+            $selectedPlanVersion = (int) $validated['study_plan_version'];
+            $importMode = $validated['import_mode'] ?? 'upsert';
 
             $hasRowsPayload = is_array($rowsPayload) && count($rowsPayload) > 0;
-            if (!$file && !$hasRowsPayload) {
+            if (! $file && ! $hasRowsPayload) {
+                if ($request->expectsJson()) {
+                    return response()->json(['message' => 'لم يتم إرسال أي صفوف صالحة للاستيراد.'], 422);
+                }
+
                 return redirect()->back()->with([
                     'type' => 'error',
                     'message' => 'لم يتم إرسال ملف CSV أو بيانات معاينة للحفظ.',
+                ]);
+            }
+
+            if ($hasRowsPayload) {
+                $result = $importer->import($rowsPayload, $selectedMajorId, $selectedPlanVersion, $importMode);
+
+                $this->logAction(
+                    'IMPORT_COURSES',
+                    "استيراد مواد للخطة {$selectedPlanVersion}: {$result['created']} جديد، {$result['updated']} محدث، {$result['skipped']} متجاوز."
+                );
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => 'اكتملت معالجة ملف الخطة.',
+                        'result' => $result,
+                    ]);
+                }
+
+                return redirect()->back()->with([
+                    'type' => 'success',
+                    'message' => "تمت إضافة {$result['created']} مادة وتحديث {$result['updated']} مادة.",
                 ]);
             }
 
@@ -1424,7 +1473,7 @@ class AdminController extends Controller
 
             return redirect()->back()->with([
                 'type' => 'error',
-                'message' => 'حدث خطأ قاتل أثناء محاولة إرسال الاستيراد للطابور: ' . $e->getMessage(),
+                'message' => 'حدث خطأ قاتل أثناء محاولة إرسال الاستيراد للطابور: '.$e->getMessage(),
             ]);
         }
     }
@@ -1460,24 +1509,26 @@ class AdminController extends Controller
                 }
             }])
             ->get()
-            ->groupBy(function($course) {
+            ->groupBy(function ($course) {
                 $name = mb_strtolower(trim($course->name));
                 $name = preg_replace('/\s+/u', '', $name);
                 $name = str_replace(['أ', 'إ', 'آ'], 'ا', $name);
                 $name = str_replace('ة', 'ه', $name);
                 $name = str_replace('ى', 'ي', $name);
+
                 return $name;
             })
-            ->map(function($group) {
+            ->map(function ($group) {
                 $first = $group->first();
                 $first->cart_users_count = $group->sum('cart_users_count');
                 // Optional: set a preferred name format (the one with spaces if exists)
-                $bestNameCourse = $group->sortByDesc(fn($c) => strlen($c->name))->first();
+                $bestNameCourse = $group->sortByDesc(fn ($c) => strlen($c->name))->first();
                 $first->name = $bestNameCourse->name;
+
                 return $first;
             })
             ->sortByDesc('cart_users_count')
-            ->take(15) 
+            ->take(15)
             ->values();
 
         $colleges = College::select('id', 'name')->get();
@@ -1497,7 +1548,7 @@ class AdminController extends Controller
             'colleges' => $colleges,
             'majors' => $majors,
             'filters' => $request->only(['college_id', 'major_id']),
-            'totalStudents' => $totalStudents
+            'totalStudents' => $totalStudents,
         ]);
     }
 }

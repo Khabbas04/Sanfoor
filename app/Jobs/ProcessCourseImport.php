@@ -16,26 +16,34 @@ class ProcessCourseImport implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 300;
+
     public $tries = 1;
 
     protected $filePath;
+
     protected $rowsPayload;
+
     protected $majorId;
+
     protected $studyPlanVersion;
+
     protected $adminId;
 
-    public function __construct($filePath, $rowsPayload, $majorId, $studyPlanVersion, $adminId)
+    protected $replaceMissing;
+
+    public function __construct($filePath, $rowsPayload, $majorId, $studyPlanVersion, $adminId, bool $replaceMissing = false)
     {
         $this->filePath = $filePath;
         $this->rowsPayload = $rowsPayload;
         $this->majorId = $majorId;
         $this->studyPlanVersion = $studyPlanVersion;
         $this->adminId = $adminId;
+        $this->replaceMissing = $replaceMissing;
     }
 
     public function handle(): void
     {
-        Log::info("Starting Course Import Job", [
+        Log::info('Starting Course Import Job', [
             'admin_id' => $this->adminId,
             'major_id' => $this->majorId,
         ]);
@@ -49,8 +57,8 @@ class ProcessCourseImport implements ShouldQueue
                     $normalizedRows[] = $this->formatRow($row, $idx + 1);
                 }
             }
-        } elseif ($this->filePath && file_exists(storage_path('app/' . $this->filePath))) {
-            $handle = fopen(storage_path('app/' . $this->filePath), 'r');
+        } elseif ($this->filePath && file_exists(storage_path('app/'.$this->filePath))) {
+            $handle = fopen(storage_path('app/'.$this->filePath), 'r');
             if ($handle) {
                 $headers = fgetcsv($handle);
                 if ($headers && count($headers) > 0) {
@@ -80,7 +88,8 @@ class ProcessCourseImport implements ShouldQueue
         }
 
         if (empty($normalizedRows)) {
-            Log::warning("No valid rows found in course import.");
+            Log::warning('No valid rows found in course import.');
+
             return;
         }
 
@@ -96,6 +105,7 @@ class ProcessCourseImport implements ShouldQueue
 
                 if ($code === '' || $name === '') {
                     $skippedRows[] = ['line' => $rowData['line'] ?? null, 'reason' => 'Missing code or name.'];
+
                     continue;
                 }
 
@@ -127,7 +137,7 @@ class ProcessCourseImport implements ShouldQueue
                 $importedCourseIds[] = $course->id;
                 $successCount++;
 
-                if (!empty($rowData['prerequisites'])) {
+                if (! empty($rowData['prerequisites'])) {
                     $prerequisitesMap[$course->id] = $rowData['prerequisites'];
                 }
             } catch (\Exception $e) {
@@ -139,7 +149,7 @@ class ProcessCourseImport implements ShouldQueue
         foreach ($prerequisitesMap as $courseId => $prereqString) {
             try {
                 $codes = collect(explode(',', $prereqString))
-                    ->map(fn($c) => $this->cleanCourseCode($c))
+                    ->map(fn ($c) => $this->cleanCourseCode($c))
                     ->filter()
                     ->unique();
 
@@ -152,7 +162,7 @@ class ProcessCourseImport implements ShouldQueue
                         ->pluck('id')
                         ->toArray();
 
-                    if (!empty($prereqIds)) {
+                    if (! empty($prereqIds)) {
                         $course = Course::find($courseId);
                         if ($course) {
                             $course->prerequisites()->sync($prereqIds);
@@ -160,12 +170,13 @@ class ProcessCourseImport implements ShouldQueue
                     }
                 }
             } catch (\Exception $e) {
-                Log::error("Failed attaching prerequisites for course ID {$courseId}: " . $e->getMessage());
+                Log::error("Failed attaching prerequisites for course ID {$courseId}: ".$e->getMessage());
             }
         }
 
-        // Delete any courses not in the import (from the same plan/major)
-        if ($successCount > 0 && !empty($importedCourseIds)) {
+        // Missing rows are preserved by default. Replacement is destructive and
+        // must be selected explicitly by the administrator.
+        if ($this->replaceMissing && $successCount > 0 && ! empty($importedCourseIds)) {
             Course::where('major_id', $this->majorId)
                 ->where('study_plan_version', $this->studyPlanVersion)
                 ->whereNotIn('id', $importedCourseIds)
@@ -175,13 +186,13 @@ class ProcessCourseImport implements ShouldQueue
         DB::table('admin_logs')->insert([
             'admin_id' => $this->adminId,
             'action' => 'IMPORT_COURSES_JOB',
-            'details' => "Job completed. {$successCount} imported. " . count($skippedRows) . " skipped.",
+            'details' => "Job completed. {$successCount} imported. ".count($skippedRows).' skipped.',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        if ($this->filePath && file_exists(storage_path('app/' . $this->filePath))) {
-            unlink(storage_path('app/' . $this->filePath));
+        if ($this->filePath && file_exists(storage_path('app/'.$this->filePath))) {
+            unlink(storage_path('app/'.$this->filePath));
         }
     }
 
@@ -203,17 +214,32 @@ class ProcessCourseImport implements ShouldQueue
         ];
     }
 
-    private function normalizeCsvText($text) { return trim($text); }
-    private function cleanCourseCode($code) { return trim(strtoupper($code)); }
-    private function parseCsvInteger($val, $default, $min, $max) {
+    private function normalizeCsvText($text)
+    {
+        return trim($text);
+    }
+
+    private function cleanCourseCode($code)
+    {
+        return trim(strtoupper($code));
+    }
+
+    private function parseCsvInteger($val, $default, $min, $max)
+    {
         $val = filter_var($val, FILTER_VALIDATE_INT);
+
         return ($val !== false && $val >= $min && $val <= $max) ? $val : $default;
     }
-    private function getCsvCell($row, $idx) { return isset($row[$idx]) ? trim($row[$idx]) : ''; }
+
+    private function getCsvCell($row, $idx)
+    {
+        return isset($row[$idx]) ? trim($row[$idx]) : '';
+    }
 
     private function detectCsvColumns(array $headers): array
     {
-        $headers = array_map(fn($h) => strtolower(trim($h)), $headers);
+        $headers = array_map(fn ($h) => strtolower(trim($h)), $headers);
+
         return [
             'code' => $this->findIndex($headers, ['رمز', 'code', 'رمز المادة', 'رقم المادة', 'course code', 'course_code']),
             'name' => $this->findIndex($headers, ['اسم', 'name', 'اسم المادة', 'course name', 'course_name', 'title']),
@@ -232,19 +258,31 @@ class ProcessCourseImport implements ShouldQueue
     {
         foreach ($haystack as $idx => $header) {
             foreach ($needles as $needle) {
-                if (str_contains($header, $needle)) return $idx;
+                if (str_contains($header, $needle)) {
+                    return $idx;
+                }
             }
         }
+
         return -1;
     }
 
     private function mapImportedCourseType($type, $category, $deliveryMode): string
     {
-        $combined = strtolower($type . ' ' . $category . ' ' . $deliveryMode);
-        if (str_contains($combined, 'اجباري') || str_contains($combined, 'إجباري') || str_contains($combined, 'compulsory')) return 'compulsory';
-        if (str_contains($combined, 'اختياري') || str_contains($combined, 'إختياري') || str_contains($combined, 'elective')) return 'elective';
-        if (str_contains($combined, 'مساند') || str_contains($combined, 'supporting')) return 'supporting';
-        if (str_contains($combined, 'جامعة') || str_contains($combined, 'university')) return 'university_req';
+        $combined = strtolower($type.' '.$category.' '.$deliveryMode);
+        if (str_contains($combined, 'اجباري') || str_contains($combined, 'إجباري') || str_contains($combined, 'compulsory')) {
+            return 'compulsory';
+        }
+        if (str_contains($combined, 'اختياري') || str_contains($combined, 'إختياري') || str_contains($combined, 'elective')) {
+            return 'elective';
+        }
+        if (str_contains($combined, 'مساند') || str_contains($combined, 'supporting')) {
+            return 'supporting';
+        }
+        if (str_contains($combined, 'جامعة') || str_contains($combined, 'university')) {
+            return 'university_req';
+        }
+
         return 'compulsory';
     }
 }
