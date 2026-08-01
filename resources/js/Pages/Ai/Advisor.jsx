@@ -709,7 +709,6 @@ const ProactiveBriefing = ({ insights }) => {
             <div className="flex flex-wrap gap-2 mt-3">
                 <div className="bg-white border border-slate-100 rounded-xl px-3 py-1.5"><p className="text-[7px] font-bold text-slate-400 uppercase">الساعات</p><p className="text-[12px] font-black text-slate-700">{p.passed}/{p.total}</p></div>
                 {insights.gpa != null && <div className="bg-white border border-slate-100 rounded-xl px-3 py-1.5"><p className="text-[7px] font-bold text-slate-400 uppercase">المعدل</p><p className="text-[12px] font-black text-blue-700">{insights.gpa}%</p></div>}
-                <div className="bg-white border border-slate-100 rounded-xl px-3 py-1.5 flex-1 min-w-[150px]"><p className="text-[7px] font-bold text-slate-400 uppercase">🎓 توقّع التخرج</p><p className="text-[10px] font-bold text-slate-600 leading-tight">{insights.graduation_forecast}</p></div>
             </div>
 
             {insights.highlights?.length > 0 && (
