@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CompleteProfileController;
 use App\Http\Controllers\Admin\AdminManagerController;
 use App\Http\Controllers\Admin\AdminStudentController;
+use App\Http\Controllers\Admin\DemandReportController;
 use App\Http\Controllers\TreeController;
 use App\Http\Controllers\GraduationPlanController;
 use App\Http\Controllers\AdminController;
@@ -474,7 +475,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/ai-chats', [AdminController::class, 'aiChats'])->name('ai_chats');
         Route::put('/settings/academic-period', [AdminController::class, 'updateAcademicPeriod'])->name('settings.academic_period');
         Route::put('/settings/maintenance', [AdminController::class, 'updateMaintenanceMode'])->name('settings.maintenance');
-        Route::get('/reports/demand', [AdminController::class, 'demandReport'])->name('reports.demand');
+        Route::get('/reports/demand', [DemandReportController::class, 'index'])->name('reports.demand');
+        Route::get('/reports/demand/{course}/students', [DemandReportController::class, 'students'])
+            ->name('reports.demand.students');
+        Route::delete('/reports/demand/{course}/students/{student}', [DemandReportController::class, 'removeStudent'])
+            ->name('reports.demand.students.destroy');
         // Gemini infrastructure monitor: per key AND per model quotas, tokens,
         // latency and errors. The legacy api.ai_key_status endpoint below is left
         // in place for the existing settings tab.
