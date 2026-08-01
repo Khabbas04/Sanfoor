@@ -41,6 +41,12 @@ const translations = {
         academicLabel: 'عنوان مخصص',
         academicPreview: 'المعاينة الحالية',
         saveAcademicPeriod: 'حفظ الفصل الحالي',
+        savingAcademicPeriod: 'جاري بدء الفصل...',
+        startNewTermTitle: 'تأكيد بدء فصل أكاديمي جديد',
+        startNewTermWarning: 'سيتم تصفير مواد التسجيل التجريبي لجميع الطلاب وتحديث حدود النظام وسياق المرشد الذكي فوراً.',
+        newTermLimit: 'الحد الأعلى للفصل الجديد',
+        confirmStartNewTerm: 'نعم، ابدأ الفصل الجديد',
+        cancel: 'إلغاء',
         maintenanceTitle: 'وضع الصيانة',
         maintenanceDesc: 'فعّل الصيانة عند الحاجة مع إبقاء الإدارة قادرة على الدخول والتعديل.',
         maintenanceEnabled: 'الصيانة مفعلة',
@@ -127,6 +133,12 @@ const translations = {
         academicLabel: 'Custom Label',
         academicPreview: 'Current Preview',
         saveAcademicPeriod: 'Save Current Period',
+        savingAcademicPeriod: 'Starting term...',
+        startNewTermTitle: 'Confirm the new academic term',
+        startNewTermWarning: 'All students’ trial-registration courses will be reset, and the system limits and AI context will refresh immediately.',
+        newTermLimit: 'New term maximum',
+        confirmStartNewTerm: 'Yes, start the new term',
+        cancel: 'Cancel',
         maintenanceTitle: 'Maintenance Mode',
         maintenanceDesc: 'Enable maintenance when needed while keeping admin access available.',
         maintenanceEnabled: 'Maintenance Enabled',
@@ -323,7 +335,6 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         return actions;
     }, [isOwner, t]);
 
-    const currentAcademicPreview = currentAcademicPeriod?.display_label || (academicForm.label?.trim() || `${academicForm.academic_year} ${academicForm.academic_term}`);
     const currentMaintenancePreview = Boolean(maintenanceForm.is_enabled);
 
     const termOptions = [
@@ -332,16 +343,44 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
         { value: '3', label: t.termSummer },
     ];
 
-    const saveAcademicPeriod = () => {
+    const selectedTermOption = termOptions.find((term) => term.value === String(academicForm.academic_term));
+    const selectedTermRule = academicTermRules?.terms?.find((term) => String(term.term) === String(academicForm.academic_term));
+    const selectedAcademicPreview = academicForm.label?.trim()
+        || `${academicForm.academic_year} - ${selectedTermOption?.label || academicForm.academic_term}`;
+    const isAcademicPeriodChange = !currentAcademicPeriod
+        || String(currentAcademicPeriod.academic_year) !== String(academicForm.academic_year).trim()
+        || String(currentAcademicPeriod.academic_term) !== String(academicForm.academic_term);
+
+    const saveAcademicPeriod = async () => {
+        if (isAcademicPeriodChange) {
+            const limitText = selectedTermRule?.max_hours
+                ? ` ${t.newTermLimit}: ${selectedTermRule.max_hours} ${lang === 'ar' ? 'ساعة' : 'hours'}.`
+                : '';
+            const confirmation = await Swal.fire({
+                icon: 'warning',
+                title: t.startNewTermTitle,
+                text: `${t.startNewTermWarning}${limitText}`,
+                showCancelButton: true,
+                confirmButtonText: t.confirmStartNewTerm,
+                cancelButtonText: t.cancel,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#64748b',
+                reverseButtons: lang === 'ar',
+                focusCancel: true,
+            });
+
+            if (!confirmation.isConfirmed) return;
+        }
+
         setIsSavingAcademicPeriod(true);
         router.put(route('admin.settings.academic_period'), academicForm, {
             preserveScroll: true,
             onFinish: () => setIsSavingAcademicPeriod(false),
-            onSuccess: () => {
+            onSuccess: (page) => {
                 Swal.fire({
                     icon: 'success',
                     title: t.saveAcademicPeriod,
-                    text: `${t.academicPreview}: ${currentAcademicPreview}`,
+                    text: page?.props?.flash?.message || `${t.academicPreview}: ${selectedAcademicPreview}`,
                     confirmButtonColor: '#4f46e5',
                 });
             },
@@ -579,7 +618,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                             })}
                                         </div>
                                         <p className={`mt-2 text-[10px] font-bold leading-relaxed ${subtext}`}>
-                                            تغيير الفصل يُطبَّق فوراً على التسجيل التجريبي، والخطة المقترحة، وحدود المرشد الذكي.
+                                            بدء فصل جديد يصفّر التسجيل التجريبي السابق فوراً، ثم يحدّث الخطة المقترحة وحدود المرشد الذكي.
                                             الأرقام نفسها تُعدَّل من <span className="font-mono">config/academic_terms.php</span>.
                                         </p>
                                     </div>
@@ -590,7 +629,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                     disabled={isSavingAcademicPeriod}
                                     className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-black px-4 py-2.5 transition-colors"
                                 >
-                                    {isSavingAcademicPeriod ? t.updatedNow : t.saveAcademicPeriod}
+                                    {isSavingAcademicPeriod ? t.savingAcademicPeriod : t.saveAcademicPeriod}
                                 </button>
                             </div>
                         </div>

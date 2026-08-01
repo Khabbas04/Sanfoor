@@ -46,7 +46,7 @@ class AcademicCache
         Cache::forever(self::VERSION_KEY, $next);
 
         // These are global (not per-student) and cheap to drop outright.
-        foreach (['academic_period_current', 'admin_ai_reports', 'course_load_statistics_v1', 'gemini_monitor_chat_count'] as $key) {
+        foreach (['academic_period_current', 'admin_ai_reports', 'admin_dashboard_demand_report', 'course_load_statistics_v1', 'gemini_monitor_chat_count'] as $key) {
             Cache::forget($key);
         }
 

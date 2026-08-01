@@ -18,6 +18,7 @@ use App\Models\Landmark;
 use App\Models\Question;
 use App\Models\QuizAttempt;
 use App\Models\SiteMaintenance;
+use App\Models\StudentAiPreference;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Artisan;
@@ -461,57 +462,102 @@ class AdminController extends Controller
             'label' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $previousPeriod = AcademicPeriod::current();
+        $newYear = trim($validated['academic_year']);
+        $newTerm = (int) $validated['academic_term'];
+        $newLabel = filled($validated['label']) ? trim($validated['label']) : null;
 
-        DB::transaction(function () use ($validated) {
-            $currentPeriod = AcademicPeriod::current();
+        // The period update and the cart reset are one operation. Previously the
+        // controller compared the same cached Eloquent object before and after it
+        // was mutated, so a real term change could look unchanged and leave the old
+        // trial registrations in place.
+        $transition = DB::transaction(function () use ($newYear, $newTerm, $newLabel) {
+            $currentPeriod = AcademicPeriod::query()
+                ->where('is_current', true)
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
 
-            AcademicPeriod::query()->where('id', '!=', $currentPeriod?->id)->update([
-                'is_current' => false,
-                'updated_at' => now(),
-            ]);
+            // Keep supporting installations that have a period row but predate the
+            // is_current flag. The chosen row is locked before its identity is read.
+            if (!$currentPeriod) {
+                $currentPeriod = AcademicPeriod::query()
+                    ->orderByDesc('updated_at')
+                    ->orderByDesc('id')
+                    ->lockForUpdate()
+                    ->first();
+            }
+
+            $previous = $currentPeriod ? [
+                'academic_year' => (string) $currentPeriod->academic_year,
+                'academic_term' => (int) $currentPeriod->academic_term,
+                'label' => $currentPeriod->displayLabel(),
+            ] : null;
+
+            $changed = $previous === null
+                || $previous['academic_year'] !== $newYear
+                || $previous['academic_term'] !== $newTerm;
+
+            AcademicPeriod::query()
+                ->when($currentPeriod, fn ($query) => $query->where('id', '!=', $currentPeriod->id))
+                ->where('is_current', true)
+                ->update(['is_current' => false, 'updated_at' => now()]);
 
             if ($currentPeriod) {
                 $currentPeriod->update([
-                    'academic_year' => trim($validated['academic_year']),
-                    'academic_term' => (int) $validated['academic_term'],
-                    'label' => filled($validated['label']) ? trim($validated['label']) : null,
+                    'academic_year' => $newYear,
+                    'academic_term' => $newTerm,
+                    'label' => $newLabel,
                     'is_current' => true,
                 ]);
             } else {
-                AcademicPeriod::create([
-                    'academic_year' => trim($validated['academic_year']),
-                    'academic_term' => (int) $validated['academic_term'],
-                    'label' => filled($validated['label']) ? trim($validated['label']) : null,
+                $currentPeriod = AcademicPeriod::create([
+                    'academic_year' => $newYear,
+                    'academic_term' => $newTerm,
+                    'label' => $newLabel,
                     'is_current' => true,
                 ]);
             }
-        });
 
-        $updatedPeriod = AcademicPeriod::current();
+            // Old trial registrations describe the old period. Delete them in the
+            // same transaction so no request can observe the new term with old cart
+            // contents (or the reverse).
+            $clearedCarts = $changed ? DB::table('user_carts')->delete() : 0;
+            $clearedAiPlans = $changed
+                ? StudentAiPreference::query()
+                    ->whereNotNull('last_approved_plan')
+                    ->update(['last_approved_plan' => null, 'updated_at' => now()])
+                : 0;
 
-        // If the academic year or term changed to a different logical period, clear all user carts
-        $changed = false;
-        if (!$previousPeriod && $updatedPeriod) {
-            $changed = true;
-        } elseif ($previousPeriod && $updatedPeriod) {
-            if ((string) $previousPeriod->academic_year !== (string) $updatedPeriod->academic_year
-                || (int) $previousPeriod->academic_term !== (int) $updatedPeriod->academic_term) {
-                $changed = true;
-            }
-        }
+            return [
+                'changed' => $changed,
+                'cleared_carts' => $clearedCarts,
+                'cleared_ai_plans' => $clearedAiPlans,
+                'previous' => $previous,
+                'current_id' => $currentPeriod->id,
+            ];
+        }, 3);
 
-        if ($changed) {
-            // Clear pivot table entries for all users' carts
-            \DB::table('user_carts')->delete();
-            $this->logAction('RESET_ALL_CARTS', 'تم تفريغ تسجيلات التجريبية لجميع المستخدمين بسبب تغيير الفصل الأكاديمي.');
+        $updatedPeriod = AcademicPeriod::query()->find($transition['current_id']);
+
+        if ($transition['changed']) {
+            $this->logAction(
+                'RESET_ALL_CARTS',
+                "تم بدء فصل أكاديمي جديد وتصفير {$transition['cleared_carts']} مادة من التسجيل التجريبي"
+                . " و{$transition['cleared_ai_plans']} خطة فصلية محفوظة في ذاكرة المرشد."
+            );
         }
 
         $updatedPeriod = AcademicPeriod::current();
         $this->logAction('UPDATE_ACADEMIC_PERIOD', 'تم تحديث الفصل الأكاديمي الحالي إلى: ' . ($updatedPeriod?->displayLabel() ?? 'غير محدد'));
 
+        $maxHours = $updatedPeriod?->maxHours() ?? AcademicPeriod::maxHoursFor($newTerm);
+        $message = $transition['changed']
+            ? "تم بدء {$updatedPeriod?->displayLabel()} بنجاح، وتصفير التسجيل التجريبي السابق. الحد الحالي {$maxHours} ساعة."
+            : "تم تحديث بيانات {$updatedPeriod?->displayLabel()} بنجاح دون تصفير التسجيل التجريبي.";
+
         return redirect()->back()->with([
-            'message' => 'تم حفظ الفصل الأكاديمي الحالي بنجاح.',
+            'message' => $message,
             'type' => 'success',
         ]);
     }

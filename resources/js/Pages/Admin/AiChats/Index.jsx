@@ -418,7 +418,7 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
         <AdminLayout user={auth?.user || {}}>
             <Head title={`${t.title} | سنفور`} />
 
-            <div className="flex flex-col pb-6 min-h-[calc(100vh-100px)] lg:h-[calc(100vh-100px)] lg:overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="flex min-h-[calc(100dvh-6.25rem)] flex-col pb-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
                 {/* Header Stats Area */}
                 <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
                     <div>
@@ -442,10 +442,10 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
                 <QualityMetrics isDark={isDark} />
 
                 {/* Main Chat Interface */}
-                <div className={`flex-1 flex flex-col lg:flex-row gap-6 lg:overflow-hidden min-h-0`}>
+                <div className="grid flex-1 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)]">
                     
                     {/* Sidebar: Chat List */}
-                    <div className={`w-full lg:w-[380px] h-[350px] lg:h-full shrink-0 flex flex-col rounded-[2rem] border overflow-hidden shadow-sm ${isDark ? 'bg-slate-900/50 border-slate-700/50' : 'bg-white border-slate-200/60'}`}>
+                    <div className={`flex h-[360px] w-full flex-col overflow-hidden rounded-[2rem] border shadow-sm lg:sticky lg:top-[4.5rem] lg:h-[calc(100dvh-6rem)] lg:max-h-[900px] ${isDark ? 'bg-slate-900/50 border-slate-700/50' : 'bg-white border-slate-200/60'}`}>
                         {/* Search & Header */}
                         <div className={`p-5 pb-4 border-b ${isDark ? 'border-slate-800 bg-slate-900/80' : 'border-slate-100 bg-white/80'} backdrop-blur-md z-10`}>
                             <div className="relative">
@@ -519,7 +519,7 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
                     </div>
 
                     {/* Active Chat Area */}
-                    <div className={`flex-1 min-h-[500px] lg:min-h-0 flex flex-col rounded-[2rem] border overflow-hidden shadow-sm relative ${isDark ? 'bg-[#0f172a] border-slate-700/50' : 'bg-[#f4f6f8] border-slate-200/60'}`}>
+                    <div className={`relative flex min-h-[70dvh] min-w-0 flex-col overflow-hidden rounded-[2rem] border shadow-sm lg:min-h-[calc(100dvh-6rem)] ${isDark ? 'bg-[#0f172a] border-slate-700/50' : 'bg-[#f4f6f8] border-slate-200/60'}`}>
                         
                         {/* Background Pattern overlay (optional subtle dots) */}
                         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
@@ -551,8 +551,10 @@ export default function AdminAiChatsIndex({ auth, summary = {}, chats = [], sele
                                     </div>
                                 </div>
 
-                                {/* Messages Scroll Area */}
-                                <div className="flex-1 overflow-y-auto p-6 space-y-6 relative z-10 custom-scrollbar">
+                                {/* Let the conversation participate in the page's
+                                    normal vertical scroll. This keeps long chats
+                                    readable and avoids a cramped nested scroller. */}
+                                <div className="relative z-10 flex-1 space-y-6 p-4 sm:p-6">
                                     {messages.length > 0 ? messages.map((message) => {
                                         let c = message.display_content || message.content;
                                         let sc = [], cr = [], fu = [], iw = null;

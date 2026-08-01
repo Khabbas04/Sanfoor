@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Engines\AcademicRulesEngine;
 use App\Http\Resources\CourseTreeResource;
 use App\Http\Resources\PassedCourseResource;
 use App\Models\AcademicPeriod;
@@ -667,39 +668,24 @@ class TreeController extends Controller
                 return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
             }
 
-            // Enforce per-term trial hours limit
-            $currentAcademic = \App\Models\AcademicPeriod::current();
-            $isSummer = $currentAcademic ? ((int) $currentAcademic->academic_term === 3) : false;
-
             $totalPassedHoursForGraduation = (int) $user->passedCourses()
                 ->where(function($query) {
                     $query->whereNull('course_user.grade')
                           ->orWhere('course_user.grade', '>=', 50);
                 })
                 ->sum('courses.credit_hours');
-            $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
 
             $currentCartCourses = $user->cartCourses()->select('courses.id', 'courses.credit_hours')->get();
             $currentCartHours = (int) $currentCartCourses->sum('credit_hours');
-            $hasOneHourLab = $currentCartCourses->contains('credit_hours', 1) || $course->credit_hours == 1;
-
-            if ($isSummer) {
-                if ($remainingHoursToGraduate <= 12) {
-                    $maxTrialHours = 12;
-                    $reason = ' (خريج صيفي)';
-                } else {
-                    $maxTrialHours = $hasOneHourLab ? 10 : 9;
-                    $reason = $hasOneHourLab ? ' (لأن لديك مادة مختبر)' : '';
-                }
-            } else {
-                if ($remainingHoursToGraduate <= 21) {
-                    $maxTrialHours = 21;
-                    $reason = ' (خريج)';
-                } else {
-                    $maxTrialHours = 18;
-                    $reason = '';
-                }
-            }
+            $rules = app(AcademicRulesEngine::class)->evaluate(
+                $user,
+                ['total_passed_hours' => $totalPassedHoursForGraduation],
+                $currentCartHours
+            );
+            $maxTrialHours = (int) $rules['effective_limit'];
+            $reason = !empty($rules['is_graduating'])
+                ? (!empty($rules['is_summer']) ? ' (خريج صيفي)' : ' (خريج)')
+                : (!empty($rules['is_probation']) ? ' (إنذار أكاديمي)' : '');
 
             // التحقق من حد المواد الاختيارية (9 ساعات كحد أقصى)
             if ($course->type === 'elective') {

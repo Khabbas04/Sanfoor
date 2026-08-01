@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Engines\AcademicRulesEngine;
 use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Support\CourseEligibility;
@@ -42,34 +43,15 @@ class CartController extends Controller
         $allowedIds = [];
         $blockedCourses = [];
 
-        $totalPassedHoursForGraduation = $passedHours;
-        $remainingHoursToGraduate = max(0, 132 - $totalPassedHoursForGraduation);
-
-        // Determine current term limits (summer vs regular)
-        $isSummer = $currentPeriod ? ((int) $currentPeriod->academic_term === 3) : false;
-        
-        $hasOneHourLab = false;
-        foreach ($requestedIds as $courseId) {
-            $c = $courses->get($courseId);
-            if ($c && $c->credit_hours == 1) {
-                $hasOneHourLab = true;
-                break;
-            }
-        }
-
-        if ($isSummer) {
-            if ($remainingHoursToGraduate <= 12) {
-                $maxTrialHours = 12;
-            } else {
-                $maxTrialHours = $hasOneHourLab ? 10 : 9;
-            }
-        } else {
-            if ($remainingHoursToGraduate <= 21) {
-                $maxTrialHours = 21;
-            } else {
-                $maxTrialHours = 18;
-            }
-        }
+        // Use the same rule result consumed by the advisor and planner. This keeps
+        // the regular 18-hour cap (and every configured exception) identical in the
+        // bulk-sync endpoint instead of maintaining another set of literals here.
+        $rules = app(AcademicRulesEngine::class)->evaluate(
+            $user,
+            ['total_passed_hours' => $passedHours],
+            0
+        );
+        $maxTrialHours = (int) $rules['effective_limit'];
 
         $accHours = 0;
         foreach ($requestedIds as $courseId) {
