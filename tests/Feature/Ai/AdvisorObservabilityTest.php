@@ -244,7 +244,7 @@ class AdvisorObservabilityTest extends AdvisorTestCase
         $this->currentPeriod();
         $this->fakeGemini([$this->envelope()]);
 
-        $this->actingAs($admin->fresh())
+        $chatResponse = $this->actingAs($admin->fresh())
             ->postJson(route('ai.advisor.chat'), ['message' => 'راجع سلتي'])
             ->assertOk();
 
@@ -267,6 +267,13 @@ class AdvisorObservabilityTest extends AdvisorTestCase
         $this->assertContains('cart_review', array_column($response->json('top_intents'), 'intent'));
         $this->assertContains('review_cart', array_column($response->json('tools_used'), 'tool'));
         $this->assertGreaterThan(0, $response->json('avg_response_ms'));
+
+        $cartReview = collect($response->json('top_intents'))->firstWhere('intent', 'cart_review');
+        $this->assertNotNull($cartReview);
+        $this->assertNotEmpty($cartReview['chats']);
+        $this->assertSame($chatResponse->json('chat_id'), $cartReview['chats'][0]['chat_id']);
+        $this->assertSame($admin->id, $cartReview['chats'][0]['student']['id']);
+        $this->assertSame($admin->name, $cartReview['chats'][0]['student']['name']);
     }
 
     public function test_the_metrics_endpoint_handles_an_empty_log(): void

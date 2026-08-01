@@ -1575,7 +1575,7 @@ class AiAdvisorController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        return response()->json(Cache::remember('admin_ai_quality_metrics', 300, function () {
+        return response()->json(Cache::remember('admin_ai_quality_metrics_v2', 300, function () {
             if (!Schema::hasTable('ai_request_logs')) {
                 return ['available' => false];
             }
@@ -1602,14 +1602,24 @@ class AiAdvisorController extends Controller
 
             $actions = (clone $logs)->where('route_used', 'action');
             $actionTotal = (clone $actions)->count();
+            $topIntents = (clone $answers)->whereNotNull('intent')
+                ->select('intent', DB::raw('count(*) as count'))
+                ->groupBy('intent')
+                ->orderByDesc('count')
+                ->limit(8)
+                ->get()
+                ->map(fn ($intent) => [
+                    'intent' => $intent->intent,
+                    'count' => (int) $intent->count,
+                    'chats' => $this->qualityIntentChats((string) $intent->intent, $since),
+                ])
+                ->values();
 
             return [
                 'available' => true,
                 'window_days' => 30,
                 'total_answers' => $total,
-                'top_intents' => (clone $answers)->whereNotNull('intent')
-                    ->select('intent', DB::raw('count(*) as count'))
-                    ->groupBy('intent')->orderByDesc('count')->limit(8)->get(),
+                'top_intents' => $topIntents,
                 'fallback_rate' => $total > 0
                     ? round(((clone $answers)->where('fallback_used', true)->count() / $total) * 100, 1)
                     : 0.0,
@@ -1648,6 +1658,63 @@ class AiAdvisorController extends Controller
                     ->groupBy('provider_error_type')->orderByDesc('count')->limit(5)->get(),
             ];
         }));
+    }
+
+    /**
+     * Latest distinct chats behind one intent in the quality summary.
+     *
+     * The aggregate count answers "how often"; these rows answer the operational
+     * question the admin actually needs next: which chat, and which student?
+     */
+    private function qualityIntentChats(string $intent, $since): array
+    {
+        $events = DB::table('ai_request_logs as logs')
+            ->leftJoin('users', 'users.id', '=', 'logs.user_id')
+            ->leftJoin('chats', 'chats.id', '=', 'logs.chat_id')
+            ->where('logs.created_at', '>=', $since)
+            ->whereIn('logs.route_used', ['chat', 'stream', 'regenerate'])
+            ->where('logs.intent', $intent)
+            ->orderByDesc('logs.created_at')
+            ->orderByDesc('logs.id')
+            ->limit(100)
+            ->get([
+                'logs.id',
+                'logs.chat_id',
+                'logs.user_id',
+                'logs.intent_confidence',
+                'logs.fallback_used',
+                'logs.created_at',
+                'users.name as student_name',
+                'users.email as student_email',
+                'chats.title as chat_title',
+            ]);
+
+        return $events
+            ->groupBy(fn ($event) => $event->chat_id
+                ? 'chat:' . $event->chat_id
+                : 'log:' . $event->id)
+            ->map(function ($chatEvents) {
+                $latest = $chatEvents->first();
+
+                return [
+                    'chat_id' => $latest->chat_id ? (int) $latest->chat_id : null,
+                    'chat_title' => $latest->chat_title ?: 'محادثة غير متوفرة',
+                    'student' => [
+                        'id' => $latest->user_id ? (int) $latest->user_id : null,
+                        'name' => $latest->student_name ?: 'طالب غير معروف',
+                        'email' => $latest->student_email,
+                    ],
+                    'occurrences' => $chatEvents->count(),
+                    'intent_confidence' => $latest->intent_confidence !== null
+                        ? round((float) $latest->intent_confidence * 100)
+                        : null,
+                    'fallback_used' => (bool) $latest->fallback_used,
+                    'last_seen_at' => $latest->created_at,
+                ];
+            })
+            ->take(10)
+            ->values()
+            ->all();
     }
 
     private function resolveChat($user, ?int $chatId, string $message): Chat

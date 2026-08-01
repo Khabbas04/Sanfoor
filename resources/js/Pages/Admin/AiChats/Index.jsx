@@ -292,6 +292,7 @@ const FEEDBACK_LABELS = {
 const QualityMetrics = ({ isDark }) => {
     const [data, setData] = useState(null);
     const [failed, setFailed] = useState(false);
+    const [selectedIntent, setSelectedIntent] = useState(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -312,6 +313,8 @@ const QualityMetrics = ({ isDark }) => {
     const card = isDark ? 'bg-slate-900/50 border-slate-700/50' : 'bg-white border-slate-200/60';
     const muted = isDark ? 'text-slate-400' : 'text-slate-500';
     const strong = isDark ? 'text-white' : 'text-slate-900';
+    const topIntents = data.top_intents || [];
+    const selectedIntentData = topIntents.find((row) => row.intent === selectedIntent) || null;
 
     const tiles = [
         ['ردود (30 يوم)', data.total_answers, ''],
@@ -343,7 +346,13 @@ const QualityMetrics = ({ isDark }) => {
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <MetricList title="أكثر النوايا" isDark={isDark} rows={(data.top_intents || []).map((row) => [INTENT_LABELS[row.intent] || row.intent, row.count])} />
+                <IntentMetricList
+                    title="أكثر النوايا"
+                    isDark={isDark}
+                    rows={topIntents}
+                    selectedIntent={selectedIntent}
+                    onSelect={(intent) => setSelectedIntent((current) => current === intent ? null : intent)}
+                />
                 <MetricList title="الأدوات المستخدمة" isDark={isDark} rows={(data.tools_used || []).map((row) => [row.tool, row.count])} />
                 <MetricList
                     title="أسباب التقييم السلبي"
@@ -351,7 +360,152 @@ const QualityMetrics = ({ isDark }) => {
                     rows={(data.feedback_reasons || []).map((row) => [FEEDBACK_LABELS[row.feedback_reason] || row.feedback_reason, row.count])}
                 />
             </div>
+
+            {selectedIntentData && (
+                <IntentChatDetails
+                    intent={selectedIntentData}
+                    isDark={isDark}
+                    onClose={() => setSelectedIntent(null)}
+                />
+            )}
         </div>
+    );
+};
+
+const IntentMetricList = ({ title, rows, selectedIntent, onSelect, isDark }) => {
+    const muted = isDark ? 'text-slate-400' : 'text-slate-500';
+
+    return (
+        <div>
+            <p className={`text-[10px] font-black ${muted}`}>{title}</p>
+            {rows.length === 0 ? (
+                <p className={`mt-1 text-[10px] font-bold ${muted}`}>لا توجد بيانات بعد.</p>
+            ) : (
+                <ul className="mt-1.5 space-y-1">
+                    {rows.map((row) => {
+                        const active = selectedIntent === row.intent;
+                        const label = INTENT_LABELS[row.intent] || row.intent;
+
+                        return (
+                            <li key={row.intent}>
+                                <button
+                                    type="button"
+                                    onClick={() => onSelect(row.intent)}
+                                    aria-expanded={active}
+                                    className={`flex min-h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border px-2 py-1 text-start outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                                        active
+                                            ? 'border-indigo-400 bg-indigo-500/10'
+                                            : isDark ? 'border-slate-700/50 bg-slate-800/40 hover:bg-slate-800' : 'border-slate-100 bg-slate-50/70 hover:border-indigo-200 hover:bg-indigo-50/70'
+                                    }`}
+                                >
+                                    <span className={`min-w-0 truncate text-[10.5px] font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{label}</span>
+                                    <span className="flex shrink-0 items-center gap-1.5">
+                                        <span className="rounded-full bg-indigo-500/10 px-2 text-[10px] font-black text-indigo-500">{row.count}</span>
+                                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${active ? 'rotate-180' : ''}`}>
+                                            <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                    </span>
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </div>
+    );
+};
+
+const IntentChatDetails = ({ intent, isDark, onClose }) => {
+    const chats = intent.chats || [];
+    const label = INTENT_LABELS[intent.intent] || intent.intent;
+    const muted = isDark ? 'text-slate-400' : 'text-slate-500';
+
+    const openChat = (chatId) => {
+        if (!chatId) return;
+
+        router.get(route('admin.ai_chats'), { chat_id: chatId }, {
+            preserveState: true,
+            preserveScroll: false,
+            only: ['selectedChat', 'messages', 'filters'],
+        });
+    };
+
+    const formatDate = (value) => {
+        if (!value) return 'وقت غير متوفر';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'وقت غير متوفر';
+        return date.toLocaleString('ar-JO', { dateStyle: 'medium', timeStyle: 'short' });
+    };
+
+    return (
+        <section className={`mt-4 rounded-2xl border p-4 ${isDark ? 'border-indigo-500/20 bg-indigo-950/20' : 'border-indigo-100 bg-indigo-50/40'}`} aria-label={`محادثات نية ${label}`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p className={`text-[10px] font-black ${muted}`}>تفاصيل النية</p>
+                    <h3 className={`mt-0.5 text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{label}</h3>
+                    <p className={`mt-1 text-[10px] font-bold ${muted}`}>
+                        {intent.count} طلب ضمن {chats.length} محادثة ظاهرة — اضغط «فتح المحادثة» لمراجعة الرسائل كاملة.
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className={`flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-100'}`}
+                    aria-label="إغلاق تفاصيل النية"
+                >
+                    <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-4 w-4">
+                        <path d="M5 5l10 10M15 5 5 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            {chats.length === 0 ? (
+                <p className={`mt-4 rounded-xl border border-dashed p-4 text-center text-[11px] font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+                    لا توجد محادثة مرتبطة بهذا السجل، وقد تكون حُذفت سابقاً.
+                </p>
+            ) : (
+                <div className="mt-4 grid grid-cols-1 gap-2.5 lg:grid-cols-2 2xl:grid-cols-3">
+                    {chats.map((chat, index) => (
+                        <article key={chat.chat_id || `missing-${index}`} className={`rounded-xl border p-3 ${isDark ? 'border-slate-700/70 bg-slate-900/70' : 'border-slate-200 bg-white'}`}>
+                            <div className="flex items-start gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-xs font-black text-indigo-500">
+                                    {(chat.student?.name || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className={`truncate text-[11px] font-black ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>{chat.student?.name || 'طالب غير معروف'}</p>
+                                            <p className={`truncate text-[9.5px] font-bold ${muted}`}>{chat.student?.email || `رقم الطالب: ${chat.student?.id || '—'}`}</p>
+                                        </div>
+                                        <span className="shrink-0 rounded-lg bg-indigo-500/10 px-2 py-1 font-mono text-[9px] font-black text-indigo-500">#{chat.chat_id || '—'}</span>
+                                    </div>
+                                    <p className={`mt-2 line-clamp-2 text-[10.5px] font-bold leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{chat.chat_title}</p>
+                                </div>
+                            </div>
+
+                            <div className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2 text-[9px] font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-100 text-slate-500'}`}>
+                                <span>{formatDate(chat.last_seen_at)}</span>
+                                <span>{chat.occurrences} {chat.occurrences === 1 ? 'طلب' : 'طلبات'}</span>
+                                {chat.intent_confidence !== null && <span>ثقة التصنيف {chat.intent_confidence}%</span>}
+                                {chat.fallback_used && <span className="text-amber-600 dark:text-amber-400">استخدم حلاً بديلاً</span>}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => openChat(chat.chat_id)}
+                                disabled={!chat.chat_id}
+                                className="mt-3 inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 text-[10.5px] font-black text-white transition-colors hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                فتح المحادثة
+                                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
+                                    <path d="M7 5h8v8M15 5l-9 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </button>
+                        </article>
+                    ))}
+                </div>
+            )}
+        </section>
     );
 };
 
