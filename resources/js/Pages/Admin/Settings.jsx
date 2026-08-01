@@ -347,6 +347,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
     const selectedTermRule = academicTermRules?.terms?.find((term) => String(term.term) === String(academicForm.academic_term));
     const selectedAcademicPreview = academicForm.label?.trim()
         || `${academicForm.academic_year} - ${selectedTermOption?.label || academicForm.academic_term}`;
+    const currentAcademicPreview = currentAcademicPeriod?.display_label || selectedAcademicPreview;
     const isAcademicPeriodChange = !currentAcademicPeriod
         || String(currentAcademicPeriod.academic_year) !== String(academicForm.academic_year).trim()
         || String(currentAcademicPeriod.academic_term) !== String(academicForm.academic_term);
@@ -544,7 +545,7 @@ export default function Settings({ stats = {}, onlineUsers = [], currentAcademic
                                 <p className={`mt-2 text-sm font-bold ${subtext}`}>{t.academicPeriodDesc}</p>
                                 <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm font-bold ${isDark ? 'bg-slate-950/40 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}>
                                     <span className="block text-[11px] font-black uppercase tracking-wider opacity-60">{t.academicPreview}</span>
-                                    <span className="block mt-1 text-base font-black text-indigo-600">{currentAcademicPreview}</span>
+                                    <span className="block mt-1 text-base font-black text-indigo-600">{selectedAcademicPreview}</span>
                                 </div>
                             </div>
 
