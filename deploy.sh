@@ -5,9 +5,16 @@ echo "Deploying application..."
 
 
 
-# Pull the latest changes from the git repository
-echo "Pulling latest changes..."
-git pull origin main
+# The GitHub workflow has already fast-forwarded the production checkout. Keep
+# direct/manual execution safe too, including recovery from the historical
+# package-lock change caused by npm install.
+if [ "${1:-}" != "--skip-pull" ]; then
+    echo "Preparing production worktree..."
+    git restore --source=HEAD --worktree -- package-lock.json
+
+    echo "Pulling latest changes..."
+    git pull --ff-only origin main
+fi
 
 # Install/update composer dependencies
 echo "Installing composer dependencies..."

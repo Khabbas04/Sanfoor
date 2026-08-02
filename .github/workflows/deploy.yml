@@ -1,12 +1,59 @@
-name: Deploy to Production
+name: CI and Deploy
 
 on:
   push:
     branches:
       - main
 
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
+  verify:
+    name: Test and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, curl, intl, zip, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel test environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Install frontend dependencies from lockfile
+        run: npm ci --include=dev --no-audit --no-fund
+
+      - name: Build production assets
+        run: npm run build
+
+      - name: Run application tests
+        run: php artisan test
+
   deploy:
+    name: Deploy production
+    needs: verify
     runs-on: ubuntu-latest
 
     steps:
@@ -16,7 +63,16 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
           script: |
+            set -e
             cd /var/www/sanfoor
+
+            # Production is a deployment target, not a development worktree.
+            # Older deploys used npm install and could dirty this generated lockfile.
+            git restore --source=HEAD --worktree -- package-lock.json
+            git fetch origin main
+            git merge --ff-only origin/main
+
             chmod +x deploy.sh
-            ./deploy.sh
+            ./deploy.sh --skip-pull
