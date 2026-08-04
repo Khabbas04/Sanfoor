@@ -28,13 +28,13 @@ const TYPE_COLORS = {
     university_req: '#7c3aed',
 };
 
-const numberFormatter = new Intl.NumberFormat('ar-JO');
-const decimalFormatter = new Intl.NumberFormat('ar-JO', { maximumFractionDigits: 1 });
+const numberFormatter = new Intl.NumberFormat('en-US');
+const decimalFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 
 const formatNumber = (value) => numberFormatter.format(Number(value || 0));
 const formatDecimal = (value) => decimalFormatter.format(Number(value || 0));
 const asDate = (value) => value
-    ? new Intl.DateTimeFormat('ar-JO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+    ? new Intl.DateTimeFormat('ar-JO-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
     : '—';
 
 function MetricCard({ icon: Icon, label, value, helper, tone = 'indigo' }) {
@@ -578,7 +578,15 @@ export default function Demand({
                                                 return (
                                                     <tr key={course.id} className="transition hover:bg-indigo-50/40 dark:hover:bg-indigo-500/[0.04]">
                                                         <td className="px-5 py-4"><div className="flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-black text-slate-500 dark:bg-white/5">{course.rank}</span><div><p className="text-sm font-black text-slate-950 dark:text-white">{course.name}</p><p className="mt-1 text-[11px] font-black text-indigo-600" dir="ltr">{course.code} · {formatNumber(course.credit_hours)} ساعات</p></div></div></td>
-                                                        <td className="px-4 py-4"><p className="max-w-48 truncate text-xs font-black text-slate-700 dark:text-slate-200">{course.major_name}</p><p className="mt-1 max-w-48 truncate text-[10px] font-bold text-slate-400">{course.college_name} · خطة {course.study_plan_version}</p></td>
+                                                        <td className="px-4 py-4">
+                                                            <p className="max-w-48 truncate text-xs font-black text-slate-700 dark:text-slate-200">{course.major_name}</p>
+                                                            <p className="mt-1 max-w-48 truncate text-[10px] font-bold text-slate-400">{course.college_name} · خطة {course.study_plan_version}</p>
+                                                            {Number(course.variant_count) > 1 && (
+                                                                <span className="mt-2 inline-flex rounded-full bg-indigo-50 px-2 py-1 text-[9px] font-black text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+                                                                    مادة موحّدة من {formatNumber(course.variant_count)} سجلات
+                                                                </span>
+                                                            )}
+                                                        </td>
                                                         <td className="px-4 py-4 text-center"><span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-700 dark:bg-white/5 dark:text-slate-300">{TYPE_LABELS[course.type] || course.type}</span></td>
                                                         <td className="px-4 py-4 text-center"><button onClick={() => openStudents(course)} className="cursor-pointer text-lg font-black text-indigo-700 underline-offset-4 transition hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-indigo-300">{formatNumber(course.cart_users_count)}</button><p className="text-[10px] font-bold text-slate-400">{Number(course.cart_users_count) > 0 ? 'طالب' : 'لا يوجد طلب'}</p></td>
                                                         <td className="px-4 py-4"><div className="mx-auto w-28"><div className="mb-1 flex justify-between text-[10px] font-black text-slate-500"><span>{formatDecimal(percentage)}%</span><span>{formatNumber(course.cart_users_count)}/{formatNumber(summary.total_students)}</span></div><div className="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"><div className="h-full rounded-full bg-indigo-600" style={{ width: percentage > 0 ? `${Math.min(100, percentage)}%` : '0%' }} /></div></div></td>

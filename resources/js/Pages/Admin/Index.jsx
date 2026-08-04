@@ -176,8 +176,30 @@ const buildCsvPreview = (file) => {
     });
 };
 
+let excelReaderPromise;
+
+const loadBundledExcelReader = () => {
+    if (typeof window.readXlsxFile === 'function') return Promise.resolve(window.readXlsxFile);
+    if (excelReaderPromise) return excelReaderPromise;
+
+    excelReaderPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '/vendor/read-excel-file.min.js?v=5.8.8';
+        script.async = true;
+        script.dataset.excelReader = 'true';
+        script.onload = () => {
+            if (typeof window.readXlsxFile === 'function') resolve(window.readXlsxFile);
+            else reject(new Error('EXCEL_READER_LOAD_FAILED'));
+        };
+        script.onerror = () => reject(new Error('EXCEL_READER_LOAD_FAILED'));
+        document.head.appendChild(script);
+    });
+
+    return excelReaderPromise;
+};
+
 const buildExcelPreview = async (file) => {
-    const { default: readXlsxFile } = await import('read-excel-file');
+    const readXlsxFile = await loadBundledExcelReader();
     const matrix = await readXlsxFile(file);
     if (!matrix.length) throw new Error('EMPTY_FILE');
 

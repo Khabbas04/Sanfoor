@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\Cache;
 
 class StudentDashboardInsightService
 {
-    public function __construct(private readonly AcademicRulesEngine $rulesEngine)
+    public function __construct(
+        private readonly AcademicRulesEngine $rulesEngine,
+        private readonly CourseIdentityService $courseIdentity,
+    )
     {
     }
 
@@ -57,7 +60,7 @@ class StudentDashboardInsightService
             ->filter(fn (Course $course) => $course->pivot->grade === null || (float) $course->pivot->grade >= 50);
         $passedIds = $passed->pluck('id')->map(fn ($id) => (int) $id)->all();
         $passedHours = (int) $passed->sum('credit_hours');
-        $cart = $user->cartCourses;
+        $cart = $this->courseIdentity->deduplicateCourses($user->cartCourses);
         $cartHours = (int) $cart->sum('credit_hours');
         $rules = $this->rulesEngine->evaluate($user, ['total_passed_hours' => $passedHours], $cartHours);
 

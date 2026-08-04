@@ -23,10 +23,9 @@ composer install --no-interaction --prefer-dist --optimize-autoloader --ignore-p
 # Install NPM dependencies and build assets
 echo "Building frontend assets..."
 # Rebuild node_modules from the committed lockfile. Reusing an old production
-# tree can leave newly-added runtime packages (such as read-excel-file) absent
-# while Vite still exists from an earlier deployment.
+# tree can leave newly-added packages absent while Vite still exists from an
+# earlier deployment.
 npm ci --include=dev --no-audit --no-fund
-npm ls read-excel-file --depth=0
 npm run build
 
 # Clear the old cache

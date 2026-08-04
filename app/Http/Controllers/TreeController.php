@@ -9,6 +9,7 @@ use App\Models\AcademicPeriod;
 use App\Models\Course;
 use App\Models\GraduationPlan;
 use App\Models\StudentActivityLog;
+use App\Services\CourseIdentityService;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -81,11 +82,12 @@ class TreeController extends Controller
         $passedCourses = PassedCourseResource::collection($user->passedCourses)->resolve();
         $passed_course_ids = $user->passedCourses->pluck('id')->all();
         $totalPassedHours = (int) $user->passedCourses->sum('credit_hours');
-        $cart_course_ids = $user->cartCourses->pluck('id')->all();
+        $logicalCartCourses = app(CourseIdentityService::class)->deduplicateCourses($user->cartCourses);
+        $cart_course_ids = $logicalCartCourses->pluck('id')->all();
         $registrationRules = app(AcademicRulesEngine::class)->evaluate(
             $user,
             ['total_passed_hours' => $totalPassedHours],
-            (int) $user->cartCourses->sum('credit_hours')
+            (int) $logicalCartCourses->sum('credit_hours')
         );
         $approvedPlan = GraduationPlan::query()
             ->where('user_id', $user->id)
@@ -595,7 +597,7 @@ class TreeController extends Controller
     * 🔥 الدالة الجديدة المخصصة لإضافة أو إزالة مادة واحدة من التسجيل التجريبي فقط 🔥
      * هذه الدالة يتم استدعاؤها من واجهة المحادثة مع الذكاء الاصطناعي (سنفور)
      */
-    public function toggleSingleCart(Request $request)
+    public function toggleSingleCart(Request $request, CourseIdentityService $courseIdentity)
     {
         $request->validate([
             'course_id' => 'required|exists:courses,id',
@@ -611,6 +613,7 @@ class TreeController extends Controller
                     'courses.major_id',
                     'courses.study_plan_version',
                     'courses.name',
+                    'courses.code',
                     'courses.credit_hours',
                     'courses.minimum_passed_hours',
                     'courses.type',
@@ -643,6 +646,40 @@ class TreeController extends Controller
                 ], 422);
             }
 
+            $currentPeriod = AcademicPeriod::current();
+            $equivalentCourseIds = $courseIdentity->equivalentCourseIds($course);
+            $existingEquivalentQuery = DB::table('user_carts')
+                ->where('user_id', $user->id)
+                ->whereIn('course_id', $equivalentCourseIds);
+            if ($currentPeriod) {
+                $existingEquivalentQuery
+                    ->where('academic_year', $currentPeriod->academic_year)
+                    ->where('academic_term', $currentPeriod->academic_term);
+            }
+            $existingEquivalentIds = $existingEquivalentQuery->pluck('course_id')->map(fn ($id) => (int) $id)->all();
+
+            if ($existingEquivalentIds !== []) {
+                $deleteEquivalentQuery = DB::table('user_carts')
+                    ->where('user_id', $user->id)
+                    ->whereIn('course_id', $existingEquivalentIds);
+                if ($currentPeriod) {
+                    $deleteEquivalentQuery
+                        ->where('academic_year', $currentPeriod->academic_year)
+                        ->where('academic_term', $currentPeriod->academic_term);
+                }
+                $deleteEquivalentQuery->delete();
+
+                foreach ($existingEquivalentIds as $removedCourseId) {
+                    StudentActivityLog::create([
+                        'user_id' => $user->id,
+                        'course_id' => $removedCourseId,
+                        'action' => 'course_cart_removed',
+                    ]);
+                }
+
+                return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
+            }
+
             $passedCourseIds = $user->passedCourses()->pluck('courses.id')->toArray();
             
             $missingPrereqs = [];
@@ -669,18 +706,6 @@ class TreeController extends Controller
                 ], 422);
             }
 
-            if ($user->cartCourses()->where('course_id', $courseId)->exists()) {
-                $user->cartCourses()->detach($courseId);
-
-                StudentActivityLog::create([
-                    'user_id' => $user->id,
-                    'course_id' => $courseId,
-                    'action' => 'course_cart_removed',
-                ]);
-
-                return response()->json(['status' => 'removed', 'message' => 'تمت إزالة المادة من التسجيل التجريبي.']);
-            }
-
             $totalPassedHoursForGraduation = (int) $user->passedCourses()
                 ->where(function($query) {
                     $query->whereNull('course_user.grade')
@@ -688,7 +713,12 @@ class TreeController extends Controller
                 })
                 ->sum('courses.credit_hours');
 
-            $currentCartCourses = $user->cartCourses()->select('courses.id', 'courses.credit_hours')->get();
+            $allCurrentCartCourses = $user->cartCourses()
+                ->select('courses.id', 'courses.name', 'courses.code', 'courses.credit_hours', 'courses.type')
+                ->get();
+            $uniqueCurrentIds = $courseIdentity
+                ->deduplicateCourseIds($allCurrentCartCourses->pluck('id')->all(), $allCurrentCartCourses)['ids'];
+            $currentCartCourses = $allCurrentCartCourses->whereIn('id', $uniqueCurrentIds);
             $currentCartHours = (int) $currentCartCourses->sum('credit_hours');
             $rules = app(AcademicRulesEngine::class)->evaluate(
                 $user,
@@ -706,9 +736,9 @@ class TreeController extends Controller
                     ->where('courses.type', 'elective')
                     ->sum('courses.credit_hours');
 
-                $cartElectives = (int) $user->cartCourses()
-                    ->where('courses.type', 'elective')
-                    ->sum('courses.credit_hours');
+                $cartElectives = (int) $currentCartCourses
+                    ->where('type', 'elective')
+                    ->sum('credit_hours');
 
                 if ($passedElectives + $cartElectives + $course->credit_hours > 9) {
                     return response()->json([
@@ -725,8 +755,6 @@ class TreeController extends Controller
                     'message' => "يتجاوز مجموع الساعات الحد الأقصى المسموح لهذا الفصل وهو {$maxTrialHours} ساعة{$reason}. لديك حالياً {$currentCartHours} ساعة.",
                 ], 422);
             }
-
-            $currentPeriod = AcademicPeriod::current();
 
             $insert = [
                 'user_id' => Auth::id(),

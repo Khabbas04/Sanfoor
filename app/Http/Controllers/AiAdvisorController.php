@@ -6,6 +6,7 @@ use App\Models\AcademicPeriod;
 use App\Models\Chat;
 use App\Models\Course;
 use App\Models\Message;
+use App\Services\CourseIdentityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -54,7 +55,8 @@ class AiAdvisorController extends Controller
         $isProbation = $hasAcademicRecords && isset($gpaData['percentage']) && (float) $gpaData['percentage'] < 60;
 
         $totalPassedHours = $user->passedCourses->sum('credit_hours');
-        $cartHours = $user->cartCourses->sum('credit_hours');
+        $logicalCartCourses = app(CourseIdentityService::class)->deduplicateCourses($user->cartCourses);
+        $cartHours = $logicalCartCourses->sum('credit_hours');
         $totalPlanHours = $user->major && method_exists($user->major, 'getTotalHours') ? $user->major->getTotalHours() : null;
         $progressPercent = $totalPlanHours ? round(($totalPassedHours / max($totalPlanHours, 1)) * 100) : null;
 
@@ -95,7 +97,7 @@ class AiAdvisorController extends Controller
                 'has_academic_records' => $hasAcademicRecords,
             ],
             'chats' => $chats,
-            'initialCartIds' => $user->cartCourses->pluck('id')->toArray(),
+            'initialCartIds' => $logicalCartCourses->pluck('id')->toArray(),
             'dailyMessagesRemaining' => $remaining,
             'hasDailyLimit' => $dailyLimit !== null,
             'isAiActive' => !empty($apiKeys),
@@ -1543,17 +1545,37 @@ class AiAdvisorController extends Controller
 
             $query = DB::table('user_carts')
                 ->join('courses', 'user_carts.course_id', '=', 'courses.id')
-                ->select('courses.name', 'courses.code', DB::raw('count(user_carts.user_id) as student_count'));
+                ->where('courses.is_quiz_only', false)
+                ->select('user_carts.user_id', 'user_carts.course_id');
 
             if ($currentPeriod && $hasPeriodColumns) {
                 $query->where('user_carts.academic_year', $currentPeriod->academic_year)
                       ->where('user_carts.academic_term', $currentPeriod->academic_term);
             }
 
-            $topDemandedCourses = $query->groupBy('courses.id', 'courses.name', 'courses.code')
-                ->orderByDesc('student_count')
-                ->limit(10)
-                ->get();
+            $registrationRows = $query->get();
+            $courses = Course::query()
+                ->whereIn('id', $registrationRows->pluck('course_id')->unique())
+                ->get(['id', 'name', 'code']);
+            $rowsByCourse = $registrationRows->groupBy(fn ($row) => (int) $row->course_id);
+            $topDemandedCourses = app(CourseIdentityService::class)->group($courses)
+                ->map(function (array $group) use ($rowsByCourse) {
+                    $course = $group['representative'];
+                    $studentCount = $group['members']->pluck('id')
+                        ->flatMap(fn ($id) => $rowsByCourse->get((int) $id, collect()))
+                        ->unique('user_id')
+                        ->count();
+
+                    return (object) [
+                        'name' => $course->name,
+                        'code' => $course->code,
+                        'student_count' => $studentCount,
+                        'variant_count' => $group['members']->count(),
+                    ];
+                })
+                ->sortByDesc('student_count')
+                ->take(10)
+                ->values();
         } catch (\Throwable $e) {
             $topDemandedCourses = collect();
         }
@@ -1860,13 +1882,14 @@ class AiAdvisorController extends Controller
         $cacheKey = AcademicCache::key("student_cart_data_{$user->id}");
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing('cartCourses');
-            $map = $user->cartCourses->pluck('name', 'id')->toArray();
+            $cartCourses = app(CourseIdentityService::class)->deduplicateCourses($user->cartCourses);
+            $map = $cartCourses->pluck('name', 'id')->toArray();
 
             return [
-                'ids' => $user->cartCourses->pluck('id')->toArray(),
+                'ids' => $cartCourses->pluck('id')->toArray(),
                 'map' => $map,
                 'list' => implode(' | ', $map),
-                'hours' => $user->cartCourses->sum('credit_hours'),
+                'hours' => $cartCourses->sum('credit_hours'),
             ];
         });
     }
@@ -2370,6 +2393,33 @@ class AiAdvisorController extends Controller
     private function addCoursesToCart($user, array $courseIds, array $academicData): bool
     {
         if (empty($courseIds)) {
+            return false;
+        }
+
+        $courseIdentity = app(CourseIdentityService::class);
+        $requestedCourses = Course::query()
+            ->whereIn('id', $courseIds)
+            ->get(['id', 'name', 'code']);
+        $courseIds = $courseIdentity->deduplicateCourseIds($courseIds, $requestedCourses)['ids'];
+
+        $existingCourseIds = DB::table('user_carts')
+            ->where('user_id', $user->id)
+            ->pluck('course_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+        $identityPool = Course::query()
+            ->whereIn('id', array_values(array_unique(array_merge($courseIds, $existingCourseIds))))
+            ->get(['id', 'name', 'code']);
+        $existingCourses = $identityPool->whereIn('id', $existingCourseIds);
+        $courseIds = array_values(array_filter($courseIds, function (int $courseId) use ($identityPool, $existingCourses, $courseIdentity) {
+            $requestedCourse = $identityPool->firstWhere('id', $courseId);
+
+            return $requestedCourse && ! $existingCourses->contains(
+                fn (Course $existingCourse) => $courseIdentity->same($requestedCourse, $existingCourse)
+            );
+        }));
+
+        if ($courseIds === []) {
             return false;
         }
 

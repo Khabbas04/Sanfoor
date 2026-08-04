@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Engines\AcademicRulesEngine;
 use App\Models\AcademicPeriod;
 use App\Models\Course;
+use App\Services\CourseIdentityService;
 use App\Support\CourseEligibility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class CartController extends Controller
     * تحديث التسجيل التجريبي بالكامل للمستخدم.
      * تم التعديل ليدعم الاستجابة الصامتة لمنع ظهور رسالة الـ JSON البيضاء.
      */
-    public function sync(Request $request)
+    public function sync(Request $request, CourseIdentityService $courseIdentity)
     {
         // 1. التحقق من صحة البيانات القادمة
         $request->validate([
@@ -27,11 +28,14 @@ class CartController extends Controller
         $user = Auth::user();
         $requestedIds = collect($request->course_ids ?? [])->map(fn ($id) => (int) $id)->values();
 
-        $courses = Course::query()
+        $courseCollection = Course::query()
             ->with('prerequisites')
             ->whereIn('id', $requestedIds)
-            ->get()
-            ->keyBy('id');
+            ->get();
+
+        $deduplicated = $courseIdentity->deduplicateCourseIds($requestedIds->all(), $courseCollection);
+        $requestedIds = collect($deduplicated['ids']);
+        $courses = $courseCollection->keyBy('id');
 
         $currentPeriod = AcademicPeriod::current();
         $periodYear = $currentPeriod?->academic_year;
@@ -148,6 +152,7 @@ class CartController extends Controller
                 'blocked_courses' => $blockedCourses,
                 'synced_count' => count($allowedIds),
                 'synced_course_ids' => array_values($allowedIds),
+                'merged_duplicates' => $deduplicated['duplicates'],
             ]);
         }
 

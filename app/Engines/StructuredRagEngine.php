@@ -263,13 +263,15 @@ class StructuredRagEngine
         $cacheKey = AcademicCache::key("student_cart_data_{$user->id}");
         return Cache::remember($cacheKey, 600, function() use ($user) {
             $user->loadMissing('cartCourses');
-            $map = $user->cartCourses->pluck('name', 'id')->toArray();
+            $cartCourses = app(\App\Services\CourseIdentityService::class)
+                ->deduplicateCourses($user->cartCourses);
+            $map = $cartCourses->pluck('name', 'id')->toArray();
 
             return [
                 'ids' => array_keys($map),
                 'map' => $map,
                 'list' => implode(' | ', $map),
-                'hours' => $user->cartCourses->sum('credit_hours'),
+                'hours' => $cartCourses->sum('credit_hours'),
             ];
         });
     }

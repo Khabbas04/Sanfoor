@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Course;
+use App\Models\Major;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -11,7 +12,7 @@ use Tests\Feature\Ai\AdvisorTestCase;
 
 class DemandReportManagementTest extends AdvisorTestCase
 {
-    public function test_report_uses_only_the_current_period_and_keeps_real_courses_separate(): void
+    public function test_report_uses_current_period_and_merges_the_same_course_across_catalogue_rows(): void
     {
         [$firstStudent, $major] = $this->student('first-demand@example.com');
         $secondStudent = $this->studentInMajor($major->id, 'second-demand@example.com');
@@ -19,8 +20,13 @@ class DemandReportManagementTest extends AdvisorTestCase
         $admin = $this->admin();
         $this->currentPeriod(1, '2026');
 
+        $otherMajor = Major::withoutEvents(fn () => Major::create([
+            'college_id' => $major->college_id,
+            'name' => 'هندسة البرمجيات',
+            'code' => 'SE',
+        ]));
         $firstCourse = $this->course($major, ['name' => 'برمجة متقدمة', 'code' => 'CS401', 'credit_hours' => 3]);
-        $secondCourse = $this->course($major, ['name' => 'برمجة متقدمة', 'code' => 'CS402', 'credit_hours' => 4]);
+        $secondCourse = $this->course($otherMajor, ['name' => 'برمجة متقدمة', 'code' => 'CS402', 'credit_hours' => 4]);
 
         $this->cartRow($firstStudent, $firstCourse, '2026', 1);
         $this->cartRow($secondStudent, $firstCourse, '2026', 1);
@@ -32,19 +38,19 @@ class DemandReportManagementTest extends AdvisorTestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Admin/Reports/Demand')
-                ->has('courseDemand', 2)
+                ->has('courseDemand', 1)
                 ->where('courseDemand.0.id', $firstCourse->id)
                 ->where('courseDemand.0.cart_users_count', 2)
-                ->where('courseDemand.1.id', $secondCourse->id)
-                ->where('courseDemand.1.cart_users_count', 1)
+                ->where('courseDemand.0.variant_count', 2)
+                ->where('courseDemand.0.course_ids', [$firstCourse->id, $secondCourse->id])
                 ->where('summary.total_registered_students', 3)
                 ->where('summary.total_students', 2)
                 ->where('summary.participation_rate', 66.7)
-                ->where('summary.total_selections', 3)
-                ->where('summary.catalog_courses', 2)
-                ->where('summary.demanded_courses', 2)
-                ->where('summary.average_courses_per_student', 1.5)
-                ->where('summary.average_hours_per_student', 5)
+                ->where('summary.total_selections', 2)
+                ->where('summary.catalog_courses', 1)
+                ->where('summary.demanded_courses', 1)
+                ->where('summary.average_courses_per_student', 1)
+                ->where('summary.average_hours_per_student', 3)
                 ->where('report.period.academic_term', 1)
                 ->where('report.period.max_hours', 18)
             );
@@ -89,8 +95,14 @@ class DemandReportManagementTest extends AdvisorTestCase
         $admin = $this->admin('student-list-admin@example.com');
         $this->currentPeriod(1, '2026');
         $course = $this->course($major, ['code' => 'CS311', 'credit_hours' => 3]);
+        $equivalentCourse = $this->course($major, [
+            'name' => $course->name,
+            'code' => 'SE311',
+            'credit_hours' => 3,
+        ]);
         $otherCourse = $this->course($major, ['code' => 'CS312', 'credit_hours' => 4]);
         $this->cartRow($student, $course, '2026', 1);
+        $this->cartRow($student, $equivalentCourse, '2026', 1);
         $this->cartRow($student, $otherCourse, '2026', 1);
 
         $this->actingAs($admin)
@@ -112,7 +124,12 @@ class DemandReportManagementTest extends AdvisorTestCase
         $admin = $this->admin('remove-demand-admin@example.com');
         $this->currentPeriod(1, '2026');
         $course = $this->course($major, ['code' => 'CS450']);
+        $equivalentCourse = $this->course($major, [
+            'name' => $course->name,
+            'code' => 'SE450',
+        ]);
         $this->cartRow($currentStudent, $course, '2026', 1);
+        $this->cartRow($currentStudent, $equivalentCourse, '2026', 1);
         $this->cartRow($oldStudent, $course, '2025', 3);
 
         $this->actingAs($admin)
@@ -123,6 +140,10 @@ class DemandReportManagementTest extends AdvisorTestCase
         $this->assertDatabaseMissing('user_carts', [
             'user_id' => $currentStudent->id,
             'course_id' => $course->id,
+        ]);
+        $this->assertDatabaseMissing('user_carts', [
+            'user_id' => $currentStudent->id,
+            'course_id' => $equivalentCourse->id,
         ]);
         $this->assertDatabaseHas('user_carts', [
             'user_id' => $oldStudent->id,

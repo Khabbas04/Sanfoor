@@ -52,6 +52,7 @@ class AiActionExecutor
     public function __construct(
         private StudentAcademicContextService $context,
         private ValidationEngine $validator,
+        private CourseIdentityService $courseIdentity,
     ) {}
 
     public static function all(): array
@@ -116,6 +117,7 @@ class AiActionExecutor
     private function changeCart(User $user, string $direction, array $payload, bool $isPlan = false): array
     {
         $requested = array_values(array_unique(array_map('intval', (array) ($payload['course_ids'] ?? []))));
+        $submittedRequested = $requested;
 
         if ($requested === []) {
             return $this->result(
@@ -133,6 +135,21 @@ class AiActionExecutor
         $context = $this->context->for($user, fresh: true);
         $rules = $context['rules'];
 
+        if ($direction === 'add') {
+            $cartIds = array_map('intval', $context['cart']['ids'] ?? []);
+            $identityPool = Course::query()
+                ->whereIn('id', array_values(array_unique(array_merge($requested, $cartIds))))
+                ->get(['id', 'name', 'code']);
+            $deduplicated = $this->courseIdentity->deduplicateCourseIds($requested, $identityPool);
+            $requested = array_values(array_filter($deduplicated['ids'], function (int $requestedId) use ($cartIds, $identityPool) {
+                $requestedCourse = $identityPool->firstWhere('id', $requestedId);
+
+                return $requestedCourse && ! $identityPool
+                    ->whereIn('id', $cartIds)
+                    ->contains(fn (Course $cartCourse) => $this->courseIdentity->same($requestedCourse, $cartCourse));
+            }));
+        }
+
         $hoursById = [];
         foreach ($context['available_courses'] as $course) {
             $hoursById[(int) $course['id']] = (int) $course['credit_hours'];
@@ -146,7 +163,7 @@ class AiActionExecutor
         ], $rules);
 
         $accepted = $validation['accepted_ids'] ?? [];
-        $skipped = array_values(array_diff($requested, $accepted));
+        $skipped = array_values(array_diff($submittedRequested, $accepted));
 
         if ($accepted === []) {
             return $this->result($action, false,
