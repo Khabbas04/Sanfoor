@@ -20,6 +20,11 @@ class CourseIdentityService
         'the', 'of', 'and', 'in', 'to',
     ];
 
+    /** @var array<int, string> */
+    private const DISTINGUISHING_WORDS = [
+        'مختبر', 'عملي', 'مقدمه', 'متقدم', 'متقدمه', 'خاصه', 'مبادئ', 'اساسيات', 'تطبيقات',
+    ];
+
     public function same(Course $first, Course $second): bool
     {
         if ((int) $first->id === (int) $second->id) {
@@ -50,28 +55,35 @@ class CourseIdentityService
             return false;
         }
 
-        // Short labels and numbered sequences (e.g. "برمجة 1/2") are too easy
-        // to merge incorrectly, so fuzzy matching is restricted to useful names.
         $firstLength = mb_strlen($firstName);
         $secondLength = mb_strlen($secondName);
-        if (min($firstLength, $secondLength) < 8) {
-            return false;
-        }
-
+        
         $lengthRatio = min($firstLength, $secondLength) / max($firstLength, $secondLength);
         $characterSimilarity = $this->characterSimilarity($firstName, $secondName);
 
-        if ($lengthRatio >= 0.82 && $characterSimilarity >= 0.90) {
+        if ($firstLength >= 8 && $secondLength >= 8 && $lengthRatio >= 0.82 && $characterSimilarity >= 0.90) {
             return true;
         }
 
         $firstTokens = $this->meaningfulTokens($firstName);
         $secondTokens = $this->meaningfulTokens($secondName);
-        $tokenSimilarity = $this->diceSimilarity($firstTokens, $secondTokens);
 
-        return $lengthRatio >= 0.78
-            && $characterSimilarity >= 0.82
-            && $tokenSimilarity >= 0.80;
+        if ($this->hasConflict($firstTokens, $secondTokens)) {
+            return false;
+        }
+
+        if (count($firstTokens) === 0 || count($secondTokens) === 0) {
+            return false;
+        }
+
+        $intersection = count(array_intersect($firstTokens, $secondTokens));
+        $overlap = $intersection / min(count($firstTokens), count($secondTokens));
+
+        if ($overlap >= 0.75) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -190,11 +202,17 @@ class CourseIdentityService
         return preg_replace('/[^\p{L}\p{N}]+/u', '', $value) ?? $value;
     }
 
+    private function normalizeToken(string $token): string
+    {
+        return preg_replace('/^(وال|فال|بال|كال|للال|ال|لل|و)(?=\p{L}{3,})/u', '', $token) ?? $token;
+    }
+
     /** @return array<int, string> */
     private function meaningfulTokens(string $value): array
     {
         return collect(preg_split('/\s+/u', $value) ?: [])
             ->reject(fn (string $token) => in_array($token, self::CONNECTOR_WORDS, true))
+            ->map(fn (string $token) => $this->normalizeToken($token))
             ->unique()
             ->values()
             ->all();
@@ -209,16 +227,19 @@ class CourseIdentityService
             ->all();
     }
 
-    /** @param array<int, string> $first @param array<int, string> $second */
-    private function diceSimilarity(array $first, array $second): float
+    /** @param array<int, string> $firstTokens @param array<int, string> $secondTokens */
+    private function hasConflict(array $firstTokens, array $secondTokens): bool
     {
-        if ($first === [] || $second === []) {
-            return 0.0;
+        foreach (self::DISTINGUISHING_WORDS as $word) {
+            $inFirst = in_array($word, $firstTokens, true);
+            $inSecond = in_array($word, $secondTokens, true);
+
+            if ($inFirst !== $inSecond) {
+                return true;
+            }
         }
 
-        $intersection = count(array_intersect($first, $second));
-
-        return (2 * $intersection) / (count($first) + count($second));
+        return false;
     }
 
     private function characterSimilarity(string $first, string $second): float
