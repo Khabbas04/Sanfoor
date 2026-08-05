@@ -1995,10 +1995,15 @@ class AiAdvisorController extends Controller
                 "course_sections_{$year}_{$term}", 
                 3600, 
                 function () use ($year, $term) {
-                    return \App\Models\CourseSection::where('academic_year', $year)
+                    $sections = \App\Models\CourseSection::where('academic_year', $year)
                         ->where('academic_term', $term)
-                        ->get()
-                        ->groupBy('course_id');
+                        ->get();
+
+                    if ($sections->isEmpty()) {
+                        $sections = \App\Models\CourseSection::all();
+                    }
+
+                    return $sections->groupBy('course_id');
                 }
             );
 

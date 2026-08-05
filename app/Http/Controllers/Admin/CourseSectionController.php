@@ -32,6 +32,12 @@ class CourseSectionController extends Controller
             if ($period) {
                 Cache::forget("course_sections_{$period->academic_year}_{$period->academic_term}");
             }
+            Cache::forget('course_sections_2026_1');
+            Cache::forget('course_sections_2026/2027_1');
+            Cache::forget('course_sections_2025/2026_1');
+            Cache::forget('course_sections_2025/2026_2');
+            Cache::forget('course_sections_2026/2027_2');
+            Cache::forget('course_sections_2026/2027_3');
 
             return back()->with('success', "تم استيراد {$imported} شعبة بنجاح.");
         } catch (\Exception $e) {
