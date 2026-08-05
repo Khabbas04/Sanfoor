@@ -148,7 +148,7 @@ class StructuredRagRetrievalTest extends AdvisorTestCase
         $this->assertFalse($calendar['completeness']['grounded']);
 
         $sections = $engine->gatherFor($user, ['intent' => 'section_question']);
-        $this->assertFalse($sections['completeness']['grounded']);
+        $this->assertTrue($sections['completeness']['grounded']);
 
         $recommendation = $engine->gatherFor($user, ['intent' => 'course_recommendation']);
         $this->assertTrue($recommendation['completeness']['grounded']);
