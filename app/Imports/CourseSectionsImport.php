@@ -5,7 +5,8 @@ namespace App\Imports;
 use App\Models\Course;
 use App\Models\CourseSection;
 use App\Models\AcademicPeriod;
-use OpenSpout\Reader\XLSX\Reader;
+use Shuchkin\SimpleXLSX;
+use Illuminate\Support\Facades\Log;
 
 class CourseSectionsImport
 {
@@ -21,75 +22,77 @@ class CourseSectionsImport
         $year = $this->period ? $this->period->academic_year : '2026/2027';
         $term = $this->period ? $this->period->academic_term : 1;
 
-        $reader = new Reader();
-        $reader->open($filePath);
+        $xlsx = SimpleXLSX::parse($filePath);
+        if (!$xlsx) {
+            throw new \Exception(SimpleXLSX::parseError() ?: 'تعذر قراءة ملف الإكسل.');
+        }
+
+        $rows = $xlsx->rows();
+        if (empty($rows)) {
+            return 0;
+        }
 
         $headers = [];
         $imported = 0;
 
-        foreach ($reader->getSheetIterator() as $sheet) {
-            foreach ($sheet->getRowIterator() as $rowIndex => $row) {
-                $cells = $row->getCells();
-                $values = array_map(fn($cell) => trim((string) $cell->getValue()), $cells);
+        foreach ($rows as $rowIndex => $row) {
+            $values = array_map(fn($cell) => trim((string) $cell), $row);
 
-                // First row = headers
-                if ($rowIndex === 1) {
-                    $headers = $this->normalizeHeaders($values);
-                    continue;
-                }
+            // First row = headers
+            if ($rowIndex === 0) {
+                $headers = $this->normalizeHeaders($values);
+                continue;
+            }
 
-                if (empty($headers) || empty(array_filter($values))) {
-                    continue;
-                }
+            if (empty($headers) || empty(array_filter($values))) {
+                continue;
+            }
 
-                $rowData = [];
-                foreach ($headers as $i => $headerKey) {
-                    $rowData[$headerKey] = $values[$i] ?? null;
-                }
+            $rowData = [];
+            foreach ($headers as $i => $headerKey) {
+                $rowData[$headerKey] = $values[$i] ?? null;
+            }
 
-                $courseIdentifier = $rowData['course_code'] ?? null;
-                $courseName = $rowData['course_name'] ?? null;
-                $instructor = $rowData['instructor'] ?? null;
-                $days = $rowData['days'] ?? null;
-                $time = $rowData['time'] ?? null;
-                $hall = $rowData['hall'] ?? null;
-                $capacity = $rowData['capacity'] ?? 50;
+            $courseIdentifier = $rowData['course_code'] ?? null;
+            $courseName = $rowData['course_name'] ?? null;
+            $instructor = $rowData['instructor'] ?? null;
+            $days = $rowData['days'] ?? null;
+            $time = $rowData['time'] ?? null;
+            $hall = $rowData['hall'] ?? null;
+            $capacity = $rowData['capacity'] ?? 50;
 
-                if (!$courseIdentifier && !$courseName) {
-                    continue;
-                }
+            if (!$courseIdentifier && !$courseName) {
+                continue;
+            }
 
-                // Find course in DB
-                $course = null;
-                if ($courseIdentifier) {
-                    $course = Course::where('code', $courseIdentifier)->first();
-                }
-                if (!$course && $courseName) {
-                    $cleanName = trim(str_replace(['أ', 'إ', 'آ'], 'ا', $courseName));
-                    $course = Course::where('name', 'like', "%{$cleanName}%")->first();
-                    if (!$course) {
-                        $course = Course::where('name', $courseName)->first();
-                    }
-                }
-
-                if ($course) {
-                    CourseSection::create([
-                        'course_id' => $course->id,
-                        'instructor' => $instructor ? (string)$instructor : null,
-                        'days' => $days ? (string)$days : null,
-                        'time' => $time ? (string)$time : null,
-                        'hall' => $hall ? (string)$hall : null,
-                        'capacity' => (int)($capacity ?: 50),
-                        'academic_year' => $year,
-                        'academic_term' => $term,
-                    ]);
-                    $imported++;
+            // Find course in DB
+            $course = null;
+            if ($courseIdentifier) {
+                $course = Course::where('code', $courseIdentifier)->first();
+            }
+            if (!$course && $courseName) {
+                $cleanName = trim(str_replace(['أ', 'إ', 'آ'], 'ا', $courseName));
+                $course = Course::where('name', 'like', "%{$cleanName}%")->first();
+                if (!$course) {
+                    $course = Course::where('name', $courseName)->first();
                 }
             }
-            break; // Only read first sheet
+
+            if ($course) {
+                CourseSection::create([
+                    'course_id' => $course->id,
+                    'instructor' => $instructor ? (string)$instructor : null,
+                    'days' => $days ? (string)$days : null,
+                    'time' => $time ? (string)$time : null,
+                    'hall' => $hall ? (string)$hall : null,
+                    'capacity' => (int)($capacity ?: 50),
+                    'academic_year' => $year,
+                    'academic_term' => $term,
+                ]);
+                $imported++;
+            }
         }
 
-        $reader->close();
         return $imported;
     }
 
