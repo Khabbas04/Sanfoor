@@ -187,6 +187,7 @@ class StructuredRagRetrievalTest extends AdvisorTestCase
     {
         config()->set('ai.features.intent_router', true);
         config()->set('ai.features.enhanced_rag', false);
+        config()->set('ai.features.tool_registry', false);
 
         [$user, $major] = $this->student();
         $this->course($major, ['name' => 'مادة مذكورة بالاسم', 'type' => 'elective', 'difficulty_level' => 1]);
