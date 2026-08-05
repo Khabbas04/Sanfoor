@@ -92,8 +92,10 @@ const sanitizeReply = (s) => {
 const SECTION_THEMES = [
     { test: /خلاصة|ملخص/, icon: '📌', cls: 'sfr-sec--summary' },
     { test: /خطة|المواد|مقترح|توصيات/, icon: '📚', cls: 'sfr-sec--plan' },
+    { test: /جدول|دوام|توزيع الدوام|جدولك/, icon: '🗓️', cls: 'sfr-sec--schedule' },
+    { test: /أوقات|فترات|مواعيد الشُعب/, icon: '⏰', cls: 'sfr-sec--time' },
     { test: /نصيحة|توجيه|إستراتيجية|استراتيجية/, icon: '💡', cls: 'sfr-sec--tip' },
-    { test: /تحذير|تنبيه|خطر|انتبه/, icon: '⚠️', cls: 'sfr-sec--warn' },
+    { test: /تحذير|تنبيه|خطر|انتبه|تعارض/, icon: '⚠️', cls: 'sfr-sec--warn' },
     { test: /قانون|قوانين|مادة \(|نظام/, icon: '⚖️', cls: 'sfr-sec--legal' },
     { test: /تقويم|موعد|مواعيد|جدول زمني/, icon: '📅', cls: 'sfr-sec--date' },
 ];
@@ -1050,8 +1052,11 @@ export default function Advisor() {
     };
 
     const magicCommands = [
-        // أوامر الجدول
-        { cmd: '/جدول', label: '🗓️ بناء جدول متكامل', message: 'ابنِ لي تسجيلاً متوازناً للفصل الحالي ضمن الحد المسموح، واشرح سبب اختيار كل مادة', icon: '🗓️' },
+        // أوامر الجدول والشعب
+        { cmd: '/جدول', label: '🗓️ بناء جدول متكامل (بدون تعارض)', message: 'ابنِ لي جدولاً دراسياً كاملاً للفصل الحالي مع الشُعب وأسماء المدرّسين والأوقات والقاعات، وتأكد من خلوه تماماً من أي تعارض زمني في جدول منظم', icon: '🗓️' },
+        { cmd: '/جدول-ح-ث-خ', label: '🗓️ جدول يركز على (ح ث خ)', message: 'ابنِ لي جدولاً دراسياً يركز على أيام الأحد والثلاثاء والخميس (ح ث خ) بدون تعارض بالأوقات، مع الشُعب وأسماء الدكاترة في جدول منظم', icon: '🗓️' },
+        { cmd: '/جدول-ن-ر', label: '🗓️ جدول يركز على (ن ر)', message: 'ابنِ لي جدولاً دراسياً يركز على أيام الاثنين والأربعاء (ن ر) بدون تعارض بالأوقات، مع الشُعب وأسماء الدكاترة في جدول منظم', icon: '🗓️' },
+        { cmd: '/شعب', label: '👨‍🏫 تفاصيل الشُعب والمدرّسين', message: 'اعرض قائمة بجميع الشُعب المطروحة للمواد المقترحة لي مع أسماء الدكاترة ومواعيدها وقاعاتها', icon: '👨‍🏫' },
         { cmd: '/اقتراح', label: '🎯 اقتراح مواد الفصل', message: 'حلّل المواد المطروحة واقترح أفضل مواد متاحة لي وفق المتطلبات في الفصل الحالي، مرتبة حسب الأولوية', icon: '🎯' },
         { cmd: '/مواعيد', label: '⏰ الشُعب والمواعيد', message: 'اعرض الشُعب والمواعيد والقاعات والمدرّسين المتوفرين للمواد التي أستطيع تسجيلها، ونبّهني إلى أي تعارض', icon: '⏰' },
         { cmd: '/تقويم', label: '📅 التقويم الجامعي', message: 'أعطني التقويم الجامعي للفصل الحالي ومواعيد السحب والإضافة والامتحانات', icon: '📅' },
@@ -1495,14 +1500,16 @@ export default function Advisor() {
 
     const allCommandsBank = useMemo(() => [
         // أوامر الجداول والتسجيل (الأساسية)
-        { text: "ابنِ لي تسجيلاً متوازناً للفصل الحالي ضمن الحد المسموح", icon: "🗓️", desc: "خطة الفصل", color: "blue" },
+        { text: "ابنِ لي جدولاً كاملاً بدون تعارض مع الشُعب والمواعيد وأسماء الدكاترة", icon: "🗓️", desc: "جدول بدون تعارض", color: "blue" },
+        { text: "اعمل لي جدول دراسي يركز على دوام (ح ث خ) بدون تعارض", icon: "☀️", desc: "جدول (ح ث خ)", color: "sky" },
+        { text: "اعمل لي جدول دراسي يركز على دوام (ن ر) بدون تعارض", icon: "🌤️", desc: "جدول (ن ر)", color: "indigo" },
         { text: "اقترح أفضل مواد متاحة لي وفق المتطلبات من المطروح حالياً", icon: "🎯", desc: "اقتراح مواد", color: "amber" },
+        { text: "اعرض الشُعب والمواعيد والمدرّسين المتوفرين للمواد المقترحة", icon: "⏰", desc: "الشُعب والمواعيد", color: "cyan" },
         { text: "حلّل معدلي وابنِ لي خطة واقعية لرفعه", icon: "🚀", desc: "هدف المعدل", color: "emerald" },
         { text: "راجع تسجيلي التجريبي مادةً مادة", icon: "🛒", desc: "مراجعة التسجيل", color: "slate" },
         { text: "تحقق من المتطلبات السابقة للمواد التي أفكر بها", icon: "🔗", desc: "فحص المتطلبات", color: "cyan" },
         { text: "قارن بين أفضل المواد المتاحة لي ووضح الأنسب", icon: "⚖️", desc: "مقارنة مواد", color: "violet" },
         { text: "حدد المواد الحرجة التي قد تؤخر تخرجي إذا أجلتها", icon: "🚨", desc: "المسار الحرج", color: "rose" },
-        { text: "اعرض الشُعب والمواعيد والمدرّسين المتوفرين للمواد المقترحة", icon: "⏰", desc: "الشُعب والمواعيد", color: "sky" },
         { text: "رتّب المواد المتبقية ضمن خطة تخرج واقعية", icon: "🎓", desc: "خطة التخرج", color: "fuchsia" },
         { text: "ساعدني في العثور على موقع مرفق داخل الجامعة", icon: "📍", desc: "دليل الجامعة", color: "teal" },
         
@@ -1679,15 +1686,22 @@ export default function Advisor() {
             .sfr-md .sfr-sec--legal { border-color: #e0dcfa; }
             .sfr-md .sfr-sec--legal .sfr-sec__head { background: #f7f5ff; border-bottom-color: #e8e4fb; }
             .sfr-md .sfr-sec--legal .sfr-sec__title { color: #4c37c4; }
+            .sfr-md .sfr-sec--schedule { border-color: #bfdbfe; }
+            .sfr-md .sfr-sec--schedule .sfr-sec__head { background: #eff6ff; border-bottom-color: #dbeafe; }
+            .sfr-md .sfr-sec--schedule .sfr-sec__title { color: #1d4ed8; }
+            .sfr-md .sfr-sec--time { border-color: #c7d2fe; }
+            .sfr-md .sfr-sec--time .sfr-sec__head { background: #eef2ff; border-bottom-color: #e0e7ff; }
+            .sfr-md .sfr-sec--time .sfr-sec__title { color: #4338ca; }
             .sfr-md .sfr-sec--date .sfr-sec__title, .sfr-md .sfr-sec--plan .sfr-sec__title { color: #0f172a; }
 
             /* ===== Tables ===== */
-            .sfr-md .sfr-table-wrap { overflow-x: auto; border: 1px solid #e6ebf2; border-radius: 12px; }
-            .sfr-md table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-            .sfr-md th, .sfr-md td { padding: .5rem .6rem; text-align: start; border-bottom: 1px solid #eef2f7; }
-            .sfr-md th { background: #f6f8fc; color: #334155; font-weight: 900; font-size: 11px; }
+            .sfr-md .sfr-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 14px; margin: 0.6rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.02); background: #fff; }
+            .sfr-md table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+            .sfr-md th, .sfr-md td { padding: .65rem .75rem; text-align: start; border-bottom: 1px solid #f1f5f9; }
+            .sfr-md th { background: #f8fafc; color: #1e293b; font-weight: 900; font-size: 11px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
             .sfr-md tr:last-child td { border-bottom: 0; }
-            .sfr-md tbody tr:nth-child(even) td { background: #fcfdfe; }
+            .sfr-md tbody tr:hover td { background: #f8fafc; }
+            .sfr-md tbody tr:nth-child(even) td { background: #fafbfc; }
 
             /* ===== Code ===== */
             .sfr-md .sfr-code-inline { background: #f1f5f9; border: 1px solid #e2e8f0; color: #be185d; padding: .05rem .3rem; border-radius: 5px; font-family: ui-monospace, monospace; font-size: 11.5px; font-weight: 700; }
