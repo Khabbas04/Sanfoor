@@ -1443,7 +1443,7 @@ export default function Advisor() {
     // here used to override a lower term limit.
     const maxCartHours = Number(st?.max_allowed_hours) > 0 ? Number(st.max_allowed_hours) : 18;
 
-    // 🆕 تحديث دالة الـ Toggle لتدعم الساعات الديناميكية
+    // 🆕 دالة Toggle فائقة السرعة مع تحديث فوري (Optimistic Update)
     const toggle = useCallback(async (cid, cn, chours = 0) => {
         const hoursToAdd = Number(chours) || 0;
         const isAlreadyAdded = !!added[cid];
@@ -1457,27 +1457,45 @@ export default function Advisor() {
             return;
         }
 
-        setLoadId(cid);
+        // استجابة فورية بدون أي تأخير للمستخدم
+        const targetAdded = !isAlreadyAdded;
+        setAdded(p => ({ ...p, [cid]: targetAdded }));
+        setCartHours(prev => targetAdded ? prev + hoursToAdd : Math.max(0, prev - hoursToAdd));
+
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'bottom-start',
+            showConfirmButton: false,
+            timer: 1800,
+            timerProgressBar: true,
+            ...swal
+        });
+
+        if (targetAdded) {
+            Toast.fire({ icon: 'success', title: `أضيفت "${cn}" للتسجيل التجريبي 🚀` });
+        } else {
+            Toast.fire({ icon: 'info', title: `أزيلت "${cn}" من التسجيل التجريبي` });
+        }
+
         try {
             const r = await axios.post(route('cart.toggle.single'), { course_id: cid });
-            if (r.data.status === 'added') {
+            if (r.data.status === 'added' && !targetAdded) {
                 setAdded(p => ({ ...p, [cid]: true }));
-                setCartHours(prev => prev + Number(chours)); // 🆕 إضافة الساعات
-                Swal.fire({ icon: 'success', title: 'أضيفت! 🚀', text: `"${cn}" بالتسجيل التجريبي.`, timer: 1500, showConfirmButton: false, ...swal });
-            } else if (r.data.status === 'removed') {
+                setCartHours(prev => prev + hoursToAdd);
+            } else if (r.data.status === 'removed' && targetAdded) {
                 setAdded(p => ({ ...p, [cid]: false }));
-                setCartHours(prev => Math.max(0, prev - Number(chours))); // 🆕 خصم الساعات
-                Swal.fire({ icon: 'info', title: 'أزيلت', text: `"${cn}" شُطبت.`, timer: 1500, showConfirmButton: false, ...swal });
+                setCartHours(prev => Math.max(0, prev - hoursToAdd));
             }
         } catch (error) {
+            // التراجع الفوري في حالة الخطأ
+            setAdded(p => ({ ...p, [cid]: isAlreadyAdded }));
+            setCartHours(prev => isAlreadyAdded ? prev + hoursToAdd : Math.max(0, prev - hoursToAdd));
             Swal.fire({
                 icon: 'error',
-                title: 'تعذر الإضافة',
-                text: error?.response?.data?.message || error?.response?.data?.msg || 'خطأ غير متوقع.',
+                title: 'تعذر التعديل',
+                text: error?.response?.data?.message || error?.response?.data?.msg || 'خطأ أثناء تعديل المادة.',
                 ...swal
             });
-        } finally {
-            setLoadId(null);
         }
     }, [added, cartHours, maxCartHours]);
 

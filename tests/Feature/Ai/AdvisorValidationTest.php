@@ -276,4 +276,35 @@ class AdvisorValidationTest extends AdvisorTestCase
         $this->assertStringContainsString('12 ساعة', $prompt);
         $this->assertStringContainsString('إنذار', $prompt);
     }
+
+    public function test_suggested_courses_strictly_match_courses_in_schedule_table(): void
+    {
+        [$user, $major] = $this->student();
+        $c1 = $this->course($major, ['name' => 'مقدمة لهندسة البرمجيات']);
+        $c2 = $this->course($major, ['name' => 'برمجة الحاسوب (2)']);
+        $c3 = $this->course($major, ['name' => 'تصميم المنطق الرقمي']);
+        $randomUnrelated = $this->course($major, ['name' => 'الجبر الخطي (1)']);
+        $this->currentPeriod();
+
+        $tableReply = "### 🗓️ جدولك الفصلي المقترح\n\n" .
+            "| المادة | الشعبة / المدرس | الأيام | الوقت | القاعة | الساعات |\n" .
+            "| :--- | :--- | :--- | :--- | :--- | :--- |\n" .
+            "| مقدمة لهندسة البرمجيات | معاذ الشلعوط | ح ث خ | 11:00 - 12:00 | قاعة 3 | 3 |\n" .
+            "| برمجة الحاسوب (2) | محمد حسان | ح ث خ | 09:00 - 10:00 | قاعة 3 | 3 |\n" .
+            "| تصميم المنطق الرقمي | محمد حسان | ح ث خ | 12:00 - 01:00 | قاعة 3 | 3 |\n";
+
+        // Even if Gemini returned random IDs in suggested_course_ids:
+        $this->fakeGemini([$this->envelope([
+            'reply' => $tableReply,
+            'suggested_course_ids' => [$randomUnrelated->id, $c1->id],
+        ])]);
+
+        $response = $this->actingAs($user)
+            ->postJson(route('ai.advisor.chat'), ['message' => 'نظملي جدول كامل'])
+            ->assertOk();
+
+        $suggested = $response->json('suggested_courses');
+        $this->assertCount(3, $suggested);
+        $this->assertSame([$c1->id, $c2->id, $c3->id], array_column($suggested, 'id'));
+    }
 }

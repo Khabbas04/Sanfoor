@@ -785,13 +785,26 @@ class AiAdvisorController extends Controller
         $eligibleIds = array_map('intval', array_keys($availableDetailsMap));
         $cartIds = array_map('intval', array_keys($cartData['map']));
 
-        $suggestedIds = array_values(array_intersect($parsed['suggested_course_ids'] ?? [], $eligibleIds));
-        $removeIds = array_values(array_intersect($parsed['remove_course_ids'] ?? [], $cartIds));
+        $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map'], (array) ($availableCourses['details'] ?? []));
+        $matchedSuggested = $matched['suggested'];
+        $matchedRemove = $matched['remove'];
 
-        if (empty($suggestedIds) && empty($removeIds)) {
-            $matched = $this->matchCoursesInReply($replyText, $availableDetailsMap, $cartData['map']);
-            $suggestedIds = $matched['suggested'];
-            $removeIds = $matched['remove'];
+        $parsedSuggested = array_values(array_intersect($parsed['suggested_course_ids'] ?? [], $eligibleIds));
+        $parsedRemove = array_values(array_intersect($parsed['remove_course_ids'] ?? [], $cartIds));
+
+        // When the reply explicitly presents or schedules specific courses in its text or table,
+        // use those exact courses in their exact order of appearance.
+        // Never show random/unmentioned courses when the AI proposed specific courses in its schedule!
+        if (!empty($matchedSuggested)) {
+            $suggestedIds = $matchedSuggested;
+        } else {
+            $suggestedIds = $parsedSuggested;
+        }
+
+        if (!empty($matchedRemove)) {
+            $removeIds = $matchedRemove;
+        } else {
+            $removeIds = $parsedRemove;
         }
 
         // Safety net: if any older stored prompt still emits the placeholder,
@@ -877,7 +890,7 @@ class AiAdvisorController extends Controller
                 ? $this->describeSuggestedCourses($suggestedIds, $ragData, $rules)
                 : [],
             'courses_to_remove' => !empty($removeIds)
-                ? Course::whereIn('id', $removeIds)->select('id', 'name', 'code', 'credit_hours', 'description')->get()->toArray()
+                ? $this->describeRemovedCourses($removeIds)
                 : [],
             'follow_up_suggestions' => $followUpSuggestions,
             'interactive_widget' => $interactiveWidget,
@@ -958,21 +971,46 @@ class AiAdvisorController extends Controller
         $courses = Course::whereIn('id', $suggestedIds)
             ->select('id', 'name', 'code', 'credit_hours', 'description')
             ->get()
-            ->toArray();
+            ->keyBy('id');
 
         // The retrieval pool already carries the derived fields (unlock counts and
         // names, plan semester), so no extra queries are needed here.
         $pool = collect($ragData['available_courses'] ?? [])->keyBy('id');
         $context = ['student_semester' => (int) ($rules['student_semester'] ?? 0)];
 
-        foreach ($courses as &$course) {
-            $details = $pool->get($course['id']);
-            $course['advantages'] = $details === null
+        $ordered = [];
+        foreach ($suggestedIds as $id) {
+            $course = $courses->get($id);
+            if (!$course) {
+                continue;
+            }
+            $courseArray = $course->toArray();
+            $details = $pool->get($id);
+            $courseArray['advantages'] = $details === null
                 ? []
                 : \App\Support\CourseAdvantages::for((array) $details, $context);
+            $ordered[] = $courseArray;
         }
 
-        return $courses;
+        return $ordered;
+    }
+
+    private function describeRemovedCourses(array $removeIds): array
+    {
+        $courses = Course::whereIn('id', $removeIds)
+            ->select('id', 'name', 'code', 'credit_hours', 'description')
+            ->get()
+            ->keyBy('id');
+
+        $ordered = [];
+        foreach ($removeIds as $id) {
+            $course = $courses->get($id);
+            if ($course) {
+                $ordered[] = $course->toArray();
+            }
+        }
+
+        return $ordered;
     }
 
     /** How many course ids the model proposed, across all three lists. */
@@ -2324,6 +2362,7 @@ class AiAdvisorController extends Controller
             "⚠️ شكل الرد الإجباري (JSON صالح فقط):\n" .
             "{\"reply\":\"...\",\"suggested_course_ids\":[],\"remove_course_ids\":[],\"follow_up_suggestions\":[\"...\"],\"interactive_widget\":null}\n" .
             "🚨 قاعدة المواد الحاسمة (لضمان تطابق الكروت مع كلامك):\n" .
+            "- ⚠️ تطابق إجباري 100%: إذا اقترحت جدولاً فصلياً أو نصحت بمواد للتسجيل، يجب أن تضع في مصفوفة (suggested_course_ids) أرقام (ID) نفس المواد التي اقترحتها في جدولك/ردك حصراً وبنفس الترتيب تماماً. لا تضع أي مادة لم تذكرها في ردك، ولا تقترح مادة في جدولك دون وضع الـ ID الخاص بها في suggested_course_ids.\n" .
             "- ⚠️ هام جداً: في مصفوفة (follow_up_suggestions)، يجب أن تكون الأسئلة المقترحة مكتوبة بلسان الطالب (بصيغة المتكلم)، لأن الطالب سيضغط عليها لإرسالها لك. (مثال خاطئ: 'هل تريد معرفة المزيد عن كذا؟') (مثال صحيح: 'كيف أقوم بتسجيل مادة كذا؟' أو 'ما هي شروط التخرج؟').\n" .
             "- إذا اقترحت للطالب مواد **للتسجيل**، ضع أرقامها (ID) فقط في المصفوفة suggested_course_ids — وحصراً أرقاماً موجودة في عمود ID بقائمة (المواد المتاحة للتسجيل).\n" .
             "- إذا نصحت الطالب **بحذف/تخفيف** مواد من تسجيله التجريبي، ضع أرقامها (ID) في remove_course_ids — وحصراً من أرقام مواد (التسجيل التجريبي الحالي).\n" .
@@ -2940,19 +2979,71 @@ class AiAdvisorController extends Controller
         return $widget;
     }
 
-    private function matchCoursesInReply(string $replyText, array $availableCoursesMap, array $cartCoursesMap): array
+    private function matchCoursesInReply(string $replyText, array $availableCoursesMap, array $cartCoursesMap, array $availableDetails = []): array
     {
         $normalizedReply = $this->normalizeArabic($replyText);
-        $suggestedIds = [];
+        $matchedWithPos = [];
         $removeIds = [];
 
-        foreach ($availableCoursesMap as $id => $name) {
-            $normalizedName = $this->normalizeArabic($name);
-            if (mb_strlen($normalizedName) >= 3 && mb_strpos($normalizedReply, $normalizedName) !== false) {
-                $suggestedIds[] = $id;
+        // 1. Check markdown tables first (e.g. proposed schedule table rows)
+        $lines = preg_split('/\r\n|\r|\n/', $replyText);
+        foreach ($lines as $lineIndex => $line) {
+            $line = trim($line);
+            if (str_starts_with($line, '|') && str_ends_with($line, '|')) {
+                $cells = array_map('trim', explode('|', trim($line, '|')));
+                if (!empty($cells)) {
+                    $firstCell = $cells[0]; // Usually Course Name or Code
+                    $normFirstCell = $this->normalizeArabic($firstCell);
+
+                    // Skip header/separator rows
+                    if (str_contains($firstCell, 'المادة') || str_contains($firstCell, '---') || str_contains($firstCell, 'Course')) {
+                        continue;
+                    }
+
+                    foreach ($availableCoursesMap as $id => $name) {
+                        $normName = $this->normalizeArabic($name);
+                        if (mb_strlen($normName) >= 3 && (str_contains($normFirstCell, $normName) || str_contains($normName, $normFirstCell))) {
+                            if (!isset($matchedWithPos[$id])) {
+                                $matchedWithPos[$id] = $lineIndex * 1000;
+                            }
+                        }
+                    }
+                }
             }
         }
 
+        // 2. Scan entire reply text for course names
+        foreach ($availableCoursesMap as $id => $name) {
+            $normName = $this->normalizeArabic($name);
+            if (mb_strlen($normName) >= 3) {
+                $pos = mb_strpos($normalizedReply, $normName);
+                if ($pos !== false) {
+                    if (!isset($matchedWithPos[$id]) || $pos < $matchedWithPos[$id]) {
+                        $matchedWithPos[$id] = $pos;
+                    }
+                }
+            }
+        }
+
+        // 3. Also check codes if details provided
+        foreach ($availableDetails as $id => $course) {
+            $code = trim((string) ($course['code'] ?? ''));
+            if ($code !== '' && mb_strlen($code) >= 3) {
+                $pos = mb_stripos($replyText, $code);
+                if ($pos !== false) {
+                    $courseId = (int) ($course['id'] ?? $id);
+                    if (!isset($matchedWithPos[$courseId]) || $pos < $matchedWithPos[$courseId]) {
+                        $matchedWithPos[$courseId] = $pos;
+                    }
+                }
+            }
+        }
+
+        // Sort matched courses by their position of appearance
+        asort($matchedWithPos);
+        $suggestedIds = array_keys($matchedWithPos);
+
+        // 4. Match courses to remove
         $removeKeywords = '(حذف|ازاله|إزالة|تخفيف|امسح|شيل|أزيل|ألغ|الغ|ارفع|اشيل)';
         foreach ($cartCoursesMap as $id => $name) {
             $normalizedName = $this->normalizeArabic($name);

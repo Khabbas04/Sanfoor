@@ -25,6 +25,18 @@ class CourseIdentityService
         'مختبر', 'عملي', 'مقدمه', 'متقدم', 'متقدمه', 'خاصه', 'مبادئ', 'اساسيات', 'تطبيقات',
     ];
 
+    /** @var array<string, string> */
+    private static array $normalizedNames = [];
+
+    /** @var array<string, string> */
+    private static array $normalizedCodes = [];
+
+    /** @var array<string, array<int, string>> */
+    private static array $cachedMeaningfulTokens = [];
+
+    /** @var array<string, array<int, string>> */
+    private static array $cachedNumberTokens = [];
+
     public function same(Course $first, Course $second): bool
     {
         if ((int) $first->id === (int) $second->id) {
@@ -57,12 +69,20 @@ class CourseIdentityService
 
         $firstLength = mb_strlen($firstName);
         $secondLength = mb_strlen($secondName);
+        $maxLen = max($firstLength, $secondLength);
+        $minLen = min($firstLength, $secondLength);
         
-        $lengthRatio = min($firstLength, $secondLength) / max($firstLength, $secondLength);
-        $characterSimilarity = $this->characterSimilarity($firstName, $secondName);
+        if ($maxLen > 0 && ($minLen / $maxLen) < 0.6) {
+            return false;
+        }
 
-        if ($firstLength >= 8 && $secondLength >= 8 && $lengthRatio >= 0.82 && $characterSimilarity >= 0.90) {
-            return true;
+        $lengthRatio = $minLen / max(1, $maxLen);
+
+        if ($firstLength >= 8 && $secondLength >= 8 && $lengthRatio >= 0.82) {
+            $characterSimilarity = $this->characterSimilarity($firstName, $secondName);
+            if ($characterSimilarity >= 0.90) {
+                return true;
+            }
         }
 
         $firstTokens = $this->meaningfulTokens($firstName);
@@ -95,7 +115,7 @@ class CourseIdentityService
 
         foreach ($courses->values() as $course) {
             $matchingIndex = $groups->search(function (array $group) use ($course) {
-                return $group['members']->contains(fn (Course $member) => $this->same($member, $course));
+                return $this->same($group['representative'], $course);
             });
 
             if ($matchingIndex === false) {
@@ -169,37 +189,47 @@ class CourseIdentityService
             ->where('is_quiz_only', false)
             ->get(['id', 'name', 'code']);
 
-        $group = $this->group($catalogue)->first(
-            fn (array $candidate) => $candidate['members']->contains('id', $reference->id)
-        );
+        $matches = $catalogue->filter(fn (Course $candidate) => $this->same($reference, $candidate));
 
-        if (! $group) {
+        if ($matches->isEmpty()) {
             return [(int) $reference->id];
         }
 
-        return $group['members']->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        return $matches->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
     }
 
     public function normalizeName(?string $value): string
     {
-        $value = mb_strtolower(trim((string) $value));
-        $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{06D6}-\x{06ED}\x{0640}]/u', '', $value) ?? $value;
-        $value = strtr($value, [
+        $raw = (string) $value;
+        if (isset(self::$normalizedNames[$raw])) {
+            return self::$normalizedNames[$raw];
+        }
+
+        $v = mb_strtolower(trim($raw));
+        $v = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{06D6}-\x{06ED}\x{0640}]/u', '', $v) ?? $v;
+        $v = strtr($v, [
             'أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', 'ٱ' => 'ا',
             'ى' => 'ي', 'ؤ' => 'و', 'ئ' => 'ي', 'ة' => 'ه',
             '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
             '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
         ]);
-        $value = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $value) ?? $value;
+        $v = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $v) ?? $v;
+        $res = trim(preg_replace('/\s+/u', ' ', $v) ?? $v);
 
-        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
+        return self::$normalizedNames[$raw] = $res;
     }
 
     private function normalizeCode(?string $value): string
     {
-        $value = mb_strtoupper(trim((string) $value));
+        $raw = (string) $value;
+        if (isset(self::$normalizedCodes[$raw])) {
+            return self::$normalizedCodes[$raw];
+        }
 
-        return preg_replace('/[^\p{L}\p{N}]+/u', '', $value) ?? $value;
+        $v = mb_strtoupper(trim($raw));
+        $res = preg_replace('/[^\p{L}\p{N}]+/u', '', $v) ?? $v;
+
+        return self::$normalizedCodes[$raw] = $res;
     }
 
     private function normalizeToken(string $token): string
@@ -210,21 +240,40 @@ class CourseIdentityService
     /** @return array<int, string> */
     private function meaningfulTokens(string $value): array
     {
-        return collect(preg_split('/\s+/u', $value) ?: [])
-            ->reject(fn (string $token) => in_array($token, self::CONNECTOR_WORDS, true))
-            ->map(fn (string $token) => $this->normalizeToken($token))
-            ->unique()
-            ->values()
-            ->all();
+        if (isset(self::$cachedMeaningfulTokens[$value])) {
+            return self::$cachedMeaningfulTokens[$value];
+        }
+
+        $tokens = preg_split('/\s+/u', $value) ?: [];
+        $res = [];
+        foreach ($tokens as $token) {
+            if (!in_array($token, self::CONNECTOR_WORDS, true)) {
+                $norm = $this->normalizeToken($token);
+                if (!in_array($norm, $res, true)) {
+                    $res[] = $norm;
+                }
+            }
+        }
+
+        return self::$cachedMeaningfulTokens[$value] = $res;
     }
 
     /** @return array<int, string> */
     private function numberTokens(string $value): array
     {
-        return collect(preg_split('/\s+/u', $value) ?: [])
-            ->filter(fn (string $token) => preg_match('/\d/u', $token) === 1)
-            ->values()
-            ->all();
+        if (isset(self::$cachedNumberTokens[$value])) {
+            return self::$cachedNumberTokens[$value];
+        }
+
+        $tokens = preg_split('/\s+/u', $value) ?: [];
+        $res = [];
+        foreach ($tokens as $token) {
+            if (preg_match('/\d/u', $token) === 1) {
+                $res[] = $token;
+            }
+        }
+
+        return self::$cachedNumberTokens[$value] = $res;
     }
 
     /** @param array<int, string> $firstTokens @param array<int, string> $secondTokens */
