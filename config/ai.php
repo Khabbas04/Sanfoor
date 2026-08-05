@@ -56,20 +56,20 @@ return [
     'features' => [
         // Intent detection in front of the existing pipeline. Also feeds the
         // ranking engine the intent + course shape it actually expects.
-        'intent_router' => (bool) env('AI_INTENT_ROUTER_ENABLED', true),
+        'intent_router' => (bool) env('AI_INTENT_ROUTER_ENABLED', false),
 
         // One extra model round-trip to classify genuinely ambiguous questions.
         // Off by default: on the lite model the local rules are close enough and
         // an extra call costs a slot from the per-key RPM budget.
         'intent_ai_fallback' => (bool) env('AI_INTENT_AI_FALLBACK_ENABLED', false),
 
-        'enhanced_rag' => (bool) env('AI_ENHANCED_RAG_ENABLED', true),
-        'tool_registry' => (bool) env('AI_TOOL_REGISTRY_ENABLED', true),
-        'sources' => (bool) env('AI_SOURCES_ENABLED', true),
-        'actions' => (bool) env('AI_ACTIONS_ENABLED', true),
-        'memory' => (bool) env('AI_MEMORY_ENABLED', true),
-        'new_widgets' => (bool) env('AI_NEW_WIDGETS_ENABLED', true),
-        'stream_events' => (bool) env('AI_STREAM_EVENTS_ENABLED', true),
+        'enhanced_rag' => (bool) env('AI_ENHANCED_RAG_ENABLED', false),
+        'tool_registry' => (bool) env('AI_TOOL_REGISTRY_ENABLED', false),
+        'sources' => (bool) env('AI_SOURCES_ENABLED', false),
+        'actions' => (bool) env('AI_ACTIONS_ENABLED', false),
+        'memory' => (bool) env('AI_MEMORY_ENABLED', false),
+        'new_widgets' => (bool) env('AI_NEW_WIDGETS_ENABLED', false),
+        'stream_events' => (bool) env('AI_STREAM_EVENTS_ENABLED', false),
 
         // Defaults ON, unlike the rest: it only writes to its own table and cannot
         // change a single reply, and without it none of the other flags can be
