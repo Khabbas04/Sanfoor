@@ -282,7 +282,7 @@ class StructuredRagEngine
         $passedHash = md5(implode(',', $passedCourseIds) . '|' . implode(',', $cartCourseIds));
         $cacheKey = AcademicCache::key("rag_available_courses:{$user->id}:{$user->major_id}:{$user->study_plan_version}:{$passedHash}");
 
-        return Cache::remember($cacheKey, 300, function () use ($passedCourseIds, $cartCourseIds, $user, $passedHours) {
+        return Cache::remember($cacheKey, 300, function () use ($passedCourseIds, $cartCourseIds, $user, $passedHours, $currentPeriod) {
             $planVersion = (int) ($user->study_plan_version ?? 12);
 
             $courses = Course::with(['prerequisites', 'children'])
@@ -329,6 +329,20 @@ class StructuredRagEngine
                 }
             });
 
+            $year = $currentPeriod ? $currentPeriod->academic_year : '2026/2027';
+            $term = $currentPeriod ? (int) $currentPeriod->academic_term : 1;
+
+            $sectionsByCourse = Cache::remember(
+                "course_sections_{$year}_{$term}",
+                3600,
+                function () use ($year, $term) {
+                    return \App\Models\CourseSection::where('academic_year', $year)
+                        ->where('academic_term', $term)
+                        ->get()
+                        ->groupBy('course_id');
+                }
+            );
+
             foreach ($courses as $c) {
                 $normName = $this->normalizeArabic($c->name);
                 $strictName = str_replace('ال', '', $normName);
@@ -348,6 +362,25 @@ class StructuredRagEngine
                     $unmetPrereqs[] = "تحتاج {$c->minimum_passed_hours} ساعة لفتحها";
                 }
 
+                $sectionsList = [];
+                $scheduleString = '';
+                if (isset($sectionsByCourse[$c->id]) && $sectionsByCourse[$c->id]->isNotEmpty()) {
+                    foreach ($sectionsByCourse[$c->id] as $sec) {
+                        $sectionsList[] = [
+                            'instructor' => $sec->instructor ?: 'غير محدد',
+                            'days' => $sec->days ?: '',
+                            'time' => $sec->time ?: '',
+                            'hall' => $sec->hall ?: '',
+                            'capacity' => $sec->capacity,
+                        ];
+                    }
+                    $sectionStrs = array_map(
+                        fn($sec) => "[{$sec['instructor']}|{$sec['days']}|{$sec['time']}|{$sec['hall']}]",
+                        $sectionsList
+                    );
+                    $scheduleString = implode(',', $sectionStrs);
+                }
+
                 $courseInfo = [
                     'id' => $c->id,
                     'name' => $c->name,
@@ -360,6 +393,8 @@ class StructuredRagEngine
                     'prereqs' => $c->prerequisites->pluck('name')->toArray(),
                     'course_year' => $c->semester ? ceil($c->semester / 2) : 1,
                     'course_semester' => $c->semester ?: null,
+                    'sections' => $sectionsList,
+                    'schedule_info' => $scheduleString,
                 ];
 
                 if (empty($unmetPrereqs) && !$lockedByHours) {

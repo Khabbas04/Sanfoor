@@ -6,6 +6,7 @@ use App\AiTools\AiTool;
 use App\AiTools\CalculateGpaGoalTool;
 use App\AiTools\GetCalendarEventsTool;
 use App\AiTools\GetCourseDetailsTool;
+use App\AiTools\GetCourseSectionsTool;
 use App\AiTools\ReviewCartTool;
 use App\AiTools\SearchCampusDirectoryTool;
 use App\AiTools\SearchCoursesTool;
@@ -42,6 +43,7 @@ class AiToolRegistry
         'review_cart' => ReviewCartTool::class,
         'get_calendar_events' => GetCalendarEventsTool::class,
         'search_campus_directory' => SearchCampusDirectoryTool::class,
+        'get_course_sections' => GetCourseSectionsTool::class,
     ];
 
     /**
@@ -51,20 +53,19 @@ class AiToolRegistry
      * keeps a small model from calling something unrelated.
      */
     private const BY_INTENT = [
-        'course_question' => ['get_course_details', 'search_courses'],
-        'course_recommendation' => ['search_courses', 'validate_prerequisites'],
-        'semester_planning' => ['search_courses', 'validate_prerequisites', 'review_cart'],
+        'course_question' => ['get_course_details', 'get_course_sections', 'search_courses'],
+        'course_recommendation' => ['search_courses', 'get_course_sections', 'validate_prerequisites'],
+        'semester_planning' => ['search_courses', 'get_course_sections', 'validate_prerequisites', 'review_cart'],
         'graduation_planning' => ['search_courses', 'validate_prerequisites'],
         'prerequisite_check' => ['validate_prerequisites', 'get_course_details'],
         'gpa_analysis' => ['calculate_gpa_goal', 'review_cart'],
         'gpa_goal' => ['calculate_gpa_goal'],
         'calendar_question' => ['get_calendar_events'],
-        'compare_courses' => ['get_course_details', 'search_courses'],
+        'compare_courses' => ['get_course_details', 'get_course_sections', 'search_courses'],
         'cart_review' => ['review_cart', 'validate_prerequisites'],
         'campus_location' => ['search_campus_directory'],
-        // No data source exists for these, and the tool that says so is the point.
-        'instructor_question' => ['get_calendar_events'],
-        'section_question' => ['get_calendar_events'],
+        'instructor_question' => ['get_course_sections', 'get_course_details'],
+        'section_question' => ['get_course_sections', 'get_course_details'],
     ];
 
     /** @var array<int, array{tool: string, ok: bool, arguments: array, error: ?string}> */
@@ -168,11 +169,20 @@ class AiToolRegistry
                 break;
 
             case 'calendar_question':
+                // Returns the honest "no source" answer, which is the instruction
+                // the model needs in order not to invent a date.
+                $plan[] = ['tool' => 'get_calendar_events', 'arguments' => []];
+                break;
+
             case 'instructor_question':
             case 'section_question':
-                // Returns the honest "no source" answer, which is the instruction
-                // the model needs in order not to invent a date or a lecturer.
-                $plan[] = ['tool' => 'get_calendar_events', 'arguments' => []];
+                $plan[] = [
+                    'tool' => 'get_course_sections',
+                    'arguments' => array_filter([
+                        'course_ids' => $courseIds,
+                        'course_name' => empty($courseIds) ? $message : null,
+                    ]),
+                ];
                 break;
 
             case 'prerequisite_check':
@@ -191,12 +201,16 @@ class AiToolRegistry
                 foreach (array_slice($courseIds, 0, 3) as $courseId) {
                     $plan[] = ['tool' => 'get_course_details', 'arguments' => ['course_id' => $courseId]];
                 }
+                if ($courseIds !== []) {
+                    $plan[] = ['tool' => 'get_course_sections', 'arguments' => ['course_ids' => $courseIds]];
+                }
                 break;
 
             case 'semester_planning':
                 $plan[] = ['tool' => 'review_cart', 'arguments' => []];
                 if ($courseIds !== []) {
                     $plan[] = ['tool' => 'validate_prerequisites', 'arguments' => ['course_ids' => $courseIds]];
+                    $plan[] = ['tool' => 'get_course_sections', 'arguments' => ['course_ids' => $courseIds]];
                 }
                 break;
         }
@@ -289,6 +303,9 @@ class AiToolRegistry
             'search_courses' => array_intersect_key($data, array_flip(['courses', 'total_matches'])),
             'search_campus_directory' => array_intersect_key($data, array_flip(['matched'])),
             'get_calendar_events' => array_intersect_key($data, array_flip(['current_period'])),
+            'get_course_sections' => array_intersect_key($data, array_flip([
+                'academic_period', 'total_sections', 'sections', 'message',
+            ])),
             default => $data,
         };
     }

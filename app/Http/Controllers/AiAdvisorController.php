@@ -2079,6 +2079,8 @@ class AiAdvisorController extends Controller
                         'prereq_count' => $prereqCount,
                         'unlocks' => $unlocksCount,
                         'in_cart' => $inCart,
+                        'schedule_info' => $scheduleString ?? '',
+                        'sections' => isset($sectionsByCourse[$course->id]) ? $sectionsByCourse[$course->id]->toArray() : [],
                     ];
                 }
             }

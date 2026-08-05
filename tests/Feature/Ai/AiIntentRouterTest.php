@@ -121,11 +121,11 @@ class AiIntentRouterTest extends TestCase
     /** The intents this deployment has no data for are reported honestly. */
     public function test_intents_without_grounding_data_are_flagged(): void
     {
-        foreach (['calendar_question', 'instructor_question', 'section_question'] as $intent) {
+        foreach (['calendar_question'] as $intent) {
             $this->assertFalse($this->router->isGrounded($intent), $intent);
         }
 
-        foreach (['course_recommendation', 'gpa_goal', 'cart_review', 'campus_location'] as $intent) {
+        foreach (['course_recommendation', 'gpa_goal', 'cart_review', 'campus_location', 'instructor_question', 'section_question'] as $intent) {
             $this->assertTrue($this->router->isGrounded($intent), $intent);
         }
     }

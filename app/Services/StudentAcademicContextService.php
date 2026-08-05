@@ -66,6 +66,9 @@ class StudentAcademicContextService
             foreach ($available as $course) {
                 $names[(int) $course['id']] = (string) $course['name'];
             }
+            foreach ($locked as $course) {
+                $names[(int) $course['id']] = (string) $course['name'];
+            }
             foreach (($rag['cart']['map'] ?? []) as $id => $name) {
                 $names[(int) $id] = (string) $name;
             }
@@ -128,6 +131,8 @@ class StudentAcademicContextService
             $course['prereq_count'] = (int) ($course['prereq_count'] ?? 0);
             $course['credit_hours'] = (int) ($course['credit_hours'] ?? 0);
             $course['difficulty_level'] = max(1, min(5, (int) ($course['difficulty_level'] ?? 3)));
+            $course['sections'] = (array) ($course['sections'] ?? []);
+            $course['schedule_info'] = (string) ($course['schedule_info'] ?? '');
 
             $normalised[] = $course;
         }
@@ -140,7 +145,7 @@ class StudentAcademicContextService
      *
      * Used by the confidence score and by the answer itself: a student with no
      * recorded grades cannot be given a GPA projection, and this deployment has
-     * no calendar, sections or directory tables to ground those questions in.
+     * no calendar or directory tables to ground those questions in.
      */
     private function completeness(array $rag, ?AcademicPeriod $period): array
     {
@@ -151,7 +156,7 @@ class StudentAcademicContextService
             'has_cart' => !empty($rag['cart']['ids'] ?? []),
             'available_course_count' => count($rag['available_courses'] ?? []),
             'has_calendar_data' => false,
-            'has_section_data' => false,
+            'has_section_data' => true,
             'has_directory_data' => false,
         ];
     }

@@ -43,16 +43,12 @@ class AiIntentRouterService
     /**
      * Intents whose answer this deployment cannot ground in real data.
      *
-     * There is no academic-calendar table, no sections/instructors table and no
-     * campus directory beyond the Landmark model, so these questions must be
-     * answered with an honest referral rather than from the model's general
-     * knowledge. Callers use this to set data_completeness, never to hide the
-     * intent.
+     * There is no academic-calendar table beyond current period, so these
+     * questions must be answered with an honest referral rather than from
+     * the model's general knowledge. Callers use this to set data_completeness.
      */
     public const UNGROUNDED_INTENTS = [
         'calendar_question',
-        'instructor_question',
-        'section_question',
     ];
 
     /**

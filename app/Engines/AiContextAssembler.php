@@ -88,9 +88,24 @@ class AiContextAssembler
                 $c = $rc['course'];
                 $prereqText = empty($c['prereqs']) ? 'لا يوجد' : implode('، ', $c['prereqs']);
                 $unlocksText = empty($c['unlocks_courses']) ? 'لا تفتح مواد أخرى' : implode('، ', $c['unlocks_courses']);
-                $semesterInfo = $c['course_semester'] ? "| الفصل الاسترشادي: {$c['course_semester']} " : "";
+                $semesterInfo = !empty($c['course_semester']) ? "| الفصل الاسترشادي: {$c['course_semester']} " : '';
 
-                $systemPrompt .= "- [ID: {$c['id']}] {$c['name']} (ساعات: {$c['credit_hours']} | صعوبة: {$c['difficulty_level']}/5) {$semesterInfo}| يسبقها: {$prereqText} | تفتح: {$unlocksText} | السبب: {$rc['reason']}\n";
+                $sectionsText = '';
+                if (!empty($c['sections']) && is_array($c['sections'])) {
+                    $secParts = [];
+                    foreach ($c['sections'] as $sec) {
+                        $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'دكتور غير محدد';
+                        $days = !empty($sec['days']) ? $sec['days'] : '';
+                        $time = !empty($sec['time']) ? $sec['time'] : '';
+                        $hall = !empty($sec['hall']) ? " قاعة {$sec['hall']}" : '';
+                        $secParts[] = "{$inst} ({$days} {$time}{$hall})";
+                    }
+                    $sectionsText = ' | الشُعب والمدرّسين: ' . implode('، ', $secParts);
+                } elseif (!empty($c['schedule_info'])) {
+                    $sectionsText = " | الشُعب: {$c['schedule_info']}";
+                }
+
+                $systemPrompt .= "- [ID: {$c['id']}] {$c['name']} (ساعات: {$c['credit_hours']} | صعوبة: {$c['difficulty_level']}/5) {$semesterInfo}{$sectionsText} | يسبقها: {$prereqText} | تفتح: {$unlocksText} | السبب: {$rc['reason']}\n";
             }
             $systemPrompt .= "\n";
         }

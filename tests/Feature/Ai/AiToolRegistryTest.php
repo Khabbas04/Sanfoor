@@ -29,6 +29,7 @@ class AiToolRegistryTest extends AdvisorTestCase
             'review_cart',
             'get_calendar_events',
             'search_campus_directory',
+            'get_course_sections',
         ], $this->registry->names());
 
         $this->assertFalse($this->registry->has('delete_student_record'));
@@ -358,7 +359,10 @@ class AiToolRegistryTest extends AdvisorTestCase
         $this->assertSame(['target_gpa' => 80.0, 'planned_hours' => 15], $gpa[0]['arguments']);
 
         $details = $this->registry->plan(['intent' => 'compare_courses', 'entities' => ['course_ids' => [1, 2]]]);
-        $this->assertSame(['get_course_details', 'get_course_details'], array_column($details, 'tool'));
+        $this->assertSame(['get_course_details', 'get_course_details', 'get_course_sections'], array_column($details, 'tool'));
+
+        $sectionsPlan = $this->registry->plan(['intent' => 'instructor_question', 'entities' => ['course_ids' => [1]]]);
+        $this->assertSame(['get_course_sections'], array_column($sectionsPlan, 'tool'));
 
         // An intent with nothing safe to run plans nothing.
         $this->assertSame([], $this->registry->plan(['intent' => 'general_question', 'entities' => []]));
@@ -400,5 +404,31 @@ class AiToolRegistryTest extends AdvisorTestCase
 
         $this->assertSame(['get_course_details'], $run['tools_called']);
         $this->assertStringContainsString('⚠️', $run['facts'][0]);
+    }
+
+    public function test_get_course_sections_returns_matching_sections(): void
+    {
+        [$user, $major] = $this->student();
+        $course = $this->course($major, ['name' => 'برمجة مرئية']);
+        $period = $this->currentPeriod(1, '2026/2027');
+
+        \App\Models\CourseSection::create([
+            'course_id' => $course->id,
+            'instructor' => 'د. أحمد المحمود',
+            'days' => 'ح ث خ',
+            'time' => '10:00 - 11:00',
+            'hall' => '101 IT',
+            'academic_year' => $period->academic_year,
+            'academic_term' => $period->academic_term,
+            'capacity' => 40,
+        ]);
+
+        $result = $this->registry->call($user, 'get_course_sections', ['course_ids' => [$course->id]]);
+
+        $this->assertTrue($result['ok']);
+        $this->assertCount(1, $result['data']['sections']);
+        $this->assertSame('د. أحمد المحمود', $result['data']['sections'][0]['instructor']);
+        $this->assertSame('برمجة مرئية', $result['data']['sections'][0]['course_name']);
+        $this->assertSame('course_sections', $result['sources'][0]['type']);
     }
 }
