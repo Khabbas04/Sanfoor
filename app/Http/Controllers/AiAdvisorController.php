@@ -566,8 +566,16 @@ class AiAdvisorController extends Controller
             'wants_code' => !empty($data['wants_code']),
         ];
 
+        $topKLimit = match ($rankingIntent) {
+            'course_recommendation', 'semester_planning' => 12,
+            'graduation_planning' => 14,
+            'compare_courses', 'course_question', 'prerequisite_check' => 8,
+            'cart_review', 'gpa_analysis', 'gpa_goal' => 6,
+            default => 8,
+        };
+
         $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
-        $rankedCourses = $rankingEngine->rank($rankingPool, $rules, $rankingIntent, 8, $preferences);
+        $rankedCourses = $rankingEngine->rank($rankingPool, $rules, $rankingIntent, $topKLimit, $preferences);
 
         // A course the student named by hand is the subject of the question, so it
         // has to reach the model even when its ranking score is low.
