@@ -11,7 +11,7 @@ class AiContextAssembler
      * (versioned via ai.prompt_version) so they can be tuned without touching code and
      * so every reply can be correlated with the prompt version that produced it.
      */
-    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = [], string $memoryBlock = '', array $toolFacts = []): array
+    public function build(array $rules, array $rankedCourses, array $ragData, array $documentContext, array $riskWarnings = [], string $memoryBlock = '', array $toolFacts = [], array $preferences = []): array
     {
         $systemPrompt = trim((string) config('ai.advisor.persona')) . "\n\n";
 
@@ -19,6 +19,55 @@ class AiContextAssembler
         // system prompt so `contents` stays a clean alternating transcript.
         if ($memoryBlock !== '') {
             $systemPrompt .= $memoryBlock;
+        }
+
+        // 0.5 User UI Preferences & Smart Settings (التفضيلات والإعدادات الذكية)
+        if (!empty($preferences)) {
+            $prefLines = [];
+
+            // Filters (Course types)
+            $userFilters = $preferences['filters'] ?? [];
+            if (!empty($userFilters) && is_array($userFilters)) {
+                $filterMap = [
+                    'compulsory' => 'إجباري (تخصص)',
+                    'elective' => 'اختياري (تخصص)',
+                    'university_req' => 'متطلب جامعة (أونلاين)',
+                    'supporting' => 'مساندة / كلية',
+                ];
+                $labels = array_map(fn($f) => $filterMap[$f] ?? $f, $userFilters);
+                $prefLines[] = "- 🎯 **أنواع المواد المطلوبة (فلتر إلزامي)**: الطالب حدد تفضيلاته لنوع المواد المراد التركيز عليها واقتراحها وهي: [" . implode('، ', $labels) . "]. التزم حصراً باقتراح مواد تطابق هذه الأنواع واذكر ذلك في إجابتك.";
+            }
+
+            // Critical Path
+            if (!empty($preferences['critical_path'])) {
+                $prefLines[] = "- 🔑 **المسار الحرج (تفتح مواد)**: الطالب فعّل خيار المسار الحرج — ركّز بشدة على المواد المفتاحية التي تفتح مواداً ومسارات أخرى في الخطة القادمة (أولوية قصوى لمواد الـ Unlocks وسلاسل المتطلبات) واشرح له كيف ستفتح له مسارات جديدة.";
+            }
+
+            // Code Mode
+            if (!empty($preferences['wants_code'])) {
+                $prefLines[] = "- 💻 **وضع الأكواد البرمجية مُفعل**: الطالب فعّل وضع الأكواد — إذا تضمّن السؤال أو الشرح أو الأمثلة أي كود برمجي، وفّر الكود كاملاً داخل صندوق أكواد Markdown مع تحديد لغة البرمجة بدقة (مثال: ```java أو ```python).";
+            }
+
+            // Difficulty
+            if (!empty($preferences['difficulty'])) {
+                $diff = $preferences['difficulty'];
+                if ($diff === 'easy') {
+                    $prefLines[] = "- 🌱 **مستوى الصعوبة (سهل / رفع المعدل)**: الطالب اختار مواد سهلة ومناسبة لرفع المعدل. ركّز على المواد ذات الصعوبة المنخفضة (1 أو 2 من 5) والعبء الخفيف.";
+                } elseif ($diff === 'hard') {
+                    $prefLines[] = "- 🔥 **مستوى الصعوبة (صعب / دسم)**: الطالب يفضل المواد الدسمة والمتقدمة ذات التحدي العلمي (صعوبة 4 أو 5 من 5).";
+                } elseif ($diff === 'balanced') {
+                    $prefLines[] = "- ⚖️ **مستوى الصعوبة (متوازن)**: الطالب يفضل جدولاً متوازناً يجمع بين المواد المتوسطة والسهلة (صعوبة 3 من 5).";
+                }
+            }
+
+            if (!empty($prefLines)) {
+                $systemPrompt .= "=== 🎛️ التفضيلات والإعدادات الذكية المحددة من الطالب لهذا السؤال ===\n";
+                $systemPrompt .= "الطالب قام بتفعيل وتحديد التفضيلات التالية من قائمة الإعدادات الذكية، ويجب الالتزام بها تماماً:\n";
+                foreach ($prefLines as $line) {
+                    $systemPrompt .= $line . "\n";
+                }
+                $systemPrompt .= "\n";
+            }
         }
 
         // 1. Rules Context

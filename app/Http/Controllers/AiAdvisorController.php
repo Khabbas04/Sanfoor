@@ -130,6 +130,7 @@ class AiAdvisorController extends Controller
             'filters.*' => ['string'],
             'difficulty' => ['nullable', 'string', 'in:easy,balanced,hard'],
             'critical_path' => ['nullable', 'boolean'],
+            'wants_code' => ['nullable', 'boolean'],
             // Set when retrying after a failed stream(): that request already stored
             // the student's message, so storing it again would duplicate the turn.
             'user_message_stored' => ['nullable', 'boolean'],
@@ -213,7 +214,7 @@ class AiAdvisorController extends Controller
 
         $geminiService = app(\App\Services\GeminiService::class);
         $apiKeys = $geminiService->getApiKeys();
-        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $regenerateMode);
+        $responseCacheKey = $this->buildAiResponseCacheKey($user->id, $data['message'], $academicData, $cartData, $availableCourses, $data['filters'] ?? [], $data['difficulty'] ?? null, $data['critical_path'] ?? null, $data['wants_code'] ?? null, $regenerateMode);
 
         // Regeneration means "give me a different answer". Reading the cache here is
         // what made the button return the SAME reply for two hours while still
@@ -259,7 +260,12 @@ class AiAdvisorController extends Controller
 
         try {
             if ($useFallback) {
-                $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses);
+                $parsed = $this->getLocalFallbackResponse($data['message'], $user, $academicData, $cartData, $availableCourses, [
+                    'filters' => $data['filters'] ?? [],
+                    'difficulty' => $data['difficulty'] ?? null,
+                    'critical_path' => !empty($data['critical_path']),
+                    'wants_code' => !empty($data['wants_code']),
+                ]);
                 
                 $replyText = $parsed['reply'];
                 $followUpSuggestions = $parsed['follow_up_suggestions'];
@@ -553,8 +559,15 @@ class AiAdvisorController extends Controller
         }
 
         // 2. Course Ranking Engine
+        $preferences = [
+            'filters' => is_array($data['filters'] ?? null) ? $data['filters'] : [],
+            'difficulty' => isset($data['difficulty']) && in_array($data['difficulty'], ['easy', 'balanced', 'hard'], true) ? $data['difficulty'] : null,
+            'critical_path' => !empty($data['critical_path']),
+            'wants_code' => !empty($data['wants_code']),
+        ];
+
         $rankingEngine = app(\App\Engines\CourseRankingEngine::class);
-        $rankedCourses = $rankingEngine->rank($rankingPool, $rules, $rankingIntent);
+        $rankedCourses = $rankingEngine->rank($rankingPool, $rules, $rankingIntent, 8, $preferences);
 
         // A course the student named by hand is the subject of the question, so it
         // has to reach the model even when its ranking score is low.
@@ -633,7 +646,7 @@ class AiAdvisorController extends Controller
         // 4. Ai Context Assembler (+ rolling memory of older turns)
         $memory = app(\App\Engines\ConversationMemoryEngine::class);
         $assembler = app(\App\Engines\AiContextAssembler::class);
-        $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings, $memory->summaryBlock($chat), $toolFacts);
+        $systemInstruction = $assembler->build($rules, $rankedCourses, $ragData, $docContext, $riskWarnings, $memory->summaryBlock($chat), $toolFacts, $preferences);
 
         // Optional academic memory: five preferences the student stated outright,
         // never mined from past messages. Current academic data still wins, which
@@ -1137,6 +1150,7 @@ class AiAdvisorController extends Controller
             'filters.*' => ['string'],
             'difficulty' => ['nullable', 'string', 'in:easy,balanced,hard'],
             'critical_path' => ['nullable', 'boolean'],
+            'wants_code' => ['nullable', 'boolean'],
         ]);
 
         $user = Auth::user();
@@ -3202,7 +3216,7 @@ class AiAdvisorController extends Controller
         return mb_strtolower(trim($text), 'UTF-8');
     }
 
-    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = [], $difficulty = null, $criticalPath = null, ?string $regenerateMode = null): string
+    private function buildAiResponseCacheKey(int $userId, string $message, array $academicData, array $cartData, array $availableCourses, array $filters = [], $difficulty = null, $criticalPath = null, $wantsCode = null, ?string $regenerateMode = null): string
     {
         $payload = [
             'message' => $this->normalizeArabic(mb_strtolower(trim($message))),
@@ -3212,6 +3226,7 @@ class AiAdvisorController extends Controller
             'filters' => $filters,
             'difficulty' => $difficulty,
             'critical_path' => $criticalPath,
+            'wants_code' => $wantsCode,
             'period' => $academicData['current_period_label'] ?? null,
             'term' => $academicData['current_period_term'] ?? null,
             'year' => $academicData['current_period_year'] ?? null,
@@ -3222,7 +3237,7 @@ class AiAdvisorController extends Controller
             'cart' => array_values($cartData['ids'] ?? []),
             'cart_hours' => (int) ($cartData['hours'] ?? 0),
             'available' => array_keys($availableCourses['map'] ?? []),
-            'advisor_rule_version' => 'first_semester_online_req_v4',
+            'advisor_rule_version' => 'first_semester_online_req_v5',
         ];
 
         return AcademicCache::key('ai_response_' . $userId) . '_' . md5(json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -3249,7 +3264,7 @@ class AiAdvisorController extends Controller
         return $this->makeFallbackTitle($userMessage);
     }
 
-    private function getLocalFallbackResponse(string $message, $user, array $academicData, array $cartData, array $availableCourses): array
+    private function getLocalFallbackResponse(string $message, $user, array $academicData, array $cartData, array $availableCourses, array $preferences = []): array
     {
         $normalized = $this->normalizeArabic($message);
         $currentPeriodLabel = (string) ($academicData['current_period_label'] ?? 'الفصل الحالي');
@@ -3306,6 +3321,34 @@ class AiAdvisorController extends Controller
                 $suggestedIds = $starterIds;
                 $reply .= "\n\nبما أنك في أول فصل، الأفضل تثبيت البداية على: **أساسيات تكنولوجيا معلومات**، **تصميم منطق رقمي**، **متطلب جامعة إجباري من مواد الأونلاين**، و**متطلب جامعة اختياري من مواد الأونلاين**.";
             }
+        }
+
+        // Detect if user selected preferences/filters
+        $prefNotes = [];
+        if (!empty($preferences['filters']) && is_array($preferences['filters'])) {
+            $filterMap = ['compulsory' => 'إجباري', 'elective' => 'اختياري', 'university_req' => 'متطلب جامعة', 'supporting' => 'مساندة'];
+            $fNames = array_map(fn($f) => $filterMap[$f] ?? $f, $preferences['filters']);
+            $prefNotes[] = "أنواع المواد: **" . implode('، ', $fNames) . "**";
+
+            // Filter available details by chosen types if possible
+            $filtered = array_filter($availableDetails, fn($c) => in_array($c['type'] ?? '', $preferences['filters'], true));
+            if (!empty($filtered)) {
+                $availableDetails = array_values($filtered);
+            }
+        }
+        if (!empty($preferences['critical_path'])) {
+            $prefNotes[] = "المسار الحرج (تفتح مواد): **مفعّل** 🔑";
+        }
+        if (!empty($preferences['difficulty'])) {
+            $diffMap = ['easy' => 'سهل / رفع المعدل 🌟', 'balanced' => 'متوازن ⚖️', 'hard' => 'صعب / دسم 🔥'];
+            $prefNotes[] = "مستوى الصعوبة: **" . ($diffMap[$preferences['difficulty']] ?? $preferences['difficulty']) . "**";
+        }
+        if (!empty($preferences['wants_code'])) {
+            $prefNotes[] = "وضع الأكواد البرمجية: **مفعّل** 💻";
+        }
+
+        if (!empty($prefNotes)) {
+            $reply .= "\n\n### 🎛️ التفضيلات المحددة\n" . implode(' | ', $prefNotes);
         }
 
         if (empty($suggestedIds)) {

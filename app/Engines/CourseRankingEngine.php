@@ -15,24 +15,38 @@ class CourseRankingEngine
      * - prereq_weight: 10% (Fewer prereqs = easier to take now)
      * - credit_efficiency: 10% (Standard 3hr courses preferred over 1hr labs unless needed)
      */
-    public function rank(array $availableDetails, array $academicRules, string $intent = 'عام', int $limit = 8): array
+    public function rank(array $availableDetails, array $academicRules, string $intent = 'عام', int $limit = 8, array $preferences = []): array
     {
         $studentYear = $academicRules['student_year'] ?? 1;
         $studentSemester = $academicRules['student_semester'] ?? 1;
         
         $scoredCourses = [];
 
+        $userFilters = $preferences['filters'] ?? [];
+        $hasFilters = !empty($userFilters) && is_array($userFilters);
+        $criticalPathPref = !empty($preferences['critical_path']);
+        $difficultyPref = $preferences['difficulty'] ?? null;
+
         foreach ($availableDetails as $course) {
             $score = 0;
             
-            // 1. Unlocks (Strategic Value) - Max 25 points
-            // Assuming max unlocks is around 5. Each unlock gives 5 points.
+            // 1. Unlocks (Strategic Value) - Max 25 points (boosted if critical_path is active)
             $unlocks = (int) ($course['unlocks'] ?? 0);
-            $score += min(25, $unlocks * 5);
+            $unlockScore = min(25, $unlocks * 5);
+            if ($criticalPathPref) {
+                $unlockScore += min(35, $unlocks * 8); // Extra massive boost for critical path
+            }
+            $score += $unlockScore;
             
-            // 2. Difficulty Fit - Max 20 points
+            // 2. Difficulty Fit - Max 20 points (or customized by difficulty preference)
             $difficulty = (int) ($course['difficulty_level'] ?? 3);
-            if ($intent === 'رفع_المعدل' || $intent === 'تخفيف_العبء') {
+            if ($difficultyPref === 'easy') {
+                $score += (6 - $difficulty) * 8; // Diff 1 -> 40, Diff 5 -> 8
+            } elseif ($difficultyPref === 'hard') {
+                $score += $difficulty * 8; // Diff 5 -> 40, Diff 1 -> 8
+            } elseif ($difficultyPref === 'balanced') {
+                $score += $difficulty === 3 ? 30 : ($difficulty === 2 || $difficulty === 4 ? 18 : 5);
+            } elseif ($intent === 'رفع_المعدل' || $intent === 'تخفيف_العبء') {
                 // Prefers Easy (1, 2)
                 $score += (6 - $difficulty) * 4; // Diff 1 -> 20, Diff 5 -> 4
             } elseif ($intent === 'تسريع_التخرج') {
@@ -43,21 +57,27 @@ class CourseRankingEngine
                 $score += $difficulty === 3 ? 20 : ($difficulty === 2 || $difficulty === 4 ? 15 : 5);
             }
             
-            // 3. Type Priority - Max 20 points
+            // 3. Type Priority & User Filters - Max 20 points (+50 if matching user filter)
             $type = $course['type'] ?? '';
-            $score += match($type) {
-                'compulsory' => 20,
-                'supporting' => 15,
-                'university_req' => 10,
-                'elective' => 5,
-                default => 5,
-            };
+            if ($hasFilters) {
+                if (in_array($type, $userFilters, true)) {
+                    $score += 50; // Priority to user's explicitly selected filter types
+                } else {
+                    $score -= 30; // Deprioritize non-selected types
+                }
+            } else {
+                $score += match($type) {
+                    'compulsory' => 20,
+                    'supporting' => 15,
+                    'university_req' => 10,
+                    'elective' => 5,
+                    default => 5,
+                };
+            }
             
             // 4. Semester Proximity - Max 15 points
             $courseSemester = $course['course_semester'] ?? null;
             if ($courseSemester !== null) {
-                // If it's the exact recommended semester, give max points (15)
-                // If it's a past semester course (student should have taken it already), give high priority (15) so they catch up!
                 if ($courseSemester <= $studentSemester) {
                     $score += 15;
                 } else {
@@ -65,29 +85,24 @@ class CourseRankingEngine
                     $score += max(0, 15 - ($semesterDiff * 3));
                 }
             } else {
-                // Fallback to year if no specific semester
                 $courseYear = (int) ($course['course_year'] ?? 1);
                 $yearDiff = abs($courseYear - $studentYear);
-                $score += max(0, 10 - ($yearDiff * 5)); // Lower max points if we only know the year
+                $score += max(0, 10 - ($yearDiff * 5));
             }
             
             // 5. Prereq Weight - Max 10 points
-            // Courses with 0 prereqs get 10, 1 prereq gets 5, more gets 0
             $prereqs = (int) ($course['prereq_count'] ?? 0);
             $score += max(0, 10 - ($prereqs * 5));
             
             // 6. Credit Efficiency - Max 10 points
             $credits = (int) ($course['credit_hours'] ?? 3);
-            $score += $credits >= 3 ? 10 : 5; // Standard courses get bonus over 1hr labs
+            $score += $credits >= 3 ? 10 : 5;
             
             $scoredCourses[] = [
                 'id' => $course['id'],
                 'name' => $course['name'],
                 'score' => $score,
-                'course' => $course, // Keep original data
-                // The model needs material to differentiate with. A generic "خيار
-                // جيد جداً" on six courses gives it nothing to say beyond repeating
-                // the score, so the concrete advantages go into the prompt instead.
+                'course' => $course,
                 'reason' => \App\Support\CourseAdvantages::summary($course, [
                     'student_semester' => (int) ($academicRules['student_semester'] ?? 0),
                 ]) ?: $this->generateRankingReason($score, $unlocks, $type),
@@ -100,7 +115,7 @@ class CourseRankingEngine
         // Sort by score descending
         usort($scoredCourses, fn($a, $b) => $b['score'] <=> $a['score']);
 
-        return $this->withBalancedMix(array_slice($scoredCourses, 0, $limit), $scoredCourses);
+        return $this->withBalancedMix(array_slice($scoredCourses, 0, $limit), $scoredCourses, $preferences);
     }
 
     /**
@@ -111,12 +126,20 @@ class CourseRankingEngine
      * unbalanced term. University requirements here are online and lighter, so one
      * is swapped in for the weakest entry when the shortlist has none.
      *
-     * @param array $shortlist the top-N about to be shown
-     * @param array $all       every scored candidate
+     * @param array $shortlist   the top-N about to be shown
+     * @param array $all         every scored candidate
+     * @param array $preferences user's explicit filter preferences
      */
-    private function withBalancedMix(array $shortlist, array $all): array
+    private function withBalancedMix(array $shortlist, array $all, array $preferences = []): array
     {
         $types = (array) config('academic_path_planner.balance.university_types', ['university_req', 'university_elective']);
+
+        // If student explicitly specified course types that do NOT include university requirements,
+        // respect their choice and don't force a university requirement into the shortlist.
+        $userFilters = $preferences['filters'] ?? [];
+        if (!empty($userFilters) && is_array($userFilters) && empty(array_intersect($types, $userFilters))) {
+            return $shortlist;
+        }
 
         $hasUniversity = fn (array $list) => collect($list)
             ->contains(fn (array $entry) => in_array((string) ($entry['course']['type'] ?? ''), $types, true));
