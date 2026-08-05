@@ -53,8 +53,17 @@ class GetCourseSectionsTool implements AiTool
         $term = $period ? (int) $period->academic_term : 1;
 
         $courseIds = array_filter(array_map('intval', (array) ($arguments['course_ids'] ?? [])));
-        $courseName = trim((string) ($arguments['course_name'] ?? ''));
+        $rawCourseName = trim((string) ($arguments['course_name'] ?? ''));
         $instructorName = trim((string) ($arguments['instructor_name'] ?? ''));
+
+        // Clean user conversational phrases from courseName if it was passed from a raw prompt
+        $cleanCourseName = $rawCourseName;
+        if ($cleanCourseName !== '') {
+            $stopWords = ['اعطيني', 'اعطني', 'اسماء', 'أسماء', 'اسامي', 'دكاترة', 'دكاتره', 'دكتور', 'مدرس', 'مدرسين', 'استاذ', 'أستاذ', 'مين', 'بدرس', 'يدرس', 'يعطي', 'مادة', 'ماده', 'مساق', 'شعب', 'شعبة', 'شعبة', 'جدول', 'عن', 'في', 'شو', 'ايش', 'لو سمحت', 'بدي', 'ابي'];
+            $pattern = '/\b(' . implode('|', array_map('preg_quote', $stopWords)) . ')\b/u';
+            $cleanCourseName = trim(preg_replace($pattern, '', $cleanCourseName));
+            $cleanCourseName = trim(preg_replace('/\s+/u', ' ', $cleanCourseName));
+        }
 
         $query = CourseSection::with('course')
             ->where('academic_year', $year)
@@ -62,11 +71,10 @@ class GetCourseSectionsTool implements AiTool
 
         if (!empty($courseIds)) {
             $query->whereIn('course_id', $courseIds);
-        }
-
-        if ($courseName !== '') {
-            $query->whereHas('course', function ($q) use ($courseName) {
-                $q->where('name', 'LIKE', "%{$courseName}%");
+        } elseif ($cleanCourseName !== '') {
+            $query->whereHas('course', function ($q) use ($cleanCourseName, $rawCourseName) {
+                $q->where('name', 'LIKE', "%{$cleanCourseName}%")
+                  ->orWhere('name', 'LIKE', "%{$rawCourseName}%");
             });
         }
 
@@ -81,10 +89,10 @@ class GetCourseSectionsTool implements AiTool
             $fallbackSections = CourseSection::with('course');
             if (!empty($courseIds)) {
                 $fallbackSections->whereIn('course_id', $courseIds);
-            }
-            if ($courseName !== '') {
-                $fallbackSections->whereHas('course', function ($q) use ($courseName) {
-                    $q->where('name', 'LIKE', "%{$courseName}%");
+            } elseif ($cleanCourseName !== '') {
+                $fallbackSections->whereHas('course', function ($q) use ($cleanCourseName, $rawCourseName) {
+                    $q->where('name', 'LIKE', "%{$cleanCourseName}%")
+                      ->orWhere('name', 'LIKE', "%{$rawCourseName}%");
                 });
             }
             if ($instructorName !== '') {

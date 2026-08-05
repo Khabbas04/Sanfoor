@@ -110,6 +110,36 @@ class AiContextAssembler
             $systemPrompt .= "\n";
         }
 
+        // 3.5 Offered Course Sections & Instructors (from all available/locked courses that have sections)
+        $allSectionsBlock = [];
+        $seenCourseIds = [];
+        $allCoursesWithSections = array_merge(
+            $ragData['available_courses'] ?? [],
+            $ragData['locked_courses'] ?? []
+        );
+
+        foreach ($allCoursesWithSections as $c) {
+            $cid = (int) ($c['id'] ?? 0);
+            if ($cid && !isset($seenCourseIds[$cid]) && !empty($c['sections']) && is_array($c['sections'])) {
+                $seenCourseIds[$cid] = true;
+                $secParts = [];
+                foreach ($c['sections'] as $sec) {
+                    $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'غير محدد';
+                    $days = !empty($sec['days']) ? $sec['days'] : '';
+                    $time = !empty($sec['time']) ? $sec['time'] : '';
+                    $hall = !empty($sec['hall']) ? " قاعة {$sec['hall']}" : '';
+                    $secParts[] = "{$inst} ({$days} {$time}{$hall})";
+                }
+                $allSectionsBlock[] = "- {$c['name']}: " . implode('، ', $secParts);
+            }
+        }
+
+        if (!empty($allSectionsBlock)) {
+            $systemPrompt .= "=== 👥 جدول الشُعب ومدرّسي المواد المطروحة هذا الفصل ===\n";
+            $systemPrompt .= "هذه بيانات المدرسين والشعب الرسمية المطروحة. استخدمها للإجابة عن أسئلة الطالب عن أسماء الدكاترة والمواعيد والقاعات:\n";
+            $systemPrompt .= implode("\n", $allSectionsBlock) . "\n\n";
+        }
+
         // 4. Cart Courses
         if (!empty($ragData['cart']['ids'])) {
             $systemPrompt .= "=== 🛒 مواد السلة الحالية ===\n";
