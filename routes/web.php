@@ -525,6 +525,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/courses/export', [AdminController::class, 'export'])->name('courses.export');
         Route::post('/courses/bulk-delete', [AdminController::class, 'bulkDelete'])->name('courses.bulk_delete');
 
+        // Course Sections
+        Route::get('/sections', [\App\Http\Controllers\Admin\CourseSectionController::class, 'index'])->name('sections.index');
+        Route::post('/sections/import', [\App\Http\Controllers\Admin\CourseSectionController::class, 'import'])->name('sections.import');
+        Route::put('/sections/{section}', [\App\Http\Controllers\Admin\CourseSectionController::class, 'update'])->name('sections.update');
+        Route::delete('/sections/{section}', [\App\Http\Controllers\Admin\CourseSectionController::class, 'destroy'])->name('sections.destroy');
+
+
         // Academic structure management (Structure page).
         Route::post('/colleges', [AdminController::class, 'storeCollege'])->name('colleges.store');
         Route::put('/colleges/{college}/quick-update', [AdminController::class, 'updateCollege'])->name('colleges.quick_update');

@@ -139,4 +139,12 @@ class Course extends Model
     {
         return $this->hasMany(Question::class);
     }
+
+    /**
+     * Sections (schedule) for this course.
+     */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(CourseSection::class);
+    }
 }

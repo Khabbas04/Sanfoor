@@ -209,7 +209,7 @@ class StructuredRagEngine
             'has_cart' => !empty($base['cart']['ids'] ?? []),
             'available_course_count' => count($base['available_courses'] ?? []),
             'has_calendar_data' => false,
-            'has_section_data' => false,
+            'has_section_data' => true,
             'has_directory_data' => false,
         ];
 

@@ -1987,64 +1987,32 @@ class AiAdvisorController extends Controller
             $allEligible = [];
             $totalPassedHours = $user->passedCourses->sum('credit_hours');
 
-            $isSummer2026 = $currentPeriod && strpos((string)$currentPeriod->academic_year, '2026') !== false && $currentPeriod->academic_term == 3;
-            $summerScheduleFile = storage_path('app/summer_2026_schedule.json');
-            $summerScheduleData = [];
-            if ($isSummer2026 && file_exists($summerScheduleFile)) {
-                $summerScheduleData = json_decode(file_get_contents($summerScheduleFile), true) ?? [];
-            }
-            $summer2026OfferedKeys = array_keys($summerScheduleData);
+            $year = $currentPeriod ? $currentPeriod->academic_year : '2026/2027';
+            $term = $currentPeriod ? $currentPeriod->academic_term : 1;
+            
+            // Cache course sections by course_id for fast lookup
+            $sectionsByCourse = \Illuminate\Support\Facades\Cache::remember(
+                "course_sections_{$year}_{$term}", 
+                3600, 
+                function () use ($year, $term) {
+                    return \App\Models\CourseSection::where('academic_year', $year)
+                        ->where('academic_term', $term)
+                        ->get()
+                        ->groupBy('course_id');
+                }
+            );
 
             foreach ($courses as $course) {
                 $scheduleString = "";
                 $isOfferedInSummer = false;
-                if ($isSummer2026) {
-                    $normalizedCourseName = $this->normalizeArabic($course->name);
-                    $matchedKey = null;
-                    
-                    // 1. Exact match
-                    foreach ($summer2026OfferedKeys as $offered) {
-                        if ($this->normalizeArabic($offered) === $normalizedCourseName) {
-                            $isOfferedInSummer = true;
-                            $matchedKey = $offered;
-                            break;
-                        }
+
+                if (isset($sectionsByCourse[$course->id]) && $sectionsByCourse[$course->id]->isNotEmpty()) {
+                    $isOfferedInSummer = true;
+                    $sectionStrs = [];
+                    foreach ($sectionsByCourse[$course->id] as $sec) {
+                        $sectionStrs[] = "[{$sec->instructor}|{$sec->days}|{$sec->time}|{$sec->hall}]";
                     }
-                    
-                    // 2. Fuzzy match
-                    if (!$matchedKey) {
-                        $courseWords = array_filter(explode(' ', str_replace('ال', '', $normalizedCourseName)), fn($w) => mb_strlen($w) > 1 || is_numeric($w));
-                        
-                        foreach ($summer2026OfferedKeys as $offered) {
-                            $normOffered = $this->normalizeArabic($offered);
-                            
-                            // Partial inclusion
-                            if (mb_strlen($normalizedCourseName) > 5 && (mb_strpos($normOffered, $normalizedCourseName) !== false || mb_strpos($normalizedCourseName, $normOffered) !== false)) {
-                                $isOfferedInSummer = true;
-                                $matchedKey = $offered;
-                                break;
-                            }
-                            
-                            // Word intersection
-                            $offeredWords = array_filter(explode(' ', str_replace('ال', '', $normOffered)), fn($w) => mb_strlen($w) > 1 || is_numeric($w));
-                            $intersect = array_intersect($courseWords, $offeredWords);
-                            $maxWords = max(count($courseWords), count($offeredWords));
-                            
-                            if ($maxWords > 0 && (count($intersect) / $maxWords) >= 0.70) {
-                                $isOfferedInSummer = true;
-                                $matchedKey = $offered;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if ($matchedKey && !empty($summerScheduleData[$matchedKey])) {
-                        $sections = [];
-                        foreach ($summerScheduleData[$matchedKey] as $sec) {
-                            $sections[] = "[{$sec['instructor']}|{$sec['days']}|{$sec['time']}|{$sec['hall']}]";
-                        }
-                        $scheduleString = implode(",", $sections);
-                    }
+                    $scheduleString = implode(",", $sectionStrs);
                 }
 
                 $missingPrereqs = [];
