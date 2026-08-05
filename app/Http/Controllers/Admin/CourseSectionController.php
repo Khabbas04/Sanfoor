@@ -11,7 +11,6 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
 use App\Support\AcademicCache;
 use Illuminate\Support\Facades\Cache;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\CourseSectionsImport;
 
 class CourseSectionController extends Controller
@@ -24,7 +23,8 @@ class CourseSectionController extends Controller
 
         try {
             $period = AcademicPeriod::current();
-            Excel::import(new CourseSectionsImport($period), $request->file('file'));
+            $importer = new CourseSectionsImport($period);
+            $imported = $importer->import($request->file('file')->getPathname());
             
             // Invalidate caches
             AcademicCache::bump();
@@ -33,7 +33,7 @@ class CourseSectionController extends Controller
                 Cache::forget("course_sections_{$period->academic_year}_{$period->academic_term}");
             }
 
-            return back()->with('success', 'تم استيراد الشُعب بنجاح.');
+            return back()->with('success', "تم استيراد {$imported} شعبة بنجاح.");
         } catch (\Exception $e) {
             return back()->withErrors(['file' => 'حدث خطأ أثناء الاستيراد: ' . $e->getMessage()]);
         }

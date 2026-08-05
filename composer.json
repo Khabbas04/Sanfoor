@@ -14,7 +14,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.26",
         "laravel/tinker": "^2.10.1",
-        "maatwebsite/excel": "^3.1",
+        "openspout/openspout": "^5.3",
         "smalot/pdfparser": "^2.12",
         "socialiteproviders/microsoft-azure": "^5.2",
         "spatie/laravel-backup": "*",
