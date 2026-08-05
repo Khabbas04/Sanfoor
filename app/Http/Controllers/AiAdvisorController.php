@@ -3289,7 +3289,18 @@ class AiAdvisorController extends Controller
             $reply .= "\n\n### 🤖 ما يمكنني مساعدتك به\nأستطيع مراجعة التسجيل، اقتراح المواد المتاحة، فحص المتطلبات، حساب هدف المعدل، وترتيب خطة التخرج وفق بياناتك الحالية.";
         }
 
-        if ($this->isFirstSemesterStudent($academicData)) {
+        // Detect if the student mentions having completed courses while the system shows 0
+        $mentionsCompletedCourses = preg_match('/(خلصت|نزلت|اجتزت|نجحت|انهيت|اخذت|درست|سنة اول|سنه اولى|فصل اول|الفصل الاول|مخلص|اتممت)/u', $normalized);
+
+        if ($this->isFirstSemesterStudent($academicData) && $mentionsCompletedCourses) {
+            // Student says they completed courses but system shows 0: warn them
+            $reply .= "\n\n### ⚠️ تنبيه مهم\nلاحظت إنك ذكرت أنك أنهيت مواد، لكن سجلك الأكاديمي عندي **فاضي تماماً** 😅.\n\n";
+            $reply .= "**عشان أقدر أساعدك بدقة ١٠٠٪ ولا أقترح لك مواد إنت خلصتها**، لازم تعمل خطوة وحدة بسيطة:\n";
+            $reply .= "1. ادخل على **شجرة المواد** 🌳 واضغط على كل مادة خلصتها واختر **'ناجح'**\n";
+            $reply .= "2. أو ارفع **كشف علاماتك** من صفحة الملف الشخصي\n\n";
+            $reply .= "بعدها ارجع كلمني وبقدر أرشدك بدقة تامة على أساس بياناتك الحقيقية! 🎯";
+            $followUps = ['كيف أحدّث المواد المنجزة في حسابي؟', 'وين ألاقي شجرة المواد؟'];
+        } elseif ($this->isFirstSemesterStudent($academicData)) {
             $starterIds = $this->getFirstSemesterStarterCourseIds($availableCourses);
             if (!empty($starterIds)) {
                 $suggestedIds = $starterIds;
