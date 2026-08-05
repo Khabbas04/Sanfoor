@@ -141,9 +141,11 @@ class AiContextAssembler
             $systemPrompt .= "\n";
         }
 
-        // 3. Ranked Courses
+        // 3. Eligible Available Courses (المواد المتاحة والمؤهلة للتسجيل والجدولة)
+        // 3. Eligible Available Courses (المواد المتاحة والمؤهلة للتسجيل والجدولة)
         if (!empty($rankedCourses)) {
-            $systemPrompt .= "=== ⭐ المواد المقترحة ===\n";
+            $systemPrompt .= "=== 🟢 المواد المتاحة والمؤهلة للتسجيل والجدولة (Eligible Available Courses) ===\n";
+            $systemPrompt .= "⛔ تنبيه حاسم: هذه هي المواد الوحيدة المتاحة والمسموح للطالب بتسجيلها أو إدراجها في أي جدول دراسي. جميع هذه المواد مستوفية للمتطلبات السابقة:\n";
             foreach ($rankedCourses as $rc) {
                 $c = $rc['course'];
                 $prereqText = empty($c['prereqs']) ? 'لا يوجد' : implode('، ', $c['prereqs']);
@@ -160,7 +162,7 @@ class AiContextAssembler
                         $hall = !empty($sec['hall']) ? " قاعة {$sec['hall']}" : '';
                         $secParts[] = "{$inst} ({$days} {$time}{$hall})";
                     }
-                    $sectionsText = ' | الشُعب والمدرّسين: ' . implode('، ', $secParts);
+                    $sectionsText = ' | الشُعب والمواعيد: ' . implode('، ', $secParts);
                 } elseif (!empty($c['schedule_info'])) {
                     $sectionsText = " | الشُعب: {$c['schedule_info']}";
                 }
@@ -170,34 +172,25 @@ class AiContextAssembler
             $systemPrompt .= "\n";
         }
 
-        // 3.5 Offered Course Sections & Instructors (from all available/locked courses that have sections)
-        $allSectionsBlock = [];
-        $seenCourseIds = [];
-        $allCoursesWithSections = array_merge(
-            $ragData['available_courses'] ?? [],
-            $ragData['locked_courses'] ?? []
-        );
-
-        foreach ($allCoursesWithSections as $c) {
-            $cid = (int) ($c['id'] ?? 0);
-            if ($cid && !isset($seenCourseIds[$cid]) && !empty($c['sections']) && is_array($c['sections'])) {
-                $seenCourseIds[$cid] = true;
+        // 3.5 Locked Courses (المواد المغلقة - ممنوع جدولتها إطلاقاً)
+        if (!empty($ragData['locked_courses'])) {
+            $systemPrompt .= "=== 🔒 المواد المغلقة في خطة الطالب (Locked Courses - ممنوع منعاً باتاً جدولتها أو اقتراح تسجيلها) ===\n";
+            $systemPrompt .= "⛔ تحذير قاطع: هذه المواد مغلقة لعدم استيفاء متطلباتها السابقة. ممنوع وضع أي مادة منها في جدول دراسي أو اقتراح تسجيلها للطالب. استخدم هذه البيانات فقط إذا سأل الطالب بالاسم عن مادة منها أو عن مدرسها:\n";
+            foreach ($ragData['locked_courses'] as $lc) {
+                $reasons = !empty($lc['reasons']) ? implode('، ', $lc['reasons']) : 'متطلب سابق غير مجتاز';
                 $secParts = [];
-                foreach ($c['sections'] as $sec) {
-                    $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'غير محدد';
-                    $days = !empty($sec['days']) ? $sec['days'] : '';
-                    $time = !empty($sec['time']) ? $sec['time'] : '';
-                    $hall = !empty($sec['hall']) ? " قاعة {$sec['hall']}" : '';
-                    $secParts[] = "{$inst} ({$days} {$time}{$hall})";
+                if (!empty($lc['sections']) && is_array($lc['sections'])) {
+                    foreach ($lc['sections'] as $sec) {
+                        $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'غير محدد';
+                        $days = !empty($sec['days']) ? $sec['days'] : '';
+                        $time = !empty($sec['time']) ? $sec['time'] : '';
+                        $secParts[] = "{$inst} ({$days} {$time})";
+                    }
                 }
-                $allSectionsBlock[] = "- {$c['name']}: " . implode('، ', $secParts);
+                $secText = !empty($secParts) ? ' | الشُعب المطروحة: ' . implode('، ', $secParts) : '';
+                $systemPrompt .= "- [🔒 مغلقة - سبب الإغلاق: {$reasons}] {$lc['name']}{$secText}\n";
             }
-        }
-
-        if (!empty($allSectionsBlock)) {
-            $systemPrompt .= "=== 👥 جدول الشُعب ومدرّسي المواد المطروحة هذا الفصل ===\n";
-            $systemPrompt .= "هذه بيانات المدرسين والشعب الرسمية المطروحة. استخدمها للإجابة عن أسئلة الطالب عن أسماء الدكاترة والمواعيد والقاعات:\n";
-            $systemPrompt .= implode("\n", $allSectionsBlock) . "\n\n";
+            $systemPrompt .= "\n";
         }
 
         // 4. Cart Courses

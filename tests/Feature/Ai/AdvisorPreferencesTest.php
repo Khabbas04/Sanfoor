@@ -147,4 +147,61 @@ class AdvisorPreferencesTest extends TestCase
         $this->assertStringContainsString('مستوى الصعوبة (سهل / رفع المعدل)', $promptText);
         $this->assertStringContainsString('إجباري', $promptText);
     }
+
+    public function test_assembler_strictly_isolates_locked_courses(): void
+    {
+        $assembler = new AiContextAssembler();
+
+        $rules = [
+            'student_year_label' => 'السنة الأولى',
+            'progress_percent' => 0,
+            'total_passed_hours' => 0,
+            'is_probation' => false,
+            'is_graduating' => false,
+            'is_summer' => false,
+            'effective_limit' => 18,
+            'term_sequence_note' => 'طبيعي',
+            'cart_hours' => 0,
+            'cart_exceeds_limit' => false,
+        ];
+
+        $rankedCourses = [
+            [
+                'course' => [
+                    'id' => 1,
+                    'name' => 'برمجة الحاسوب (1)',
+                    'credit_hours' => 3,
+                    'difficulty_level' => 3,
+                    'sections' => [
+                        ['instructor' => 'دكتور أحمد', 'days' => 'ح ث خ', 'time' => '09:00 - 10:00', 'hall' => 'قاعة 1']
+                    ]
+                ],
+                'reason' => 'مادة بداية التخصص',
+            ]
+        ];
+
+        $ragData = [
+            'available_courses' => [
+                ['id' => 1, 'name' => 'برمجة الحاسوب (1)', 'credit_hours' => 3]
+            ],
+            'locked_courses' => [
+                [
+                    'id' => 2,
+                    'name' => 'نظم قواعد البيانات',
+                    'reasons' => ['يتطلب مادة برمجة الحاسوب 2'],
+                    'sections' => [
+                        ['instructor' => 'دكتور عارف', 'days' => 'ح ث خ', 'time' => '10:00 - 11:00']
+                    ]
+                ]
+            ]
+        ];
+
+        $result = $assembler->build($rules, $rankedCourses, $ragData, []);
+        $promptText = $result['parts'][0]['text'] ?? '';
+
+        $this->assertStringContainsString('المواد المتاحة والمؤهلة للتسجيل والجدولة', $promptText);
+        $this->assertStringContainsString('برمجة الحاسوب (1)', $promptText);
+        $this->assertStringContainsString('المواد المغلقة في خطة الطالب (Locked Courses - ممنوع منعاً باتاً جدولتها أو اقتراح تسجيلها)', $promptText);
+        $this->assertStringContainsString('[🔒 مغلقة - سبب الإغلاق: يتطلب مادة برمجة الحاسوب 2] نظم قواعد البيانات', $promptText);
+    }
 }
