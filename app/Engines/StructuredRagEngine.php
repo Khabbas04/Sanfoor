@@ -369,13 +369,15 @@ class StructuredRagEngine
 
                 $sectionsList = [];
                 $scheduleString = '';
+                $isUnivReq = in_array($c->type, ['university_req', 'university_elective'], true) || str_contains((string) $c->type, 'university');
+
                 if (isset($sectionsByCourse[$c->id]) && $sectionsByCourse[$c->id]->isNotEmpty()) {
                     foreach ($sectionsByCourse[$c->id] as $sec) {
                         $sectionsList[] = [
                             'instructor' => $sec->instructor ?: 'غير محدد',
-                            'days' => $sec->days ?: '',
-                            'time' => $sec->time ?: '',
-                            'hall' => $sec->hall ?: '',
+                            'days' => $sec->days ?: ($isUnivReq ? 'أونلاين' : ''),
+                            'time' => $sec->time ?: ($isUnivReq ? 'مرن / ذاتي' : ''),
+                            'hall' => $sec->hall ?: ($isUnivReq ? 'عن بعد' : ''),
                             'capacity' => $sec->capacity,
                         ];
                     }
@@ -384,6 +386,15 @@ class StructuredRagEngine
                         $sectionsList
                     );
                     $scheduleString = implode(',', $sectionStrs);
+                } elseif ($isUnivReq) {
+                    $sectionsList[] = [
+                        'instructor' => 'التعليم الإلكتروني',
+                        'days' => 'أونلاين',
+                        'time' => 'دراسة ذاتية مرنة (بلا تعارض)',
+                        'hall' => 'المنصة الإلكترونية',
+                        'capacity' => 999,
+                    ];
+                    $scheduleString = '[التعليم الإلكتروني|أونلاين|دراسة ذاتية مرنة|المنصة الإلكترونية]';
                 }
 
                 $courseInfo = [

@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Course;
 use App\Models\User;
+use App\Support\CourseAdvantages;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -305,6 +307,89 @@ class AiWidgetBuilder
             'summary' => $path['summary']['message'] ?? null,
             // The action the student may take on this plan; execution still goes
             // through confirmation and re-validation against fresh data.
+            'apply_action' => [
+                'action' => 'apply_semester_plan',
+                'course_ids' => array_column($courses, 'course_id'),
+            ],
+        ];
+    }
+
+    /**
+     * Build a synchronized semester plan directly from the courses recommended by the AI.
+     *
+     * This guarantees 100% harmony between the AI reply/table, the plan panel,
+     * and the 1-click apply action.
+     *
+     * @param int[] $courseIds
+     */
+    public function semesterPlanFromSuggestedCourses(array $courseIds, array $ragData, array $rules, int $cartHours = 0, int $limit = 18): ?array
+    {
+        if (empty($courseIds)) {
+            return null;
+        }
+
+        $pool = collect($ragData['available_courses'] ?? [])->keyBy('id');
+        $missingIds = array_diff($courseIds, $pool->keys()->toArray());
+        $dbCourses = !empty($missingIds)
+            ? Course::whereIn('id', $missingIds)->get(['id', 'name', 'code', 'credit_hours', 'difficulty_level', 'type'])->keyBy('id')
+            : collect();
+
+        $courses = [];
+        $proposedHours = 0;
+        $cartIds = array_map('intval', $ragData['cart']['ids'] ?? []);
+        $context = ['student_semester' => (int) ($rules['student_semester'] ?? 0)];
+
+        foreach ($courseIds as $id) {
+            $id = (int) $id;
+            if (in_array($id, $cartIds, true)) {
+                continue;
+            }
+
+            $raw = $pool->get($id);
+            $c = is_array($raw) ? $raw : ($dbCourses->get($id)?->toArray() ?? []);
+            if (empty($c)) {
+                continue;
+            }
+
+            $name = (string) ($c['name'] ?? '');
+            $hours = (int) ($c['credit_hours'] ?? 3);
+            $diff = (int) ($c['difficulty_level'] ?? 3);
+
+            $advantages = CourseAdvantages::for($c, $context);
+            $reason = CourseAdvantages::summary($c, $context);
+
+            $proposedHours += $hours;
+            $courses[] = [
+                'course_id' => $id,
+                'name' => $name,
+                'credit_hours' => $hours,
+                'difficulty' => $diff,
+                'priority' => count($courses) + 1,
+                'reason' => $reason ?: 'مقترحة في جدولك الدراسي لهذا الفصل',
+                'advantages' => $advantages,
+            ];
+        }
+
+        if (empty($courses)) {
+            return null;
+        }
+
+        $totalHours = $cartHours + $proposedHours;
+
+        return [
+            'type' => 'semester_plan',
+            'title' => 'خطة الفصل المقترحة',
+            'proposed_hours' => $proposedHours,
+            'cart_hours' => $cartHours,
+            'total_hours' => $totalHours,
+            'hour_limit' => $limit,
+            'workload_level' => $totalHours <= 13 ? 'خفيف' : ($totalHours <= 16 ? 'متوازن' : 'مكثف'),
+            'load' => [
+                'is_over_budget' => $totalHours > $limit,
+                'note' => $totalHours > $limit ? 'تجاوز الحد الأقصى للساعات المسموحة' : null,
+            ],
+            'courses' => $courses,
+            'summary' => 'الخطة مطابقة للمواد المقترحة في جدول ورد المستشار ويمكنك تطبيقها بضغطة زر.',
             'apply_action' => [
                 'action' => 'apply_semester_plan',
                 'course_ids' => array_column($courses, 'course_id'),

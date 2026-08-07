@@ -151,24 +151,24 @@ class AiContextAssembler
                 $prereqText = empty($c['prereqs']) ? 'لا يوجد' : implode('، ', $c['prereqs']);
                 $unlocksText = empty($c['unlocks_courses']) ? 'لا تفتح مواد أخرى' : implode('، ', $c['unlocks_courses']);
                 $semesterInfo = !empty($c['course_semester']) ? "| الفصل الاسترشادي: {$c['course_semester']} " : '';
-                $isUnivReq = in_array($c['type'] ?? '', ['university_req', 'university_elective'], true);
-                $typeTag = $isUnivReq ? ' [🌐 متطلب جامعة أونلاين - مرن وبدون تعارض أوقات]' : '';
+                $isUnivReq = in_array($c['type'] ?? '', ['university_req', 'university_elective'], true) || str_contains((string) ($c['type'] ?? ''), 'university');
+                $typeTag = $isUnivReq ? ' [🌐 متطلب جامعة أونلاين - دراسة مرنة بلا تعارض أوقات]' : '';
 
                 $sectionsText = '';
                 if (!empty($c['sections']) && is_array($c['sections'])) {
                     $secParts = [];
                     foreach ($c['sections'] as $sec) {
-                        $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'دكتور غير محدد';
-                        $days = !empty($sec['days']) ? $sec['days'] : 'أونلاين / مرن';
-                        $time = !empty($sec['time']) ? $sec['time'] : '';
-                        $hall = !empty($sec['hall']) ? " قاعة {$sec['hall']}" : '';
+                        $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'التعليم الإلكتروني';
+                        $days = !empty($sec['days']) ? $sec['days'] : 'أونلاين';
+                        $time = !empty($sec['time']) ? $sec['time'] : 'مرن / ذاتي';
+                        $hall = !empty($sec['hall']) ? " ({$sec['hall']})" : '';
                         $secParts[] = "{$inst} ({$days} {$time}{$hall})";
                     }
                     $sectionsText = ' | الشُعب والمواعيد: ' . implode('، ', $secParts);
                 } elseif (!empty($c['schedule_info'])) {
                     $sectionsText = " | الشُعب: {$c['schedule_info']}";
                 } elseif ($isUnivReq) {
-                    $sectionsText = ' | الشُعب والمواعيد: شعبة أونلاين (دراسة ذاتية / غير متزامنة تناسب جميع الأيام ح ث خ و ن ر بدون تعارض زمني)';
+                    $sectionsText = ' | الشُعب والمواعيد: شعبة أونلاين (دراسة ذاتية مرنة تناسب جميع الأيام ح ث خ و ن ر وبلا تعارض زمني)';
                 }
 
                 $systemPrompt .= "- [ID: {$c['id']}]{$typeTag} {$c['name']} (ساعات: {$c['credit_hours']} | صعوبة: {$c['difficulty_level']}/5) {$semesterInfo}{$sectionsText} | يسبقها: {$prereqText} | تفتح: {$unlocksText} | السبب: {$rc['reason']}\n";

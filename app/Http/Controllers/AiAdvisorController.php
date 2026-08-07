@@ -878,8 +878,26 @@ class AiAdvisorController extends Controller
 
         // 9. Additional widgets (feature-flagged).
         //
-        // Built by the application from validated data, not asked of the model, and
-        // emitted ALONGSIDE the legacy interactive_widget rather than instead of it.
+        // If the AI recommended / scheduled specific courses in its reply, synchronize
+        // the semester plan widget directly with those exact courses so that the UI panel,
+        // the 1-click apply action, and the prose table are in 100% harmony.
+        if (!empty($suggestedIds) && ($planWidget !== null || in_array($intent['intent'] ?? '', ['semester_planning', 'course_recommendation'], true))) {
+            try {
+                $syncedPlan = app(\App\Services\AiWidgetBuilder::class)->semesterPlanFromSuggestedCourses(
+                    $suggestedIds,
+                    $ragData,
+                    $rules,
+                    (int) ($cartData['hours'] ?? 0),
+                    (int) ($rules['effective_limit'] ?? 18)
+                );
+                if ($syncedPlan !== null) {
+                    $planWidget = $syncedPlan;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Failed to sync planWidget from suggestedIds: ' . $e->getMessage());
+            }
+        }
+
         $widgets = [];
 
         if (config('ai.features.new_widgets')) {
@@ -898,10 +916,10 @@ class AiAdvisorController extends Controller
             }
         }
 
-        // The plan panel IS the recommendation. Leaving the model's own suggestion
-        // chips next to it gave the student two competing lists and no way to tell
-        // which one to follow.
-        if ($planWidget !== null && ($planWidget['type'] ?? '') === 'semester_plan') {
+        // When the plan panel widget is emitted, it IS the recommendation.
+        // Leaving the model's own suggestion chips next to it gave the student two
+        // competing lists. When the panel is emitted, clear suggested_courses.
+        if (config('ai.features.new_widgets') && !empty(collect($widgets)->firstWhere('type', 'semester_plan'))) {
             $suggestedIds = [];
         }
 
@@ -970,11 +988,11 @@ class AiAdvisorController extends Controller
             $widget['courses'] ?? []
         );
 
-        return "- [plan_panel] ⚠️ لوحة «خطة الفصل» معروضة للطالب الآن أسفل ردك بهذه المواد بالضبط: "
+        return "- [plan_panel] لوحة «خطة الفصل» معروضة للطالب استرشادياً أسفل ردك بهذه المواد: "
             . implode('، ', $courses)
-            . ". المجموع بعد التطبيق: {$widget['total_hours']} من {$widget['hour_limit']} ساعة"
+            . ". المجموع: {$widget['total_hours']} من {$widget['hour_limit']} ساعة"
             . ($widget['cart_hours'] > 0 ? " (منها {$widget['cart_hours']} ساعة موجودة مسبقاً في سلته)" : '')
-            . ". **ممنوع أن تقترح قائمة مواد مختلفة عن هذه، وممنوع أن تُعيد سردها كقائمة في نصك** — اشرح لماذا هذه الخطة مناسبة له بأسطر قصيرة، وذكّره أن أمامه زر لتطبيقها بنفسه.";
+            . ". **ممنوع أن تقترح قائمة مواد مختلفة** بدون مبرر، ولا تُعد سردها كقائمة مكررة؛ اشرح لماذا هذه الخطة مناسبة له، وإذا كان للطالب تفضيل خاص (مثل أيام معينة ح ث خ أو ن ر أو متطلب أونلاين) فابنِ جدولك المناسب بدقة من المواد المتاحة المؤهلة وسيقوم النظام تلقائياً بمزامنة لوحة الخطة وزر التطبيق بضغطة زر مع المواد التي اخترتها.";
     }
 
     /**
