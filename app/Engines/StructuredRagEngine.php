@@ -332,19 +332,49 @@ class StructuredRagEngine
             $year = $currentPeriod ? $currentPeriod->academic_year : '2026/2027';
             $term = $currentPeriod ? (int) $currentPeriod->academic_term : 1;
 
-            $sectionsByCourse = Cache::remember(
-                "course_sections_{$year}_{$term}",
+            $sectionsIndex = Cache::remember(
+                "course_sections_indexed_{$year}_{$term}",
                 3600,
                 function () use ($year, $term) {
-                    $sections = \App\Models\CourseSection::where('academic_year', $year)
-                        ->where('academic_term', $term)
-                        ->get();
+                    $query = \App\Models\CourseSection::with('course');
+                    if ($year) {
+                        $cleanYear = str_contains((string) $year, '/') ? explode('/', (string) $year)[1] : (string) $year;
+                        $query->where(function ($sub) use ($year, $term, $cleanYear) {
+                            $sub->where('academic_year', $year)
+                                ->where('academic_term', $term);
+                        })->orWhere('academic_year', $cleanYear)
+                          ->orWhere('academic_year', 'LIKE', "%{$cleanYear}%");
+                    }
+                    $sections = $query->get();
 
                     if ($sections->isEmpty()) {
-                        $sections = \App\Models\CourseSection::all();
+                        $sections = \App\Models\CourseSection::with('course')->get();
                     }
 
-                    return $sections->groupBy('course_id');
+                    $byCourseId = [];
+                    $byCode = [];
+                    $byName = [];
+
+                    foreach ($sections as $sec) {
+                        $byCourseId[$sec->course_id][] = $sec;
+                        if ($sec->course) {
+                            $code = trim((string) $sec->course->code);
+                            if ($code !== '') {
+                                $byCode[$code][] = $sec;
+                                $byCode[ltrim($code, '0')][] = $sec;
+                            }
+                            $nName = $this->normalizeArabic($sec->course->name);
+                            $sName = str_replace('ال', '', $nName);
+                            $byName[$nName][] = $sec;
+                            $byName[$sName][] = $sec;
+                        }
+                    }
+
+                    return [
+                        'by_id' => $byCourseId,
+                        'by_code' => $byCode,
+                        'by_name' => $byName,
+                    ];
                 }
             );
 
@@ -369,10 +399,36 @@ class StructuredRagEngine
 
                 $sectionsList = [];
                 $scheduleString = '';
-                $isUnivReq = in_array($c->type, ['university_req', 'university_elective'], true) || str_contains((string) $c->type, 'university');
+                $isUnivReq = in_array($c->type, ['university_req', 'university_elective'], true) 
+                    || (str_starts_with((string) $c->code, '0200') || (string) $c->code === '00');
 
-                if (isset($sectionsByCourse[$c->id]) && $sectionsByCourse[$c->id]->isNotEmpty()) {
-                    foreach ($sectionsByCourse[$c->id] as $sec) {
+                // Find sections by course ID, Code, or Name
+                $cCode = trim((string) $c->code);
+                $unpaddedCode = ltrim($cCode, '0');
+                $matchedSecs = collect();
+
+                if (!empty($sectionsIndex['by_id'][$c->id])) {
+                    $matchedSecs = $matchedSecs->concat($sectionsIndex['by_id'][$c->id]);
+                }
+                if ($cCode !== '') {
+                    if (!empty($sectionsIndex['by_code'][$cCode])) {
+                        $matchedSecs = $matchedSecs->concat($sectionsIndex['by_code'][$cCode]);
+                    }
+                    if (!empty($sectionsIndex['by_code'][$unpaddedCode])) {
+                        $matchedSecs = $matchedSecs->concat($sectionsIndex['by_code'][$unpaddedCode]);
+                    }
+                }
+                if (!empty($sectionsIndex['by_name'][$normName])) {
+                    $matchedSecs = $matchedSecs->concat($sectionsIndex['by_name'][$normName]);
+                }
+                if (!empty($sectionsIndex['by_name'][$strictName])) {
+                    $matchedSecs = $matchedSecs->concat($sectionsIndex['by_name'][$strictName]);
+                }
+
+                $uniqueSecs = $matchedSecs->unique(fn($s) => ($s->instructor ?? '') . '|' . ($s->days ?? '') . '|' . ($s->time ?? '') . '|' . ($s->hall ?? ''));
+
+                if ($uniqueSecs->isNotEmpty()) {
+                    foreach ($uniqueSecs as $sec) {
                         $sectionsList[] = [
                             'instructor' => $sec->instructor ?: 'غير محدد',
                             'days' => $sec->days ?: ($isUnivReq ? 'أونلاين' : ''),

@@ -69,35 +69,59 @@ class GetCourseSectionsTool implements AiTool
             ->where('academic_year', $year)
             ->where('academic_term', $term);
 
+        $targetCodes = [];
+        $targetNames = [];
         if (!empty($courseIds)) {
-            $query->whereIn('course_id', $courseIds);
-        } elseif ($cleanCourseName !== '') {
-            $query->whereHas('course', function ($q) use ($cleanCourseName, $rawCourseName) {
-                $q->where('name', 'LIKE', "%{$cleanCourseName}%")
-                  ->orWhere('name', 'LIKE', "%{$rawCourseName}%");
-            });
+            $targetCourses = \App\Models\Course::whereIn('id', $courseIds)->get(['id', 'code', 'name']);
+            $targetCodes = $targetCourses->pluck('code')->filter()->toArray();
+            $targetNames = $targetCourses->pluck('name')->filter()->toArray();
         }
 
-        if ($instructorName !== '') {
-            $query->where('instructor', 'LIKE', "%{$instructorName}%");
+        $applyFilters = function ($q) use ($courseIds, $targetCodes, $targetNames, $cleanCourseName, $rawCourseName, $instructorName) {
+            if (!empty($courseIds)) {
+                $q->where(function ($sub) use ($courseIds, $targetCodes, $targetNames) {
+                    $sub->whereIn('course_id', $courseIds);
+                    if (!empty($targetCodes)) {
+                        $sub->orWhereHas('course', fn($cq) => $cq->whereIn('code', $targetCodes));
+                    }
+                    if (!empty($targetNames)) {
+                        $sub->orWhereHas('course', function ($cq) use ($targetNames) {
+                            foreach ($targetNames as $tName) {
+                                $cq->orWhere('name', 'LIKE', "%{$tName}%");
+                            }
+                        });
+                    }
+                });
+            } elseif ($cleanCourseName !== '') {
+                $q->whereHas('course', function ($cq) use ($cleanCourseName, $rawCourseName) {
+                    $cq->where('name', 'LIKE', "%{$cleanCourseName}%")
+                       ->orWhere('name', 'LIKE', "%{$rawCourseName}%");
+                });
+            }
+
+            if ($instructorName !== '') {
+                $q->where('instructor', 'LIKE', "%{$instructorName}%");
+            }
+        };
+
+        $query = CourseSection::with('course');
+        if ($year) {
+            $cleanYear = str_contains((string) $year, '/') ? explode('/', (string) $year)[1] : (string) $year;
+            $query->where(function ($sub) use ($year, $term, $cleanYear) {
+                $sub->where(function ($s2) use ($year, $term) {
+                    $s2->where('academic_year', $year)->where('academic_term', $term);
+                })->orWhere('academic_year', $cleanYear)
+                  ->orWhere('academic_year', 'LIKE', "%{$cleanYear}%");
+            });
         }
+        $applyFilters($query);
 
         $sections = $query->limit(40)->get();
 
         if ($sections->isEmpty()) {
-            // Fallback: search without academic period if nothing found (e.g. if period in DB doesn't match exactly)
+            // Fallback: search without academic period if nothing found
             $fallbackSections = CourseSection::with('course');
-            if (!empty($courseIds)) {
-                $fallbackSections->whereIn('course_id', $courseIds);
-            } elseif ($cleanCourseName !== '') {
-                $fallbackSections->whereHas('course', function ($q) use ($cleanCourseName, $rawCourseName) {
-                    $q->where('name', 'LIKE', "%{$cleanCourseName}%")
-                      ->orWhere('name', 'LIKE', "%{$rawCourseName}%");
-                });
-            }
-            if ($instructorName !== '') {
-                $fallbackSections->where('instructor', 'LIKE', "%{$instructorName}%");
-            }
+            $applyFilters($fallbackSections);
             $sections = $fallbackSections->limit(40)->get();
         }
 
