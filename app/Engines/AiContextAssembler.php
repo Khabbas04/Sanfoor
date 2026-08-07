@@ -158,17 +158,21 @@ class AiContextAssembler
                 if (!empty($c['sections']) && is_array($c['sections'])) {
                     $secParts = [];
                     foreach ($c['sections'] as $sec) {
-                        $inst = !empty($sec['instructor']) ? $sec['instructor'] : 'التعليم الإلكتروني';
-                        $days = !empty($sec['days']) ? $sec['days'] : 'أونلاين';
-                        $time = !empty($sec['time']) ? $sec['time'] : 'مرن / ذاتي';
+                        $inst = !empty($sec['instructor']) && $sec['instructor'] !== 'غير محدد'
+                            ? $sec['instructor']
+                            : ($isUnivReq ? 'التعليم الإلكتروني' : 'لم يُسند بعد');
+                        $days = !empty($sec['days']) ? $sec['days'] : ($isUnivReq ? 'أونلاين' : 'وجاهي');
+                        $time = !empty($sec['time']) ? $sec['time'] : ($isUnivReq ? 'مرن / ذاتي' : 'تحدد لاحقاً');
                         $hall = !empty($sec['hall']) ? " ({$sec['hall']})" : '';
-                        $secParts[] = "{$inst} ({$days} {$time}{$hall})";
+                        $secParts[] = "{$inst} [{$days} {$time}{$hall}]";
                     }
                     $sectionsText = ' | الشُعب والمواعيد: ' . implode('، ', $secParts);
                 } elseif (!empty($c['schedule_info'])) {
                     $sectionsText = " | الشُعب: {$c['schedule_info']}";
                 } elseif ($isUnivReq) {
-                    $sectionsText = ' | الشُعب والمواعيد: شعبة أونلاين (دراسة ذاتية مرنة تناسب جميع الأيام ح ث خ و ن ر وبلا تعارض زمني)';
+                    $sectionsText = ' | الشُعب والمواعيد: 🌐 شعبة أونلاين (دراسة ذاتية مرنة تناسب جميع الأيام ح ث خ و ن ر وبلا تعارض زمني)';
+                } else {
+                    $sectionsText = ' | الشُعب: لم يتم إدخال جدول الشُعب لهذه المادة في النظام بعد';
                 }
 
                 $systemPrompt .= "- [ID: {$c['id']}]{$typeTag} {$c['name']} (ساعات: {$c['credit_hours']} | صعوبة: {$c['difficulty_level']}/5) {$semesterInfo}{$sectionsText} | يسبقها: {$prereqText} | تفتح: {$unlocksText} | السبب: {$rc['reason']}\n";
