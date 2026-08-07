@@ -211,6 +211,8 @@ class GeminiService
                                 $payload['tools'] = $options['tools'];
                             }
 
+                            $payload = $this->sanitizeUtf8($payload);
+
                             $response = Http::withoutVerifying()
                                 ->connectTimeout(3)
                                 ->timeout((int) ($options['timeout'] ?? 24))
@@ -418,6 +420,8 @@ class GeminiService
             if (isset($options['systemInstruction'])) {
                 $payload['systemInstruction'] = $options['systemInstruction'];
             }
+
+            $payload = $this->sanitizeUtf8($payload);
 
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:streamGenerateContent?alt=sse&key={$apiKey}";
 
@@ -912,5 +916,24 @@ class GeminiService
         $value = preg_replace('/[,\[\]{}"\':\s]+$/u', '', $value);
 
         return trim($value, " \t\n\r\0\x0B\"'");
+    }
+
+    /**
+     * Recursively sanitize strings to ensure valid UTF-8 for json_encode
+     */
+    public function sanitizeUtf8(mixed $data): mixed
+    {
+        if (is_string($data)) {
+            return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+        }
+        if (is_array($data)) {
+            $sanitized = [];
+            foreach ($data as $k => $v) {
+                $cleanKey = is_string($k) ? mb_convert_encoding($k, 'UTF-8', 'UTF-8') : $k;
+                $sanitized[$cleanKey] = $this->sanitizeUtf8($v);
+            }
+            return $sanitized;
+        }
+        return $data;
     }
 }
