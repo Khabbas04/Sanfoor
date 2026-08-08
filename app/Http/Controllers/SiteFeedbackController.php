@@ -41,7 +41,7 @@ class SiteFeedbackController extends Controller
      */
     public function index()
     {
-        $feedbacks = SiteFeedback::with('user:id,name,email,college_id,major_id')
+        $feedbacks = SiteFeedback::with('user:id,name,email,major_id')
             ->latest()
             ->paginate(50);
 
