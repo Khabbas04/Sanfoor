@@ -103,13 +103,13 @@ export default function Login({ status, canResetPassword }) {
                         </div>
                         
                         <div className="flex flex-col gap-3 pt-2" style={stagger(2)}>
-                            <a
+                            {/* <a
                                 href={route('guest.demo')}
                                 className="relative group w-full flex items-center justify-center gap-3 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 py-3.5 px-6 rounded-2xl font-black text-[13px] transition-all duration-300 shadow-sm"
                             >
                                 <span className="text-lg group-hover:scale-110 transition-transform duration-300">👋</span>
                                 زائر؟ اضغط هنا لتجربة المنصة
-                            </a>
+                            </a> */}
 
                             <button
                                 type="button"
