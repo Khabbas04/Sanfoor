@@ -164,6 +164,7 @@ export default function AdminLayout({ children }) {
                 'admin.ai_chats': '/admin/ai-chats',
                 'admin.ai_monitor': '/admin/ai-monitor',
                 'schedule_reviews.index': '/schedule-reviews',
+                'site_feedbacks.index': '/admin/site-feedbacks',
             };
             return map[name] || '#';
         }
