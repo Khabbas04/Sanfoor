@@ -212,6 +212,7 @@ export default function AdminLayout({ children }) {
                 { icon: '👨‍🎓', name: t.students, route: 'admin.students.index', pattern: 'admin.students.*' },
                 { icon: '📝', name: t.studentLogs, route: 'admin.student-logs', pattern: 'admin.student-logs' },
                 { icon: '👨‍🏫', name: t.instructors, route: 'admin.instructors.index', pattern: 'admin.instructors.*' },
+                { icon: '🌟', name: lang === 'ar' ? 'آراء وتجارب المنصة' : 'Site Feedbacks', route: 'site_feedbacks.index', pattern: 'site_feedbacks.*' },
                 { icon: '📑', name: t.scheduleReviews, route: 'schedule_reviews.index', pattern: 'schedule_reviews.*' },
                 { icon: '🛠️', name: t.issues, route: 'admin.issues.index', pattern: 'admin.issues.*', badge: openIssuesCount },
                 { icon: '📩', name: t.contactMessages, route: 'admin.contact_messages.index', pattern: 'admin.contact_messages.*', badge: unreadMessagesCount },

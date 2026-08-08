@@ -63,6 +63,22 @@ class HandleInertiaRequests extends Middleware
                 'is_owner' => $normalizedRole === 'owner',
                 'is_admin_or_owner' => in_array($normalizedRole, ['admin', 'owner'], true),
                 'is_guest' => $normalizedRole === 'guest',
+                'has_submitted_feedback' => Cache::remember(
+                    "user_{$user->id}_feedback",
+                    86400,
+                    fn() => \App\Models\SiteFeedback::where('user_id', $user->id)->exists()
+                ),
+                'is_eligible_for_feedback' => Cache::remember(
+                    "user_{$user->id}_feedback_eligibility_v2",
+                    14400, // Cache for 4 hours instead of 12 for faster propagation
+                    fn() => $user->created_at 
+                        && $user->created_at->diffInMinutes(now()) >= 15 // At least 15 minutes old
+                        && (
+                            \Illuminate\Support\Facades\DB::table('course_user')->where('user_id', $user->id)->exists() || 
+                            \Illuminate\Support\Facades\DB::table('chats')->where('user_id', $user->id)->exists() ||
+                            \Illuminate\Support\Facades\DB::table('cart_courses')->where('user_id', $user->id)->exists()
+                        )
+                ),
             ];
 
             if (in_array($normalizedRole, ['admin', 'owner'], true)) {

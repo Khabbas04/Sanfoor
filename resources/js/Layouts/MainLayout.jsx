@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, usePage, Head } from '@inertiajs/react';
 import { useLanguage } from '@/Contexts/LanguageContext';
 import { useTheme } from '@/Contexts/ThemeContext';
+import SiteFeedbackModal from '@/Components/SiteFeedbackModal';
 
 /**
  * Premium Guest Demo Banner — shown on every page when a guest user is active.
@@ -799,6 +800,7 @@ export default function MainLayout({
                 </div>
             </footer>
             )}
+            <SiteFeedbackModal />
         </div>
     );
 }

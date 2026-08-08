@@ -112,6 +112,9 @@ Route::post('/contact-us', [ContactMessageController::class, 'store'])->name('pu
 // Public announcements page visible to everyone.
 Route::get('/announcements', [InstructorController::class, 'publicAnnouncements'])->name('public.announcements');
 
+// Site feedback submission.
+Route::post('/site-feedbacks', [App\Http\Controllers\SiteFeedbackController::class, 'store'])->name('site_feedbacks.store');
+
 // Authenticated student dashboard.
 Route::get('/dashboard', function () {
     $user = Auth::user();
@@ -511,6 +514,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/students/{student}/cart/{courseId}', [AdminStudentController::class, 'removeCartCourse'])
             ->whereNumber('courseId')
             ->name('students.cart.remove');
+
+        // Site feedbacks management endpoints.
+        Route::get('/site-feedbacks', [App\Http\Controllers\SiteFeedbackController::class, 'index'])->name('site_feedbacks.index');
 
         // Course CRUD and import/export workflows.
         Route::get('/student-logs', [\App\Http\Controllers\Admin\AdminStudentActivityLogController::class, 'index'])->name('student-logs');
